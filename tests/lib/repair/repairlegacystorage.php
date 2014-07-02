@@ -17,6 +17,7 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	private $repair;
 
 	private $dataDir;
+	private $oldDataDir;
 
 	private $legacyStorageId;
 	private $newStorageId;
@@ -24,8 +25,12 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	public function setUp() {
 		$this->user = uniqid('user_');
 
-		$this->dataDir = \OC_Config::getValue('datadirectory', \OC::$SERVERROOT . '/data/');
-		$this->dataDir = rtrim($this->dataDir, '/') . '/';
+		$this->oldDataDir = \OC_Config::getValue('datadirectory', \OC::$SERVERROOT . '/data/');
+
+		// hard-coded string as we want a predictable fixed length
+		// no data will be written there
+		$this->dataDir = '/tmp/oc-autotest/datadir/';
+		\OC_Config::setValue('datadirectory', $this->dataDir);
 
 		$this->legacyStorageId = 'local::' . $this->dataDir . $this->user . '/';
 		$this->newStorageId = 'home::' . $this->user;
@@ -38,6 +43,7 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 		\OC_DB::executeAudited($sql);
 		$sql = 'DELETE FROM `*PREFIX*filecache`';
 		\OC_DB::executeAudited($sql);
+		\OC_Config::setValue('datadirectory', $this->oldDataDir);
 	}
 
 	/**
@@ -48,6 +54,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	private function createStorage($storageId) {
 		$sql = 'INSERT INTO `*PREFIX*storages` (`id`)'
 			. ' VALUES (?)';
+
+		if (strlen($storageId) > 64) {
+			$storageId = md5($storageId);
+		}
 		$numRows = \OC_DB::executeAudited($sql, array($storageId));
 		$this->assertEquals(1, $numRows);
 
@@ -138,6 +148,26 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 
 		$this->assertNull($this->getStorageId($this->legacyStorageId));
 		$this->assertEquals($newStorageNumId, $this->getStorageId($this->newStorageId));
+	}
+
+	/**
+	 * Test that legacy storages with long names are converted
+	 * to home storage when no home storage exists.
+	 */
+	public function testConvertLongEmptyLegacyToHomeStorage() {
+		// long datadir name + user name
+		$this->dataDir = '/tmp/oc-autotest/datadir01234567890123456789012345678901234567890123456789END';
+		\OC_Config::setValue('datadirectory', $this->dataDir);
+		$this->user = 'u01234567890123456789012345678901234567890123456789END';
+		$this->legacyStorageId = 'local::' . $this->dataDir . $this->user . '/';
+		$this->newStorageId = 'home::' . $this->user;
+
+		$legacyStorageNumId = $this->createStorage($this->legacyStorageId);
+
+		$this->repair->run();
+
+		$this->assertNull($this->getStorageId($this->legacyStorageId));
+		$this->assertEquals($legacyStorageNumId, $this->getStorageId($this->newStorageId));
 	}
 
 	/**
