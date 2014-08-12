@@ -23,27 +23,31 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	private $newStorageId;
 
 	public function setUp() {
-		$this->user = uniqid('user_');
-
 		$this->oldDataDir = \OC_Config::getValue('datadirectory', \OC::$SERVERROOT . '/data/');
-
-		// hard-coded string as we want a predictable fixed length
-		// no data will be written there
-		$this->dataDir = '/tmp/oc-autotest/datadir/';
-		\OC_Config::setValue('datadirectory', $this->dataDir);
-
-		$this->legacyStorageId = 'local::' . $this->dataDir . $this->user . '/';
-		$this->newStorageId = 'home::' . $this->user;
 
 		$this->repair = new \OC\Repair\RepairLegacyStorages();
 	}
 
 	public function tearDown() {
+		\OC_User::deleteUser($this->user);
+
 		$sql = 'DELETE FROM `*PREFIX*storages`';
 		\OC_DB::executeAudited($sql);
 		$sql = 'DELETE FROM `*PREFIX*filecache`';
 		\OC_DB::executeAudited($sql);
 		\OC_Config::setValue('datadirectory', $this->oldDataDir);
+	}
+
+	function prepareSettings($dataDir, $userId) {
+		// hard-coded string as we want a predictable fixed length
+		// no data will be written there
+		$this->dataDir = $dataDir;
+		\OC_Config::setValue('datadirectory', $this->dataDir);
+
+		$this->user = $userId;
+		$this->legacyStorageId = 'local::' . $this->dataDir . $this->user . '/';
+		$this->newStorageId = 'home::' . $this->user;
+		\OC_User::createUser($this->user, $this->user);
 	}
 
 	/**
@@ -55,9 +59,7 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 		$sql = 'INSERT INTO `*PREFIX*storages` (`id`)'
 			. ' VALUES (?)';
 
-		if (strlen($storageId) > 64) {
-			$storageId = md5($storageId);
-		}
+		$storageId = \OC\Files\Cache\Storage::adjustStorageId($storageId);
 		$numRows = \OC_DB::executeAudited($sql, array($storageId));
 		$this->assertEquals(1, $numRows);
 
@@ -71,10 +73,9 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	 * @return string storage id or null if not found
 	 */
 	private function getStorageId($storageId) {
-		$sql = 'SELECT `numeric_id` FROM `*PREFIX*storages` WHERE `id`= ?';
-		$result = \OC_DB::executeAudited($sql, array($storageId));
-		if ($row = $result->fetchRow()) {
-			return (int)$row['numeric_id'];
+		$numericId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
+		if (!is_null($numericId)) {
+			return (int)$numericId;
 		}
 		return null;
 	}
@@ -94,8 +95,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * Test that existing home storages are left alone when valid.
+	 * @dataProvider settingsProvider
 	 */
-	public function testNoopWithExistingHomeStorage() {
+	public function testNoopWithExistingHomeStorage($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$newStorageNumId = $this->createStorage($this->newStorageId);
 
 		$this->repair->run();
@@ -107,8 +110,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	/**
 	 * Test that legacy storages are converted to home storages when
 	 * the latter does not exist.
+	 * @dataProvider settingsProvider
 	 */
-	public function testConvertLegacyToHomeStorage() {
+	public function testConvertLegacyToHomeStorage($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$legacyStorageNumId = $this->createStorage($this->legacyStorageId);
 
 		$this->repair->run();
@@ -120,8 +125,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	/**
 	 * Test that legacy storages are converted to home storages
 	 * when home storage already exists but has no data.
+	 * @dataProvider settingsProvider
 	 */
-	public function testConvertLegacyToExistingEmptyHomeStorage() {
+	public function testConvertLegacyToExistingEmptyHomeStorage($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$legacyStorageNumId = $this->createStorage($this->legacyStorageId);
 		$newStorageNumId = $this->createStorage($this->newStorageId);
 
@@ -137,8 +144,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	 * Test that legacy storages are converted to home storages
 	 * when home storage already exists and the legacy storage
 	 * has no data.
+	 * @dataProvider settingsProvider
 	 */
-	public function testConvertEmptyLegacyToHomeStorage() {
+	public function testConvertEmptyLegacyToHomeStorage($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$legacyStorageNumId = $this->createStorage($this->legacyStorageId);
 		$newStorageNumId = $this->createStorage($this->newStorageId);
 
@@ -151,30 +160,12 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 	}
 
 	/**
-	 * Test that legacy storages with long names are converted
-	 * to home storage when no home storage exists.
-	 */
-	public function testConvertLongEmptyLegacyToHomeStorage() {
-		// long datadir name + user name
-		$this->dataDir = '/tmp/oc-autotest/datadir01234567890123456789012345678901234567890123456789END';
-		\OC_Config::setValue('datadirectory', $this->dataDir);
-		$this->user = 'u01234567890123456789012345678901234567890123456789END';
-		$this->legacyStorageId = 'local::' . $this->dataDir . $this->user . '/';
-		$this->newStorageId = 'home::' . $this->user;
-
-		$legacyStorageNumId = $this->createStorage($this->legacyStorageId);
-
-		$this->repair->run();
-
-		$this->assertNull($this->getStorageId($this->legacyStorageId));
-		$this->assertEquals($legacyStorageNumId, $this->getStorageId($this->newStorageId));
-	}
-
-	/**
 	 * Test that nothing is done when both conflicting legacy
 	 * and home storage have data.
+	 * @dataProvider settingsProvider
 	 */
-	public function testConflictNoop() {
+	public function testConflictNoop($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$legacyStorageNumId = $this->createStorage($this->legacyStorageId);
 		$newStorageNumId = $this->createStorage($this->newStorageId);
 
@@ -198,8 +189,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * Test that the data dir local entry is left alone
+	 * @dataProvider settingsProvider
 	 */
-	public function testDataDirEntryNoop() {
+	public function testDataDirEntryNoop($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$storageId = 'local::' . $this->dataDir;
 		$numId = $this->createStorage($storageId);
 
@@ -210,8 +203,10 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * Test that external local storages are left alone
+	 * @dataProvider settingsProvider
 	 */
-	public function testLocalExtStorageNoop() {
+	public function testLocalExtStorageNoop($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$storageId = 'local::/tmp/somedir/' . $this->user;
 		$numId = $this->createStorage($storageId);
 
@@ -222,13 +217,38 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * Test that other external storages are left alone
+	 * @dataProvider settingsProvider
 	 */
-	public function testExtStorageNoop() {
+	public function testExtStorageNoop($dataDir, $userId) {
+		$this->prepareSettings($dataDir, $userId);
 		$storageId = 'smb::user@password/tmp/somedir/' . $this->user;
 		$numId = $this->createStorage($storageId);
 
 		$this->repair->run();
 
 		$this->assertEquals($numId, $this->getStorageId($storageId));
+	}
+
+	/**
+	 * Provides data dir and user name
+	 */
+	function settingsProvider() {
+		return array(
+			// regular data dir
+			array(
+				'/tmp/oc-autotest/datadir/',
+				uniqid('user_'),
+			),
+			// long datadir / short user
+			array(
+				'/tmp/oc-autotest/datadir01234567890123456789012345678901234567890123456789END/',
+				uniqid('user_'),
+			),
+			// short datadir / long user
+			array(
+				'/tmp/oc-autotest/datadir/',
+				'u123456789012345678901234567890123456789012345678901234567890END', // 64 chars
+			),
+		);
 	}
 }

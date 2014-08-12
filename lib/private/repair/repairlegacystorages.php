@@ -42,16 +42,17 @@ class RepairLegacyStorages extends BasicEmitter {
 	 *
 	 * @return bool true if fixed, false otherwise
 	 */
-	private function fixLegacyStorage($oldId, $oldNumericId) {
+	private function fixLegacyStorage($oldId, $oldNumericId, $userId = null) {
 		// check whether the new storage already exists
-		$userId = $this->extractUserId($oldId);
+		if (is_null($userId)) {
+			$userId = $this->extractUserId($oldId);
+		}
 		$newId = 'home::' . $userId;
 
-		$sql = 'SELECT `numeric_id` FROM `*PREFIX*storages`'
-			. ' WHERE `id` = ?';
-		$result = \OC_DB::executeAudited($sql, array($newId));
-		if ($row = $result->fetchRow()) {
-			$newNumericId = (int)$row['numeric_id'];
+		// check if target id already exists
+		$newNumericId = (int)\OC\Files\Cache\Storage::getNumericStorageId($newId);
+		if (!is_null($newNumericId)) {
+			// try and resolve the conflict
 			// check which one of "local::" or "home::" needs to be kept
 			$sql = 'SELECT DISTINCT `storage` FROM `*PREFIX*filecache`'
 				. ' WHERE `storage` in (?, ?)';
@@ -79,7 +80,7 @@ class RepairLegacyStorages extends BasicEmitter {
 
 			$sql = 'DELETE FROM `*PREFIX*storages`'
 				. ' WHERE `id` = ?';
-			\OC_DB::executeAudited($sql, array($toDelete));
+			\OC_DB::executeAudited($sql, array(\OC\Files\Cache\Storage::adjustStorageId($toDelete)));
 
 			// if we deleted the old id, the new id will be used
 			// automatically
@@ -93,6 +94,8 @@ class RepairLegacyStorages extends BasicEmitter {
 		$sql = 'UPDATE `*PREFIX*storages`'
 			. ' SET `id` = ?'
 			. ' WHERE `id` = ?';
+		$newId = \OC\Files\Cache\Storage::adjustStorageId($newId);
+		$oldId = \OC\Files\Cache\Storage::adjustStorageId($oldId);
 		$rowCount = \OC_DB::executeAudited($sql, array($newId, $oldId));
 		return ($rowCount === 1);
 	}
@@ -127,6 +130,47 @@ class RepairLegacyStorages extends BasicEmitter {
 			if ($this->fixLegacyStorage($currentId, (int)$row['numeric_id'])) {
 				$count++;
 			}
+		}
+
+		// check for md5 ids, not in the format "prefix::"
+		$sql = 'SELECT COUNT(*) `c` FROM `*PREFIX*storages`'
+			. ' WHERE `id` NOT LIKE "%::%"';
+		$result = \OC_DB::executeAudited($sql);
+		$row = $result->fetchRow();
+		// find at least one to make sure it's worth
+		// querying the user list
+		if ((int)$row['c'] > 0) {
+			$userManager = \OC_User::getManager();
+
+			// use chunks to avoid caching too many users in memory
+			$limit = 30;
+			$offset = 0;
+
+			do {
+				// query the next page of users
+				$results = $userManager->search('', $limit, $offset);
+				$storageIds = array();
+				$userIds = array();
+				foreach ($results as $uid => $userObject) {
+					$storageId = $dataDirId . $uid . '/';
+					if (strlen($storageId) <= 64) {
+						// skip short storage ids as they were handled in the previous section
+						continue;
+					}
+					$storageIds[$uid] = $storageId;
+				}
+
+				if (count($storageIds) > 0) {
+					// update the storages of these users
+					foreach ($storageIds as $uid => $storageId) {
+						$numericId = \OC\Files\Cache\Storage::getNumericStorageId($storageId);
+						if (!is_null($numericId) && $this->fixLegacyStorage($storageId, (int)$numericId)) {
+							$count++;
+						}
+					}
+				}
+				$offset += $limit;
+			} while (count($results) > 0);
 		}
 
 		$this->emit('\OC\Repair', 'info', array('Updated ' . $count . ' legacy home storage ids'));
