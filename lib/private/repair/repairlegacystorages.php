@@ -60,16 +60,11 @@ class RepairLegacyStorages extends BasicEmitter {
 			$row2 = $result->fetchRow();
 			if ($row2 !== false) {
 				// two results means both storages have data, not auto-fixable
-				$this->emit(
-					'\OC\Repair',
-					'error',
-					array(
-						'Could not automatically fix legacy storage '
-						. '"' . $oldId . '" => "' . $newId . '"'
-						. ' because they both have data. '
-					)
+				throw new \OC\RepairException(
+					'Could not automatically fix legacy storage '
+					. '"' . $oldId . '" => "' . $newId . '"'
+					. ' because they both have data.'
 				);
-				return false;
 			}
 			if ($row1 === false || (int)$row1['storage'] === $oldNumericId) {
 				// old storage has data, then delete the empty new id
@@ -104,7 +99,7 @@ class RepairLegacyStorages extends BasicEmitter {
 
 	/**
 	 * Converts legacy home storage ids in the format
-	 * "local::/data/dir/patH/userid/" to the new format "home::userid"
+	 * "local::/data/dir/path/userid/" to the new format "home::userid"
 	 */
 	public function run() {
 		$dataDir = \OC_Config::getValue('datadirectory', \OC::$SERVERROOT . '/data/');

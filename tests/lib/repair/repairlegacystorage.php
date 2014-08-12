@@ -181,8 +181,17 @@ class TestRepairLegacyStorages extends PHPUnit_Framework_TestCase {
 		$this->createData($this->legacyStorageId);
 		$this->createData($this->newStorageId);
 
-		$this->repair->run();
+		try {
+			$thrown = false;
+			$this->repair->run();
+		}
+		catch (\OC\RepairException $e) {
+			$thrown = true;
+		}
 
+		$this->assertTrue($thrown);
+
+		// storages left alone
 		$this->assertEquals($legacyStorageNumId, $this->getStorageId($this->legacyStorageId));
 		$this->assertEquals($newStorageNumId, $this->getStorageId($this->newStorageId));
 	}
