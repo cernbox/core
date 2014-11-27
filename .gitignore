@@ -25,8 +25,7 @@
 
 
 # ignore themes except the README
-/themes/*
-!/themes/README
+
 
 # just sane ignores
 .*.sw[po]

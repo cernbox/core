@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<info>
+	<id>files_versions</id>
+	<name>EOS Versions</name>
+	<licence>AGPL</licence>
+	<author>Hugo Gonzalez Labrador IT-DSS-FDO 2014</author>
+	<requiremin>7.0.0</requiremin>
+	<shipped>true</shipped>
+	<description>
+    This app allows you to use the EOS versions functionality.
+	</description>
+	<types>
+		<filesystem/>
+	</types>
+	<default_enable/>
+	<ocsid>166053</ocsid>
+</info>
