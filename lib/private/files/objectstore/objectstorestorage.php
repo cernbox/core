@@ -224,7 +224,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function opendir($path) {
 		$path = $this->normalizePath($path);
 		try {
-			$files          = array();
+			$files = array();
 			$folderContents = $this->getCache()->getFolderContents($path);
 			foreach ($folderContents as $file) {
 				$files[] = $file['name'];
@@ -252,6 +252,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 	public function fopen($path, $mode) {
 		$path = $this->normalizePath($path);
+
 		switch ($mode) {
 			case 'r':
 			case 'rb':
@@ -302,7 +303,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 	public function file_exists($path) {
 		$path = $this->normalizePath($path);
-		return (bool) $this->stat($path);
+		return (bool)$this->stat($path);
 	}
 
 	public function rename($source, $target) {
@@ -325,8 +326,8 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	}
 
 	public function touch($path, $mtime = null) {
-		$path         = $this->normalizePath($path);
-		$dirName      = dirname($path);
+		$path = $this->normalizePath($path);
+		$dirName = dirname($path);
 		$parentExists = $this->is_dir($dirName);
 		if (!$parentExists) {
 			return false;
