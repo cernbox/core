@@ -28,16 +28,16 @@ class OC_Defaults {
 		$this->l = OC_L10N::get('lib');
 		$version = OC_Util::getVersion();
 
-		$this->defaultEntity = "ownCloud"; /* e.g. company name, used for footers and copyright notices */
-		$this->defaultName = "ownCloud"; /* short name, used when referring to the software */
-		$this->defaultTitle = "ownCloud"; /* can be a longer name, for titles */
-		$this->defaultBaseUrl = "https://owncloud.org";
+		$this->defaultEntity = "CERNBox"; /* e.g. company name, used for footers and copyright notices */
+		$this->defaultName = "CERNBox"; /* short name, used when referring to the software */
+		$this->defaultTitle = "CERNBox"; /* can be a longer name, for titles */
+		$this->defaultBaseUrl = "https://cern.ch/cernbox";
 		$this->defaultSyncClientUrl = "https://owncloud.org/sync-clients/";
 		$this->defaultDocBaseUrl = "http://doc.owncloud.org";
 		$this->defaultDocVersion = $version[0] . ".0"; // used to generate doc links
-		$this->defaultSlogan = $this->l->t("web services under your control");
+		$this->defaultSlogan = $this->l->t("CERN cloud under your control");
 		$this->defaultLogoClaim = "";
-		$this->defaultMailHeaderColor = "#1d2d44"; /* header color of mail notifications */
+		$this->defaultMailHeaderColor = "#ffffff"; /* header color of mail notifications */
 
 		if (class_exists("OC_Theme")) {
 			$this->theme = new OC_Theme();

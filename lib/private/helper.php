@@ -102,6 +102,12 @@ class OC_Helper {
 	 * Returns a url to the given service.
 	 */
 	public static function linkToRemoteBase($service) {
+		//HUGO, modified to put eos webdav instead
+		$user = \OCP\User::getUser();
+		$prefix = \OC\Files\ObjectStore\EosUtil::getEosPrefix();
+		if($service == "webdav"){
+			$service = $service . $prefix . substr($user, 0, 1) . "/" . $user;
+		}
 		return self::linkTo('', 'remote.php') . '/' . $service;
 	}
 
@@ -947,6 +953,21 @@ class OC_Helper {
 
 		if (!$rootInfo) {
 			$rootInfo = \OC\Files\Filesystem::getFileInfo($path, false);
+		}
+		// HUGO
+		if(!$rootInfo){
+			$user = \OCP\User::getUser();
+			\OCP\Util::writeLog('eos', "$user does not have a valid uid and gid", \OCP\Util::ERROR);
+			\OCP\User::logout();
+			// pretty message and abort session to not hang the user
+	        // render error page
+	        $msg = "There is a problem accessing information for your account: $user. A possible reason is that there is no computing group defined for your account or that your account is not active or was disabled. Please refer to: https://account.cern.ch/account/ to check your account status";
+	        $tmpl = new OC_Template('', 'error', 'guest');
+	        $tmpl->assign('errors', array(1 => array('error' => $msg)));
+	        $tmpl->printPage();
+	        exit();
+			// if we dont return false here, the system hangs because the owncloud guys think that $rootInfo will be always != null
+			return false;
 		}
 		$used = $rootInfo->getSize();
 		if ($used < 0) {
