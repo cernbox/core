@@ -48,9 +48,6 @@
 
 		<footer>
 			<p class="info">
-				<!-- HUGO add link to help Massimo propossal -->
-				<a href="http://cern.ch/cernbox" target="_blank">Help </a>
-				<br>
 				<?php print_unescaped($theme->getLongFooter()); ?>
 			</p>
 		</footer>

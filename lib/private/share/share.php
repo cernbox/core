@@ -528,9 +528,6 @@ class Share extends \OC\Share\Constants {
 			$permissions = (int)$permissions & ~\OCP\PERMISSION_DELETE;
 		}
 
-		// HUGO WE DONT ALLOW RESHARE PERMISSIONS
-		$permissions = $permissions&~\OCP\PERMISSION_SHARE;
-
 		// Verify share type and sharing conditions are met
 		if ($shareType === self::SHARE_TYPE_USER) {
 			if ($shareWith == $uidOwner) {
@@ -569,10 +566,38 @@ class Share extends \OC\Share\Constants {
 				}
 			}
 		} else if ($shareType === self::SHARE_TYPE_GROUP) {
-			// HUGO WE DONT ALLOW GROUP SHARES
-			$message = 'Sharing %s failed, because group sharing is not allowed in this version';
-			\OC_Log::write('OCP\Share', sprintf($message, $itemSourceName, $shareWith), \OC_Log::ERROR);
-			throw new \Exception(sprintf($message, $itemSourceName, $shareWith));
+			if (!\OC_Group::groupExists($shareWith)) {
+				$message = 'Sharing %s failed, because the group %s does not exist';
+				$message_t = $l->t('Sharing %s failed, because the group %s does not exist', array($itemSourceName, $shareWith));
+				\OC_Log::write('OCP\Share', sprintf($message, $itemSourceName, $shareWith), \OC_Log::ERROR);
+				throw new \Exception($message_t);
+			}
+			if ($shareWithinGroupOnly && !\OC_Group::inGroup($uidOwner, $shareWith)) {
+				$message = 'Sharing %s failed, because '
+					.'%s is not a member of the group %s';
+				$message_t = $l->t('Sharing %s failed, because %s is not a member of the group %s', array($itemSourceName, $uidOwner, $shareWith));
+				\OC_Log::write('OCP\Share', sprintf($message, $itemSourceName, $uidOwner, $shareWith), \OC_Log::ERROR);
+				throw new \Exception($message_t);
+			}
+			// Check if the item source is already shared with the group, either from the same owner or a different user
+			// The check for each user in the group is done inside the put() function
+			if ($checkExists = self::getItems($itemType, $itemSource, self::SHARE_TYPE_GROUP, $shareWith,
+				null, self::FORMAT_NONE, null, 1, true, true)) {
+				// Only allow the same share to occur again if it is the same
+				// owner and is not a group share, this use case is for increasing
+				// permissions for a specific user
+				if ($checkExists['uid_owner'] != $uidOwner || $checkExists['share_type'] == $shareType) {
+					$message = 'Sharing %s failed, because this item is already shared with %s';
+					$message_t = $l->t('Sharing %s failed, because this item is already shared with %s', array($itemSourceName, $shareWith));
+					\OC_Log::write('OCP\Share', sprintf($message, $itemSourceName, $shareWith), \OC_Log::ERROR);
+					throw new \Exception($message_t);
+				}
+			}
+			// Convert share with into an array with the keys group and users
+			$group = $shareWith;
+			$shareWith = array();
+			$shareWith['group'] = $group;
+			$shareWith['users'] = array_diff(\OC_Group::usersInGroup($group), array($uidOwner));
 		} else if ($shareType === self::SHARE_TYPE_LINK) {
 			$updateExistingShare = false;
 			if (\OC_Appconfig::getValue('core', 'shareapi_allow_links', 'yes') == 'yes') {
