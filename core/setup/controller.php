@@ -1,6 +1,7 @@
 <?php
 /**
  * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
+ * Copyright (c) 2014 Lukas Reschke <lukas@owncloud.com>
  * This file is licensed under the Affero General Public License version 3 or
  * later.
  * See the COPYING-README file.
@@ -8,7 +9,19 @@
 
 namespace OC\Core\Setup;
 
+use OCP\IConfig;
+
 class Controller {
+	/** @var \OCP\IConfig */
+	protected $config;
+
+	/**
+	 * @param IConfig $config
+	 */
+	function __construct(IConfig $config) {
+		$this->config = $config;
+	}
+
 	public function run($post) {
 		// Check for autosetup:
 		$post = $this->loadAutoConfig($post);
@@ -22,12 +35,10 @@ class Controller {
 			if(count($e) > 0) {
 				$options = array_merge($opts, $post, $errors);
 				$this->display($options);
-			}
-			else {
+			} else {
 				$this->finishSetup();
 			}
-		}
-		else {
+		} else {
 			$options = array_merge($opts, $post);
 			$this->display($options);
 		}
@@ -53,8 +64,7 @@ class Controller {
 	}
 
 	public function finishSetup() {
-		header( 'Location: '.\OC_Helper::linkToRoute( 'post_setup_check' ));
-		exit();
+		\OC_Util::redirectToDefaultPage();
 	}
 
 	public function loadAutoConfig($post) {
@@ -90,28 +100,10 @@ class Controller {
 	 * in case of errors/warnings
 	 */
 	public function getSystemInfo() {
-		$hasSQLite = class_exists('SQLite3');
-		$hasMySQL = is_callable('mysql_connect');
-		$hasPostgreSQL = is_callable('pg_connect');
-		$hasOracle = is_callable('oci_connect');
-		$hasMSSQL = is_callable('sqlsrv_connect');
-		$databases = array();
-		if ($hasSQLite) {
-			$databases['sqlite'] = 'SQLite';
-		}
-		if ($hasMySQL) {
-			$databases['mysql'] = 'MySQL/MariaDB';
-		}
-		if ($hasPostgreSQL) {
-			$databases['pgsql'] = 'PostgreSQL';
-		}
-		if ($hasOracle) {
-			$databases['oci'] = 'Oracle';
-		}
-		if ($hasMSSQL) {
-			$databases['mssql'] = 'MS SQL';
-		}
-		$datadir = \OC_Config::getValue('datadirectory', \OC::$SERVERROOT.'/data');
+		$setup = new \OC_Setup($this->config);
+		$databases = $setup->getSupportedDatabases();
+
+		$datadir = $this->config->getSystemValue('datadirectory', \OC::$SERVERROOT.'/data');
 		$vulnerableToNullByte = false;
 		if(@file_exists(__FILE__."\0Nullbyte")) { // Check if the used PHP version is vulnerable to the NULL Byte attack (CVE-2006-7243)
 			$vulnerableToNullByte = true;
@@ -119,16 +111,23 @@ class Controller {
 
 		$errors = array();
 
-		// Protect data directory here, so we can test if the protection is working
-		\OC_Setup::protectDataDirectory();
-		try {
-			$htaccessWorking = \OC_Util::isHtaccessWorking();
-		} catch (\OC\HintException $e) {
-			$errors[] = array(
-				'error' => $e->getMessage(),
-				'hint' => $e->getHint()
-			);
-			$htaccessWorking = false;
+		// Create data directory to test whether the .htaccess works
+		// Notice that this is not necessarily the same data directory as the one
+		// that will effectively be used.
+		@mkdir($datadir);
+		if (is_dir($datadir) && is_writable($datadir)) {
+			// Protect data directory here, so we can test if the protection is working
+			\OC_Setup::protectDataDirectory();
+
+			try {
+				$htaccessWorking = \OC_Util::isHtaccessWorking();
+			} catch (\OC\HintException $e) {
+				$errors[] = array(
+					'error' => $e->getMessage(),
+					'hint' => $e->getHint()
+				);
+				$htaccessWorking = false;
+			}
 		}
 
 		if (\OC_Util::runningOnMac()) {
@@ -146,11 +145,11 @@ class Controller {
 		}
 
 		return array(
-			'hasSQLite' => $hasSQLite,
-			'hasMySQL' => $hasMySQL,
-			'hasPostgreSQL' => $hasPostgreSQL,
-			'hasOracle' => $hasOracle,
-			'hasMSSQL' => $hasMSSQL,
+			'hasSQLite' => isset($databases['sqlite']),
+			'hasMySQL' => isset($databases['mysql']),
+			'hasPostgreSQL' => isset($databases['pgsql']),
+			'hasOracle' => isset($databases['oci']),
+			'hasMSSQL' => isset($databases['mssql']),
 			'databases' => $databases,
 			'directory' => $datadir,
 			'secureRNG' => \OC_Util::secureRNGAvailable(),

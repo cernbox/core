@@ -49,7 +49,7 @@ class OC_Files {
 			header('Content-Type: application/zip');
 		} else {
 			$filesize = \OC\Files\Filesystem::filesize($filename);
-			header('Content-Type: '.\OC\Files\Filesystem::getMimeType($filename));
+			header('Content-Type: '.\OC_Helper::getSecureMimeType(\OC\Files\Filesystem::getMimeType($filename)));
 			if ($filesize > -1) {
 				header("Content-Length: ".$filesize);
 			}
@@ -116,7 +116,6 @@ class OC_Files {
 		} elseif (!\OC\Files\Filesystem::file_exists($filename)) {
 			header("HTTP/1.0 404 Not Found");
 			$tmpl = new OC_Template('', '404', 'guest');
-			$tmpl->assign('file', $name);
 			$tmpl->printPage();
 		} else {
 			header("HTTP/1.0 403 Forbidden");

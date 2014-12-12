@@ -150,6 +150,8 @@ class Test_Util extends PHPUnit_Framework_TestCase {
 		OC_Preferences::setValue($user1, 'files', 'quota', '1024');
 		\OC_User::setUserId($user1);
 
+		// make sure that we set up the file system again after the quota was set
+		\OC_Util::tearDownFS();
 		\OC_Util::setupFS($user1);
 
 		$userMount = \OC\Files\Filesystem::getMountManager()->find('/' . $user1 . '/');
@@ -303,6 +305,8 @@ class Test_Util extends PHPUnit_Framework_TestCase {
 		\OC::$WEBROOT = '';
 
 		Dummy_OC_App::setEnabledApps($enabledApps);
+		// need to set a user id to make sure enabled apps are read from cache
+		\OC_User::setUserId(uniqid());
 		\OCP\Config::setSystemValue('defaultapp', $defaultAppConfig);
 		$this->assertEquals('http://localhost/' . $expectedPath, \OC_Util::getDefaultPageUrl());
 
@@ -310,6 +314,7 @@ class Test_Util extends PHPUnit_Framework_TestCase {
 		\OC::$WEBROOT = $oldWebRoot;
 		Dummy_OC_App::restore();
 		\OCP\Config::setSystemValue('defaultapp', $oldDefaultApps);
+		\OC_User::setUserId(null);
 	}
 
 	function defaultAppsProvider() {
@@ -341,6 +346,25 @@ class Test_Util extends PHPUnit_Framework_TestCase {
 		);
 	}
 
+	/**
+	 * Test needUpgrade() when the core version is increased
+	 */
+	public function testNeedUpgradeCore() {
+		$oldConfigVersion = OC_Config::getValue('version', '0.0.0');
+		$oldSessionVersion = \OC::$server->getSession()->get('OC_Version');
+
+		$this->assertFalse(\OCP\Util::needUpgrade());
+
+		OC_Config::setValue('version', '7.0.0.0');
+		\OC::$server->getSession()->set('OC_Version', array(7, 0, 0, 1));
+
+		$this->assertTrue(\OCP\Util::needUpgrade());
+
+		OC_Config::setValue('version', $oldConfigVersion);
+		$oldSessionVersion = \OC::$server->getSession()->set('OC_Version', $oldSessionVersion);
+
+		$this->assertFalse(\OCP\Util::needUpgrade());
+	}
 }
 
 /**

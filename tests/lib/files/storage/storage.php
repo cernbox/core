@@ -161,26 +161,89 @@ abstract class Storage extends \PHPUnit_Framework_TestCase {
 		$this->assertEquals('image/svg+xml', $this->instance->getMimeType('/logo-wide.svg'));
 	}
 
-	public function testCopyAndMove() {
+
+	public function copyAndMoveProvider() {
+		return array(
+			array('/source.txt', '/target.txt'),
+			array('/source.txt', '/target with space.txt'),
+			array('/source with space.txt', '/target.txt'),
+			array('/source with space.txt', '/target with space.txt'),
+			array('/source.txt', '/tärgét.txt'),
+			array('/sòurcē.txt', '/target.txt'),
+			array('/sòurcē.txt', '/tärgét.txt'),
+		);
+	}
+
+	public function initSourceAndTarget ($source, $target = null) {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
-		$this->instance->file_put_contents('/source.txt', file_get_contents($textFile));
-		$this->instance->copy('/source.txt', '/target.txt');
-		$this->assertTrue($this->instance->file_exists('/target.txt'));
-		$this->assertEquals($this->instance->file_get_contents('/source.txt'), $this->instance->file_get_contents('/target.txt'));
+		$this->instance->file_put_contents($source, file_get_contents($textFile));
+		if ($target) {
+			$testContents = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			$this->instance->file_put_contents($target, $testContents);
+		}
+	}
 
-		$this->instance->rename('/source.txt', '/target2.txt');
+	public function assertSameAsLorem ($file) {
+		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
+		$this->assertEquals(
+			file_get_contents($textFile),
+			$this->instance->file_get_contents($file),
+			'Expected '.$file.' to be a copy of '.$textFile
+		);
+	}
+
+	/**
+	 * @dataProvider copyAndMoveProvider
+	 */
+	public function testCopy($source, $target) {
+		$this->initSourceAndTarget($source);
+
+		$this->instance->copy($source, $target);
+
+		$this->assertTrue($this->instance->file_exists($target), $target.' was not created');
+		$this->assertSameAsLorem($target);
+		$this->assertTrue($this->instance->file_exists($source), $source.' was deleted');
+	}
+
+	/**
+	 * @dataProvider copyAndMoveProvider
+	 */
+	public function testMove($source, $target) {
+		$this->initSourceAndTarget($source);
+
+		$this->instance->rename($source, $target);
+
 		$this->wait();
-		$this->assertTrue($this->instance->file_exists('/target2.txt'));
-		$this->assertFalse($this->instance->file_exists('/source.txt'));
-		$this->assertEquals(file_get_contents($textFile), $this->instance->file_get_contents('/target2.txt'));
+		$this->assertTrue($this->instance->file_exists($target), $target.' was not created');
+		$this->assertFalse($this->instance->file_exists($source), $source.' still exists');
+		$this->assertSameAsLorem($target);
+	}
 
-		// move to overwrite
-		$testContents = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-		$this->instance->file_put_contents('/target3.txt', $testContents);
-		$this->instance->rename('/target2.txt', '/target3.txt');
-		$this->assertTrue($this->instance->file_exists('/target3.txt'));
-		$this->assertFalse($this->instance->file_exists('/target2.txt'));
-		$this->assertEquals(file_get_contents($textFile), $this->instance->file_get_contents('/target3.txt'));
+	/**
+	 * @dataProvider copyAndMoveProvider
+	 */
+	public function testCopyOverwrite($source, $target) {
+		$this->initSourceAndTarget($source,$target);
+
+		$this->instance->copy($source, $target);
+
+		$this->assertTrue($this->instance->file_exists($target), $target.' was not created');
+		$this->assertTrue($this->instance->file_exists($source), $source.' was deleted');
+		$this->assertSameAsLorem($target);
+		$this->assertSameAsLorem($source);
+	}
+
+	/**
+	 * @dataProvider copyAndMoveProvider
+	 */
+	public function testMoveOverwrite($source, $target) {
+		$this->initSourceAndTarget($source, $target);
+
+		$this->instance->rename($source, $target);
+
+		$this->assertTrue($this->instance->file_exists($target), $target.' was not created');
+		$this->assertFalse($this->instance->file_exists($source), $source.' still exists');
+		$this->assertSameAsLorem($target);
 	}
 
 	public function testLocal() {
@@ -394,12 +457,12 @@ abstract class Storage extends \PHPUnit_Framework_TestCase {
 		$this->instance->file_put_contents('target/test1.txt', 'bar');
 		$this->instance->file_put_contents('target/test2.txt', 'bar');
 
-		$this->instance->rename('source', 'target');
+		$this->assertTrue($this->instance->rename('source', 'target'), 'rename must return true on success');
 
-		$this->assertFalse($this->instance->file_exists('source'));
-		$this->assertFalse($this->instance->file_exists('source/test1.txt'));
-		$this->assertFalse($this->instance->file_exists('target/test2.txt'));
-		$this->assertEquals('foo', $this->instance->file_get_contents('target/test1.txt'));
+		$this->assertFalse($this->instance->file_exists('source'), 'source has not been removed');
+		$this->assertFalse($this->instance->file_exists('source/test1.txt'), 'source/test1.txt has not been removed');
+		$this->assertFalse($this->instance->file_exists('target/test2.txt'), 'target/test2.txt has not been removed');
+		$this->assertEquals('foo', $this->instance->file_get_contents('target/test1.txt'), 'target/test1.txt has not been overwritten');
 	}
 
 	public function testRenameOverWriteDirectoryOverFile() {
@@ -408,7 +471,7 @@ abstract class Storage extends \PHPUnit_Framework_TestCase {
 
 		$this->instance->file_put_contents('target', 'bar');
 
-		$this->instance->rename('source', 'target');
+		$this->assertTrue($this->instance->rename('source', 'target'), 'rename must return true on success');
 
 		$this->assertFalse($this->instance->file_exists('source'));
 		$this->assertFalse($this->instance->file_exists('source/test1.txt'));

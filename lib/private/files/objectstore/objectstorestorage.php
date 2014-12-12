@@ -20,6 +20,7 @@
 
 namespace OC\Files\ObjectStore;
 
+use OC\Files\Filesystem;
 use OCP\Files\ObjectStore\IObjectStore;
 
 class ObjectStoreStorage extends \OC\Files\Storage\Common {
@@ -63,19 +64,21 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		}
 	}
 
-
 	public function mkdir($path) {
 		$path = $this->normalizePath($path);
+
 		if ($this->is_dir($path)) {
 			return false;
 		}
-		$dirName      = $this->normalizePath(dirname($path));
+
+		$dirName = $this->normalizePath(dirname($path));
 		$parentExists = $this->is_dir($dirName);
 		if ($dirName === '' && !$parentExists) {
 			if ($dirName === $path) {
 				return true;
 			}
 		}
+
 		if ($parentExists) {
 			$this->objectStore->mkdir(EosProxy::toEos($path, $this->getOwner($path)));
 			return true;
@@ -113,8 +116,6 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		}
 		return false; 
 	}
-	
-	// HUGO END FUNCTIONS
 
 	/**
 	 * @param string $path
@@ -129,6 +130,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		if (!$path || $path === '.') {
 			$path = '';
 		}
+
 		return $path;
 	}
 
@@ -172,7 +174,6 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	}
 
 	public function unlink($path) {
-		// faster version, not stating
 		$path = $this->normalizePath($path);
 		try {
 			$this->objectStore->deleteObject(EosProxy::toEos($path, $this->getOwner($path)));
@@ -183,22 +184,6 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 			}
 		}
 		return true;
-		/*
-		$path = $this->normalizePath($path);
-		$stat = $this->stat($path);
-		if ($stat && isset($stat['fileid'])) {
-			try {
-				$this->objectStore->deleteObject(EosProxy::toEos($path, $this->getOwner($path)));
-			} catch (\Exception $ex) {
-				if ($ex->getCode() !== 404) {
-					\OCP\Util::writeLog('objectstore', 'Could not delete object: ' . $ex->getMessage(), \OCP\Util::ERROR);
-					return false;
-				}
-			}
-			return true;
-		}
-		return false;
-		*/
 	}
 
 	public function stat($path) {
@@ -223,13 +208,16 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 	public function opendir($path) {
 		$path = $this->normalizePath($path);
+
 		try {
 			$files = array();
 			$folderContents = $this->getCache()->getFolderContents($path);
 			foreach ($folderContents as $file) {
 				$files[] = $file['name'];
 			}
+
 			\OC\Files\Stream\Dir::register('objectstore' . $path . '/', $files);
+
 			return opendir('fakedir://objectstore' . $path . '/');
 		} catch (Exception $e) {
 			\OCP\Util::writeLog('objectstore', $e->getMessage(), \OCP\Util::ERROR);
@@ -296,6 +284,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 					file_put_contents($tmpFile, $source);
 				}
 				self::$tmpFiles[$tmpFile] = $path;
+
 				return fopen('close://' . $tmpFile, $mode);
 		}
 		return false;
@@ -326,12 +315,17 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	}
 
 	public function touch($path, $mtime = null) {
+		if (is_null($mtime)) {
+			$mtime = time();
+		}
+
 		$path = $this->normalizePath($path);
 		$dirName = dirname($path);
 		$parentExists = $this->is_dir($dirName);
 		if (!$parentExists) {
 			return false;
 		}
+
 		$stat = $this->stat($path);
 		if (!is_array($stat)) {
 			try {
@@ -347,10 +341,10 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 	public function writeBack($tmpFile) {
 		if (!isset(self::$tmpFiles[$tmpFile])) {
-			return false;
+			return;
 		}
+
 		$path = self::$tmpFiles[$tmpFile];
-		$path = $this->normalizePath($path);
 		$stat = $this->stat($path);
 		try {
 			//upload to object storage

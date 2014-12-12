@@ -258,9 +258,13 @@ class Keymanager {
 	 * @note Encryption of the private key must be performed by client code
 	 * as no encryption takes place here
 	 */
-	public static function setPrivateKey($key) {
+	public static function setPrivateKey($key, $user = '') {
 
-		$user = \OCP\User::getUser();
+		if ($user === '') {
+			$user = \OCP\User::getUser();
+		}
+
+		$header = Crypt::generateHeader();
 
 		$view = new \OC\Files\View('/' . $user . '/files_encryption');
 
@@ -271,12 +275,39 @@ class Keymanager {
 			$view->mkdir('');
 		}
 
-		$result = $view->file_put_contents($user . '.private.key', $key);
+		$result = $view->file_put_contents($user . '.private.key', $header . $key);
 
 		\OC_FileProxy::$enabled = $proxyStatus;
 
 		return $result;
 
+	}
+
+	/**
+	 * write private system key (recovery and public share key) to disk
+	 *
+	 * @param string $key encrypted key
+	 * @param string $keyName name of the key file
+	 * @return boolean
+	 */
+	public static function setPrivateSystemKey($key, $keyName) {
+
+		$header = Crypt::generateHeader();
+
+		$view = new \OC\Files\View('/owncloud_private_key');
+
+		$proxyStatus = \OC_FileProxy::$enabled;
+		\OC_FileProxy::$enabled = false;
+
+		if (!$view->file_exists('')) {
+			$view->mkdir('');
+		}
+
+		$result = $view->file_put_contents($keyName, $header . $key);
+
+		\OC_FileProxy::$enabled = $proxyStatus;
+
+		return $result;
 	}
 
 	/**
@@ -428,13 +459,17 @@ class Keymanager {
 			\OCP\Util::writeLog('files_encryption', 'delAllShareKeys: delete share keys: ' . $baseDir . $filePath, \OCP\Util::DEBUG);
 			$result = $view->unlink($baseDir . $filePath);
 		} else {
-			$parentDir = dirname($baseDir . $filePath);
-			$filename = pathinfo($filePath, PATHINFO_BASENAME);
-			foreach($view->getDirectoryContent($parentDir) as $content) {
-				$path = $content['path'];
-				if (self::getFilenameFromShareKey($content['name'])  === $filename) {
-					\OCP\Util::writeLog('files_encryption', 'dellAllShareKeys: delete share keys: ' . '/' . $userId . '/' . $path, \OCP\Util::DEBUG);
-					$result &= $view->unlink('/' . $userId . '/' . $path);
+			$sharingEnabled = \OCP\Share::isEnabled();
+			$users = $util->getSharingUsersArray($sharingEnabled, $filePath);
+			foreach($users as $user) {
+				$keyName = $baseDir . $filePath . '.' . $user . '.shareKey';
+				if ($view->file_exists($keyName)) {
+					\OCP\Util::writeLog(
+						'files_encryption',
+						'dellAllShareKeys: delete share keys: "' . $keyName . '"',
+						\OCP\Util::DEBUG
+					);
+					$result &= $view->unlink($keyName);
 				}
 			}
 		}
@@ -508,17 +543,20 @@ class Keymanager {
 					if ($view->is_dir($dir . '/' . $file)) {
 						self::recursiveDelShareKeys($dir . '/' . $file, $userIds, $owner, $view);
 					} else {
-						$realFile = $realFileDir . self::getFilenameFromShareKey($file);
 						foreach ($userIds as $userId) {
-							if (preg_match("/(.*)." . $userId . ".shareKey/", $file)) {
-								if ($userId === $owner &&
-										$view->file_exists($realFile)) {
-									\OCP\Util::writeLog('files_encryption', 'original file still exists, keep owners share key!', \OCP\Util::ERROR);
-									continue;
-								}
-								\OCP\Util::writeLog('files_encryption', 'recursiveDelShareKey: delete share key: ' . $file, \OCP\Util::DEBUG);
-								$view->unlink($dir . '/' . $file);
+							$fileNameFromShareKey = self::getFilenameFromShareKey($file, $userId);
+							if (!$fileNameFromShareKey) {
+								continue;
 							}
+							$realFile = $realFileDir . $fileNameFromShareKey;
+
+							if ($userId === $owner &&
+									$view->file_exists($realFile)) {
+								\OCP\Util::writeLog('files_encryption', 'original file still exists, keep owners share key!', \OCP\Util::ERROR);
+								continue;
+							}
+							\OCP\Util::writeLog('files_encryption', 'recursiveDelShareKey: delete share key: ' . $file, \OCP\Util::DEBUG);
+							$view->unlink($dir . '/' . $file);
 						}
 					}
 				}
@@ -560,16 +598,19 @@ class Keymanager {
 	/**
 	 * extract filename from share key name
 	 * @param string $shareKey (filename.userid.sharekey)
+	 * @param string $userId
 	 * @return string|false filename or false
 	 */
-	protected static function getFilenameFromShareKey($shareKey) {
-		$parts = explode('.', $shareKey);
+	protected static function getFilenameFromShareKey($shareKey, $userId) {
+		$expectedSuffix = '.' . $userId . '.' . 'shareKey';
+		$suffixLen = strlen($expectedSuffix);
 
-		$filename = false;
-		if(count($parts) > 2) {
-			$filename = implode('.', array_slice($parts, 0, count($parts)-2));
+		$suffix = substr($shareKey, -$suffixLen);
+
+		if ($suffix !== $expectedSuffix) {
+			return false;
 		}
 
-		return $filename;
+		return substr($shareKey, 0, -$suffixLen);
 	}
 }

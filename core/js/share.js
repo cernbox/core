@@ -231,7 +231,7 @@ OC.Share={
 		var shareFolderIcon;
 		var image = OC.imagePath('core', 'actions/share');
 		// update folder icon
-		if (type === 'dir' && (hasShares || hasLink)) {
+		if (type === 'dir' && (hasShares || hasLink || owner)) {
 			if (hasLink) {
 				shareFolderIcon = OC.imagePath('core', 'filetypes/folder-public');
 			}
@@ -304,7 +304,7 @@ OC.Share={
 			);
 		}
 
-		$.post(OC.filePath('core', 'ajax', 'share.php'),
+		return $.post(OC.filePath('core', 'ajax', 'share.php'),
 			{
 				action: 'share',
 				itemType: itemType,
@@ -351,7 +351,7 @@ OC.Share={
 	showDropDown:function(itemType, itemSource, appendTo, link, possiblePermissions, filename) {
 		var data = OC.Share.loadItem(itemType, itemSource);
 		var dropDownEl;
-		var html = '<div id="dropdown" class="drop" data-item-type="'+itemType+'" data-item-source="'+itemSource+'">';
+		var html = '<div id="dropdown" class="drop shareDropDown" data-item-type="'+itemType+'" data-item-source="'+itemSource+'">';
 		if (data !== false && data.reshare !== false && data.reshare.uid_owner !== undefined) {
 			if (data.reshare.share_type == OC.Share.SHARE_TYPE_GROUP) {
 				html += '<span class="reshare">'+t('core', 'Shared with you and the group {group} by {owner}', {group: escapeHTML(data.reshare.share_with), owner: escapeHTML(data.reshare.displayname_owner)})+'</span>';
@@ -381,11 +381,13 @@ OC.Share={
 			});
 
 			html += '<input id="shareWith" type="text" placeholder="'+t('core', 'Share with user or group …')+'" />';
+			html += '<span class="shareWithLoading icon-loading-small hidden"></span>';
 			html += '<ul id="shareWithList">';
 			html += '</ul>';
 			var linksAllowed = $('#allowShareWithLink').val() === 'yes';
 			if (link && linksAllowed) {
-				html += '<div id="link">';
+				html += '<div id="link" class="linkShare">';
+				html += '<span class="icon-loading-small hidden"></span>';
 				html += '<input type="checkbox" name="linkCheckbox" id="linkCheckbox" value="1" /><label for="linkCheckbox">'+t('core', 'Share link')+'</label>';
 				html += '<br />';
 
@@ -398,10 +400,12 @@ OC.Share={
 				html += '<input type="checkbox" name="showPassword" id="showPassword" value="1" style="display:none;" /><label for="showPassword" style="display:none;">'+t('core', 'Password protect')+'</label>';
 				html += '<div id="linkPass">';
 				html += '<input id="linkPassText" type="password" placeholder="'+t('core', 'Choose a password for the public link')+'" />';
+				html += '<span class="icon-loading-small hidden"></span>';
 				html += '</div>';
 
 				if (itemType === 'folder' && (possiblePermissions & OC.PERMISSION_CREATE) && publicUploadEnabled === 'yes') {
 					html += '<div id="allowPublicUploadWrapper" style="display:none;">';
+					html += '<span class="icon-loading-small hidden"></span>';
 					html += '<input type="checkbox" value="1" name="allowPublicUpload" id="sharingDialogAllowPublicUpload"' + ((allowPublicUploadStatus) ? 'checked="checked"' : '') + ' />';
 					html += '<label for="sharingDialogAllowPublicUpload">' + t('core', 'Allow Public Upload') + '</label>';
 					html += '</div>';
@@ -440,35 +444,28 @@ OC.Share={
 					}
 				});
 			}
-			$('#shareWith').autocomplete({minLength: 1, source: function(search, response) {
-	//			if (cache[search.term]) {
-	//				response(cache[search.term]);
-	//			} else {
-					$.get(OC.filePath('core', 'ajax', 'share.php'), { fetch: 'getShareWith', search: search.term, itemShares: OC.Share.itemShares }, function(result) {
-						if (result.status == 'success' && result.data.length > 0) {
-							$( "#shareWith" ).autocomplete( "option", "autoFocus", true );
-							response(result.data);
-						} else {
-							// Suggest sharing via email if valid email address
-//							var pattern = new RegExp(/^[+a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i);
-//							if (pattern.test(search.term)) {
-//								response([{label: t('core', 'Share via email:')+' '+search.term, value: {shareType: OC.Share.SHARE_TYPE_EMAIL, shareWith: search.term}}]);
-//							} else {
-								$( "#shareWith" ).autocomplete( "option", "autoFocus", false );
-								response([t('core', 'No people found')]);
-//							}
-						}
-					});
-	//			}
+			$('#shareWith').autocomplete({minLength: 2, delay: 750, source: function(search, response) {
+				var $loading = $('#dropdown .shareWithLoading');
+				$loading.removeClass('hidden');
+				$.get(OC.filePath('core', 'ajax', 'share.php'), { fetch: 'getShareWith', search: search.term.trim(), itemShares: OC.Share.itemShares }, function(result) {
+					$loading.addClass('hidden');
+					if (result.status == 'success' && result.data.length > 0) {
+						$( "#shareWith" ).autocomplete( "option", "autoFocus", true );
+						response(result.data);
+					} else {
+						response();
+					}
+				});
 			},
 			focus: function(event, focused) {
 				event.preventDefault();
 			},
 			select: function(event, selected) {
 				event.stopPropagation();
-				var itemType = $('#dropdown').data('item-type');
-				var itemSource = $('#dropdown').data('item-source');
-				var itemSourceName = $('#dropdown').data('item-source-name');
+				var $dropDown = $('#dropdown');
+				var itemType = $dropDown.data('item-type');
+				var itemSource = $dropDown.data('item-source');
+				var itemSourceName = $dropDown.data('item-source-name');
 				var expirationDate = '';
 				if ( $('#expirationCheckbox').is(':checked') === true ) {
 					expirationDate = $( "#expirationDate" ).val();
@@ -488,11 +485,20 @@ OC.Share={
 				if (possiblePermissions & OC.PERMISSION_DELETE) {
 					permissions = permissions | OC.PERMISSION_DELETE;
 				}
-				if (possiblePermissions & OC.PERMISSION_SHARE) {
+				if (oc_appconfig.core.resharingAllowed && (possiblePermissions & OC.PERMISSION_SHARE)) {
 					permissions = permissions | OC.PERMISSION_SHARE;
 				}
 
+
+				var $input = $(this);
+				var $loading = $dropDown.find('.shareWithLoading');
+				$loading.removeClass('hidden');
+				$input.val(t('core', 'Adding user...'));
+				$input.prop('disabled', true);
+
 				OC.Share.share(itemType, itemSource, shareType, shareWith, permissions, itemSourceName, expirationDate, function() {
+					$input.prop('disabled', false);
+					$loading.addClass('hidden');
 					OC.Share.addShareWith(shareType, shareWith, selected.item.label, permissions, possiblePermissions);
 					$('#shareWith').val('');
 					$('#dropdown').trigger(new $.Event('sharesChanged', {shares: OC.Share.currentShares}));
@@ -514,7 +520,7 @@ OC.Share={
 					.append( insert )
 					.appendTo( ul );
 			};
-			if (link) {
+			if (link && linksAllowed) {
 				$('#email').autocomplete({
 					minLength: 1,
 					source: function (search, response) {
@@ -620,22 +626,22 @@ OC.Share={
 				}
 				html += '<label><input type="checkbox" name="mailNotification" class="mailNotification" ' + checked + ' />'+t('core', 'notify by email')+'</label> ';
 			}
-			if (possiblePermissions & OC.PERMISSION_SHARE) {
-				html += '<label><input type="checkbox" name="share" class="permissions" '+shareChecked+' data-permissions="'+OC.PERMISSION_SHARE+'" />'+t('core', 'can share')+'</label>';
+			if (oc_appconfig.core.resharingAllowed && (possiblePermissions & OC.PERMISSION_SHARE)) {
+				html += '<input id="canShare-'+escapeHTML(shareWith)+'" type="checkbox" name="share" class="permissions" '+shareChecked+' data-permissions="'+OC.PERMISSION_SHARE+'" /><label for="canShare-'+escapeHTML(shareWith)+'">'+t('core', 'can share')+'</label>';
 			}
 			if (possiblePermissions & OC.PERMISSION_CREATE || possiblePermissions & OC.PERMISSION_UPDATE || possiblePermissions & OC.PERMISSION_DELETE) {
-				html += '<label><input type="checkbox" name="edit" class="permissions" '+editChecked+' />'+t('core', 'can edit')+'</label> ';
+				html += '<input id="canEdit-'+escapeHTML(shareWith)+'" type="checkbox" name="edit" class="permissions" '+editChecked+' /><label for="canEdit-'+escapeHTML(shareWith)+'">'+t('core', 'can edit')+'</label>';
 			}
 			showCrudsButton = '<a href="#" class="showCruds"><img class="svg" alt="'+t('core', 'access control')+'" title="'+t('core', 'access control')+'" src="'+OC.imagePath('core', 'actions/triangle-s')+'"/></a>';
 			html += '<div class="cruds" style="display:none;">';
 				if (possiblePermissions & OC.PERMISSION_CREATE) {
-					html += '<label><input type="checkbox" name="create" class="permissions" '+createChecked+' data-permissions="'+OC.PERMISSION_CREATE+'" />'+t('core', 'create')+'</label>';
+					html += '<input id="canCreate-'+escapeHTML(shareWith)+'" type="checkbox" name="create" class="permissions" '+createChecked+' data-permissions="'+OC.PERMISSION_CREATE+'"/><label for="canCreate-'+escapeHTML(shareWith)+'">'+t('core', 'create')+'</label>';
 				}
 				if (possiblePermissions & OC.PERMISSION_UPDATE) {
-					html += '<label><input type="checkbox" name="update" class="permissions" '+updateChecked+' data-permissions="'+OC.PERMISSION_UPDATE+'" />'+t('core', 'update')+'</label>';
+					html += '<input id="canUpdate-'+escapeHTML(shareWith)+'" type="checkbox" name="update" class="permissions" '+updateChecked+' data-permissions="'+OC.PERMISSION_UPDATE+'"/><label for="canUpdate-'+escapeHTML(shareWith)+'">'+t('core', 'update')+'</label>';
 				}
 				if (possiblePermissions & OC.PERMISSION_DELETE) {
-					html += '<label><input type="checkbox" name="delete" class="permissions" '+deleteChecked+' data-permissions="'+OC.PERMISSION_DELETE+'" />'+t('core', 'delete')+'</label>';
+					html += '<input id="canDelete-'+escapeHTML(shareWith)+'" type="checkbox" name="delete" class="permissions" '+deleteChecked+' data-permissions="'+OC.PERMISSION_DELETE+'"/><label for="canDelete-'+escapeHTML(shareWith)+'">'+t('core', 'delete')+'</label>';
 				}
 			html += '</div>';
 			html += '</li>';
@@ -724,8 +730,11 @@ OC.Share={
 	 */
 	showExpirationDate:function(date, shareTime) {
 		var now = new Date();
+		// min date should always be the next day
+		var minDate = new Date();
+		minDate.setDate(minDate.getDate()+1);
 		var datePickerOptions = {
-			minDate: now,
+			minDate: minDate,
 			maxDate: null
 		};
 		if (_.isNumber(shareTime)) {
@@ -757,6 +766,9 @@ OC.Share={
 $(document).ready(function() {
 
 	if(typeof monthNames != 'undefined'){
+		// min date should always be the next day
+		var minDate = new Date();
+		minDate.setDate(minDate.getDate()+1);
 		$.datepicker.setDefaults({
 			monthNames: monthNames,
 			monthNamesShort: $.map(monthNames, function(v) { return v.slice(0,3)+'.'; }),
@@ -764,7 +776,7 @@ $(document).ready(function() {
 			dayNamesMin: $.map(dayNames, function(v) { return v.slice(0,2); }),
 			dayNamesShort: $.map(dayNames, function(v) { return v.slice(0,3)+'.'; }),
 			firstDay: firstDay,
-			minDate : new Date()
+			minDate : minDate
 		});
 	}
 	$(document).on('click', 'a.share', function(event) {
@@ -812,6 +824,18 @@ $(document).ready(function() {
 		var itemSource = $('#dropdown').data('item-source');
 		var shareType = $li.data('share-type');
 		var shareWith = $li.attr('data-share-with');
+		var $button = $(this);
+
+		if (!$button.is('a')) {
+			$button = $button.closest('a');
+		}
+
+		if ($button.hasClass('icon-loading-small')) {
+			// deletion in progress
+			return false;
+		}
+		$button.empty().addClass('icon-loading-small');
+
 		OC.Share.unshare(itemType, itemSource, shareType, shareWith, function() {
 			$li.remove();
 			var index = OC.Share.itemShares[shareType].indexOf(shareWith);
@@ -824,6 +848,7 @@ $(document).ready(function() {
 				$('#expiration').hide('blind');
 			}
 		});
+
 		return false;
 	});
 
@@ -865,9 +890,17 @@ $(document).ready(function() {
 	});
 
 	$(document).on('change', '#dropdown #linkCheckbox', function() {
-		var itemType = $('#dropdown').data('item-type');
-		var itemSource = $('#dropdown').data('item-source');
-		var itemSourceName = $('#dropdown').data('item-source-name');
+		var $dropDown = $('#dropdown');
+		var itemType = $dropDown.data('item-type');
+		var itemSource = $dropDown.data('item-source');
+		var itemSourceName = $dropDown.data('item-source-name');
+		var $loading = $dropDown.find('#link .icon-loading-small');
+		var $button = $(this);
+
+		if (!$loading.hasClass('hidden')) {
+			// already in progress
+			return false;
+		}
 
 		if (this.checked) {
 			var expireDateString = '';
@@ -882,7 +915,14 @@ $(document).ready(function() {
 			}
 			// Create a link
 			if (oc_appconfig.core.enforcePasswordForPublicLink === false) {
+				$loading.removeClass('hidden');
+				$button.addClass('hidden');
+				$button.prop('disabled', true);
+
 				OC.Share.share(itemType, itemSource, OC.Share.SHARE_TYPE_LINK, '', OC.PERMISSION_READ, itemSourceName, expireDateString, function(data) {
+					$loading.addClass('hidden');
+					$button.removeClass('hidden');
+					$button.prop('disabled', false);
 					OC.Share.showLink(data.token, null, itemSource);
 					$('#dropdown').trigger(new $.Event('sharesChanged', {shares: OC.Share.currentShares}));
 					OC.Share.updateIcon(itemType, itemSource);
@@ -899,7 +939,13 @@ $(document).ready(function() {
 			OC.Share.hideLink();
 			$('#expiration').hide('blind');
 			if ($('#linkText').val() !== '') {
+				$loading.removeClass('hidden');
+				$button.addClass('hidden');
+				$button.prop('disabled', true);
 				OC.Share.unshare(itemType, itemSource, OC.Share.SHARE_TYPE_LINK, '', function() {
+					$loading.addClass('hidden');
+					$button.removeClass('hidden');
+					$button.prop('disabled', false);
 					OC.Share.itemShares[OC.Share.SHARE_TYPE_LINK] = false;
 					$('#dropdown').trigger(new $.Event('sharesChanged', {shares: OC.Share.currentShares}));
 					OC.Share.updateIcon(itemType, itemSource);
@@ -920,15 +966,23 @@ $(document).ready(function() {
 	$(document).on('click', '#sharingDialogAllowPublicUpload', function() {
 
 		// Gather data
+		var $dropDown = $('#dropdown');
 		var allowPublicUpload = $(this).is(':checked');
-		var itemType = $('#dropdown').data('item-type');
-		var itemSource = $('#dropdown').data('item-source');
-		var itemSourceName = $('#dropdown').data('item-source-name');
+		var itemType = $dropDown.data('item-type');
+		var itemSource = $dropDown.data('item-source');
+		var itemSourceName = $dropDown.data('item-source-name');
 		var expirationDate = '';
 		if ($('#expirationCheckbox').is(':checked') === true) {
 			expirationDate = $( "#expirationDate" ).val();
 		}
 		var permissions = 0;
+		var $button = $(this);
+		var $loading = $dropDown.find('#allowPublicUploadWrapper .icon-loading-small');
+
+		if (!$loading.hasClass('hidden')) {
+			// already in progress
+			return false;
+		}
 
 		// Calculate permissions
 		if (allowPublicUpload) {
@@ -938,7 +992,13 @@ $(document).ready(function() {
 		}
 
 		// Update the share information
+		$button.addClass('hidden');
+		$button.prop('disabled', true);
+		$loading.removeClass('hidden');
 		OC.Share.share(itemType, itemSource, OC.Share.SHARE_TYPE_LINK, '', permissions, itemSourceName, expirationDate, function(data) {
+			$loading.addClass('hidden');
+			$button.removeClass('hidden');
+			$button.prop('disabled', false);
 		});
 	});
 
@@ -950,6 +1010,7 @@ $(document).ready(function() {
 			var itemSourceName = $('#dropdown').data('item-source-name');
 			var allowPublicUpload = $('#sharingDialogAllowPublicUpload').is(':checked');
 			var permissions = 0;
+			var $loading = $('#showPassword .icon-loading-small');
 
 			// Calculate permissions
 			if (allowPublicUpload) {
@@ -958,8 +1019,11 @@ $(document).ready(function() {
 				permissions = OC.PERMISSION_READ;
 			}
 
-
-			OC.Share.share(itemType, itemSource, OC.Share.SHARE_TYPE_LINK, '', permissions, itemSourceName);
+			$loading.removeClass('hidden');
+			OC.Share.share(itemType, itemSource, OC.Share.SHARE_TYPE_LINK, '', permissions, itemSourceName).then(function() {
+				$loading.addClass('hidden');
+				$('#linkPassText').attr('placeholder', t('core', 'Choose a password for the public link'));
+			});
 		} else {
 			$('#linkPassText').focus();
 		}
@@ -975,6 +1039,7 @@ $(document).ready(function() {
 			var itemSource = dropDown.data('item-source');
 			var itemSourceName = $('#dropdown').data('item-source-name');
 			var permissions = 0;
+			var $loading = dropDown.find('#linkPass .icon-loading-small');
 
 			// Calculate permissions
 			if (allowPublicUpload) {
@@ -983,7 +1048,9 @@ $(document).ready(function() {
 				permissions = OC.PERMISSION_READ;
 			}
 
+			$loading.removeClass('hidden');
 			OC.Share.share(itemType, itemSource, OC.Share.SHARE_TYPE_LINK, $('#linkPassText').val(), permissions, itemSourceName, function(data) {
+				$loading.addClass('hidden');
 				linkPassText.val('');
 				linkPassText.attr('placeholder', t('core', 'Password protected'));
 

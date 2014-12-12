@@ -78,53 +78,50 @@ class Test_Access extends \PHPUnit_Framework_TestCase {
 		$this->assertTrue($expected === $access->escapeFilterPart($input));
 	}
 
-	public function testConvertSID2StrSuccess() {
+	/** @dataProvider convertSID2StrSuccessData */
+	public function testConvertSID2StrSuccess(array $sidArray, $sidExpected) {
 		list($lw, $con, $um) = $this->getConnecterAndLdapMock();
 		$access = new Access($con, $lw, $um);
 
-		if(!function_exists('\bcadd')) {
-			$this->markTestSkipped('bcmath not available');
-		}
-
-		$sidBinary = file_get_contents(__DIR__ . '/data/sid.dat');
-		$sidExpected = 'S-1-5-21-249921958-728525901-1594176202';
-
+		$sidBinary = implode('', $sidArray);
 		$this->assertSame($sidExpected, $access->convertSID2Str($sidBinary));
+	}
+
+	public function convertSID2StrSuccessData() {
+		return array(
+			array(
+				array(
+					"\x01",
+					"\x04",
+					"\x00\x00\x00\x00\x00\x05",
+					"\x15\x00\x00\x00",
+					"\xa6\x81\xe5\x0e",
+					"\x4d\x6c\x6c\x2b",
+					"\xca\x32\x05\x5f",
+				),
+				'S-1-5-21-249921958-728525901-1594176202',
+			),
+			array(
+				array(
+					"\x01",
+					"\x02",
+					"\xFF\xFF\xFF\xFF\xFF\xFF",
+					"\xFF\xFF\xFF\xFF",
+					"\xFF\xFF\xFF\xFF",
+				),
+				'S-1-281474976710655-4294967295-4294967295',
+			),
+		);
 	}
 
 	public function testConvertSID2StrInputError() {
 		list($lw, $con, $um) = $this->getConnecterAndLdapMock();
 		$access = new Access($con, $lw, $um);
 
-		if(!function_exists('\bcadd')) {
-			$this->markTestSkipped('bcmath not available');
-		}
-
 		$sidIllegal = 'foobar';
 		$sidExpected = '';
 
 		$this->assertSame($sidExpected, $access->convertSID2Str($sidIllegal));
-	}
-
-	public function testConvertSID2StrNoBCMath() {
-		if(function_exists('\bcadd')) {
-			$removed = false;
-			if(function_exists('runkit_function_remove')) {
-				$removed = !runkit_function_remove('\bcadd');
-			}
-			if(!$removed) {
-				$this->markTestSkipped('bcadd could not be removed for ' .
-					'testing without bcmath');
-			}
-		}
-
-		list($lw, $con, $um) = $this->getConnecterAndLdapMock();
-		$access = new Access($con, $lw, $um);
-
-		$sidBinary = file_get_contents(__DIR__ . '/data/sid.dat');
-		$sidExpected = '';
-
-		$this->assertSame($sidExpected, $access->convertSID2Str($sidBinary));
 	}
 
 	public function testGetDomainDNFromDNSuccess() {
@@ -155,5 +152,62 @@ class Test_Access extends \PHPUnit_Framework_TestCase {
 			->will($this->returnValue(false));
 
 		$this->assertSame($expected, $access->getDomainDNFromDN($inputDN));
+	}
+
+	private function getResemblesDNInputData() {
+		return  $cases = array(
+			array(
+				'input' => 'foo=bar,bar=foo,dc=foobar',
+				'interResult' => array(
+					'count' => 3,
+					0 => 'foo=bar',
+					1 => 'bar=foo',
+					2 => 'dc=foobar'
+				),
+				'expectedResult' => true
+			),
+			array(
+				'input' => 'foobarbarfoodcfoobar',
+				'interResult' => false,
+				'expectedResult' => false
+			)
+		);
+	}
+
+	public function testStringResemblesDN() {
+		list($lw, $con, $um) = $this->getConnecterAndLdapMock();
+		$access = new Access($con, $lw, $um);
+
+		$cases = $this->getResemblesDNInputData();
+
+		$lw->expects($this->exactly(2))
+			->method('explodeDN')
+			->will($this->returnCallback(function ($dn) use ($cases) {
+				foreach($cases as $case) {
+					if($dn === $case['input']) {
+						return $case['interResult'];
+					}
+				}
+			}));
+
+		foreach($cases as $case) {
+			$this->assertSame($case['expectedResult'], $access->stringResemblesDN($case['input']));
+		}
+	}
+
+	public function testStringResemblesDNLDAPmod() {
+		list($lw, $con, $um) = $this->getConnecterAndLdapMock();
+		$lw = new \OCA\user_ldap\lib\LDAP();
+		$access = new Access($con, $lw, $um);
+
+		if(!function_exists('ldap_explode_dn')) {
+			$this->markTestSkipped('LDAP Module not available');
+		}
+
+		$cases = $this->getResemblesDNInputData();
+
+		foreach($cases as $case) {
+			$this->assertSame($case['expectedResult'], $access->stringResemblesDN($case['input']));
+		}
 	}
 }

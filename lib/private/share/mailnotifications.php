@@ -52,7 +52,7 @@ class MailNotifications {
 	 * @param string $sender user id (if nothing is set we use the currently logged-in user)
 	 */
 	public function __construct($sender = null) {
-		$this->l = \OC_L10N::get('core');
+		$this->l = \OC::$server->getL10N('lib');
 
 		$this->senderId = $sender;
 
@@ -101,15 +101,20 @@ class MailNotifications {
 				}
 			}
 
+			// Link to folder, or root folder if a file
+
 			if ($itemType === 'folder') {
-				$foldername = "/Shared/" . $filename;
+				$args = array(
+					'dir' => $filename,
+				);
 			} else {
-				// if it is a file we can just link to the Shared folder,
-				// that's the place where the user will find the file
-				$foldername = "/Shared";
+				$args = array(
+					'dir' => '/',
+					'scrollto' => $filename,
+				);
 			}
 
-			$link = \OCP\Util::linkToAbsolute('files', 'index.php', array("dir" => $foldername));
+			$link = \OCP\Util::linkToAbsolute('files', 'index.php', $args);
 
 			list($htmlMail, $alttextMail) = $this->createMailBody($filename, $link, $expiration);
 

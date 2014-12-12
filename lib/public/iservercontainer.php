@@ -81,9 +81,10 @@ interface IServerContainer {
 	/**
 	 * Returns a view to ownCloud's files folder
 	 *
+	 * @param string $userId user ID
 	 * @return \OCP\Files\Folder
 	 */
-	function getUserFolder();
+	function getUserFolder($userId = null);
 
 	/**
 	 * Returns an app-specific view in ownClouds data directory
@@ -98,6 +99,13 @@ interface IServerContainer {
 	 * @return \OCP\IUserManager
 	 */
 	function getUserManager();
+
+	/**
+	 * Returns a group manager
+	 *
+	 * @return \OCP\IGroupManager
+	 */
+	function getGroupManager();
 
 	/**
 	 * Returns the user session
@@ -219,4 +227,9 @@ interface IServerContainer {
 	 */
 	function getSearch();
 
+	/**
+	 * Returns an instance of the HTTP helper class
+	 * @return \OC\HTTPHelper
+	 */
+	function getHTTPHelper();
 }

@@ -48,10 +48,10 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 
 	/**
 	 * get file cache of the shared item source
-	 * @return string
+	 * @return int
 	 */
 	public function getSourceId() {
-		return $this->share['file_source'];
+		return (int) $this->share['file_source'];
 	}
 
 	/**
@@ -300,7 +300,7 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 			$pathinfo = pathinfo($relPath1);
 			// for part files we need to ask for the owner and path from the parent directory because
 			// the file cache doesn't return any results for part files
-			if ($pathinfo['extension'] === 'part') {
+			if (isset($pathinfo['extension']) && $pathinfo['extension'] === 'part') {
 				list($user1, $path1) = \OCA\Files_Sharing\Helper::getUidAndFilename($pathinfo['dirname']);
 				$path1 = $path1 . '/' . $pathinfo['basename'];
 			} else {
@@ -530,6 +530,23 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 			return $storage->getETag($internalPath);
 		}
 		return null;
+	}
+
+	/**
+	 * unshare complete storage, also the grouped shares
+	 *
+	 * @return bool
+	 */
+	public function unshareStorage() {
+		$result = true;
+		if (!empty($this->share['grouped'])) {
+			foreach ($this->share['grouped'] as $share) {
+				$result = $result && \OCP\Share::unshareFromSelf($share['item_type'], $share['file_target']);
+			}
+		}
+		$result = $result && \OCP\Share::unshareFromSelf($this->getItemType(), $this->getMountPoint());
+
+		return $result;
 	}
 
 }

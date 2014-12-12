@@ -38,7 +38,7 @@ class OC_Share_Backend_File implements OCP\Share_Backend_File_Dependent {
 			// FIXME: attributes should not be set here,
 			// keeping this pattern for now to avoid unexpected
 			// regressions
-			$this->path = basename($path);
+			$this->path = \OC\Files\Filesystem::normalizePath(basename($path));
 			return true;
 		}
 		return false;
@@ -49,6 +49,11 @@ class OC_Share_Backend_File implements OCP\Share_Backend_File_Dependent {
 			$path = $this->path;
 			$this->path = null;
 			return $path;
+		} else {
+			$path = \OC\Files\Filesystem::getPath($itemSource);
+			if ($path) {
+				return $path;
+			}
 		}
 		return false;
 	}
@@ -57,11 +62,12 @@ class OC_Share_Backend_File implements OCP\Share_Backend_File_Dependent {
 	 * create unique target
 	 * @param string $filePath
 	 * @param string $shareWith
-	 * @param string $exclude
+	 * @param array $exclude (optional)
 	 * @return string
 	 */
 	public function generateTarget($filePath, $shareWith, $exclude = null) {
-		$target = '/'.basename($filePath);
+		$shareFolder = \OCA\Files_Sharing\Helper::getShareFolder();
+		$target = \OC\Files\Filesystem::normalizePath($shareFolder . '/' . basename($filePath));
 
 		// for group shares we return the target right away
 		if ($shareWith === false) {
@@ -70,10 +76,19 @@ class OC_Share_Backend_File implements OCP\Share_Backend_File_Dependent {
 
 		\OC\Files\Filesystem::initMountPoints($shareWith);
 		$view = new \OC\Files\View('/' . $shareWith . '/files');
-		$excludeList = \OCP\Share::getItemsSharedWithUser('file', $shareWith, self::FORMAT_TARGET_NAMES);
-		if (is_array($exclude)) {
-			$excludeList = array_merge($excludeList, $exclude);
+
+		if (!$view->is_dir($shareFolder)) {
+			$dir = '';
+			$subdirs = explode('/', $shareFolder);
+			foreach ($subdirs as $subdir) {
+				$dir = $dir . '/' . $subdir;
+				if (!$view->is_dir($dir)) {
+					$view->mkdir($dir);
+				}
+			}
 		}
+
+		$excludeList = (is_array($exclude)) ? $exclude : array();
 
 		return \OCA\Files_Sharing\Helper::generateUniqueTarget($target, $excludeList, $view);
 	}

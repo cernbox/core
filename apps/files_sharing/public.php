@@ -1,5 +1,7 @@
 <?php
 // Load other apps for file previews
+use OCA\Files_Sharing\Helper;
+
 OC_App::loadApps();
 
 $appConfig = \OC::$server->getAppConfig();
@@ -90,7 +92,7 @@ if (isset($path)) {
 	}
 	$basePath = $path;
 	$rootName = basename($path);
-	if (isset($_GET['path']) && \OC\Files\Filesystem::isReadable($basePath . $_GET['path'])) {
+	if ($linkItem['item_type'] === 'folder' && isset($_GET['path']) && \OC\Files\Filesystem::isReadable($basePath . $_GET['path'])) {
 		$getPath = \OC\Files\Filesystem::normalizePath($_GET['path']);
 		$path .= $getPath;
 	} else {
@@ -100,11 +102,15 @@ if (isset($path)) {
 	$file = basename($path);
 	// Download the file
 	if (isset($_GET['download'])) {
+		if (!\OCP\App::isEnabled('files_encryption')) {
+			// encryption app requires the session to store the keys in
+			\OC::$server->getSession()->close();
+		}
 		if (isset($_GET['files'])) { // download selected files
-			$files = urldecode($_GET['files']);
+			$files = $_GET['files'];
 			$files_list = json_decode($files);
 			// in case we get only a single file
-			if ($files_list === NULL ) {
+			if (!is_array($files_list)) {
 				$files_list = array($files);
 			}
 			OC_Files::get($path, $files_list, $_SERVER['REQUEST_METHOD'] == 'HEAD');
@@ -128,6 +134,7 @@ if (isset($path)) {
 		$tmpl->assign('mimetype', \OC\Files\Filesystem::getMimeType($path));
 		$tmpl->assign('dirToken', $linkItem['token']);
 		$tmpl->assign('sharingToken', $token);
+		$tmpl->assign('server2serversharing', Helper::isOutgoingServer2serverShareEnabled());
 		$tmpl->assign('protected', isset($linkItem['share_with']) ? 'true' : 'false');
 
 		$urlLinkIdentifiers= (isset($token)?'&t='.$token:'')
@@ -167,7 +174,7 @@ if (isset($path)) {
 			$tmpl->assign('downloadURL',
 				OCP\Util::linkToPublic('files') . $urlLinkIdentifiers . '&download&path=' . urlencode($getPath));
 		} else {
-			$tmpl->assign('dir', $dir);
+			$tmpl->assign('dir', '');
 
 			// Show file preview if viewer is available
 			if ($type == 'file') {

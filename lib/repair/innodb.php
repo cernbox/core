@@ -23,7 +23,7 @@ class InnoDB extends BasicEmitter implements \OC\RepairStep {
 	public function run() {
 		$connection = \OC_DB::getConnection();
 		if (!$connection->getDatabasePlatform() instanceof MySqlPlatform) {
-			$this->emit('\OC\Repair', 'info', array('Not a mysql database -> nothing to no'));
+			$this->emit('\OC\Repair', 'info', array('Not a mysql database -> nothing to do'));
 			return;
 		}
 
@@ -43,7 +43,7 @@ class InnoDB extends BasicEmitter implements \OC\RepairStep {
 	private function getAllMyIsamTables($connection) {
 		$dbName = \OC::$server->getConfig()->getSystemValue("dbname");
 		$result = $connection->fetchArray(
-			"SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND engine = 'MyISAM'",
+			"SELECT table_name FROM information_schema.tables WHERE table_schema = ? AND engine = 'MyISAM' AND TABLE_NAME LIKE \"*PREFIX*%\"",
 			array($dbName)
 		);
 

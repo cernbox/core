@@ -164,6 +164,11 @@ class Manager extends PublicEmitter implements IUserManager {
 				}
 			}
 		}
+
+		$remoteAddr = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+		$forwardedFor = isset($_SERVER['HTTP_X_FORWARDED_FOR']) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : '';
+
+		\OC::$server->getLogger()->warning('Login failed: \''. $loginname .'\' (Remote IP: \''. $remoteAddr .'\', X-Forwarded-For: \''. $forwardedFor .'\')', array('app' => 'core'));
 		return false;
 	}
 
@@ -258,6 +263,13 @@ class Manager extends PublicEmitter implements IUserManager {
 			if ($backend->implementsActions(\OC_USER_BACKEND_CREATE_USER)) {
 				$backend->createUser($uid, $password);
 				$user = $this->getUserObject($uid, $backend);
+
+				// make sure that the users file system is initialized before we
+				// emit the post hook
+				if (!\OC_User::isLoggedIn()) {
+					\OC_Util::setupFS($uid);
+				}
+
 				$this->emit('\OC\User', 'postCreateUser', array($user, $password));
 				return $user;
 			}

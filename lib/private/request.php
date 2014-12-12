@@ -13,7 +13,7 @@ class OC_Request {
 	const USER_AGENT_ANDROID_MOBILE_CHROME = '#Android.*Chrome/[.0-9]*#';
 	const USER_AGENT_FREEBOX = '#^Mozilla/5\.0$#';
 
-	const REGEX_LOCALHOST = '/^(127\.0\.0\.1|localhost)(:[0-9]+|)$/';
+	const REGEX_LOCALHOST = '/^(127\.0\.0\.1|localhost)$/';
 
 	/**
 	 * Check overwrite condition
@@ -27,22 +27,50 @@ class OC_Request {
 	}
 
 	/**
+	 * Strips a potential port from a domain (in format domain:port)
+	 * @param $host
+	 * @return string $host without appended port
+	 */
+	public static function getDomainWithoutPort($host) {
+		$pos = strrpos($host, ':');
+		if ($pos !== false) {
+			$port = substr($host, $pos + 1);
+			if (is_numeric($port)) {
+				$host = substr($host, 0, $pos);
+			}
+		}
+		return $host;
+	}
+
+	/**
 	 * Checks whether a domain is considered as trusted from the list
 	 * of trusted domains. If no trusted domains have been configured, returns
 	 * true.
 	 * This is used to prevent Host Header Poisoning.
-	 * @param string $domain
+	 * @param string $domainWithPort
 	 * @return bool true if the given domain is trusted or if no trusted domains
 	 * have been configured
 	 */
-	public static function isTrustedDomain($domain) {
-		$trustedList = \OC_Config::getValue('trusted_domains', array());
+	public static function isTrustedDomain($domainWithPort) {
+		// Extract port from domain if needed
+		$domain = self::getDomainWithoutPort($domainWithPort);
+
+		// FIXME: Empty config array defaults to true for now. - Deprecate this behaviour with ownCloud 8.
+		$trustedList = \OC::$server->getConfig()->getSystemValue('trusted_domains', array());
 		if (empty($trustedList)) {
 			return true;
 		}
+
+		// FIXME: Workaround for older instances still with port applied. Remove for ownCloud 9.
+		if(in_array($domainWithPort, $trustedList)) {
+			return true;
+		}
+
+		// Always allow access from localhost
 		if (preg_match(self::REGEX_LOCALHOST, $domain) === 1) {
 			return true;
 		}
+
 		return in_array($domain, $trustedList);
 	}
 
@@ -205,7 +233,7 @@ class OC_Request {
 	 * @return string Path info or false when not found
 	 */
 	public static function getRawPathInfo() {
-		$requestUri = $_SERVER['REQUEST_URI'];
+		$requestUri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
 		// remove too many leading slashes - can be caused by reverse proxy configuration
 		if (strpos($requestUri, '/') === 0) {
 			$requestUri = '/' . ltrim($requestUri, '/');

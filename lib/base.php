@@ -188,9 +188,17 @@ class OC {
 
 	public static function checkConfig() {
 		$l = OC_L10N::get('lib');
-		if (file_exists(self::$configDir . "/config.php")
-			and !is_writable(self::$configDir . "/config.php")
-		) {
+
+		// Create config in case it does not already exists
+		$configFilePath = self::$configDir .'/config.php';
+		if(!file_exists($configFilePath)) {
+			@touch($configFilePath);
+		}
+
+		// Check if config is writable
+		$configFileWritable = is_writable($configFilePath);
+		if (!$configFileWritable && !OC_Helper::isReadOnlyConfigEnabled()
+			|| !$configFileWritable && \OCP\Util::needUpgrade()) {
 			if (self::$CLI) {
 				echo $l->t('Cannot write into "config" directory!')."\n";
 				echo $l->t('This can usually be fixed by giving the webserver write access to the config directory')."\n";
@@ -473,29 +481,15 @@ class OC {
 		@ini_set('file_uploads', '50');
 
 		self::handleAuthHeaders();
-
 		self::initPaths();
-		if (OC_Config::getValue('instanceid', false)) {
-			// \OC\Memcache\Cache has a hidden dependency on
-			// OC_Util::getInstanceId() for namespacing. See #5409.
-			try {
-				self::$loader->setMemoryCache(\OC\Memcache\Factory::createLowLatency('Autoloader'));
-			} catch (\Exception $ex) {
-			}
-		}
+		self::registerAutoloaderCache();
+
 		OC_Util::isSetLocaleWorking();
 
 		// setup 3rdparty autoloader
 		$vendorAutoLoad = OC::$THIRDPARTYROOT . '/3rdparty/autoload.php';
 		if (file_exists($vendorAutoLoad)) {
 			require_once $vendorAutoLoad;
-		}
-
-		// set debug mode if an xdebug session is active
-		if (!defined('DEBUG') || !DEBUG) {
-			if (isset($_COOKIE['XDEBUG_SESSION'])) {
-				define('DEBUG', true);
-			}
 		}
 
 		if (!defined('PHPUNIT_RUN')) {
@@ -530,7 +524,7 @@ class OC {
 		self::checkSSL();
 		OC_Response::addSecurityHeaders();
 
-		$errors = OC_Util::checkServer();
+		$errors = OC_Util::checkServer(\OC::$server->getConfig());
 		if (count($errors) > 0) {
 			if (self::$CLI) {
 				foreach ($errors as $error) {
@@ -557,7 +551,9 @@ class OC {
 		OC_Group::useBackend(new OC_Group_Database());
 
 		//setup extra user backends
-		OC_User::setupBackends();
+		if (!self::checkUpgrade(false)) {
+			OC_User::setupBackends();
+		}
 
 		self::registerCacheHooks();
 		self::registerFilesystemHooks();
@@ -573,6 +569,23 @@ class OC {
 			if (OC_Appconfig::getValue('core', 'backgroundjobs_mode', 'ajax') == 'ajax') {
 				OC_Util::addScript('backgroundjobs');
 			}
+		}
+
+		$host = OC_Request::insecureServerHost();
+		// if the host passed in headers isn't trusted
+		if (!OC::$CLI
+			// overwritehost is always trusted
+			&& OC_Request::getOverwriteHost() === null
+			&& !OC_Request::isTrustedDomain($host)
+		) {
+			header('HTTP/1.1 400 Bad Request');
+			header('Status: 400 Bad Request');
+
+			$tmpl = new OCP\Template('core', 'untrustedDomain', 'guest');
+			$tmpl->assign('domain', $_SERVER['SERVER_NAME']);
+			$tmpl->printPage();
+
+			exit();
 		}
 	}
 
@@ -642,6 +655,23 @@ class OC {
 		}
 	}
 
+	protected static function registerAutoloaderCache() {
+		// The class loader takes an optional low-latency cache, which MUST be
+		// namespaced. The instanceid is used for namespacing, but might be
+		// unavailable at this point. Futhermore, it might not be possible to
+		// generate an instanceid via \OC_Util::getInstanceId() because the
+		// config file may not be writable. As such, we only register a class
+		// loader cache if instanceid is available without trying to create one.
+		$instanceId = OC_Config::getValue('instanceid', null);
+		if ($instanceId) {
+			try {
+				$memcacheFactory = new \OC\Memcache\Factory($instanceId);
+				self::$loader->setMemoryCache($memcacheFactory->createLowLatency('Autoloader'));
+			} catch (\Exception $ex) {
+			}
+		}
+	}
+
 	/**
 	 * Handle the request
 	 */
@@ -653,25 +683,9 @@ class OC {
 
 		// Check if ownCloud is installed or in maintenance (update) mode
 		if (!OC_Config::getValue('installed', false)) {
-			$controller = new OC\Core\Setup\Controller();
+			$controller = new OC\Core\Setup\Controller(\OC::$server->getConfig());
 			$controller->run($_POST);
 			exit();
-		}
-
-		$host = OC_Request::insecureServerHost();
-		// if the host passed in headers isn't trusted
-		if (!OC::$CLI
-			// overwritehost is always trusted
-			&& OC_Request::getOverwriteHost() === null
-			&& !OC_Request::isTrustedDomain($host)) {
-
-			header('HTTP/1.1 400 Bad Request');
-			header('Status: 400 Bad Request');
-			OC_Template::printErrorPage(
-				$l->t('You are accessing the server from an untrusted domain.'),
-				$l->t('Please contact your administrator. If you are an administrator of this instance, configure the "trusted_domain" setting in config/config.php. An example configuration is provided in config/config.sample.php.')
-			);
-			return;
 		}
 
 		$request = OC_Request::getPathInfo();
@@ -679,12 +693,6 @@ class OC {
 			self::checkMaintenanceMode();
 			self::checkUpgrade();
 		}
-
-		if (!OC_User::isLoggedIn()) {
-			// Test it the user is already authenticated using Apaches AuthType Basic... very usable in combination with LDAP
-			OC::tryBasicAuthLogin();
-		}
-
 
 		if (!self::$CLI and (!isset($_GET["logout"]) or ($_GET["logout"] !== 'true'))) {
 			try {
@@ -694,6 +702,7 @@ class OC {
 					OC_App::loadApps();
 				}
 				self::checkSingleUserMode();
+				OC_Util::setupFS();
 				OC::$server->getRouter()->match(OC_Request::getRawPathInfo());
 				return;
 			} catch (Symfony\Component\Routing\Exception\ResourceNotFoundException $e) {
@@ -749,19 +758,11 @@ class OC {
 		if (OC_User::isLoggedIn()) {
 			OC_App::loadApps();
 			OC_User::setupBackends();
+			OC_Util::setupFS();
 			if (isset($_GET["logout"]) and ($_GET["logout"])) {
 				OC_JSON::callCheck();
 				if (isset($_COOKIE['oc_token'])) {
 					OC_Preferences::deleteKey(OC_User::getUser(), 'login_token', $_COOKIE['oc_token']);
-				}
-				if (isset($_SERVER['PHP_AUTH_USER'])) {
-					if (isset($_COOKIE['oc_ignore_php_auth_user'])) {
-						// Ignore HTTP Authentication for 5 more mintues.
-						setcookie('oc_ignore_php_auth_user', $_SERVER['PHP_AUTH_USER'], time() + 300, OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
-					} elseif ($_SERVER['PHP_AUTH_USER'] === self::$session->get('loginname')) {
-						// Ignore HTTP Authentication to allow a different user to log in.
-						setcookie('oc_ignore_php_auth_user', $_SERVER['PHP_AUTH_USER'], 0, OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
-					}
 				}
 				OC_User::logout();
 				// redirect to webroot and add slash if webroot is empty
@@ -836,13 +837,6 @@ class OC {
 		} // logon via web form
 		elseif (OC::tryFormLogin()) {
 			$error[] = 'invalidpassword';
-			if ( OC_Config::getValue('log_authfailip', false) ) {
-				OC_Log::write('core', 'Login failed: user \''.$_POST["user"].'\' , wrong password, IP:'.$_SERVER['REMOTE_ADDR'],
-				OC_Log::WARN);
-			} else {
-				OC_Log::write('core', 'Login failed: user \''.$_POST["user"].'\' , wrong password, IP:set log_authfailip=true in conf',
-                                OC_Log::WARN);
-			}
 		}
 
 		OC_Util::displayLoginPage(array_unique($error));
@@ -929,7 +923,9 @@ class OC {
 			return false;
 		}
 
-		OC_JSON::callCheck();
+		if(!OC_Util::isCallRegistered()) {
+			return false;
+		}
 		OC_App::loadApps();
 
 		//setup extra user backends
@@ -959,25 +955,6 @@ class OC {
 		return true;
 	}
 
-	/**
-	 * Try to login a user using HTTP authentication.
-	 * @return bool
-	 */
-	protected static function tryBasicAuthLogin() {
-		if (!isset($_SERVER["PHP_AUTH_USER"])
-			|| !isset($_SERVER["PHP_AUTH_PW"])
-			|| (isset($_COOKIE['oc_ignore_php_auth_user']) && $_COOKIE['oc_ignore_php_auth_user'] === $_SERVER['PHP_AUTH_USER'])
-		) {
-			return false;
-		}
-
-		if (OC_User::login($_SERVER["PHP_AUTH_USER"], $_SERVER["PHP_AUTH_PW"])) {
-			//OC_Log::write('core',"Logged in with HTTP Authentication", OC_Log::DEBUG);
-			OC_User::unsetMagicInCookie();
-			$_SERVER['HTTP_REQUESTTOKEN'] = OC_Util::callRegister();
-		}
-		return true;
-	}
 
 }
 

@@ -24,6 +24,8 @@ class Storage {
 	// files for which we can remove the versions after the delete operation was successful
 	private static $deletedFiles = array();
 
+	private static $sourcePathAndUser = array();
+
 	private static $max_versions_per_interval = array(
 		//first 10sec, one version every 2sec
 		1 => array('intervalEndsAfter' => 10,      'step' => 2),
@@ -48,6 +50,34 @@ class Storage {
 			$filename = $ownerView->getPath($info['fileid']);
 		}
 		return array($uid, $filename);
+	}
+
+	/**
+	 * Remember the owner and the owner path of the source file
+	 *
+	 * @param string $source source path
+	 */
+	public static function setSourcePathAndUser($source) {
+		list($uid, $path) = self::getUidAndFilename($source);
+		self::$sourcePathAndUser[$source] = array('uid' => $uid, 'path' => $path);
+	}
+
+	/**
+	 * Gets the owner and the owner path from the source path
+	 *
+	 * @param string $source source path
+	 * @return array with user id and path
+	 */
+	public static function getSourcePathAndUser($source) {
+
+		if (isset(self::$sourcePathAndUser[$source])) {
+			$uid = self::$sourcePathAndUser[$source]['uid'];
+			$path = self::$sourcePathAndUser[$source]['path'];
+			unset(self::$sourcePathAndUser[$source]);
+		} else {
+			$uid = $path = false;
+		}
+		return array($uid, $path);
 	}
 
 	/**
@@ -180,16 +210,20 @@ class Storage {
 	 * @param string $operation can be 'copy' or 'rename'
 	 */
 	public static function renameOrCopy($old_path, $new_path, $operation) {
-		list($uid, $oldpath) = self::getUidAndFilename($old_path);
+		list($uid, $oldpath) = self::getSourcePathAndUser($old_path);
+
+		// it was a upload of a existing file if no old path exists
+		// in this case the pre-hook already called the store method and we can
+		// stop here
+		if ($oldpath === false) {
+			return true;
+		}
+
 		list($uidn, $newpath) = self::getUidAndFilename($new_path);
 		$versions_view = new \OC\Files\View('/'.$uid .'/files_versions');
 		$files_view = new \OC\Files\View('/'.$uid .'/files');
 
-		// if the file already exists than it was a upload of a existing file
-		// over the web interface -> store() is the right function we need here
-		if ($files_view->file_exists($newpath)) {
-			return self::store($new_path);
-		}
+
 
 		if ( $files_view->is_dir($oldpath) && $versions_view->is_dir($oldpath) ) {
 			$versions_view->$operation($oldpath, $newpath);
@@ -265,7 +299,7 @@ class Storage {
 		$pathinfo = pathinfo($filename);
 		$versionedFile = $pathinfo['basename'];
 
-		$dir = self::VERSIONS_ROOT . '/' . $pathinfo['dirname'];
+		$dir = \OC\Files\Filesystem::normalizePath(self::VERSIONS_ROOT . '/' . $pathinfo['dirname']);
 
 		$dirContent = false;
 		if ($view->is_dir($dir)) {
@@ -293,7 +327,7 @@ class Storage {
 						} else {
 							$versions[$key]['preview'] = \OCP\Util::linkToRoute('core_ajax_versions_preview', array('file' => $userFullPath, 'version' => $timestamp));
 						}
-						$versions[$key]['path'] = $filename;
+						$versions[$key]['path'] = $pathinfo['dirname'] . '/' . $filename;
 						$versions[$key]['name'] = $versionedFile;
 						$versions[$key]['size'] = $view->filesize($dir . '/' . $entryName);
 					}
@@ -517,6 +551,9 @@ class Storage {
 			// but always keep the two latest versions
 			$numOfVersions = count($allVersions) -2 ;
 			$i = 0;
+			// sort oldest first and make sure that we start at the first element
+			ksort($allVersions);
+			reset($allVersions);
 			while ($availableSpace < 0 && $i < $numOfVersions) {
 				$version = current($allVersions);
 				\OC_Hook::emit('\OCP\Versions', 'preDelete', array('path' => $version['path'].'.v'.$version['version']));

@@ -160,6 +160,11 @@ class Filesystem {
 	 */
 	const signal_param_run = 'run';
 
+	const signal_create_mount = 'create_mount';
+	const signal_delete_mount = 'delete_mount';
+	const signal_param_mount_type = 'mounttype';
+	const signal_param_users = 'users';
+
 	/**
 	 * @var \OC\Files\Storage\Loader $loader
 	 */
@@ -690,12 +695,21 @@ class Filesystem {
 	 * @param bool $stripTrailingSlash
 	 * @return string
 	 */
-	public static function normalizePath($path, $stripTrailingSlash = true) {
+	public static function normalizePath($path, $stripTrailingSlash = true, $isAbsolutePath = false) {
 		if ($path == '') {
 			return '/';
 		}
+
 		//no windows style slashes
 		$path = str_replace('\\', '/', $path);
+
+		// When normalizing an absolute path, we need to ensure that the drive-letter
+		// is still at the beginning on windows
+		$windows_drive_letter = '';
+		if ($isAbsolutePath && \OC_Util::runningOnWindows() && preg_match('#^([a-zA-Z])$#', $path[0]) && $path[1] == ':' && $path[2] == '/') {
+			$windows_drive_letter = substr($path, 0, 2);
+			$path = substr($path, 2);
+		}
 
 		//add leading slash
 		if ($path[0] !== '/') {
@@ -725,7 +739,7 @@ class Filesystem {
 		//normalize unicode if possible
 		$path = \OC_Util::normalizeUnicode($path);
 
-		return $path;
+		return $windows_drive_letter . $path;
 	}
 
 	/**
@@ -796,5 +810,3 @@ class Filesystem {
 		return self::$defaultInstance->getETag($path);
 	}
 }
-
-\OC_Util::setupFS();

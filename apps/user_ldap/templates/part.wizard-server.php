@@ -1,3 +1,10 @@
+<div class="outoftheway">
+	<!-- Hack for Safari and Chromium/Chrome which ignore autocomplete="off" -->
+	<input type="text" id="fake_user" name="fake_user" autocomplete="off" />
+	<input type="password" id="fake_password" name="fake_password"
+				autocomplete="off" />
+</div>
+
 <fieldset id="ldapWizard1">
 		<p>
 		<select id="ldap_serverconfig_chooser" name="ldap_serverconfig_chooser">
@@ -17,7 +24,7 @@
 		?>
 		<option value="NEW"><?php p($l->t('Add Server Configuration'));?></option>
 		</select>
-		<button id="ldap_action_delete_configuration"
+		<button type="button" id="ldap_action_delete_configuration"
 			name="ldap_action_delete_configuration"><?php p($l->t('Delete Configuration'));?></button>
 		</p>
 
@@ -60,6 +67,16 @@
 					placeholder="<?php p($l->t('One Base DN per line'));?>"
 					title="<?php p($l->t('You can specify Base DN for users and groups in the Advanced tab'));?>">
 				</textarea>
+			</div>
+
+			<div class="tablerow left">
+				<input type="checkbox" id="ldap_experienced_admin" value="1"
+					name="ldap_experienced_admin" class="tablecell lwautosave"
+					title="<?php p($l->t('Avoids automatic LDAP requests. Better for bigger setups, but requires some LDAP knowledge.'));?>"
+					/>
+				<label for="ldap_experienced_admin" class="tablecell">
+					<?php p($l->t('Manually enter LDAP filters (recommended for large directories)'));?>
+				</label>
 			</div>
 
 			<div class="tablerow">

@@ -139,7 +139,7 @@ class Share extends \OC\Share\Constants {
 	 * @param int $format (optional) Format type must be defined by the backend
 	 * @param mixed $parameters
 	 * @param bool $includeCollections
-	 * @return mixed Return depends on format
+	 * @return array
 	 */
 	public static function getItemSharedWithBySource($itemType, $itemSource, $format = self::FORMAT_NONE,
 		$parameters = null, $includeCollections = false) {
@@ -274,10 +274,11 @@ class Share extends \OC\Share\Constants {
 	 * @param string $itemType
 	 * @param string $itemSource
 	 * @param int $shareType SHARE_TYPE_USER, SHARE_TYPE_GROUP, or SHARE_TYPE_LINK
+	 * @param string $recipient with whom was the item shared
 	 * @param bool $status
 	 */
-	public static function setSendMailStatus($itemType, $itemSource, $shareType, $status) {
-		return \OC\Share\Share::setSendMailStatus($itemType, $itemSource, $shareType, $status);
+	public static function setSendMailStatus($itemType, $itemSource, $shareType, $recipient, $status) {
+		return \OC\Share\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, $status);
 	}
 
 	/**
@@ -330,6 +331,15 @@ class Share extends \OC\Share\Constants {
 	public static function checkPasswordProtectedShare(array $linkItem) {
 		return \OC\Share\Share::checkPasswordProtectedShare($linkItem);
 	}
+
+	/**
+	 * Check if resharing is allowed
+	 *
+	 * @return boolean true if allowed or false
+	 */
+	public static function isResharingAllowed() {
+		return \OC\Share\Share::isResharingAllowed();
+	}
 }
 
 /**
@@ -351,7 +361,7 @@ interface Share_Backend {
 	 * Get a unique name of the item for the specified user
 	 * @param string $itemSource
 	 * @param string|false $shareWith User the item is being shared with
-	 * @param array|null $exclude List of similar item names already existing as shared items
+	 * @param array|null $exclude List of similar item names already existing as shared items @deprecated since version OC7
 	 * @return string Target name
 	 *
 	 * This function needs to verify that the user does not already have an item with this name.

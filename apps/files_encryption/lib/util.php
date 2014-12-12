@@ -167,11 +167,12 @@ class Util {
 				\OC_FileProxy::$enabled = false;
 
 				// Encrypt private key with user pwd as passphrase
-				$encryptedPrivateKey = Crypt::symmetricEncryptFileContent($keypair['privateKey'], $passphrase);
+				$encryptedPrivateKey = Crypt::symmetricEncryptFileContent($keypair['privateKey'], $passphrase, Helper::getCipher());
 
 				// Save key-pair
 				if ($encryptedPrivateKey) {
-					$this->view->file_put_contents($this->privateKeyPath, $encryptedPrivateKey);
+					$header = crypt::generateHeader();
+					$this->view->file_put_contents($this->privateKeyPath, $header . $encryptedPrivateKey);
 					$this->view->file_put_contents($this->publicKeyPath, $keypair['publicKey']);
 				}
 
@@ -394,8 +395,14 @@ class Util {
 			&& $this->isEncryptedPath($path)
 		) {
 
-			// get the size from filesystem
-			$size = $this->view->filesize($path);
+			$offset = 0;
+			if ($this->containHeader($path)) {
+				$offset = Crypt::BLOCKSIZE;
+			}
+
+			// get the size from filesystem if the file contains a encryption header we
+			// we substract it
+			$size = $this->view->filesize($path) - $offset;
 
 			// fast path, else the calculation for $lastChunkNr is bogus
 			if ($size === 0) {
@@ -406,15 +413,15 @@ class Util {
 			// calculate last chunk nr
 			// next highest is end of chunks, one subtracted is last one
 			// we have to read the last chunk, we can't just calculate it (because of padding etc)
-			$lastChunkNr = ceil($size/ 8192) - 1;
-			$lastChunkSize = $size - ($lastChunkNr * 8192);
+			$lastChunkNr = ceil($size/ Crypt::BLOCKSIZE) - 1;
+			$lastChunkSize = $size - ($lastChunkNr * Crypt::BLOCKSIZE);
 
 			// open stream
 			$stream = fopen('crypt://' . $path, "r");
 
 			if (is_resource($stream)) {
 				// calculate last chunk position
-				$lastChunckPos = ($lastChunkNr * 8192);
+				$lastChunckPos = ($lastChunkNr * Crypt::BLOCKSIZE);
 
 				// seek to end
 				if (@fseek($stream, $lastChunckPos) === -1) {
@@ -446,6 +453,30 @@ class Util {
 		\OC_FileProxy::$enabled = $proxyStatus;
 
 		return $result;
+	}
+
+	/**
+	 * check if encrypted file contain a encryption header
+	 *
+	 * @param string $path
+	 * @return boolean
+	 */
+	private function containHeader($path) {
+		// Disable encryption proxy to read the raw data
+		$proxyStatus = \OC_FileProxy::$enabled;
+		\OC_FileProxy::$enabled = false;
+
+		$isHeader = false;
+		$handle = $this->view->fopen($path, 'r');
+
+		if (is_resource($handle)) {
+			$firstBlock = fread($handle, Crypt::BLOCKSIZE);
+			$isHeader =  Crypt::isHeader($firstBlock);
+		}
+
+		\OC_FileProxy::$enabled = $proxyStatus;
+
+		return $isHeader;
 	}
 
 	/**
@@ -858,6 +889,25 @@ class Util {
 	}
 
 	/**
+	 * Returns whether the given user is ready for encryption.
+	 * Also returns true if the given user is the public user
+	 * or the recovery key user.
+	 *
+	 * @param string $user user to check
+	 *
+	 * @return boolean true if the user is ready, false otherwise
+	 */
+	private function isUserReady($user) {
+		if ($user === $this->publicShareKeyId
+			|| $user === $this->recoveryKeyId
+		) {
+			return true;
+		}
+		$util = new Util($this->view, $user);
+		return $util->ready();
+	}
+
+	/**
 	 * Filter an array of UIDs to return only ones ready for sharing
 	 * @param array $unfilteredUsers users to be checked for sharing readiness
 	 * @return array as multi-dimensional array. keys: ready, unready
@@ -869,16 +919,9 @@ class Util {
 
 		// Loop through users and create array of UIDs that need new keyfiles
 		foreach ($unfilteredUsers as $user) {
-
-			$util = new Util($this->view, $user);
-
 			// Check that the user is encryption capable, or is the
-			// public system user 'ownCloud' (for public shares)
-			if (
-				$user === $this->publicShareKeyId
-				or $user === $this->recoveryKeyId
-				or $util->ready()
-			) {
+			// public system user (for public shares)
+			if ($this->isUserReady($user)) {
 
 				// Construct array of ready UIDs for Keymanager{}
 				$readyIds[] = $user;
@@ -1041,10 +1084,10 @@ class Util {
 
 		// check if it is a group mount
 		if (\OCP\App::isEnabled("files_external")) {
-			$mount = \OC_Mount_Config::getSystemMountPoints();
-			foreach ($mount as $mountPoint => $data) {
-				if ($mountPoint == substr($ownerPath, 1, strlen($mountPoint))) {
-					$userIds = array_merge($userIds, $this->getUserWithAccessToMountPoint($data['applicable']['users'], $data['applicable']['groups']));
+			$mounts = \OC_Mount_Config::getSystemMountPoints();
+			foreach ($mounts as $mount) {
+				if ($mount['mountpoint'] == substr($ownerPath, 1, strlen($mount['mountpoint']))) {
+					$userIds = array_merge($userIds, $this->getUserWithAccessToMountPoint($mount['applicable']['users'], $mount['applicable']['groups']));
 				}
 			}
 		}
@@ -1495,6 +1538,22 @@ class Util {
 	}
 
 	/**
+	 * create a backup of all keys from the user
+	 *
+	 * @param string $purpose (optional) define the purpose of the backup, will be part of the backup folder
+	 */
+	public function backupAllKeys($purpose = '') {
+		$this->userId;
+		$backupDir = $this->encryptionDir . '/backup.';
+		$backupDir .= ($purpose === '') ? date("Y-m-d_H-i-s") . '/' : $purpose . '.' . date("Y-m-d_H-i-s") . '/';
+		$this->view->mkdir($backupDir);
+		$this->view->copy($this->shareKeysPath, $backupDir . 'share-keys/');
+		$this->view->copy($this->keyfilesPath, $backupDir . 'keyfiles/');
+		$this->view->copy($this->privateKeyPath, $backupDir . $this->userId . '.private.key');
+		$this->view->copy($this->publicKeyPath, $backupDir . $this->userId . '.public.key');
+	}
+
+	/**
 	 * check if the file is stored on a system wide mount point
 	 * @param string $path relative to /data/user with leading '/'
 	 * @return boolean
@@ -1502,11 +1561,36 @@ class Util {
 	public function isSystemWideMountPoint($path) {
 		$normalizedPath = ltrim($path, '/');
 		if (\OCP\App::isEnabled("files_external")) {
-			$mount = \OC_Mount_Config::getSystemMountPoints();
-			foreach ($mount as $mountPoint => $data) {
-				if ($mountPoint == substr($normalizedPath, 0, strlen($mountPoint))) {
-					return true;
+			$mounts = \OC_Mount_Config::getSystemMountPoints();
+			foreach ($mounts as $mount) {
+				if ($mount['mountpoint'] == substr($normalizedPath, 0, strlen($mount['mountpoint']))) {
+					if ($this->isMountPointApplicableToUser($mount)) {
+						return true;
+					}
 				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * check if mount point is applicable to user
+	 *
+	 * @param array $mount contains $mount['applicable']['users'], $mount['applicable']['groups']
+	 * @return boolean
+	 */
+	protected function isMountPointApplicableToUser($mount) {
+		$uid = \OCP\User::getUser();
+		$acceptedUids = array('all', $uid);
+		// check if mount point is applicable for the user
+		$intersection = array_intersect($acceptedUids, $mount['applicable']['users']);
+		if (!empty($intersection)) {
+			return true;
+		}
+		// check if mount point is applicable for group where the user is a member
+		foreach ($mount['applicable']['groups'] as $gid) {
+			if (\OC_Group::inGroup($uid, $gid)) {
+				return true;
 			}
 		}
 		return false;

@@ -13,7 +13,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 	 */
 	public function testSimplePutFails() {
 		// setup
-		$view = $this->getMock('\OC\Files\View', array('file_put_contents', 'getRelativePath'), array(), '', false);
+		$view = $this->getMock('\OC\Files\View', array('file_put_contents', 'getRelativePath'), array());
 		$view->expects($this->any())
 			->method('file_put_contents')
 			->will($this->returnValue(false));
@@ -38,8 +38,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 	public function testSimplePutFailsOnRename() {
 		// setup
 		$view = $this->getMock('\OC\Files\View',
-			array('file_put_contents', 'rename', 'getRelativePath', 'filesize'),
-			array(), '', false);
+			array('file_put_contents', 'rename', 'getRelativePath', 'filesize'));
 		$view->expects($this->any())
 			->method('file_put_contents')
 			->withAnyParameters()
@@ -56,6 +55,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 			->will($this->returnValue(123456));
 
 		$_SERVER['CONTENT_LENGTH'] = 123456;
+		$_SERVER['REQUEST_METHOD'] = 'PUT';
 
 		$info = new \OC\Files\FileInfo('/test.txt', null, null, array(
 			'permissions' => \OCP\PERMISSION_ALL
@@ -72,7 +72,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 	 */
 	public function testSimplePutInvalidChars() {
 		// setup
-		$view = $this->getMock('\OC\Files\View', array('file_put_contents', 'getRelativePath'), array(), '', false);
+		$view = $this->getMock('\OC\Files\View', array('file_put_contents', 'getRelativePath'));
 		$view->expects($this->any())
 			->method('file_put_contents')
 			->will($this->returnValue(false));
@@ -96,7 +96,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 	 */
 	public function testSetNameInvalidChars() {
 		// setup
-		$view = $this->getMock('\OC\Files\View', array('getRelativePath'), array(), '', false);
+		$view = $this->getMock('\OC\Files\View', array('getRelativePath'));
 
 		$view->expects($this->any())
 			->method('getRelativePath')
@@ -115,8 +115,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 	public function testUploadAbort() {
 		// setup
 		$view = $this->getMock('\OC\Files\View',
-			array('file_put_contents', 'rename', 'getRelativePath', 'filesize'),
-			array(), '', false);
+			array('file_put_contents', 'rename', 'getRelativePath', 'filesize'));
 		$view->expects($this->any())
 			->method('file_put_contents')
 			->withAnyParameters()
@@ -133,6 +132,7 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 			->will($this->returnValue(123456));
 
 		$_SERVER['CONTENT_LENGTH'] = 12345;
+		$_SERVER['REQUEST_METHOD'] = 'PUT';
 
 		$info = new \OC\Files\FileInfo('/test.txt', null, null, array(
 			'permissions' => \OCP\PERMISSION_ALL
@@ -142,5 +142,68 @@ class Test_OC_Connector_Sabre_File extends PHPUnit_Framework_TestCase {
 
 		// action
 		$file->put('test data');
+	}
+
+	/**
+	 *
+	 */
+	public function testDeleteWhenAllowed() {
+		// setup
+		$view = $this->getMock('\OC\Files\View',
+			array());
+
+		$view->expects($this->once())
+			->method('unlink')
+			->will($this->returnValue(true));
+
+		$info = new \OC\Files\FileInfo('/test.txt', null, null, array(
+			'permissions' => \OCP\PERMISSION_ALL
+		));
+
+		$file = new OC_Connector_Sabre_File($view, $info);
+
+		// action
+		$file->delete();
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\Forbidden
+	 */
+	public function testDeleteThrowsWhenDeletionNotAllowed() {
+		// setup
+		$view = $this->getMock('\OC\Files\View',
+			array());
+
+		$info = new \OC\Files\FileInfo('/test.txt', null, null, array(
+			'permissions' => 0
+		));
+
+		$file = new OC_Connector_Sabre_File($view, $info);
+
+		// action
+		$file->delete();
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\Forbidden
+	 */
+	public function testDeleteThrowsWhenDeletionFailed() {
+		// setup
+		$view = $this->getMock('\OC\Files\View',
+			array());
+
+		// but fails
+		$view->expects($this->once())
+			->method('unlink')
+			->will($this->returnValue(false));
+
+		$info = new \OC\Files\FileInfo('/test.txt', null, null, array(
+			'permissions' => \OCP\PERMISSION_ALL
+		));
+
+		$file = new OC_Connector_Sabre_File($view, $info);
+
+		// action
+		$file->delete();
 	}
 }

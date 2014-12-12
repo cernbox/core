@@ -118,6 +118,30 @@ class OC_Mount_Config {
 			}
 			$manager->addMount($mount);
 		}
+
+		if ($data['user']) {
+			$user = \OC::$server->getUserManager()->get($data['user']);
+			if (!$user) {
+				\OC_Log::write(
+					'files_external',
+					'Cannot init external mount points for non-existant user "' . $data['user'] . '".',
+					\OC_Log::WARN
+				);
+				return;
+			}
+			$userView = new \OC\Files\View('/' . $user->getUID() . '/files');
+			$changePropagator = new \OC\Files\Cache\ChangePropagator($userView);
+			$etagPropagator = new \OCA\Files_External\EtagPropagator($user, $changePropagator, \OC::$server->getConfig());
+			$etagPropagator->propagateDirtyMountPoints();
+			\OCP\Util::connectHook(
+				\OC\Files\Filesystem::CLASSNAME,
+				\OC\Files\Filesystem::signal_create_mount,
+				$etagPropagator, 'updateHook');
+			\OCP\Util::connectHook(
+				\OC\Files\Filesystem::CLASSNAME,
+				\OC\Files\Filesystem::signal_delete_mount,
+				$etagPropagator, 'updateHook');
+		}
 	}
 
 	/**
@@ -169,6 +193,7 @@ class OC_Mount_Config {
 				foreach ($options as &$option) {
 					$option = self::setUserVars($user, $option);
 				}
+				$options['personal'] = false;
 				$options['options'] = self::decryptPasswords($options['options']);
 				if (!isset($options['priority'])) {
 					$options['priority'] = $backends[$options['class']]['priority'];
@@ -458,6 +483,7 @@ class OC_Mount_Config {
 										 $priority = null) {
 		$backends = self::getBackends();
 		$mountPoint = OC\Files\Filesystem::normalizePath($mountPoint);
+		$relMountPoint = $mountPoint;
 		if ($mountPoint === '' || $mountPoint === '/') {
 			// can't mount at root folder
 			return false;
@@ -490,6 +516,10 @@ class OC_Mount_Config {
 		}
 
 		$mountPoints = self::readData($isPersonal ? OCP\User::getUser() : NULL);
+		// who else loves multi-dimensional array ?
+		$isNew = !isset($mountPoints[$mountType]) ||
+			!isset($mountPoints[$mountType][$applicable]) ||
+			!isset($mountPoints[$mountType][$applicable][$mountPoint]);
 		$mountPoints = self::mergeMountPoints($mountPoints, $mount, $mountType);
 
 		// Set default priority if none set
@@ -505,7 +535,19 @@ class OC_Mount_Config {
 
 		self::writeData($isPersonal ? OCP\User::getUser() : NULL, $mountPoints);
 
-		return self::getBackendStatus($class, $classOptions, $isPersonal);
+		$result = self::getBackendStatus($class, $classOptions, $isPersonal);
+		if ($result && $isNew) {
+			\OC_Hook::emit(
+				\OC\Files\Filesystem::CLASSNAME,
+				\OC\Files\Filesystem::signal_create_mount,
+				array(
+					\OC\Files\Filesystem::signal_param_path => $relMountPoint,
+					\OC\Files\Filesystem::signal_param_mount_type => $mountType,
+					\OC\Files\Filesystem::signal_param_users => $applicable,
+				)
+			);
+		}
+		return $result;
 	}
 
 	/**
@@ -518,6 +560,7 @@ class OC_Mount_Config {
 	*/
 	public static function removeMountPoint($mountPoint, $mountType, $applicable, $isPersonal = false) {
 		// Verify that the mount point applies for the current user
+		$relMountPoints = $mountPoint;
 		if ($isPersonal) {
 			if ($applicable != OCP\User::getUser()) {
 				return false;
@@ -538,6 +581,15 @@ class OC_Mount_Config {
 			}
 		}
 		self::writeData($isPersonal ? OCP\User::getUser() : NULL, $mountPoints);
+		\OC_Hook::emit(
+			\OC\Files\Filesystem::CLASSNAME,
+			\OC\Files\Filesystem::signal_delete_mount,
+			array(
+				\OC\Files\Filesystem::signal_param_path => $relMountPoints,
+				\OC\Files\Filesystem::signal_param_mount_type => $mountType,
+				\OC\Files\Filesystem::signal_param_users => $applicable,
+			)
+		);
 		return true;
 	}
 

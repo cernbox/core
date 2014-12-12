@@ -218,13 +218,13 @@ describe('OCA.Files.FileList tests', function() {
 
 			expect($tr).toBeDefined();
 			expect($tr[0].tagName.toLowerCase()).toEqual('tr');
-			expect($tr.attr('data-id')).toEqual(null);
+			expect($tr.attr('data-id')).toBeUndefined();
 			expect($tr.attr('data-type')).toEqual('file');
 			expect($tr.attr('data-file')).toEqual('testFile.txt');
-			expect($tr.attr('data-size')).toEqual(null);
-			expect($tr.attr('data-etag')).toEqual(null);
+			expect($tr.attr('data-size')).toBeUndefined();
+			expect($tr.attr('data-etag')).toBeUndefined();
 			expect($tr.attr('data-permissions')).toEqual('31');
-			expect($tr.attr('data-mime')).toEqual(null);
+			expect($tr.attr('data-mime')).toBeUndefined();
 			expect($tr.attr('data-mtime')).toEqual('123456');
 
 			expect($tr.find('.filesize').text()).toEqual('Pending');
@@ -239,11 +239,11 @@ describe('OCA.Files.FileList tests', function() {
 
 			expect($tr).toBeDefined();
 			expect($tr[0].tagName.toLowerCase()).toEqual('tr');
-			expect($tr.attr('data-id')).toEqual(null);
+			expect($tr.attr('data-id')).toBeUndefined();
 			expect($tr.attr('data-type')).toEqual('dir');
 			expect($tr.attr('data-file')).toEqual('testFolder');
-			expect($tr.attr('data-size')).toEqual(null);
-			expect($tr.attr('data-etag')).toEqual(null);
+			expect($tr.attr('data-size')).toBeUndefined();
+			expect($tr.attr('data-etag')).toBeUndefined();
 			expect($tr.attr('data-permissions')).toEqual('31');
 			expect($tr.attr('data-mime')).toEqual('httpd/unix-directory');
 			expect($tr.attr('data-mtime')).toEqual('123456');
@@ -938,16 +938,6 @@ describe('OCA.Files.FileList tests', function() {
 	describe('file previews', function() {
 		var previewLoadStub;
 
-		function getImageUrl($el) {
-			// might be slightly different cross-browser
-			var url = $el.css('background-image');
-			var r = url.match(/url\(['"]?([^'")]*)['"]?\)/);
-			if (!r) {
-				return url;
-			}
-			return r[1];
-		}
-
 		beforeEach(function() {
 			previewLoadStub = sinon.stub(OCA.Files.FileList.prototype, 'lazyLoadPreview');
 		});
@@ -961,7 +951,7 @@ describe('OCA.Files.FileList tests', function() {
 			};
 			var $tr = fileList.add(fileData);
 			var $td = $tr.find('td.filename');
-			expect(getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/file.svg');
+			expect(OC.TestUtil.getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/file.svg');
 			expect(previewLoadStub.notCalled).toEqual(true);
 		});
 		it('renders default icon for dir when none provided and no preview is available', function() {
@@ -971,7 +961,7 @@ describe('OCA.Files.FileList tests', function() {
 			};
 			var $tr = fileList.add(fileData);
 			var $td = $tr.find('td.filename');
-			expect(getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/folder.svg');
+			expect(OC.TestUtil.getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/folder.svg');
 			expect(previewLoadStub.notCalled).toEqual(true);
 		});
 		it('renders provided icon for file when provided', function() {
@@ -982,7 +972,7 @@ describe('OCA.Files.FileList tests', function() {
 			};
 			var $tr = fileList.add(fileData);
 			var $td = $tr.find('td.filename');
-			expect(getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/application-pdf.svg');
+			expect(OC.TestUtil.getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/application-pdf.svg');
 			expect(previewLoadStub.notCalled).toEqual(true);
 		});
 		it('renders preview when no icon was provided and preview is available', function() {
@@ -993,11 +983,11 @@ describe('OCA.Files.FileList tests', function() {
 			};
 			var $tr = fileList.add(fileData);
 			var $td = $tr.find('td.filename');
-			expect(getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/file.svg');
+			expect(OC.TestUtil.getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/file.svg');
 			expect(previewLoadStub.calledOnce).toEqual(true);
 			// third argument is callback
 			previewLoadStub.getCall(0).args[0].callback(OC.webroot + '/somepath.png');
-			expect(getImageUrl($td)).toEqual(OC.webroot + '/somepath.png');
+			expect(OC.TestUtil.getImageUrl($td)).toEqual(OC.webroot + '/somepath.png');
 		});
 		it('renders default file type icon when no icon was provided and no preview is available', function() {
 			var fileData = {
@@ -1007,7 +997,7 @@ describe('OCA.Files.FileList tests', function() {
 			};
 			var $tr = fileList.add(fileData);
 			var $td = $tr.find('td.filename');
-			expect(getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/file.svg');
+			expect(OC.TestUtil.getImageUrl($td)).toEqual(OC.webroot + '/core/img/filetypes/file.svg');
 			expect(previewLoadStub.notCalled).toEqual(true);
 		});
 	});
@@ -1845,7 +1835,6 @@ describe('OCA.Files.FileList tests', function() {
 			// but it makes it possible to simulate the event triggering to
 			// test the response of the handlers
 			$uploader = $('#file_upload_start');
-			fileList.setupUploadEvents();
 			fileList.setFiles(testFiles);
 		});
 
@@ -1922,6 +1911,16 @@ describe('OCA.Files.FileList tests', function() {
 				ev = dropOn(fileList.$fileList.find('th:first'));
 
 				expect(ev.result).toEqual(false);
+				expect(notificationStub.calledOnce).toEqual(true);
+			});
+			it('drop on an folder does not trigger upload if no upload permission on that folder', function() {
+				var $tr = fileList.findFileEl('somedir');
+				var ev;
+				$tr.data('permissions', OC.PERMISSION_READ);
+				ev = dropOn($tr);
+
+				expect(ev.result).toEqual(false);
+				expect(notificationStub.calledOnce).toEqual(true);
 			});
 			it('drop on a file row inside the table triggers upload to current folder', function() {
 				var ev;

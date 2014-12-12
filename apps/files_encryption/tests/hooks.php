@@ -26,7 +26,6 @@ require_once __DIR__ . '/../lib/keymanager.php';
 require_once __DIR__ . '/../lib/stream.php';
 require_once __DIR__ . '/../lib/util.php';
 require_once __DIR__ . '/../appinfo/app.php';
-require_once __DIR__ . '/util.php';
 
 use OCA\Encryption;
 
@@ -34,22 +33,43 @@ use OCA\Encryption;
  * Class Test_Encryption_Hooks
  * this class provide basic hook app tests
  */
-class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
+class Test_Encryption_Hooks extends \OCA\Files_Encryption\Tests\TestCase {
 
-	const TEST_ENCRYPTION_HOOKS_USER1 = "test-encryption-hooks-user1";
-	const TEST_ENCRYPTION_HOOKS_USER2 = "test-encryption-hooks-user2";
+	const TEST_ENCRYPTION_HOOKS_USER1 = "test-encryption-hooks-user1.dot";
+	const TEST_ENCRYPTION_HOOKS_USER2 = "test-encryption-hooks-user2.dot";
 
-	/**
-	 * @var \OC\Files\View
-	 */
+	/** @var \OC\Files\View */
 	public $user1View;     // view on /data/user1/files
+	/** @var \OC\Files\View */
 	public $user2View;     // view on /data/user2/files
+	/** @var \OC\Files\View */
 	public $rootView; // view on /data/user
 	public $data;
 	public $filename;
 	public $folder;
 
+	private static $testFiles;
+
 	public static function setUpBeforeClass() {
+		parent::setUpBeforeClass();
+
+		// note: not using a data provider because these
+		// files all need to coexist to make sure the
+		// share keys are found properly (pattern matching)
+		self::$testFiles = array(
+			't est.txt',
+			't est_.txt',
+			't est.doc.txt',
+			't est(.*).txt', // make sure the regexp is escaped
+			'multiple.dots.can.happen.too.txt',
+			't est.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.txt',
+			't est_.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey.txt',
+			'who would upload their.shareKey',
+			'user ones file.txt',
+			'user ones file.txt.backup',
+			'.t est.txt'
+		);
+
 		// reset backend
 		\OC_User::clearBackends();
 		\OC_User::useBackend('database');
@@ -73,13 +93,15 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 		\OC_FileProxy::register(new OCA\Encryption\Proxy());
 
 		// create test user
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1, true);
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2, true);
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1, true);
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2, true);
 	}
 
-	function setUp() {
+	protected function setUp() {
+		parent::setUp();
+
 		// set user id
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 		\OC_User::setUserId(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 
 		// init filesystem view
@@ -89,8 +111,8 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 
 		// init short data
 		$this->data = 'hats';
-		$this->filename = 'enc_hooks_tests-' . uniqid() . '.txt';
-		$this->folder = 'enc_hooks_tests_folder-' . uniqid();
+		$this->filename = 'enc_hooks_tests-' . $this->getUniqueID() . '.txt';
+		$this->folder = 'enc_hooks_tests_folder-' . $this->getUniqueID();
 
 	}
 
@@ -98,6 +120,16 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 		// cleanup test user
 		\OC_User::deleteUser(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 		\OC_User::deleteUser(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
+
+		\OC_Hook::clear();
+		\OC_FileProxy::clearProxies();
+
+		// Delete keys in /data/
+		$view = new \OC\Files\View('/');
+		$view->rmdir('public-keys');
+		$view->rmdir('owncloud_private_key');
+
+		parent::tearDownAfterClass();
 	}
 
 	function testDisableHook() {
@@ -119,7 +151,7 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 
 		// relogin user to initialize the encryption again
 		$user =  \OCP\User::getUser();
-		\Test_Encryption_Util::loginHelper($user);
+		self::loginHelper($user);
 
 	}
 
@@ -144,8 +176,8 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 			self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/' . $this->filename . '.key'));
 
 
-		\Test_Encryption_Util::logoutHelper();
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
+		self::logoutHelper();
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
 		\OC_User::setUserId(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
 
 
@@ -202,8 +234,8 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 
 	function testDeleteHooksForSharedFiles() {
 
-		\Test_Encryption_Util::logoutHelper();
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
+		self::logoutHelper();
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 		\OC_User::setUserId(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 
 		// remember files_trashbin state
@@ -238,8 +270,8 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 			self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/'
 			. $this->filename . '.' . \Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2 . '.shareKey'));
 
-		\Test_Encryption_Util::logoutHelper();
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
+		self::logoutHelper();
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
 		\OC_User::setUserId(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER2);
 
 		// user2 update the shared file
@@ -269,8 +301,8 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 
 		// cleanup
 
-		\Test_Encryption_Util::logoutHelper();
-		\Test_Encryption_Util::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
+		self::logoutHelper();
+		self::loginHelper(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 		\OC_User::setUserId(\Test_Encryption_Hooks::TEST_ENCRYPTION_HOOKS_USER1);
 
 		if ($stateFilesTrashbin) {
@@ -281,25 +313,33 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 		}
 	}
 
+	function testRenameHook() {
+		// create all files to make sure all keys can coexist properly
+		foreach (self::$testFiles as $file) {
+			// save file with content
+			$cryptedFile = file_put_contents('crypt:///' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $file, $this->data);
+
+			// test that data was successfully written
+			$this->assertTrue(is_int($cryptedFile));
+		}
+
+		foreach (self::$testFiles as $file) {
+			$this->doTestRenameHook($file);
+		}
+	}
+
 	/**
 	 * test rename operation
 	 */
-	function testRenameHook() {
-
-		// save file with content
-		$cryptedFile = file_put_contents('crypt:///' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->filename, $this->data);
-
-		// test that data was successfully written
-		$this->assertTrue(is_int($cryptedFile));
-
+	function doTestRenameHook($filename) {
 		// check if keys exists
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/'
-			. $this->filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
+			. $filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
 
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/'
-			. $this->filename . '.key'));
+			. $filename . '.key'));
 
 		// make subfolder and sub-subfolder
 		$this->rootView->mkdir('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder);
@@ -310,50 +350,58 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 		// move the file to the sub-subfolder
 		$root = $this->rootView->getRoot();
 		$this->rootView->chroot('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/');
-		$this->rootView->rename($this->filename, '/' . $this->folder . '/' . $this->folder . '/' . $this->filename);
+		$this->rootView->rename($filename, '/' . $this->folder . '/' . $this->folder . '/' . $filename);
 		$this->rootView->chroot($root);
 
-		$this->assertFalse($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->filename));
-		$this->assertTrue($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder . '/' . $this->folder . '/' . $this->filename));
+		$this->assertFalse($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $filename));
+		$this->assertTrue($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder . '/' . $this->folder . '/' . $filename));
 
 		// keys should be renamed too
 		$this->assertFalse($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/'
-			. $this->filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
+			. $filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
 		$this->assertFalse($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/'
-			. $this->filename . '.key'));
+			. $filename . '.key'));
 
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/' . $this->folder . '/' . $this->folder . '/'
-			. $this->filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
+			. $filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/' . $this->folder . '/' . $this->folder . '/'
-			. $this->filename . '.key'));
+			. $filename . '.key'));
 
 		// cleanup
 		$this->rootView->unlink('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder);
 	}
 
+	function testCopyHook() {
+		// create all files to make sure all keys can coexist properly
+		foreach (self::$testFiles as $file) {
+			// save file with content
+			$cryptedFile = file_put_contents('crypt:///' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $file, $this->data);
+
+			// test that data was successfully written
+			$this->assertTrue(is_int($cryptedFile));
+		}
+
+		foreach (self::$testFiles as $file) {
+			$this->doTestCopyHook($file);
+		}
+	}
+
 	/**
 	 * test rename operation
 	 */
-	function testCopyHook() {
-
-		// save file with content
-		$cryptedFile = file_put_contents('crypt:///' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->filename, $this->data);
-
-		// test that data was successfully written
-		$this->assertTrue(is_int($cryptedFile));
-
+	function doTestCopyHook($filename) {
 		// check if keys exists
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/'
-			. $this->filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
+			. $filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
 
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/'
-			. $this->filename . '.key'));
+			. $filename . '.key'));
 
 		// make subfolder and sub-subfolder
 		$this->rootView->mkdir('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder);
@@ -362,29 +410,29 @@ class Test_Encryption_Hooks extends \PHPUnit_Framework_TestCase {
 		$this->assertTrue($this->rootView->is_dir('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder . '/' . $this->folder));
 
 		// copy the file to the sub-subfolder
-		\OC\Files\Filesystem::copy($this->filename, '/' . $this->folder . '/' . $this->folder . '/' . $this->filename);
+		\OC\Files\Filesystem::copy($filename, '/' . $this->folder . '/' . $this->folder . '/' . $filename);
 
-		$this->assertTrue($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->filename));
-		$this->assertTrue($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder . '/' . $this->folder . '/' . $this->filename));
+		$this->assertTrue($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $filename));
+		$this->assertTrue($this->rootView->file_exists('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder . '/' . $this->folder . '/' . $filename));
 
 		// keys should be copied too
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/'
-			. $this->filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
+			. $filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/'
-			. $this->filename . '.key'));
+			. $filename . '.key'));
 
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/share-keys/' . $this->folder . '/' . $this->folder . '/'
-			. $this->filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
+			. $filename . '.' . self::TEST_ENCRYPTION_HOOKS_USER1 . '.shareKey'));
 		$this->assertTrue($this->rootView->file_exists(
 			'/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files_encryption/keyfiles/' . $this->folder . '/' . $this->folder . '/'
-			. $this->filename . '.key'));
+			. $filename . '.key'));
 
 		// cleanup
 		$this->rootView->unlink('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->folder);
-		$this->rootView->unlink('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $this->filename);
+		$this->rootView->unlink('/' . self::TEST_ENCRYPTION_HOOKS_USER1 . '/files/' . $filename);
 	}
 
 	/**

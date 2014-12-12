@@ -14,7 +14,7 @@
 			?>
 		</title>
 		<meta charset="utf-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
 		<meta name="apple-itunes-app" content="app-id=543672169">
 		<link rel="shortcut icon" href="<?php print_unescaped(image_path('', 'favicon.png')); ?>" />
@@ -35,9 +35,8 @@
 			?>
 		<?php endforeach; ?>
 	</head>
-	<?php flush(); ?>
 	<body id="<?php p($_['bodyid']);?>">
-	<noscript><div id="nojavascript"><div><?php print_unescaped($l->t('This application requires JavaScript to be enabled for correct operation.  Please <a href="http://enable-javascript.com/" target="_blank">enable JavaScript</a> and re-load this interface.')); ?></div></div></noscript>
+	<noscript><div id="nojavascript"><div><?php print_unescaped($l->t('This application requires JavaScript for correct operation. Please <a href="http://enable-javascript.com/" target="_blank">enable JavaScript</a> and reload the page.')); ?></div></div></noscript>
 	<div id="notification-container">
 		<div id="notification"></div>
 		<?php if ($_['updateAvailable']): ?>
@@ -50,7 +49,13 @@
 			</a>
 			<a href="#" class="menutoggle">
 				<div class="header-appname">
-					<?php p(!empty($_['application'])?$_['application']: $l->t('Apps')); ?>
+					<?php
+						if(OC_Util::getEditionString() === '') {
+							p(!empty($_['application'])?$_['application']: $l->t('Apps'));
+						} else {
+							print_unescaped($theme->getHTMLName());
+						}
+					?>
 				</div>
 				<div class="icon-caret svg"></div>
 			</a>

@@ -114,16 +114,6 @@ class OC_Util {
 				return $storage;
 			});
 
-			// copy skeleton for local storage only
-			if ( ! isset( $objectStore ) ) {
-				$userRoot = OC_User::getHome($user);
-				$userDirectory = $userRoot . '/files';
-				if( !is_dir( $userDirectory )) {
-					mkdir( $userDirectory, 0755, true );
-					OC_Util::copySkeleton($userDirectory);
-				}
-			}
-
 			$userDir = '/'.$user.'/files';
 
 			//jail the user into his "home" directory
@@ -132,7 +122,11 @@ class OC_Util {
 			$fileOperationProxy = new OC_FileProxy_FileOperations();
 			OC_FileProxy::register($fileOperationProxy);
 
+			//trigger creation of user home and /files folder
+			\OC::$server->getUserFolder($user);
+
 			OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
+
 		}
 		return true;
 	}
@@ -204,28 +198,44 @@ class OC_Util {
 	}
 
 	/**
-	 * copies the user skeleton files into the fresh user home files
-	 * @param string $userDirectory
+	 * copies the skeleton to the users /files
+	 *
+	 * @param \OC\User\User $user
+	 * @param \OCP\Files\Folder $userDirectory
 	 */
-	public static function copySkeleton($userDirectory) {
-		OC_Util::copyr(\OC::$SERVERROOT.'/core/skeleton' , $userDirectory);
+	public static function copySkeleton(\OC\User\User $user, \OCP\Files\Folder $userDirectory) {
+
+		$skeletonDirectory = \OCP\Config::getSystemValue('skeletondirectory', \OC::$SERVERROOT . '/core/skeleton');
+
+		if (!empty($skeletonDirectory)) {
+			\OCP\Util::writeLog(
+				'files_skeleton',
+				'copying skeleton for '.$user->getUID().' from '.$skeletonDirectory.' to '.$userDirectory->getFullPath('/'),
+				\OCP\Util::DEBUG
+			);
+			self::copyr($skeletonDirectory, $userDirectory);
+			// update the file cache
+			$userDirectory->getStorage()->getScanner()->scan('', \OC\Files\Cache\Scanner::SCAN_RECURSIVE);
+		}
 	}
 
 	/**
-	 * copies a directory recursively
+	 * copies a directory recursively by using streams
+	 *
 	 * @param string $source
-	 * @param string $target
+	 * @param \OCP\Files\Folder $target
 	 * @return void
 	 */
-	public static function copyr($source,$target) {
+	public static function copyr($source, \OCP\Files\Folder $target) {
 		$dir = opendir($source);
-		@mkdir($target);
-		while(false !== ( $file = readdir($dir)) ) {
-			if ( !\OC\Files\Filesystem::isIgnoredDir($file) ) {
-				if ( is_dir($source . '/' . $file) ) {
-					OC_Util::copyr($source . '/' . $file , $target . '/' . $file);
+		while (false !== ($file = readdir($dir))) {
+			if (!\OC\Files\Filesystem::isIgnoredDir($file)) {
+				if (is_dir($source . '/' . $file)) {
+					$child = $target->newFolder($file);
+					self::copyr($source . '/' . $file, $child);
 				} else {
-					copy($source . '/' . $file,$target . '/' . $file);
+					$child = $target->newFile($file);
+					stream_copy_to_stream(fopen($source . '/' . $file,'r'), $child->fopen('w'));
 				}
 			}
 		}
@@ -386,14 +396,16 @@ class OC_Util {
 
 	/**
 	 * check if the current server configuration is suitable for ownCloud
+	 *
+	 * @param \OCP\IConfig $config
 	 * @return array arrays with error messages and hints
 	 */
-	public static function checkServer() {
-		$l = OC_L10N::get('lib');
+	public static function checkServer($config) {
+		$l = \OC::$server->getL10N('lib');
 		$errors = array();
-		$CONFIG_DATADIRECTORY = OC_Config::getValue('datadirectory', OC::$SERVERROOT . '/data');
+		$CONFIG_DATADIRECTORY = $config->getSystemValue('datadirectory', OC::$SERVERROOT . '/data');
 
-		if (!self::needUpgrade() && OC_Config::getValue('installed', false)) {
+		if (!self::needUpgrade($config) && $config->getSystemValue('installed', false)) {
 			// this check needs to be done every time
 			$errors = self::checkDataDirectoryValidity($CONFIG_DATADIRECTORY);
 		}
@@ -404,11 +416,9 @@ class OC_Util {
 		}
 
 		$webServerRestart = false;
-		//check for database drivers
-		if(!(is_callable('sqlite_open') or class_exists('SQLite3'))
-			and !is_callable('mysql_connect')
-			and !is_callable('pg_connect')
-			and !is_callable('oci_connect')) {
+		$setup = new OC_Setup($config);
+		$availableDatabases = $setup->getSupportedDatabases();
+		if (empty($availableDatabases)) {
 			$errors[] = array(
 				'error'=> $l->t('No database drivers (sqlite, mysql, or postgresql) installed.'),
 				'hint'=>'' //TODO: sane hint
@@ -432,8 +442,8 @@ class OC_Util {
 		}
 
 		// Check if there is a writable install folder.
-		if(OC_Config::getValue('appstoreenabled', true)) {
-			if( OC_App::getInstallPath() === null
+		if ($config->getSystemValue('appstoreenabled', true)) {
+			if (OC_App::getInstallPath() === null
 				|| !is_writable(OC_App::getInstallPath())
 				|| !is_readable(OC_App::getInstallPath()) ) {
 				$errors[] = array(
@@ -446,25 +456,27 @@ class OC_Util {
 			}
 		}
 		// Create root dir.
-		if(!is_dir($CONFIG_DATADIRECTORY)) {
-			$success=@mkdir($CONFIG_DATADIRECTORY);
-			if ($success) {
-				$errors = array_merge($errors, self::checkDataDirectoryPermissions($CONFIG_DATADIRECTORY));
-			} else {
-				$errors[] = array(
-					'error' => $l->t('Cannot create "data" directory (%s)', array($CONFIG_DATADIRECTORY)),
-					'hint' => $l->t('This can usually be fixed by '
-						  .'<a href="%s" target="_blank">giving the webserver write access to the root directory</a>.',
-						  array(OC_Helper::linkToDocs('admin-dir_permissions')))
+		if ($config->getSystemValue('installed', false)) {
+			if (!is_dir($CONFIG_DATADIRECTORY)) {
+				$success = @mkdir($CONFIG_DATADIRECTORY);
+				if ($success) {
+					$errors = array_merge($errors, self::checkDataDirectoryPermissions($CONFIG_DATADIRECTORY));
+				} else {
+					$errors[] = array(
+						'error' => $l->t('Cannot create "data" directory (%s)', array($CONFIG_DATADIRECTORY)),
+						'hint' => $l->t('This can usually be fixed by '
+							. '<a href="%s" target="_blank">giving the webserver write access to the root directory</a>.',
+							array(OC_Helper::linkToDocs('admin-dir_permissions')))
 					);
+				}
+			} else if (!is_writable($CONFIG_DATADIRECTORY) or !is_readable($CONFIG_DATADIRECTORY)) {
+				$errors[] = array(
+					'error' => 'Data directory (' . $CONFIG_DATADIRECTORY . ') not writable by ownCloud',
+					'hint' => $permissionsHint
+				);
+			} else {
+				$errors = array_merge($errors, self::checkDataDirectoryPermissions($CONFIG_DATADIRECTORY));
 			}
-		} else if(!is_writable($CONFIG_DATADIRECTORY) or !is_readable($CONFIG_DATADIRECTORY)) {
-			$errors[] = array(
-				'error'=>'Data directory ('.$CONFIG_DATADIRECTORY.') not writable by ownCloud',
-				'hint'=>$permissionsHint
-			);
-		} else {
-			$errors = array_merge($errors, self::checkDataDirectoryPermissions($CONFIG_DATADIRECTORY));
 		}
 
 		if(!OC_Util::isSetLocaleWorking()) {
@@ -485,6 +497,13 @@ class OC_Util {
 			);
 			$webServerRestart = true;
 		}
+		if(!class_exists('XMLWriter')) {
+			$errors[] = array(
+				'error'=> $l->t('PHP module %s not installed.', array('XMLWriter')),
+				'hint'=>$moduleHint
+			);
+			$webServerRestart = true;
+		}		
 		if(!class_exists('DOMDocument')) {
 			$errors[] = array(
 				'error'=> $l->t('PHP module %s not installed.', array('dom')),
@@ -838,8 +857,10 @@ class OC_Util {
 	 */
 	public static function getDefaultPageUrl() {
 		$urlGenerator = \OC::$server->getURLGenerator();
-		if(isset($_REQUEST['redirect_url'])) {
-			$location = urldecode($_REQUEST['redirect_url']);
+		// Deny the redirect if the URL contains a @
+		// This prevents unvalidated redirects like ?redirect_url=:user@domain.com
+		if (isset($_REQUEST['redirect_url']) && strpos($_REQUEST['redirect_url'], '@') === false) {
+			$location = $urlGenerator->getAbsoluteURL(urldecode($_REQUEST['redirect_url']));
 		} else {
 			$defaultPage = OC_Appconfig::getValue('core', 'defaultpage');
 			if ($defaultPage) {
@@ -1026,52 +1047,6 @@ class OC_Util {
 	}
 
 	/**
-	 * test if webDAV is working properly
-	 * @return bool
-	 * @description
-	 * The basic assumption is that if the server returns 401/Not Authenticated for an unauthenticated PROPFIND
-	 * the web server it self is setup properly.
-	 *
-	 * Why not an authenticated PROPFIND and other verbs?
-	 *  - We don't have the password available
-	 *  - We have no idea about other auth methods implemented (e.g. OAuth with Bearer header)
-	 *
-	 */
-	public static function isWebDAVWorking() {
-		if (!function_exists('curl_init')) {
-			return true;
-		}
-		if (!\OC_Config::getValue("check_for_working_webdav", true)) {
-			return true;
-		}
-		$settings = array(
-			'baseUri' => OC_Helper::linkToRemote('webdav'),
-		);
-
-		$client = new \OC_DAVClient($settings);
-
-		$client->setRequestTimeout(10);
-
-		// for this self test we don't care if the ssl certificate is self signed and the peer cannot be verified.
-		$client->setVerifyPeer(false);
-		// also don't care if the host can't be verified
-		$client->setVerifyHost(0);
-
-		$return = true;
-		try {
-			// test PROPFIND
-			$client->propfind('', array('{DAV:}resourcetype'));
-		} catch (\Sabre\DAV\Exception\NotAuthenticated $e) {
-			$return = true;
-		} catch (\Exception $e) {
-			OC_Log::write('core', 'isWebDAVWorking: NO - Reason: '.$e->getMessage(). ' ('.get_class($e).')', OC_Log::WARN);
-			$return = false;
-		}
-
-		return $return;
-	}
-
-	/**
 	 * Check if the setlocal call does not work. This can happen if the right
 	 * local packages are not available on the server.
 	 * @return bool
@@ -1230,103 +1205,20 @@ class OC_Util {
 	}
 
 	/**
-	 * @Brief Get file content via curl.
+	 * Get URL content
 	 * @param string $url Url to get content
+	 * @deprecated Use \OC::$server->getHTTPHelper()->getUrlContent($url);
 	 * @throws Exception If the URL does not start with http:// or https://
 	 * @return string of the response or false on error
 	 * This function get the content of a page via curl, if curl is enabled.
 	 * If not, file_get_contents is used.
 	 */
 	public static function getUrlContent($url) {
-		if (strpos($url, 'http://') !== 0 && strpos($url, 'https://') !== 0) {
-			throw new Exception('$url must start with https:// or http://', 1);
+		try {
+			return \OC::$server->getHTTPHelper()->getUrlContent($url);
+		} catch (\Exception $e) {
+			throw $e;
 		}
-		
-		if (function_exists('curl_init')) {
-			$curl = curl_init();
-			$max_redirects = 10;
-
-			curl_setopt($curl, CURLOPT_HEADER, 0);
-			curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
-			curl_setopt($curl, CURLOPT_URL, $url);
-
-
-			curl_setopt($curl, CURLOPT_USERAGENT, "ownCloud Server Crawler");
-			if(OC_Config::getValue('proxy', '') != '') {
-				curl_setopt($curl, CURLOPT_PROXY, OC_Config::getValue('proxy'));
-			}
-			if(OC_Config::getValue('proxyuserpwd', '') != '') {
-				curl_setopt($curl, CURLOPT_PROXYUSERPWD, OC_Config::getValue('proxyuserpwd'));
-			}
-
-			if (ini_get('open_basedir') === '' && ini_get('safe_mode') === 'Off') {
-				curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-				curl_setopt($curl, CURLOPT_MAXREDIRS, $max_redirects);
-				$data = curl_exec($curl);
-			} else {
-				curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
-				$mr = $max_redirects;
-				if ($mr > 0) {
-					$newURL = curl_getinfo($curl, CURLINFO_EFFECTIVE_URL);
-					$rcurl = curl_copy_handle($curl);
-					curl_setopt($rcurl, CURLOPT_HEADER, true);
-					curl_setopt($rcurl, CURLOPT_NOBODY, true);
-					curl_setopt($rcurl, CURLOPT_FORBID_REUSE, false);
-					curl_setopt($rcurl, CURLOPT_RETURNTRANSFER, true);
-					do {
-						curl_setopt($rcurl, CURLOPT_URL, $newURL);
-						$header = curl_exec($rcurl);
-						if (curl_errno($rcurl)) {
-							$code = 0;
-						} else {
-							$code = curl_getinfo($rcurl, CURLINFO_HTTP_CODE);
-							if ($code == 301 || $code == 302) {
-								preg_match('/Location:(.*?)\n/', $header, $matches);
-								$newURL = trim(array_pop($matches));
-							} else {
-								$code = 0;
-							}
-						}
-					} while ($code && --$mr);
-					curl_close($rcurl);
-					if ($mr > 0) {
-						curl_setopt($curl, CURLOPT_URL, $newURL);
-					}
-				}
-
-				if($mr == 0 && $max_redirects > 0) {
-					$data = false;
-				} else {
-					$data = curl_exec($curl);
-				}
-			}
-			curl_close($curl);
-		} else {
-			$contextArray = null;
-
-			if(OC_Config::getValue('proxy', '') != '') {
-				$contextArray = array(
-					'http' => array(
-						'timeout' => 10,
-						'proxy' => OC_Config::getValue('proxy')
-					)
-				);
-			} else {
-				$contextArray = array(
-					'http' => array(
-						'timeout' => 10
-					)
-				);
-			}
-
-			$ctx = stream_context_create(
-				$contextArray
-			);
-			$data = @file_get_contents($url, 0, $ctx);
-
-		}
-		return $data;
 	}
 
 	/**
@@ -1454,15 +1346,31 @@ class OC_Util {
 	}
 
 	/**
-	 * Check whether the instance needs to preform an upgrade
+	 * Check whether the instance needs to perform an upgrade,
+	 * either when the core version is higher or any app requires
+	 * an upgrade.
 	 *
-	 * @return bool
+	 * @param \OCP\IConfig $config
+	 * @return bool whether the core or any app needs an upgrade
 	 */
-	public static function needUpgrade() {
-		if (OC_Config::getValue('installed', false)) {
-			$installedVersion = OC_Config::getValue('version', '0.0.0');
+	public static function needUpgrade($config) {
+		if ($config->getSystemValue('installed', false)) {
+			$installedVersion = $config->getSystemValue('version', '0.0.0');
 			$currentVersion = implode('.', OC_Util::getVersion());
-			return version_compare($currentVersion, $installedVersion, '>');
+			if (version_compare($currentVersion, $installedVersion, '>')) {
+				return true;
+			}
+
+			// also check for upgrades for apps (independently from the user)
+			$apps = \OC_App::getEnabledApps(false, true);
+			$shouldUpgrade = false;
+			foreach ($apps as $app) {
+				if (\OC_App::shouldUpgrade($app)) {
+					$shouldUpgrade = true;
+					break;
+				}
+			}
+			return $shouldUpgrade;
 		} else {
 			return false;
 		}

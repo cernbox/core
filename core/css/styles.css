@@ -39,31 +39,32 @@ body {
 
 
 #nojavascript {
-	position: absolute;
+	position: fixed;
 	top: 0;
 	bottom: 0;
-	z-index: 999;
+	height: 100%;
 	width: 100%;
+	z-index: 9000;
 	text-align: center;
-	background-color: rgba(50,0,0,0.5);
-	color: white;
-	text-shadow: 0px 0px 5px black;
+	background-color: rgba(0,0,0,0.5);
+	color: #fff;
 	line-height: 125%;
-	font-size: x-large;
+	font-size: 24px;
 }
 #nojavascript div {
+	display: block;
+	position: relative;
 	width: 50%;
-	top: 40%;
-	position: absolute;
-	left: 50%;
-	margin-left: -25%;
+	top: 35%;
+	margin: 0px auto;
 }
 #nojavascript a {
-	color: #ccc;
-	text-decoration: underline;
+	color: #fff;
+	border-bottom: 2px dotted #fff;
 }
-#nojavascript a:hover {
-	color: #aaa;
+#nojavascript a:hover,
+#nojavascript a:focus {
+	color: #ddd;
 }
 
 
@@ -75,6 +76,7 @@ input[type="number"],
 input[type="email"],
 input[type="url"],
 input[type="time"],
+input[type="date"],
 textarea,
 select,
 button, .button,
@@ -136,6 +138,18 @@ input[type="time"] {
 	width: initial;
 	height: 31px;
 	-moz-box-sizing: border-box; box-sizing: border-box;
+}
+
+.select2-choices {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	color: #333;
+	background-image: none;
+}
+.select2-dropdown-open .select2-choices {
+	border-bottom-left-radius: 0;
+	border-bottom-right-radius: 0;
+	border: 1px solid #3875d7;
 }
 
 /* correctly align images inside of buttons */
@@ -300,6 +314,10 @@ input[type="submit"].enabled {
 	padding-top: 45px;
 	-moz-box-sizing:border-box;
 	box-sizing:border-box;
+}
+/* allow horizontal scrollbar for personal and admin settings */
+#body-settings:not(.snapjs-left) .app-settings {
+	overflow-x: auto;
 }
 
 #emptycontent {
@@ -567,8 +585,8 @@ label.infield {
 #body-login .warning, #body-login .update, #body-login .error {
 	display: block;
 	padding: 10px;
-	color: #d2322d;
 	background-color: rgba(0,0,0,.3);
+	color: #fff;
 	text-align: left;
 	border-radius: 3px;
 	cursor: default;
@@ -598,8 +616,8 @@ label.infield {
 .warning legend,
 .warning a,
 .error a {
-	color: #d2322d !important;
-	font-weight: bold;
+	color: #fff !important;
+	font-weight: bold !important;
 }
 .error pre {
 	white-space: pre-wrap;
@@ -609,6 +627,10 @@ label.infield {
 .error-wide {
 	width: 700px;
 	margin-left: -200px !important;
+}
+
+.error-wide .button {
+	color: black !important;
 }
 
 /* Fixes for log in page, TODO should be removed some time */
@@ -751,6 +773,8 @@ a.bookmarklet { background-color:#ddd; border:1px solid #ccc; padding:5px;paddin
 	background-image:url('../img/places/home.svg');
 	background-repeat:no-repeat;
 	background-position: left center;
+	width: 26px;
+	display: inline-block;
 }
 #oc-dialog-filepicker-content .dirtree span:not(:last-child) { cursor: pointer; }
 #oc-dialog-filepicker-content .dirtree span:last-child { font-weight: bold; }
@@ -767,14 +791,19 @@ a.bookmarklet { background-color:#ddd; border:1px solid #ccc; padding:5px;paddin
 #oc-dialog-filepicker-content .filelist .filename {
 	position: absolute;
 	top: 8px;
+	max-width: 60%;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 #oc-dialog-filepicker-content .filelist img {
 	margin: 2px 1em 0 4px;
 }
 #oc-dialog-filepicker-content .filelist .date {
 	float: right;
-	margin-right: 1em;
-	margin-top: 8px;
+	margin-right: 10px;
+	margin-top: 0;
+	padding-top: 9px;
 }
 #oc-dialog-filepicker-content .filepicker_element_selected { background-color:lightblue;}
 .ui-dialog {position:fixed !important;}

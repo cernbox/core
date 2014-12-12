@@ -49,6 +49,7 @@ class Helper {
 	public static function registerUserHooks() {
 
 		\OCP\Util::connectHook('OC_User', 'post_login', 'OCA\Encryption\Hooks', 'login');
+		\OCP\Util::connectHook('OC_User', 'logout', 'OCA\Encryption\Hooks', 'logout');
 		\OCP\Util::connectHook('OC_User', 'post_setPassword', 'OCA\Encryption\Hooks', 'setPassphrase');
 		\OCP\Util::connectHook('OC_User', 'pre_setPassword', 'OCA\Encryption\Hooks', 'preSetPassphrase');
 		\OCP\Util::connectHook('OC_User', 'post_createUser', 'OCA\Encryption\Hooks', 'postCreateUser');
@@ -143,18 +144,16 @@ class Helper {
 
 			$view->file_put_contents('/public-keys/' . $recoveryKeyId . '.public.key', $keypair['publicKey']);
 
-			// Encrypt private key empty passphrase
-			$encryptedPrivateKey = \OCA\Encryption\Crypt::symmetricEncryptFileContent($keypair['privateKey'], $recoveryPassword);
-
-			// Save private key
-			$view->file_put_contents('/owncloud_private_key/' . $recoveryKeyId . '.private.key', $encryptedPrivateKey);
+			$cipher = \OCA\Encryption\Helper::getCipher();
+			$encryptedKey = \OCA\Encryption\Crypt::symmetricEncryptFileContent($keypair['privateKey'], $recoveryPassword, $cipher);
+			if ($encryptedKey) {
+				Keymanager::setPrivateSystemKey($encryptedKey, $recoveryKeyId . '.private.key');
+				// Set recoveryAdmin as enabled
+				$appConfig->setValue('files_encryption', 'recoveryAdminEnabled', 1);
+				$return = true;
+			}
 
 			\OC_FileProxy::$enabled = true;
-
-			// Set recoveryAdmin as enabled
-			$appConfig->setValue('files_encryption', 'recoveryAdminEnabled', 1);
-
-			$return = true;
 
 		} else { // get recovery key and check the password
 			$util = new \OCA\Encryption\Util(new \OC\Files\View('/'), \OCP\User::getUser());
@@ -228,7 +227,6 @@ class Helper {
 
 		return $return;
 	}
-
 
 	/**
 	 * checks if access is public/anonymous user
@@ -433,24 +431,40 @@ class Helper {
 
 	/**
 	 * find all share keys for a given file
-	 * @param string $path to the file
-	 * @param \OC\Files\View $view view, relative to data/
-	 * @return array list of files, path relative to data/
+	 *
+	 * @param string $filePath path to the file name relative to the user's files dir
+	 * for example "subdir/filename.txt"
+	 * @param string $shareKeyPath share key prefix path relative to the user's data dir
+	 * for example "user1/files_encryption/share-keys/subdir/filename.txt"
+	 * @param \OC\Files\View $rootView root view, relative to data/
+	 * @return array list of share key files, path relative to data/$user
 	 */
-	public static function findShareKeys($path, $view) {
+	public static function findShareKeys($filePath, $shareKeyPath, $rootView) {
 		$result = array();
-		$pathinfo = pathinfo($path);
-		$dirContent = $view->opendir($pathinfo['dirname']);
 
-		if (is_resource($dirContent)) {
-			while (($file = readdir($dirContent)) !== false) {
-				if (!\OC\Files\Filesystem::isIgnoredDir($file)) {
-					if (preg_match("/" . $pathinfo['filename'] . ".(.*).shareKey/", $file)) {
-						$result[] = $pathinfo['dirname'] . '/' . $file;
-					}
-				}
+		$user = \OCP\User::getUser();
+		$util = new Util($rootView, $user);
+		// get current sharing state
+		$sharingEnabled = \OCP\Share::isEnabled();
+
+		// get users sharing this file
+		$usersSharing = $util->getSharingUsersArray($sharingEnabled, $filePath);
+
+		$pathinfo = pathinfo($shareKeyPath);
+
+		$baseDir = $pathinfo['dirname'] . '/';
+		$fileName = $pathinfo['basename'];
+		foreach ($usersSharing as $user) {
+			$keyName = $fileName . '.' . $user . '.shareKey';
+			if ($rootView->file_exists($baseDir . $keyName)) {
+				$result[] = $baseDir . $keyName;
+			} else {
+				\OC_Log::write(
+					'Encryption library',
+					'No share key found for user "' . $user . '" for file "' . $fileName . '"',
+					\OC_Log::WARN
+				);
 			}
-			closedir($dirContent);
 		}
 
 		return $result;
@@ -476,6 +490,26 @@ class Helper {
 		}
 
 		return false;
+	}
+
+	/**
+	 * read the cipher used for encryption from the config.php
+	 *
+	 * @return string
+	 */
+	public static function getCipher() {
+
+		$cipher = \OCP\Config::getSystemValue('cipher', Crypt::DEFAULT_CIPHER);
+
+		if ($cipher !== 'AES-256-CFB' && $cipher !== 'AES-128-CFB') {
+			\OCP\Util::writeLog('files_encryption',
+					'wrong cipher defined in config.php, only AES-128-CFB and AES-256-CFB is supported. Fall back ' . Crypt::DEFAULT_CIPHER,
+					\OCP\Util::WARN);
+
+			$cipher = Crypt::DEFAULT_CIPHER;
+		}
+
+		return $cipher;
 	}
 }
 

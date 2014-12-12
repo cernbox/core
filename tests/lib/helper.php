@@ -115,6 +115,10 @@ class Test_Helper extends PHPUnit_Framework_TestCase {
 	}
 
 	function testGetStringMimeType() {
+		if (\OC_Util::runningOnWindows()) {
+			$this->markTestSkipped('[Windows] Strings have mimetype application/octet-stream on Windows');
+		}
+
 		$result = OC_Helper::getStringMimeType("/data/data.tar.gz");
 		$expected = 'text/plain; charset=us-ascii';
 		$this->assertEquals($result, $expected);
@@ -477,5 +481,33 @@ class Test_Helper extends PHPUnit_Framework_TestCase {
 
 		\OC_Helper::rmdirr($baseDir);
 		$this->assertFalse(file_exists($baseDir));
+	}
+
+	/**
+	 * Allows us to test private methods/properties
+	 *
+	 * @param $object
+	 * @param $methodName
+	 * @param array $parameters
+	 * @return mixed
+	 */
+	public static function invokePrivate($object, $methodName, array $parameters = array()) {
+		$reflection = new ReflectionClass(get_class($object));
+
+		if ($reflection->hasMethod($methodName)) {
+			$method = $reflection->getMethod($methodName);
+
+			$method->setAccessible(true);
+
+			return $method->invokeArgs($object, $parameters);
+		} elseif ($reflection->hasProperty($methodName)) {
+			$property = $reflection->getProperty($methodName);
+
+			$property->setAccessible(true);
+
+			return $property->getValue($object);
+		}
+
+		return false;
 	}
 }

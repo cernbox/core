@@ -64,8 +64,14 @@ class USER_LDAP extends BackendUtility implements \OCP\UserInterface {
 			return false;
 		}
 		$dn = $ldap_users[0];
-
 		$user = $this->access->userManager->get($dn);
+		if(is_null($user)) {
+			\OCP\Util::writeLog('user_ldap',
+				'LDAP Login: Could not get user object for DN ' . $dn .
+				'. Maybe the LDAP entry has no set display name attribute?',
+				\OCP\Util::WARN);
+			return false;
+		}
 		if($user->getUsername() !== false) {
 			//are the credentials OK?
 			if(!$this->access->areCredentialsValid($dn, $password)) {
@@ -87,7 +93,7 @@ class USER_LDAP extends BackendUtility implements \OCP\UserInterface {
 	 * Get a list of all users.
 	 */
 	public function getUsers($search = '', $limit = 10, $offset = 0) {
-		$search = $this->access->escapeFilterPart($search);
+		$search = $this->access->escapeFilterPart($search, true);
 		$cachekey = 'getUsers-'.$search.'-'.$limit.'-'.$offset;
 
 		//check if users are cached, if so return
@@ -286,7 +292,12 @@ class USER_LDAP extends BackendUtility implements \OCP\UserInterface {
 	public function countUsers() {
 		$filter = \OCP\Util::mb_str_replace(
 			'%uid', '*', $this->access->connection->ldapLoginFilter, 'UTF-8');
+		$cacheKey = 'countUsers-'.$filter;
+		if(!is_null($entries = $this->access->connection->getFromCache($cacheKey))) {
+			return $entries;
+		}
 		$entries = $this->access->countUsers($filter);
+		$this->access->connection->writeToCache($cacheKey, $entries);
 		return $entries;
 	}
 }

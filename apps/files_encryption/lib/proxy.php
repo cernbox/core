@@ -49,12 +49,17 @@ class Proxy extends \OC_FileProxy {
 	 * @param string $uid user
 	 * @return boolean
 	 */
-	private function isExcludedPath($path, $uid) {
+	protected function isExcludedPath($path, $uid) {
 
 		$view = new \OC\Files\View();
 
-		// files outside of the files-folder are excluded
-		if(strpos($path, '/' . $uid . '/files') !== 0) {
+		$path = \OC\Files\Filesystem::normalizePath($path);
+
+		// we only encrypt/decrypt files in the files and files_versions folder
+		if(
+			strpos($path, '/' . $uid . '/files/') !== 0 &&
+			strpos($path, '/' . $uid . '/files_versions/') !== 0) {
+
 			return true;
 		}
 
@@ -157,8 +162,8 @@ class Proxy extends \OC_FileProxy {
 					// store new unenecrypted size so that it can be updated
 					// in the post proxy
 					$tmpFileInfo = $view->getFileInfo($tmpPath);
-					if ( isset($tmpFileInfo['size']) ) {
-						self::$unencryptedSizes[\OC\Files\Filesystem::normalizePath($path)] = $tmpFileInfo['size'];
+					if ( isset($tmpFileInfo['unencrypted_size']) ) {
+						self::$unencryptedSizes[\OC\Files\Filesystem::normalizePath($path)] = $tmpFileInfo['unencrypted_size'];
 					}
 
 					// remove our temp file
@@ -262,7 +267,7 @@ class Proxy extends \OC_FileProxy {
 	 * @param resource $result
 	 * @return resource
 	 */
-	public function postFopen($path, &$result) {
+	public function postFopen($path, $result) {
 
 		$path = \OC\Files\Filesystem::normalizePath($path);
 

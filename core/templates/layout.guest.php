@@ -11,6 +11,7 @@
 		<?php p($theme->getTitle()); ?>
 		</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 		<meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0">
 		<meta name="apple-itunes-app" content="app-id=543672169">
 		<link rel="shortcut icon" href="<?php print_unescaped(image_path('', 'favicon.png')); ?>" />
@@ -32,8 +33,8 @@
 			?>
 		<?php endforeach; ?>
 	</head>
-	<?php flush(); ?>
 	<body id="body-login">
+		<noscript><div id="nojavascript"><div><?php print_unescaped($l->t('This application requires JavaScript for correct operation. Please <a href="http://enable-javascript.com/" target="_blank">enable JavaScript</a> and reload the page.')); ?></div></div></noscript>
 		<div class="wrapper"><!-- for sticky footer -->
 			<div class="v-align"><!-- vertically centred box -->
 				<header><div id="header">

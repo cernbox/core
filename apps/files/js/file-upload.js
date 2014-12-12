@@ -233,7 +233,8 @@ OC.Upload = {
 						data.originalFiles.selection = {
 							uploads: [],
 							filesToUpload: data.originalFiles.length,
-							totalBytes: 0
+							totalBytes: 0,
+							biggestFileBytes: 0
 						};
 					}
 					var selection = data.originalFiles.selection;
@@ -273,13 +274,15 @@ OC.Upload = {
 
 					// add size
 					selection.totalBytes += file.size;
+					// update size of biggest file
+					selection.biggestFileBytes = Math.max(selection.biggestFileBytes, file.size);
 
-					// check PHP upload limit
-					if (selection.totalBytes > $('#upload_limit').val()) {
+					// check PHP upload limit against biggest file
+					if (selection.biggestFileBytes > $('#upload_limit').val()) {
 						data.textStatus = 'sizeexceedlimit';
 						data.errorThrown = t('files',
 							'Total file size {size1} exceeds upload limit {size2}', {
-							'size1': humanFileSize(selection.totalBytes),
+							'size1': humanFileSize(selection.biggestFileBytes),
 							'size2': humanFileSize($('#upload_limit').val())
 						});
 					}
@@ -424,6 +427,14 @@ OC.Upload = {
 						data.textStatus = 'servererror';
 						data.errorThrown = result[0].data.message; // error message has been translated on server
 						fu._trigger('fail', e, data);
+					} else { // Successful upload
+						// Checking that the uploaded file is the last one and contained in the current directory
+						if (data.files[0] === data.originalFiles[data.originalFiles.length - 1] &&
+							result[0].directory === FileList.getCurrentDirectory()) {
+							// Scroll to the last uploaded file and highlight all of them
+							var fileList = _.pluck(data.originalFiles, 'name');
+							FileList.highlightFiles(fileList);
+						}
 					}
 				},
 				/**
@@ -618,7 +629,7 @@ OC.Upload = {
 								},
 								function(result) {
 									if (result.status === 'success') {
-										FileList.add(result.data, {hidden: hidden, animate: true});
+										FileList.add(result.data, {hidden: hidden, animate: true, scrollTo: true});
 									} else {
 										OC.dialogs.alert(result.data.message, t('core', 'Could not create file'));
 									}
@@ -634,7 +645,7 @@ OC.Upload = {
 								},
 								function(result) {
 									if (result.status === 'success') {
-										FileList.add(result.data, {hidden: hidden, animate: true});
+										FileList.add(result.data, {hidden: hidden, animate: true, scrollTo: true});
 									} else {
 										OC.dialogs.alert(result.data.message, t('core', 'Could not create folder'));
 									}

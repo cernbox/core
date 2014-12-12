@@ -1,10 +1,27 @@
 <?php
+/**
+ * Copyright (c) 2014 Lukas Reschke <lukas@owncloud.com>
+ * This file is licensed under the Affero General Public License version 3 or
+ * later.
+ * See the COPYING-README file.
+ */
 
-class DatabaseSetupException extends \OC\HintException
-{
+use OCP\IConfig;
+
+class DatabaseSetupException extends \OC\HintException {
 }
 
 class OC_Setup {
+	/** @var IConfig */
+	protected $config;
+
+	/**
+	 * @param IConfig $config
+	 */
+	function __construct(IConfig $config) {
+		$this->config = $config;
+	}
+
 	static $dbSetupClasses = array(
 		'mysql' => '\OC\Setup\MySQL',
 		'pgsql' => '\OC\Setup\PostgreSQL',
@@ -14,10 +31,95 @@ class OC_Setup {
 		'sqlite3' => '\OC\Setup\Sqlite',
 	);
 
+	/**
+	 * @return OC_L10N
+	 */
 	public static function getTrans(){
 		return OC_L10N::get('lib');
 	}
 
+	/**
+	 * Wrapper around the "class_exists" PHP function to be able to mock it
+	 * @param string $name
+	 * @return bool
+	 */
+	public function class_exists($name) {
+		return class_exists($name);
+	}
+
+	/**
+	 * Wrapper around the "is_callable" PHP function to be able to mock it
+	 * @param string $name
+	 * @return bool
+	 */
+	public function is_callable($name) {
+		return is_callable($name);
+	}
+
+	/**
+	 * Get the available and supported databases of this instance
+	 *
+	 * @throws Exception
+	 * @return array
+	 */
+	public function getSupportedDatabases() {
+		$availableDatabases = array(
+			'sqlite' =>  array(
+				'type' => 'class',
+				'call' => 'SQLite3',
+				'name' => 'SQLite'
+			),
+			'mysql' => array(
+				'type' => 'function',
+				'call' => 'mysql_connect',
+				'name' => 'MySQL/MariaDB'
+			),
+			'pgsql' => array(
+				'type' => 'function',
+				'call' => 'pg_connect',
+				'name' => 'PostgreSQL'
+			),
+			'oci' => array(
+				'type' => 'function',
+				'call' => 'oci_connect',
+				'name' => 'Oracle'
+			),
+			'mssql' => array(
+				'type' => 'function',
+				'call' => 'sqlsrv_connect',
+				'name' => 'MS SQL'
+			)
+		);
+
+		$configuredDatabases = $this->config->getSystemValue('supportedDatabases',
+			array('sqlite', 'mysql', 'pgsql'));
+		if(!is_array($configuredDatabases)) {
+			throw new Exception('Supported databases are not properly configured.');
+		}
+
+		$supportedDatabases = array();
+
+		foreach($configuredDatabases as $database) {
+			if(array_key_exists($database, $availableDatabases)) {
+				$working = false;
+				if($availableDatabases[$database]['type'] === 'class') {
+					$working = $this->class_exists($availableDatabases[$database]['call']);
+				} elseif ($availableDatabases[$database]['type'] === 'function') {
+					$working = $this->is_callable($availableDatabases[$database]['call']);
+				}
+				if($working) {
+					$supportedDatabases[$database] = $availableDatabases[$database]['name'];
+				}
+			}
+		}
+
+		return $supportedDatabases;
+	}
+
+	/**
+	 * @param $options
+	 * @return array
+	 */
 	public static function install($options) {
 		$l = self::getTrans();
 
@@ -38,23 +140,33 @@ class OC_Setup {
 			$dbtype = 'sqlite';
 		}
 
+		$username = htmlspecialchars_decode($options['adminlogin']);
+		$password = htmlspecialchars_decode($options['adminpass']);
+		$datadir = htmlspecialchars_decode($options['directory']);
+
 		$class = self::$dbSetupClasses[$dbtype];
+		/** @var \OC\Setup\AbstractDatabase $dbSetup */
 		$dbSetup = new $class(self::getTrans(), 'db_structure.xml');
 		$error = array_merge($error, $dbSetup->validate($options));
+
+		// validate the data directory
+		if (
+			(!is_dir($datadir) and !mkdir($datadir)) or
+			!is_writable($datadir)
+		) {
+			$error[] = $l->t("Can't create or write into the data directory %s", array($datadir));
+		}
 
 		if(count($error) != 0) {
 			return $error;
 		}
 
 		//no errors, good
-		$username = htmlspecialchars_decode($options['adminlogin']);
-		$password = htmlspecialchars_decode($options['adminpass']);
-		$datadir = htmlspecialchars_decode($options['directory']);
-		if(    isset($options['trusted_domains'])
+		if(isset($options['trusted_domains'])
 		    && is_array($options['trusted_domains'])) {
 			$trustedDomains = $options['trusted_domains'];
 		} else {
-			$trustedDomains = array(OC_Request::serverHost());
+			$trustedDomains = array(\OC_Request::getDomainWithoutPort(\OC_Request::serverHost()));
 		}
 
 		if (OC_Util::runningOnWindows()) {
@@ -69,10 +181,12 @@ class OC_Setup {
 		//generate a random salt that is used to salt the local user passwords
 		$salt = OC_Util::generateRandomBytes(30);
 		OC_Config::setValue('passwordsalt', $salt);
+		OC_Config::setValue('secret', OC_Util::generateRandomBytes(96));
 
 		//write the config file
 		OC_Config::setValue('trusted_domains', $trustedDomains);
 		OC_Config::setValue('datadirectory', $datadir);
+		OC_Config::setValue('overwrite.cli.url', \OC_Request::serverProtocol() . '://' . \OC_Request::serverHost() . OC::$WEBROOT);
 		OC_Config::setValue('dbtype', $dbtype);
 		OC_Config::setValue('version', implode('.', OC_Util::getVersion()));
 		try {
@@ -155,24 +269,5 @@ class OC_Setup {
 		$content.= "IndexIgnore *\n";
 		file_put_contents(OC_Config::getValue('datadirectory', OC::$SERVERROOT.'/data').'/.htaccess', $content);
 		file_put_contents(OC_Config::getValue('datadirectory', OC::$SERVERROOT.'/data').'/index.html', '');
-	}
-
-	/**
-	 * Post installation checks
-	 */
-	public static function postSetupCheck($params) {
-		// setup was successful -> webdav testing now
-		$l = self::getTrans();
-		if (OC_Util::isWebDAVWorking()) {
-			header("Location: ".OC::$WEBROOT.'/');
-		} else {
-
-			$error = $l->t('Your web server is not yet properly setup to allow files synchronization because the WebDAV interface seems to be broken.');
-			$hint = $l->t('Please double check the <a href=\'%s\'>installation guides</a>.',
-				\OC_Helper::linkToDocs('admin-install'));
-
-			OC_Template::printErrorPage($error, $hint);
-			exit();
-		}
 	}
 }
