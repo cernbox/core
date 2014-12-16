@@ -51,9 +51,9 @@ class Api {
 			}
 			return self::collectShares($params);
 		}
-
+		xdebug_start_trace();
 		$shares = \OCP\Share::getItemShared('file', null);
-
+		xdebug_stop_trace();
 		if ($shares === false) {
 			return new \OC_OCS_Result(null, 404, 'could not get shares');
 		} else {
