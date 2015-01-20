@@ -1393,112 +1393,132 @@ class Share extends \OC\Share\Constants {
 		$switchedItems = array();
 		$mounts = array();
 		while ($row = $result->fetchRow()) {
-			self::transformDBResults($row);
-			// Filter out duplicate group shares for users with unique targets
-			if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
-				$row['share_type'] = self::SHARE_TYPE_GROUP;
-				$row['unique_name'] = true; // remember that we use a unique name for this user
-				$row['share_with'] = $items[$row['parent']]['share_with'];
-				// if the group share was unshared from the user we keep the permission, otherwise
-				// we take the permission from the parent because this is always the up-to-date
-				// permission for the group share
-				if ($row['permissions'] > 0) {
-					$row['permissions'] = $items[$row['parent']]['permissions'];
-				}
-				// Remove the parent group share
-				unset($items[$row['parent']]);
-				if ($row['permissions'] == 0) {
-					continue;
-				}
-			} else if (!isset($uidOwner)) {
-				// Check if the same target already exists
-				if (isset($targets[$row['id']])) {
-					// Check if the same owner shared with the user twice
-					// through a group and user share - this is allowed
-					$id = $targets[$row['id']];
-					if (isset($items[$id]) && $items[$id]['uid_owner'] == $row['uid_owner']) {
-						// Switch to group share type to ensure resharing conditions aren't bypassed
-						if ($items[$id]['share_type'] != self::SHARE_TYPE_GROUP) {
-							$items[$id]['share_type'] = self::SHARE_TYPE_GROUP;
-							$items[$id]['share_with'] = $row['share_with'];
-						}
-						// Switch ids if sharing permission is granted on only
-						// one share to ensure correct parent is used if resharing
-						if (~(int)$items[$id]['permissions'] & \OCP\PERMISSION_SHARE
-							&& (int)$row['permissions'] & \OCP\PERMISSION_SHARE) {
-							$items[$row['id']] = $items[$id];
-							$switchedItems[$id] = $row['id'];
-							unset($items[$id]);
-							$id = $row['id'];
-						}
-						$items[$id]['permissions'] |= (int)$row['permissions'];
-
-					}
-					continue;
-				} elseif (!empty($row['parent'])) {
-					$targets[$row['parent']] = $row['id'];
-				}
+			// HUGO HACK TO OBTAIN STORAGE NUMERIC ID
+			$storage_id = "object::user:" . $row["uid_owner"];
+			$queryMine  = \OC_DB::prepare('SELECT numeric_id FROM `*PREFIX*storages` WHERE id=?', null);
+			$resultMine = $queryMine->execute(array($storage_id));
+			if (\OC_DB::isError($resultMine)) {
+				\OC_Log::write('OCP\Share',
+					\OC_DB::getErrorMessage($resultMine) . ', select=' . $queryMine,
+					\OC_Log::ERROR);
 			}
-			// Remove root from file source paths if retrieving own shared items
-			if (isset($uidOwner) && isset($row['path'])) {
-				if (isset($row['parent'])) {
-					$query = \OC_DB::prepare('SELECT `file_target` FROM `*PREFIX*share` WHERE `id` = ?');
-					$parentResult = $query->execute(array($row['parent']));
-					if (\OC_DB::isError($result)) {
-						\OC_Log::write('OCP\Share', 'Can\'t select parent: ' .
-								\OC_DB::getErrorMessage($result) . ', select=' . $select . ' where=' . $where,
-								\OC_Log::ERROR);
+			$tmprow     = $resultMine->fetchRow();
+			$numeric_id = $tmprow["numeric_id"];
+			//HUGO HACK ADDED PATH,STORAGE MANUALLY TO TEST
+			// WE HAVE TO PUT THE FILES PREFIX BECAUSE THEN OC CREATES A FULL PATH WITH YOUR USERNAME LIKE /labrador/files/test/txt
+			// AND THEN REMOVE THE ROOT PART (/labrador/files/) IF YOU ARE THE OWNER OF THE FILE
+			// WE SHOULD USE ITEM_SOURCE INSTEAD FILE_SOURCE
+			$path           = isset($row["item_source"]) ?  \OC\Files\FileSystem::getPath($row["item_source"]) : false;
+			// SCENARIO: SHARE A FOLDER WITH KUBA. REMOVE FOLER FROM EOS. SHARE TABLE STILL HAS THE SHARE. THE FILE IS NOW AT /EOS/RECYCLE/UID/GID AND HAS THE SAME INDODE NUMBER 
+			// SO THE CALL TO GETPATH RETURNS FALSE IN THIS CASE A WE NEED TO OMIT THIS FILE WITH NULL PATH
+
+			if($path) {
+				self::transformDBResults($row);
+				// Filter out duplicate group shares for users with unique targets
+				if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
+					$row['share_type'] = self::SHARE_TYPE_GROUP;
+					$row['unique_name'] = true; // remember that we use a unique name for this user
+					$row['share_with'] = $items[$row['parent']]['share_with'];
+					// if the group share was unshared from the user we keep the permission, otherwise
+					// we take the permission from the parent because this is always the up-to-date
+					// permission for the group share
+					if ($row['permissions'] > 0) {
+						$row['permissions'] = $items[$row['parent']]['permissions'];
+					}
+					// Remove the parent group share
+					unset($items[$row['parent']]);
+					if ($row['permissions'] == 0) {
+						continue;
+					}
+				} else if (!isset($uidOwner)) {
+					// Check if the same target already exists
+					if (isset($targets[$row['id']])) {
+						// Check if the same owner shared with the user twice
+						// through a group and user share - this is allowed
+						$id = $targets[$row['id']];
+						if (isset($items[$id]) && $items[$id]['uid_owner'] == $row['uid_owner']) {
+							// Switch to group share type to ensure resharing conditions aren't bypassed
+							if ($items[$id]['share_type'] != self::SHARE_TYPE_GROUP) {
+								$items[$id]['share_type'] = self::SHARE_TYPE_GROUP;
+								$items[$id]['share_with'] = $row['share_with'];
+							}
+							// Switch ids if sharing permission is granted on only
+							// one share to ensure correct parent is used if resharing
+							if (~(int)$items[$id]['permissions'] & \OCP\PERMISSION_SHARE
+								&& (int)$row['permissions'] & \OCP\PERMISSION_SHARE) {
+								$items[$row['id']] = $items[$id];
+								$switchedItems[$id] = $row['id'];
+								unset($items[$id]);
+								$id = $row['id'];
+							}
+							$items[$id]['permissions'] |= (int)$row['permissions'];
+
+						}
+						continue;
+					} elseif (!empty($row['parent'])) {
+						$targets[$row['parent']] = $row['id'];
+					}
+				}
+				// Remove root from file source paths if retrieving own shared items
+				if (isset($uidOwner) && isset($row['path'])) {
+					if (isset($row['parent'])) {
+						$query = \OC_DB::prepare('SELECT `file_target` FROM `*PREFIX*share` WHERE `id` = ?');
+						$parentResult = $query->execute(array($row['parent']));
+						if (\OC_DB::isError($result)) {
+							\OC_Log::write('OCP\Share', 'Can\'t select parent: ' .
+									\OC_DB::getErrorMessage($result) . ', select=' . $select . ' where=' . $where,
+									\OC_Log::ERROR);
+						} else {
+							$parentRow = $parentResult->fetchRow();
+							$tmpPath = $parentRow['file_target'];
+							// find the right position where the row path continues from the target path
+							$pos = strrpos($row['path'], $parentRow['file_target']);
+							$subPath = substr($row['path'], $pos);
+							$splitPath = explode('/', $subPath);
+							foreach (array_slice($splitPath, 2) as $pathPart) {
+								$tmpPath = $tmpPath . '/' . $pathPart;
+							}
+							$row['path'] = $tmpPath;
+						}
 					} else {
-						$parentRow = $parentResult->fetchRow();
-						$tmpPath = $parentRow['file_target'];
-						// find the right position where the row path continues from the target path
-						$pos = strrpos($row['path'], $parentRow['file_target']);
-						$subPath = substr($row['path'], $pos);
-						$splitPath = explode('/', $subPath);
-						foreach (array_slice($splitPath, 2) as $pathPart) {
-							$tmpPath = $tmpPath . '/' . $pathPart;
+						if (!isset($mounts[$row['storage']])) {
+							$mountPoints = \OC\Files\Filesystem::getMountByNumericId($row['storage']);
+							if (is_array($mountPoints) && !empty($mountPoints)) {
+								$mounts[$row['storage']] = current($mountPoints);
+							}
 						}
-						$row['path'] = $tmpPath;
+						if (!empty($mounts[$row['storage']])) {
+							$path = $mounts[$row['storage']]->getMountPoint().$row['path'];
+							$relPath = substr($path, $root); // path relative to data/user
+							$row['path'] = rtrim($relPath, '/');
+						}
 					}
+				}
+
+				if($checkExpireDate) {
+					if (self::expireItem($row)) {
+						continue;
+					}
+				}
+				// Check if resharing is allowed, if not remove share permission
+				if (isset($row['permissions']) && (!self::isResharingAllowed() | \OC_Util::isSharingDisabledForUser())) {
+					$row['permissions'] &= ~\OCP\PERMISSION_SHARE;
+				}
+				// Add display names to result
+				if ( isset($row['share_with']) && $row['share_with'] != '' &&
+						isset($row['share_with']) && $row['share_type'] === self::SHARE_TYPE_USER) {
+					$row['share_with_displayname'] = \OCP\User::getDisplayName($row['share_with']);
 				} else {
-					if (!isset($mounts[$row['storage']])) {
-						$mountPoints = \OC\Files\Filesystem::getMountByNumericId($row['storage']);
-						if (is_array($mountPoints) && !empty($mountPoints)) {
-							$mounts[$row['storage']] = current($mountPoints);
-						}
-					}
-					if (!empty($mounts[$row['storage']])) {
-						$path = $mounts[$row['storage']]->getMountPoint().$row['path'];
-						$relPath = substr($path, $root); // path relative to data/user
-						$row['path'] = rtrim($relPath, '/');
-					}
+					$row['share_with_displayname'] = $row['share_with'];
+				}
+				if ( isset($row['uid_owner']) && $row['uid_owner'] != '') {
+					$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
+				}
+
+				if ($row['permissions'] > 0) {
+					$items[$row['id']] = $row;
 				}
 			}
-
-			if($checkExpireDate) {
-				if (self::expireItem($row)) {
-					continue;
-				}
-			}
-			// Check if resharing is allowed, if not remove share permission
-			if (isset($row['permissions']) && (!self::isResharingAllowed() | \OC_Util::isSharingDisabledForUser())) {
-				$row['permissions'] &= ~\OCP\PERMISSION_SHARE;
-			}
-			// Add display names to result
-			if ( isset($row['share_with']) && $row['share_with'] != '' &&
-					isset($row['share_with']) && $row['share_type'] === self::SHARE_TYPE_USER) {
-				$row['share_with_displayname'] = \OCP\User::getDisplayName($row['share_with']);
-			} else {
-				$row['share_with_displayname'] = $row['share_with'];
-			}
-			if ( isset($row['uid_owner']) && $row['uid_owner'] != '') {
-				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
-			}
-
-			if ($row['permissions'] > 0) {
-				$items[$row['id']] = $row;
-			}
-
 		}
 
 		// group items if we are looking for items shared with the current user
