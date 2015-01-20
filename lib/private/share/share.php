@@ -1413,6 +1413,15 @@ class Share extends \OC\Share\Constants {
 			// SO THE CALL TO GETPATH RETURNS FALSE IN THIS CASE A WE NEED TO OMIT THIS FILE WITH NULL PATH
 
 			if($path) {
+				$row["path"]    = "files" . rtrim($path, "/");
+				$row['storage'] = $numeric_id;
+				// obtain share permissions from EOS and not from DB
+				if($row["share_type"] == 0 ) { // only share folder
+					$from = $row["uid_owner"];
+					$to = $row["share_with"];
+					$fileid = $row["item_source"];
+					$row["permissions"] = EosUtil::getAclPerm($from, $to, $fileid);
+				}
 				self::transformDBResults($row);
 				// Filter out duplicate group shares for users with unique targets
 				if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
