@@ -702,6 +702,13 @@ class Share extends \OC\Share\Constants {
 	 */
 	public static function unshare($itemType, $itemSource, $shareType, $shareWith) {
 
+		$item = self::getItems($itemType, $itemSource, $shareType, $shareWith, \OC_User::getUser(), self::FORMAT_NONE, null, 1);
+		if (!empty($item)) {
+			self::unshareItem($item);
+			return true;
+		}
+		return false;
+		/*
 		// check if it is a valid itemType
 		self::getBackend($itemType);
 
@@ -729,6 +736,7 @@ class Share extends \OC\Share\Constants {
 			return true;
 		}
 		return false;
+		*/
 	}
 
 	/**
