@@ -629,7 +629,7 @@ OC.Share={
 			
 			html += '<label><input type="checkbox" name="read" class="permissions" checked="true" disabled=true />'+'read'+'</label> ';
 			if (possiblePermissions & OC.PERMISSION_CREATE) {
-				html += '<input id="canCreate-'+escapeHTML(shareWith)+'" type="checkbox" name="create" class="permissions" '+createChecked+' data-permissions="'+OC.PERMISSION_CREATE+'"/><label for="canCreate-'+escapeHTML(shareWith)+'">'+t('core', 'create')+'</label>';
+				html += '<label><input id="canCreate-'+escapeHTML(shareWith)+'" type="checkbox" name="create" class="permissions" '+createChecked+' data-permissions="'+OC.PERMISSION_CREATE+'"/><label for="canCreate-'+escapeHTML(shareWith)+'">'+'write+delete'+'</label></label>';
 			}
 				
 			html += '</li>';
