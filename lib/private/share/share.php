@@ -723,7 +723,7 @@ class Share extends \OC\Share\Constants {
 				$newParent = $item['id'];
 			}
 		}
-
+		var_dump($toDelete); exit();
 		if (!empty($toDelete)) {
 			self::unshareItem($toDelete, $newParent);
 			return true;
