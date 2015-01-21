@@ -629,7 +629,8 @@ OC.Share={
 			if (oc_appconfig.core.resharingAllowed && (possiblePermissions & OC.PERMISSION_SHARE)) {
 				html += '<input id="canShare-'+escapeHTML(shareWith)+'" type="checkbox" name="share" class="permissions" '+shareChecked+' data-permissions="'+OC.PERMISSION_SHARE+'" /><label for="canShare-'+escapeHTML(shareWith)+'">'+t('core', 'can share')+'</label>';
 			}
-			if (possiblePermissions & OC.PERMISSION_CREATE || possiblePermissions & OC.PERMISSION_UPDATE || possiblePermissions & OC.PERMISSION_DELETE) {
+			
+			/*if (possiblePermissions & OC.PERMISSION_CREATE || possiblePermissions & OC.PERMISSION_UPDATE || possiblePermissions & OC.PERMISSION_DELETE) {
 				html += '<input id="canEdit-'+escapeHTML(shareWith)+'" type="checkbox" name="edit" class="permissions" '+editChecked+' /><label for="canEdit-'+escapeHTML(shareWith)+'">'+t('core', 'can edit')+'</label>';
 			}
 			showCrudsButton = '<a href="#" class="showCruds"><img class="svg" alt="'+t('core', 'access control')+'" title="'+t('core', 'access control')+'" src="'+OC.imagePath('core', 'actions/triangle-s')+'"/></a>';
@@ -644,6 +645,7 @@ OC.Share={
 					html += '<input id="canDelete-'+escapeHTML(shareWith)+'" type="checkbox" name="delete" class="permissions" '+deleteChecked+' data-permissions="'+OC.PERMISSION_DELETE+'"/><label for="canDelete-'+escapeHTML(shareWith)+'">'+t('core', 'delete')+'</label>';
 				}
 			html += '</div>';
+			*/
 			html += '</li>';
 			html = $(html).appendTo('#shareWithList');
 			// insert cruds button into last label element
