@@ -83,8 +83,8 @@ class Eos implements IObjectStore {
 			$result    = null;
 			$errcode   = null;
 			exec($cmd, $result, $errcode);
-			fclose($temp);// this removes the tmp file but nomore
-			unlink($tempname); // remove the temp file
+			//fclose($temp);// this removes the tmp file but nomore
+			@unlink($tempname); // remove the temp file
 			if($errcode === 0){
 				return true;
 			}
