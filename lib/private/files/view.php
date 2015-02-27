@@ -1003,59 +1003,6 @@ class View {
 			//add a folder for any mountpoint in this directory and add the sizes of other mountpoints to the folders
 			$mounts = Filesystem::getMountManager()->findIn($path);
 			$dirLength = strlen($path);
-			foreach ($mounts as $mount) {
-				$mountPoint = $mount->getMountPoint();
-				$subStorage = Filesystem::getStorage($mountPoint);
-				if ($subStorage) {
-					$subCache = $subStorage->getCache('');
-
-					if ($subCache->getStatus('') === Cache\Cache::NOT_FOUND) {
-						$subScanner = $subStorage->getScanner('');
-						$subScanner->scanFile('');
-					}
-
-					$rootEntry = $subCache->get('');
-					if ($rootEntry) {
-						$relativePath = trim(substr($mountPoint, $dirLength), '/');
-						if ($pos = strpos($relativePath, '/')) {
-							//mountpoint inside subfolder add size to the correct folder
-							$entryName = substr($relativePath, 0, $pos);
-							foreach ($files as &$entry) {
-								if ($entry['name'] === $entryName) {
-									$entry['size'] += $rootEntry['size'];
-								}
-							}
-						} else { //mountpoint in this folder, add an entry for it
-							$rootEntry['name'] = $relativePath;
-							$rootEntry['type'] = $rootEntry['mimetype'] === 'httpd/unix-directory' ? 'dir' : 'file';
-							$permissions = $rootEntry['permissions'];
-							// do not allow renaming/deleting the mount point if they are not shared files/folders
-							// for shared files/folders we use the permissions given by the owner
-							if ($mount instanceof MoveableMount) {
-								$rootEntry['permissions'] = $permissions | \OCP\PERMISSION_UPDATE | \OCP\PERMISSION_DELETE;
-							} else {
-								$rootEntry['permissions'] = $permissions & (\OCP\PERMISSION_ALL - (\OCP\PERMISSION_UPDATE | \OCP\PERMISSION_DELETE));
-							}
-
-							//remove any existing entry with the same name
-							foreach ($files as $i => $file) {
-								if ($file['name'] === $rootEntry['name']) {
-									unset($files[$i]);
-									break;
-								}
-							}
-							$rootEntry['path'] = substr($path . '/' . $rootEntry['name'], strlen($user) + 2); // full path without /$user/
-
-							// if sharing was disabled for the user we remove the share permissions
-							if (\OCP\Util::isSharingDisabledForUser()) {
-								$content['permissions'] = $content['permissions'] & ~\OCP\PERMISSION_SHARE;
-							}
-
-							$files[] = new FileInfo($path . '/' . $rootEntry['name'], $subStorage, '', $rootEntry);
-						}
-					}
-				}
-			}
 
 			if ($mimetype_filter) {
 				foreach ($files as $file) {
@@ -1239,6 +1186,10 @@ class View {
 			if ($mount->getStorage()) {
 				$cache = $mount->getStorage()->getCache();
 				$internalPath = $cache->getPathById($id);
+				// HUGO this is necesary to not hanging the user in Shared with me
+                                if(!$internalPath){
+                                        return null;
+                                }
 				if (is_string($internalPath)) {
 					$fullPath = $mount->getMountPoint() . $internalPath;
 					if (!is_null($path = $this->getRelativePath($fullPath))) {
