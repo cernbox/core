@@ -349,6 +349,7 @@ OC.Share={
 		});
 	},
 	showDropDown:function(itemType, itemSource, appendTo, link, possiblePermissions, filename) {
+		var actualPath = window.FileList.getCurrentDirectory();
 		var data = OC.Share.loadItem(itemType, itemSource);
 		var dropDownEl;
 		var html = '<div id="dropdown" class="drop shareDropDown" data-item-type="'+itemType+'" data-item-source="'+itemSource+'">';
@@ -379,17 +380,24 @@ OC.Share={
 					return true;
 				}
 			});
-
-			html += '<input id="shareWith" type="text" placeholder="'+t('core', 'Share with user or group …')+'" />';
-			html += '<span class="shareWithLoading icon-loading-small hidden"></span>';
-			html += '<ul id="shareWithList">';
-			html += '</ul>';
+			if(itemType === 'folder' && actualPath === '/') {
+				html += '<input id="shareWith" type="text" placeholder="'+t('core', 'Share with user or group …')+'" />';
+				html += '<span class="shareWithLoading icon-loading-small hidden"></span>';
+				html += '<ul id="shareWithList">';
+				html += '</ul>';
+			}
 			var linksAllowed = $('#allowShareWithLink').val() === 'yes';
 			if (link && linksAllowed) {
 				html += '<div id="link" class="linkShare">';
 				html += '<span class="icon-loading-small hidden"></span>';
 				html += '<input type="checkbox" name="linkCheckbox" id="linkCheckbox" value="1" /><label for="linkCheckbox">'+t('core', 'Share link')+'</label>';
 				html += '<br />';
+				if (itemType != 'folder') {
+                                	html += '<p>Share the <i>current version</i> of this file</p>';
+                                } else if (actualPath !== "/") {
+					html += '<p>Subfolders can only be shared by link</p>';
+				}
+	                        html += '<p>See also the <a target="_blank" href="https://cern.service-now.com/service-portal/search.do?q=cernbox+share"><b>FAQ</b></a></p>';
 
 				var defaultExpireMessage = '';
 				if ((itemType === 'folder' || itemType === 'file') && oc_appconfig.core.defaultExpireDateEnforced) {
@@ -444,6 +452,7 @@ OC.Share={
 					}
 				});
 			}
+			if(itemType === 'folder' && actualPath === '/') {
 			$('#shareWith').autocomplete({minLength: 2, delay: 750, source: function(search, response) {
 				var $loading = $('#dropdown .shareWithLoading');
 				$loading.removeClass('hidden');
@@ -519,7 +528,7 @@ OC.Share={
 					.addClass((item.value.shareType == 1)?'group':'user')
 					.append( insert )
 					.appendTo( ul );
-			};
+			};}
 			if (link && linksAllowed) {
 				$('#email').autocomplete({
 					minLength: 1,
