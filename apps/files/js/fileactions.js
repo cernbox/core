@@ -308,7 +308,19 @@
 				var element = $(html);
 				element.data('action', actions['Delete']);
 				element.on('click', {a: null, elem: parent, actionFunc: actions['Delete'].action}, actionHandler);
-				parent.parent().children().last().append(element);
+				if(mountType !== "shared-root") {	
+					parent.parent().children().last().append(element);
+				}
+
+				// HUGO remove rename action in shared with me. 
+				//This only works for top level. I tried removing versions but it does not work.
+				if(mountType == "shared-root") { // HUGO
+					parent.parent().find('.action-rename').remove();
+				}
+				if(mountType == "shared"){
+					parent.parent().find('.action-versions').remove();
+				}
+				
 			}
 
 			if (triggerEvent){
