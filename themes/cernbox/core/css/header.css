@@ -1,0 +1,54 @@
+/* LOGO and APP NAME -------------------------------------------------------- */
+
+#owncloud {
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 5px;
+	padding-bottom: 0;
+	height: 45px; /* header height */
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+#header .logo {
+	background-image: url(../img/logo-big-original300200.png);
+	background-repeat: no-repeat;
+	width: 400px;
+	height: 200px;
+	margin: 0 auto;
+	//margin-left: 70px;
+}
+
+#header .logo-wide {
+	background-image: url(../img/logo-icon.png);
+	background-repeat: no-repeat;
+	width: 150px;
+	height: 34px;
+}
+
+#header .logo-icon {
+	/* display logo so appname can be shown next to it */
+	display: inline-block;
+	background-image: url(../img/logo-icon.png);
+	background-repeat: no-repeat;
+	width: 62px;
+	height: 34px;
+}
+
+#body-login form input[type="checkbox"]+label {
+	position: relative;
+	margin: 0;
+	padding: 14px;
+	padding-left: 28px;
+	margin-left: -28px;
+	vertical-align: middle;
+	color: black;
+	font-weight: bold;
+}
+
+
+#body-login p.info a:hover, #body-login p.info a:focus {
+	color: #000;
+	font-weight: bold;
+}
