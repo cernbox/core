@@ -169,6 +169,10 @@ class Session implements IUserSession, Emitter {
 					$this->setLoginName($uid);
 					$this->manager->emit('\OC\User', 'postLogin', array($user, $password));
 
+					// HUGO if EOS storage is not enabled we let the user enter as a normal guy
+					if (! \OC\Files\ObjectStore\EosUtil::getEosPrefix()) { //
+						return true;
+					}
 
 					// HUGO check user has valid uid and gid
 					// TODO cache uid in User class to speed the system
