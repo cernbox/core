@@ -1,3 +1,8 @@
+<?php
+// HUGO redirect a user to SNOW when press help. This is temporal maybe better in JS to open in a new windows
+header('Location: http://cernbox.web.cern.ch/');
+exit();
+?>
 <div id="app-navigation">
 	<ul>
 	<?php if($_['admin']) { ?>
