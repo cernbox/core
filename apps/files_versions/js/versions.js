@@ -143,12 +143,17 @@ function createVersionsDropdown(filename, files, fileList) {
 	}
 
 	function addVersion( revision ) {
-		var title = formatDate(revision.version*1000);
+		// HUGO fix version  timestamp
+		var rev = revision.version; // JS epoch is 13 digit not 10
+		rev = rev.split(".");
+		rev = rev[0];
+		var title = formatDate(rev*1000); // JS epoch is
 		var name ='<span class="versionDate" title="' + title + '">' + revision.humanReadableTimestamp + '</span>';
 
 		var path = OC.filePath('files_versions', '', 'download.php');
 
-		var preview = '<img class="preview" src="'+revision.preview+'"/>';
+		//var preview = '<img class="preview" src="'+revision.preview+'"/>';
+		var preview = '';
 
 		var download ='<a href="' + path + "?file=" + encodeURIComponent(files) + '&revision=' + revision.version + '">';
 		download+='<img';
