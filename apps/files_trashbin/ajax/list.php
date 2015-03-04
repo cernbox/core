@@ -20,7 +20,7 @@ $encodedDir = \OCP\Util::encodePath($dir);
 
 $data['permissions'] = 0;
 $data['directory'] = $dir;
-$data['files'] = \OCA\Files_Trashbin\Helper::formatFileInfos($files);
+$data['files'] = $files;
 
 OCP\JSON::success(array('data' => $data));
 
