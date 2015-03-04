@@ -24,13 +24,11 @@
 OCP\JSON::checkAppEnabled('files_versions');
 //OCP\JSON::callCheck();
 
-$file = $_GET['file'];
-$revision=(int)$_GET['revision'];
-
+$file = $_GET['file']; //only the name of the file test.txt
+$revision= $_GET['revision']; // the revision number 123456789.123456
 list($uid, $filename) = OCA\Files_Versions\Storage::getUidAndFilename($file);
-
-$versionName = '/'.$uid.'/files_versions/'.$filename.'.v'.$revision;
-
+$pathinfo = pathinfo($filename);
+$versionName = '/'. $uid .'/files/' .$pathinfo['dirname'] . '/.sys.v#.'.$pathinfo['basename'].'/'. $revision;
 $view = new OC\Files\View('/');
 
 $ftype = $view->getMimeType('/'.$uid.'/files/'.$filename);
