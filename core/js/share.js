@@ -349,6 +349,7 @@ OC.Share={
 		});
 	},
 	showDropDown:function(itemType, itemSource, appendTo, link, possiblePermissions, filename) {
+		var actualPath = window.FileList.getCurrentDirectory();
 		var data = OC.Share.loadItem(itemType, itemSource);
 		var dropDownEl;
 		var html = '<div id="dropdown" class="drop shareDropDown" data-item-type="'+itemType+'" data-item-source="'+itemSource+'">';
@@ -379,17 +380,24 @@ OC.Share={
 					return true;
 				}
 			});
-
-			html += '<input id="shareWith" type="text" placeholder="'+t('core', 'Share with user or group …')+'" />';
-			html += '<span class="shareWithLoading icon-loading-small hidden"></span>';
-			html += '<ul id="shareWithList">';
-			html += '</ul>';
+			if(itemType === 'folder' && actualPath === '/') {
+				html += '<input id="shareWith" type="text" placeholder="'+t('core', 'Share with user or group …')+'" />';
+				html += '<span class="shareWithLoading icon-loading-small hidden"></span>';
+				html += '<ul id="shareWithList">';
+				html += '</ul>';
+			}
 			var linksAllowed = $('#allowShareWithLink').val() === 'yes';
 			if (link && linksAllowed) {
 				html += '<div id="link" class="linkShare">';
 				html += '<span class="icon-loading-small hidden"></span>';
 				html += '<input type="checkbox" name="linkCheckbox" id="linkCheckbox" value="1" /><label for="linkCheckbox">'+t('core', 'Share link')+'</label>';
 				html += '<br />';
+				if (itemType != 'folder') {
+                                	html += '<p>Share the <i>current version</i> of this file</p>';
+                                } else if (actualPath !== "/") {
+					html += '<p>Subfolders can only be shared by link</p>';
+				}
+	                        html += '<p>See also the <a target="_blank" href="https://cern.service-now.com/service-portal/search.do?q=cernbox+share"><b>FAQ</b></a></p>';
 
 				var defaultExpireMessage = '';
 				if ((itemType === 'folder' || itemType === 'file') && oc_appconfig.core.defaultExpireDateEnforced) {
@@ -444,6 +452,7 @@ OC.Share={
 					}
 				});
 			}
+			if(itemType === 'folder' && actualPath === '/') {
 			$('#shareWith').autocomplete({minLength: 2, delay: 750, source: function(search, response) {
 				var $loading = $('#dropdown .shareWithLoading');
 				$loading.removeClass('hidden');
@@ -519,7 +528,7 @@ OC.Share={
 					.addClass((item.value.shareType == 1)?'group':'user')
 					.append( insert )
 					.appendTo( ul );
-			};
+			};}
 			if (link && linksAllowed) {
 				$('#email').autocomplete({
 					minLength: 1,
@@ -626,24 +635,10 @@ OC.Share={
 				}
 				html += '<label><input type="checkbox" name="mailNotification" class="mailNotification" ' + checked + ' />'+t('core', 'notify by email')+'</label> ';
 			}
-			if (oc_appconfig.core.resharingAllowed && (possiblePermissions & OC.PERMISSION_SHARE)) {
-				html += '<input id="canShare-'+escapeHTML(shareWith)+'" type="checkbox" name="share" class="permissions" '+shareChecked+' data-permissions="'+OC.PERMISSION_SHARE+'" /><label for="canShare-'+escapeHTML(shareWith)+'">'+t('core', 'can share')+'</label>';
+			html += '<label><input type="checkbox" name="read" class="permissions" checked="true" disabled=true />'+'read'+'</label> ';
+			if (possiblePermissions & OC.PERMISSION_CREATE) {
+				html += '<input id="canCreate-'+escapeHTML(shareWith)+'" type="checkbox" name="create" class="permissions" '+createChecked+' data-permissions="'+OC.PERMISSION_CREATE+'"/><label for="canCreate-'+escapeHTML(shareWith)+'">write+delete</label>';
 			}
-			if (possiblePermissions & OC.PERMISSION_CREATE || possiblePermissions & OC.PERMISSION_UPDATE || possiblePermissions & OC.PERMISSION_DELETE) {
-				html += '<input id="canEdit-'+escapeHTML(shareWith)+'" type="checkbox" name="edit" class="permissions" '+editChecked+' /><label for="canEdit-'+escapeHTML(shareWith)+'">'+t('core', 'can edit')+'</label>';
-			}
-			showCrudsButton = '<a href="#" class="showCruds"><img class="svg" alt="'+t('core', 'access control')+'" title="'+t('core', 'access control')+'" src="'+OC.imagePath('core', 'actions/triangle-s')+'"/></a>';
-			html += '<div class="cruds" style="display:none;">';
-				if (possiblePermissions & OC.PERMISSION_CREATE) {
-					html += '<input id="canCreate-'+escapeHTML(shareWith)+'" type="checkbox" name="create" class="permissions" '+createChecked+' data-permissions="'+OC.PERMISSION_CREATE+'"/><label for="canCreate-'+escapeHTML(shareWith)+'">'+t('core', 'create')+'</label>';
-				}
-				if (possiblePermissions & OC.PERMISSION_UPDATE) {
-					html += '<input id="canUpdate-'+escapeHTML(shareWith)+'" type="checkbox" name="update" class="permissions" '+updateChecked+' data-permissions="'+OC.PERMISSION_UPDATE+'"/><label for="canUpdate-'+escapeHTML(shareWith)+'">'+t('core', 'update')+'</label>';
-				}
-				if (possiblePermissions & OC.PERMISSION_DELETE) {
-					html += '<input id="canDelete-'+escapeHTML(shareWith)+'" type="checkbox" name="delete" class="permissions" '+deleteChecked+' data-permissions="'+OC.PERMISSION_DELETE+'"/><label for="canDelete-'+escapeHTML(shareWith)+'">'+t('core', 'delete')+'</label>';
-				}
-			html += '</div>';
 			html += '</li>';
 			html = $(html).appendTo('#shareWithList');
 			// insert cruds button into last label element
