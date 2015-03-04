@@ -51,6 +51,8 @@ OCA.Trashbin.App = {
 			);
 		}, t('files_trashbin', 'Restore'));
 
+		/*
+		HUGO Hide delte button per file in trashbin
 		fileActions.register('all', 'Delete', OC.PERMISSION_READ, function() {
 			return OC.imagePath('core', 'actions/delete');
 		}, function(filename, context) {
@@ -67,6 +69,7 @@ OCA.Trashbin.App = {
 				_.bind(fileList._removeCallback, fileList)
 			);
 		});
+		*/
 		return fileActions;
 	}
 };
