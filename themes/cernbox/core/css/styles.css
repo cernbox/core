@@ -1,0 +1,34 @@
+#body-login {
+	text-align: center;
+	background: white;
+}
+
+.nav-trashbin {
+	background-color: #F1BDBD;
+}
+
+
+#body-login p.info {
+	color: black;
+}
+#body-login p.info a{
+	color: black;
+}
+
+.nav-trashbin {
+	/* position: absolute !important; */
+	bottom: 0;
+}
+
+/* Dark subtle label text */
+#body-login p.info,
+#body-login form fieldset legend,
+#body-login #datadirContent label,
+#body-login form fieldset .warning-info,
+#body-login form input[type="checkbox"]+label {
+	text-align: center;
+	color: #000;
+	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
+	filter: alpha(opacity=60);
+	opacity: .6;
+}
