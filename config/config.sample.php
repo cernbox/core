@@ -894,4 +894,55 @@ $CONFIG = array(
  */
 'secret' => 'ICertainlyShouldHaveChangedTheDefaultSecret',
 
+/**
+ * CERNBox Configuration Options
+ * There are the configuration options for run CERNBox. You MUST define all options.
+ */
+
+/**
+ * When this option is set EOS storage is enabled, if not the localFS will be used as a normal ownCloud
+ * vanilla instalation.
+ */
+'objectstore' => array (
+	'class' => 'OC\\Files\\ObjectStore\\Eos',
+),
+
+/**
+ * EOS MGM URL, this is the URL of your EOS mgm host
+ */ 
+'eos_mgm_url' => 'root://eosexample.cern.ch',
+
+/**
+ * EOS prefix is the path where the users homedirs will be created.
+ * The layout will be /eos/example/user/t/testuser/
+ */
+'eos_prefix' => '/eos/example/user/',
+
+/** 
+ * EOS meta dir is the path where non-file-data (thumbnails...) will be kept.
+ */
+'eos_meta_dir' => '/eos/example/user/.sys.dav.hide#.user.metadata/',
+
+/**
+ * EOS recycle dir is the path to the recycle bin of the EOS instance
+ */
+'eos_recycle_dir' => '/eos/exampleh/user/proc/recycle/',
+
+/**
+ * EOS hide regex blacklist files that match there regex. It is used to not show eos specific files
+ * like the ones created for versioning.Don't modifiy this regex unless you know what ypu are doing.
+ */
+'eos_hide_regex' => '\\.sys\\.[a-zA-Z0-9_]*#\\.',
+
+/**
+ * Hostname in mail is the email address that will appear as the sender when you do an internal share
+ */
+'hostname_in_mail' => 'https://cernbox.cern.ch',
+
+/** 
+ * Box staging dir is the directory to stage files coming from eos. You should clean this directory frequently.
+ * You can find a cronjob under cernbox_utils in the project directory 
+ */
+'box_staging_dir' => '/data/staging',
+
 );
