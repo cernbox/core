@@ -9,6 +9,7 @@ namespace OCA\Files_Trashbin;
 use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosUtil;
+use OC\Files\ObjectStore\EosCmd;
 
 class EosTrashbin {
 
@@ -22,14 +23,10 @@ class EosTrashbin {
 		}
 		list($uid, $gid) = $uidAndGid;
 		$cmd             = "eos -b -r $uid $gid  recycle purge";
-		$result          = null;
-		$errcode         = null;
-		exec($cmd, $result, $errcode);
-		\OCP\Util::writeLog('eos', "purge done $cmd $errcode", \OCP\Util::ERROR);
+		list($result, $errcode) = EosCmd::exec($cmd);
 		if ($errcode === 0) {
 			return true;
 		} else {
-			\OCP\Util::writeLog('eos', "trashbin eosdeleteAll $cmd $errcode", \OCP\Util::ERROR);
 			return false;
 		}
 	}
@@ -51,13 +48,10 @@ class EosTrashbin {
 		$file            = self::getFileByKey($key);
 		if ($file) {
 			$cmd     = "eos -b -r $uid $gid  recycle restore " . $key;
-			$result  = null;
-			$errcode = null;
-			exec($cmd, $result, $errcode);
+			list($result, $errcode) = EosCmd::exec($cmd);
 			if ($errcode === 0) {
 				return $file;
 			} else {
-				\OCP\Util::writeLog('eos', "trashbin restore $cmd $errcode", \OCP\Util::ERROR);
 				return $errcode;
 			}
 		}
@@ -77,9 +71,7 @@ class EosTrashbin {
 		}
 		list($uid, $gid) = $uidAndGid;
 		$cmd             = "eos -b -r $uid $gid recycle ls -m";
-		$result          = null;
-		$errcode         = null;
-		exec($cmd, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($cmd);
 		$files = array();
 		if ($errcode === 0) {// No error
 			foreach ($result as $rawdata) {
