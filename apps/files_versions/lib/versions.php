@@ -19,6 +19,7 @@ use OCP\Files;
 use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosUtil;
+use OC\Files\ObjectStore\EosCmd;
 
 class Storage {
 
@@ -58,15 +59,10 @@ class Storage {
 			$eosPath = EosProxy::toEos($file, "object::user:$username");
 			$eosPathEscaped = escapeshellarg($eosPath);
 			$cmd     = "eos -b -r $uid $gid file versions $eosPathEscaped $revision";
-			$result  = null;
-			$errcode = null;
-			exec($cmd, $result, $errcode);
+			list($result, $errcode) = EosCmd::exec($cmd, $result, $errcode);
 			if ($errcode === 0) {
-				//$files_view = new \OC\Files\View('/' . $uid . '/files');
-				//$info       = $files_view->getFileInfo($file);
 				return true;
 			} else {
-				\OCP\Util::writeLog('eos', "rollback $cmd $errcode", \OCP\Util::ERROR);
 				return false;
 			}
 
