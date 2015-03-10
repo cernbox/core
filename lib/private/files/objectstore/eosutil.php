@@ -3,58 +3,45 @@ namespace OC\Files\ObjectStore;
 
 class EosUtil {
 
-	public static function putEnv() { // VERIFIED
+	public static function putEnv() { 
 		$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
 		if (!getenv("EOS_MGM_URL")) {
 			putenv("EOS_MGM_URL=" . $eos_mgm_url);
 		}
 	}
 	
-	public static function getEosMgmUrl() { // VERIFIED
+	public static function getEosMgmUrl() { 
 		$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
 		return $eos_mgm_url;
 	}
 
-	public static function getEosPrefix() { // VERIFIED
+	public static function getEosPrefix() { 
 		$eos_prefix = \OCP\Config::getSystemValue("eos_prefix");
 		return $eos_prefix;
 	}
 
-	public static function getEosMetaDir() { // VERIFIED
+	public static function getEosMetaDir() { 
 		$eos_meta_dir = \OCP\Config::getSystemValue("eos_meta_dir");
 		return $eos_meta_dir;
 	}
-	public static function getEosRecycleDir() { // VERIFIED
+	public static function getEosRecycleDir() {
 		$eos_recycle_dir = \OCP\Config::getSystemValue("eos_recycle_dir");
 		return $eos_recycle_dir;
 	}
-	public static function getEosHideRegex() { // VERIFIED
+	public static function getEosHideRegex() { 
 		$eos_hide_regex = \OCP\Config::getSystemValue("eos_hide_regex");
 		return $eos_hide_regex;
 	}
-	public static function getBoxStagingDir() { // VERIFIED
+	public static function getBoxStagingDir() { 
 		$staging_dir = \OCP\Config::getSystemValue("box_staging_dir");
 		return $staging_dir;
 	}
-	public static function getBoxStagingDirMaxSize() { // VERIFIED
-		$staging_dir_max_size = \OCP\Config::getSystemValue("box_staging_dir_max_size");
-		return $staging_dir_max_size;
-	}
-	public static function getBoxStagingDirCurrentSize() { // VERIFIED
-		$staging_dir = self::getBoxStagingDir();
-	    $io = popen ( '/usr/bin/du -sb ' . $staging_dir, 'r' );
-	    $size = fgets ( $io, 4096);
-	    $size = substr ( $size, 0, strpos ( $size, "\t" ) );
-	    pclose ( $io );
-	    $staging_dir_current_size = $size;
-	    return $staging_dir_current_size;
-	}
-
+	
 	// Retrive the owner of the path
 	/*
 	/eos/devbox/user/	------------------------------------ FALSE
 	/eos/devbox/user/l/ ------------------------------------ FALSE
-	/eos/devbox/user/l/labador/ ---------------------------- labrador
+	/eos/devbox/user/l/labrador/ --------------------------- labrador
 	/eos/devbox/user/l/labrador/some.txt ------------------- labrador
 	/eos/devbox/user/.metacernbox/ ------------------------- FALSE
 	/eos/devbox/user/.metacernbox/l/ ----------------------- FALSE
@@ -304,7 +291,7 @@ class EosUtil {
 		$eosprefix = self::getEosPrefix();
 		$eosjail = $eosprefix . $from[0] . "/" . $from . "/";
 		if (strpos($eosPath, $eosjail) !== 0 ) {
-			\OCP\Util::writeLog('eos', "SECURITY PROBLEM. user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
+			\OCP\Util::writeLog('EOS', "SECURITY PROBLEM. user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
 			return false;
 		}
 
@@ -323,9 +310,7 @@ class EosUtil {
 			$uid =0;$gid=0; // harcoded because we cannot acces the storageID
 		}
 		$addUserToSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
-		$result   = null;
-		$errcode  = null;
-		exec($addUserToSysAcl, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($addUserToSysAcl);
 		if ($errcode === 0 && $result) {
 			//return true;
 		} else {
@@ -335,12 +320,9 @@ class EosUtil {
 		$result   = null;
 		$errcode  = null;
 		exec($addUserToSysOwner, $result, $errcode);
-		if ($errcode === 0 && $result) {
-			//return true;
-		} else {
-			\OCP\Util::writeLog('eos', "share folder $addUserToSysOwner $errcode", \OCP\Util::ERROR);
+		if ($errcode !== 0) {
+			return false;
 		}
-		return false;
 	}
 
 	public static function changePermAcl($from, $to, $fileid, $permissions){
@@ -367,24 +349,18 @@ class EosUtil {
 		if(empty($sysAcl)) {
 			$changeSysAcl = "eos -b -r $uid $gid attr -r rm sys.acl $eosPathEscaped";
 		}
-		$result   = null;
-		$errcode  = null;
-		exec($changeSysAcl, $result, $errcode);
-		if ($errcode === 0 && $result) {
-			//return true;
+		list($result, $errcode) = EosCmd::exec($changeSysAcl);
+		if ($errcode !== 0) {
+			return false;
 		}
 		$changeSysOwner = "eos -b -r $uid $gid attr -r set sys.owner.auth=$sysOwner $eosPathEscaped";
 		if(empty($sysOwner)) {
 			$changeSysOwner = "eos -b -r $uid $gid attr -r rm sys.owner.auth $eosPathEscaped";
 		}
-		$result   = null;
-		$errcode  = null;
-		exec($changeSysOwner, $result, $errcode);
-		if ($errcode === 0 && $result) {
-			//return true;
+		list($result, $errcode) = EosCmd::exec($changeSysOwner, $result, $errcode);
+		if ($errcode !== 0) {
+			return false;
 		}
-		return false;
-
 	}
 
 	// return the acl in Oc format => 15 or 1 or 31
@@ -506,15 +482,13 @@ class EosUtil {
 	}
 
 	// get the file/dir metadata by his eos fileid/inode
-	// due to we dont have the path we use the root user to obtain the info
+	// due to we dont have the path we use the root user(0,0) to obtain the info
 	public static function getFileById($id){ 
 		$uid = 0; $gid = 0;
 		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid  file info  inode:" . $id . " -m";
-		$result   = null;
-		$errcode  = null;
 		$files    = array();
-		exec($fileinfo, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($fileinfo);
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
@@ -530,10 +504,8 @@ class EosUtil {
 		$uid = 0; $gid = 0;
 		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info $eospathEscaped -m";
-		$result   = null;
-		$errcode  = null;
 		$files    = array();
-		exec($fileinfo, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($fileinfo);
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
@@ -547,21 +519,6 @@ class EosUtil {
 		if($type === "folder") {
 			return "httpd/unix-directory";
 		} else {
-			/*
-			$extension = isset($pathinfo['extension'])? $pathinfo['extension'] : "";
-			if ($extension) {
-				switch ($extension) {
-					case "txt": 	return "text/plain";break;
-					case "pdf":		return "application/pdf";break;
-					case "jpg":		return "image/jpg";break;
-					case "jpeg":	return "image/jpeg";break;
-					case "png":		return "image/png";break;
-					default: 		return "text/plain";break;
-				}
-			} else {
-				return "application";
-			}
-			*/
 			$mime_types = array(
 
 	            'txt' => 'text/plain',
@@ -618,7 +575,7 @@ class EosUtil {
 	            'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
 	        );
 		
-		$val = explode('.',$path);
+			$val = explode('.', $path);
 	        $ext = strtolower(array_pop($val));
 	        if (array_key_exists($ext, $mime_types)) {
 	            return $mime_types[$ext];
@@ -691,22 +648,10 @@ class EosUtil {
 		$newSysAcl = implode(",", array($sysAcl, "u:$to:x"));
 		$uid = 0; $gid = 0; // root is the only one allowed to change permissions
 		$cmd = "eos -b -r $uid $gid attr set sys.acl=$newSysAcl '$rootFolder'";
-		exec($cmd, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($cmd, $result, $errcode);
 		if ($errcode !== 0) {
-			\OCP\Util::writeLog('eos', "$cmd $errcode", \OCP\Util::ERROR);
 			return false;
 		}
 		return true;
 	}
-	public static function isEnoughSpaceInStagingForFileWithSize($fileSize){
-		$max_size = self::getBoxStagingDirMaxSize();
-		$current_size = self::getBoxStagingDirCurrentSize();
-		$window = 0.8; // 80%
-		if($fileSize + $current_size > $window * $max_size) {
-			return false;
-		}
-		return true;
-	}
-	
-
 }

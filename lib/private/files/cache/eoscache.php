@@ -15,6 +15,7 @@ namespace OC\Files\Cache;
 use OC\Files\ObjectStore\EosUtil;
 use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
+use OC\Files\ObjectStore\EosCmd;
 
 /**
  * Metadata cache for the filesystem
@@ -131,13 +132,10 @@ class EosCache {
 			return false;
 		}
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
-		//$uid = 0; $gid = 0; // we use root to avoid 22 erros (unauthorized entity)
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$get     = "eos -b -r $uid $gid  file info $eosPathEscaped -m";
-		$result  = null;
-		$errcode = null;
 		$info    = array();
-		exec($get, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($get);
 		if ($errcode !== 0) { 
 			return false;
 		} else {
@@ -160,21 +158,17 @@ class EosCache {
 	public function getFolderContents($ocPath) {
 		$eos_hide_regex = EosUtil::getEosHideRegex();
 		$ocPath = $this->normalize($ocPath);
-		$lenPath           = strlen($ocPath);
-		$eosPath           = EosProxy::toEos($ocPath, $this->storageId);
+		$lenPath = strlen($ocPath);
+		$eosPath = EosProxy::toEos($ocPath, $this->storageId);
 		if(!$eosPath){
-			return true;
+			return false;
 		}	
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
-		//$uid = 0; $gid = 0;
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 1 $eosPathEscaped";
-		$result            = null;
-		$errcode           = null;
 		$files             = array();
-		exec($getFolderContents, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($getFolderContents);
 		if ($errcode !== 0) {
-			\OCP\Util::writeLog('eos', "eosgetfoldercontetns $getFolderContents $errcode", \OCP\Util::ERROR);
 			return $files;
 		}
 		foreach ($result as $line_to_parse) {
@@ -414,10 +408,8 @@ class EosCache {
 		$uid = 0; $gid = 0;
 		EosUtil::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info inode:" . $id . " -m";
-		$result   = null;
-		$errcode  = null;
 		$files    = array();
-		exec($fileinfo, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($fileinfo);
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
@@ -428,7 +420,6 @@ class EosCache {
 			$storage_id    = EosUtil::getStorageId($data["eospath"]);
 			return array($storage_id, $ocPath);
 		} else {
-			\OCP\Util::writeLog('eos', "getbyid $fileinfo $errcode",\OCP\Util::ERROR);
 			return null;
 		}
 
