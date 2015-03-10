@@ -31,7 +31,7 @@ class Eos implements IObjectStore {
 	public function writeObject($urn, $stream) {
 		$staging_dir = EosUtil::getBoxStagingDir();
 		$eos_mgm_url = EosUtil::getEosMgmUrl();
-		$tempname        = tempnam($staging_dir, "eoswrite");
+		$tempname = tempnam($staging_dir, "eoswrite");
 		$temp = fopen($tempname, "w");
 		$data = '';
 		while (!feof($stream)) {
@@ -42,7 +42,7 @@ class Eos implements IObjectStore {
 		fclose($temp);
 		$path = $tempname;
 		
-		// Try to write as the logged user
+		// Try to write as the logged user, normally this should be succesful most of the time but in case like public upload it will fail
 		$tryWithOwnerPath = false; // when true indicates tht the write as logged user has failed and we need to try with the owner path
 		$username = \OCP\User::getUser();
 		if(!$username){
@@ -53,15 +53,9 @@ class Eos implements IObjectStore {
 				$tryWithOwnerPath = true;
 			} else {
 				list($uid,$gid) = $uidAndGid;
-				//$cmd       = "eos -b -r $uid $gid cp '$path' '$urn'";
 				$dst = escapeshellarg($eos_mgm_url ."//" . $urn);
-				//$cmd = "eoscp -s -n $path $dest";
-				//$src = escapeshellarg($eos_mgm_url . "//" . $urn");
-                		//$cmd = "eoscp -s -n $path $dst";
-		                $cmd = "xrdcopy -f $path $dst -ODeos.ruid=$uid\&eos.rgid=$gid";
-				$result    = null;
-				$errcode   = null;
-				exec($cmd, $result, $errcode);
+		        $cmd = "xrdcopy -f $path $dst -ODeos.ruid=$uid\&eos.rgid=$gid";
+				list($result, $errcode) =  EosCmd::exec($cmd);
 				if($errcode === 0){
 					unlink($tempname); // remove the temp file
 					return true;
@@ -74,21 +68,13 @@ class Eos implements IObjectStore {
 		if($tryWithOwnerPath){
 			// If we are here the previous write failed so we need to write as the "path owner"
 			list($uid, $gid) = EosUtil::getEosRole($urn, false);
-			//$cmd       = "eos -b -r $uid $gid cp '$path' '$urn'";
 			$dst = escapeshellarg($eos_mgm_url . "//" . $urn);
-                        //$cmd = "eoscp -s -n $path $dest";
-			//$src = escapeshellarg($eos_mgm_url . "//" . $urn . "?eos.ruid=$uid&eos.rgid=$gid");
-        	        //$cmd = "eoscp -s -n $src $dst";
-	                $cmd = "xrdcopy -f $path $dst -ODeos.ruid=$uid\&eos.rgid=$gid";
-			$result    = null;
-			$errcode   = null;
-			exec($cmd, $result, $errcode);
-			//fclose($temp);// this removes the tmp file but nomore
+	        $cmd = "xrdcopy -f $path $dst -ODeos.ruid=$uid\&eos.rgid=$gid";
+			list($result, $errcode) = EosCmd::exec($cmd);
 			@unlink($tempname); // remove the temp file
 			if($errcode === 0){
 				return true;
 			}
-			\OCP\Util::writeLog('eos', "eoswrite writing as path owner $cmd $errcode", \OCP\Util::ERROR);
 			return false;
 		} else {
 			return false;
@@ -103,19 +89,16 @@ class Eos implements IObjectStore {
 	 */
 	public function readObject($urn) {
 		$eos_mgm_url = EosUtil::getEosMgmUrl();
-                $staging_dir = EosUtil::getBoxStagingDir();
-                list($uid, $gid) = EosUtil::getEosRole($urn, true);
-                $dst             = $staging_dir . "/" . uniqid("eosread");
-                $src = escapeshellarg($eos_mgm_url . "//" . $urn . "?eos.ruid=$uid&eos.rgid=$gid");
-                $cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
-                $result          = null;
-                $errcode         = null;
-                exec($cmd, $result, $errcode);
-                if($errcode !== 0){
-                        \OCP\Util::writeLog('eos', "eosread $cmd $errcode", \OCP\Util::ERROR);
-                        return false;
-                }
-                return fopen($dst, "r");
+        $staging_dir = EosUtil::getBoxStagingDir();
+        list($uid, $gid) = EosUtil::getEosRole($urn, true);
+        $dst             = $staging_dir . "/" . uniqid("eosread");
+        $src = escapeshellarg($eos_mgm_url . "//" . $urn . "?eos.ruid=$uid&eos.rgid=$gid");
+        $cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
+        list($result, $errcode) = EosCmd::exec($cmd);
+        if($errcode !== 0){
+                return false;
+        }
+        return fopen($dst, "r");
 	}
 
 
@@ -128,12 +111,8 @@ class Eos implements IObjectStore {
 		$urnEscaped = escapeshellarg($urn);
 		list($uid, $gid) = EosUtil::getEosRole($urn, false);
 		$cmd             = "eos -b -r $uid $gid rm -r $urnEscaped";
-		$result          = null;
-		$errcode         = null;
-		exec($cmd, $result, $errcode);
-		if($errcode !== 0){
-			//throw new \Exception("Error Deleting from EOS $cmd", 1);		
-			\OCP\Util::writeLog('eos', "eosdelete $cmd $errcode", \OCP\Util::ERROR);
+		list($result, $errcode) = exec($cmd);
+		if($errcode !== 0) {
 			return false;
 		}
 		return true;
@@ -145,33 +124,21 @@ class Eos implements IObjectStore {
 		// the logic to create the metafolder for the user should be in the login FIXME
 		if(strpos($urn, $eos_metadir) === 0) { // to create files in meta folder we use the -p option to not throw exception each time we list files
 			$cmd = "eos -b -r 0 0 mkdir -p $urnEscaped";
-			$result          = null;
-			$errcode         = null;
-			exec($cmd, $result, $errcode);
-			if($errcode !== 0){
-				//throw new \Exception("Error Mkdir from EOS $cmd", 1);		
-				\OCP\Util::writeLog('eos', "eosmkdir $cmd $errcode", \OCP\Util::ERROR);
-			}
+			EosCmd::exec($cmd);
 			$owner = EosUtil::getOwner($urn);
 			$path = $eos_metadir . substr($owner, 0, 1) . "/" . $owner;
 			$pathEscaped = escapeshellarg($path);
 			$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $pathEscaped";
-			exec($cmd2, $result, $errcode);
+			list($result, $errcode) = EosCmd::exec($cmd2);
 			if($errcode !== 0){
-				//throw new \Exception("Error Mkdir from EOS $cmd", 1);		
-				\OCP\Util::writeLog('eos', "eoschown $cmd2 $errcode", \OCP\Util::ERROR);
 				return false;
 			}
 			return true;
 
 		} else {
 			$cmd = "eos -b -r $uid $gid mkdir $urnEscaped";
-			$result          = null;
-			$errcode         = null;
-			exec($cmd, $result, $errcode);
+			list($result, $errcode) = EosCmd::exec($cmd);
 			if($errcode !== 0){
-				//throw new \Exception("Error Mkdir from EOS $cmd", 1);		
-				\OCP\Util::writeLog('eos', "eosmkdir $cmd $errcode", \OCP\Util::ERROR);
 				return false;
 			}
 			return true;
@@ -182,12 +149,8 @@ class Eos implements IObjectStore {
 		$toEscaped = escapeshellarg($to);
 		list($uid, $gid) = EosUtil::getEosRole($from, false);
 		$cmd             = "eos -b -r $uid $gid file rename $fromEscaped $toEscaped";
-		$result          = null;
-		$errcode         = null;
-		exec($cmd, $result, $errcode);
+		list($result, $errcode) = EosCmd::exec($cmd);
 		if($errcode !== 0){
-			//throw new \Exception("Error Renaming from EOS $cmd", 1);		
-			\OCP\Util::writeLog('eos', "eosrename $cmd $errcode", \OCP\Util::ERROR);
 			return false;
 		}
 		return true;
