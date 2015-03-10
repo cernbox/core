@@ -71,7 +71,7 @@ class OC_Log_Owncloud {
 			$time = new DateTime(null, $timezone);
 			// remove username/passwords from URLs before writing the to the log file
 			$time = $time->format($format);
-			if($minLevel == OC_Log::DEBUG) {
+			if($minLevel == OC_Log::WARN) {
 				if(empty(self::$reqId)) {
 					self::$reqId = uniqid();
 				}
