@@ -155,7 +155,7 @@ class EosCache {
 	 * @param string $folder
 	 * @return array
 	 */
-	public function getFolderContents($ocPath) {
+	public function getFolderContents($ocPath, $deep = false) {
 		$eos_hide_regex = EosUtil::getEosHideRegex();
 		$ocPath = $this->normalize($ocPath);
 		$lenPath = strlen($ocPath);
@@ -166,6 +166,9 @@ class EosCache {
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 1 $eosPathEscaped";
+		if ($deep === true) {
+			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 10 $eosPathEscaped";
+		}
 		$files             = array();
 		list($result, $errcode) = EosCmd::exec($getFolderContents);
 		if ($errcode !== 0) {
@@ -331,7 +334,16 @@ class EosCache {
 	 * @return array
 	 */
 	public function searchByMime($mimetype) {
-		return array();
+		$files = self::getFolderContents("files", true);
+		$images = [];
+		foreach($files as $file) {
+			$ext = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
+			if($ext === "png" || $ext === "jpeg" || $ext === "jpg") {
+				$images[] = $file;
+			}
+		}
+		\OCP\Util::writeLog('eosgallery', "entered number images = " . count($images), \OCP\Util::ERROR);
+		return $images;
 	}
 
 	/**

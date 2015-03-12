@@ -89,6 +89,8 @@ class EosProxy {
 			} else {
 				$ocPath = "files";
 			}
+			// we strip posible end slashes
+			$ocPath = rtrim($ocPath, "/");
 			return $ocPath;
 		} else if(strpos($eosPath, $eos_recycle_dir) === 0){
 			return false;
