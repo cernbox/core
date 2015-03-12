@@ -92,7 +92,7 @@ class Eos implements IObjectStore {
         $staging_dir = EosUtil::getBoxStagingDir();
         list($uid, $gid) = EosUtil::getEosRole($urn, true);
         $dst             = $staging_dir . "/" . uniqid("eosread");
-        $src = escapeshellarg($eos_mgm_url . "//" . $urn . "?eos.ruid=$uid&eos.rgid=$gid");
+        $src = escapeshellarg($eos_mgm_url . "//" . $urn );
         $cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
         list($result, $errcode) = EosCmd::exec($cmd);
         if($errcode !== 0){
