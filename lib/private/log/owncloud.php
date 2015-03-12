@@ -83,7 +83,7 @@ class OC_Log_Owncloud {
 			else {
 				$entry = compact('app', 'message', 'level', 'time');
 			}
-			$entry = json_encode($entry);
+			$entry = json_encode($entry, JSON_UNESCAPED_SLASHES);
 			$handle = @fopen(self::$logFile, 'a');
 			@chmod(self::$logFile, 0640);
 			if ($handle) {
