@@ -35,6 +35,17 @@ class EosProxy {
 			$eosPath = $eos_prefix . substr($username, 0, 1) . "/" . $username . "/";
 			return $eosPath;
 		}
+		
+		\OCP\Util::writeLog("eos", "ocpath: $ocPath", \OCP\Util::ERROR);
+		if (strpos($ocPath, "files/.sys.internal.#/.projects.") === 0) {
+			$splitted = explode("/", $ocPath);// [files, hola.txt] or [files]
+                        $last     = "";
+                        if (count($splitted) >=4) {
+                                $last = implode("/", array_slice($splitted, 3));
+                        }
+                        $eosPath = "/eos/scratch/project/" . $last;
+                        return $eosPath;
+		}
 		//we must be cautious becasue there is files_encryption, that is the reason we do this check
 		$condition = false;
 		$posFiles  = strpos($ocPath, "files");
@@ -95,8 +106,20 @@ class EosProxy {
 		} else if(strpos($eosPath, $eos_recycle_dir) === 0){
 			return false;
 		} else {
+			$len_prefix = strlen("/eos/scratch/project/");
+                        $rel        = substr($eosPath, $len_prefix);
+                        $splitted   = explode("/", $rel);
+                        $lastPart   = "";
+                        if (count($splitted) > 3 && $splitted[3] !== "") {
+                                $lastPart = implode("/", array_slice($splitted, 3));
+                                $ocPath   = "files/.sys.internal.#/.projects./" . $lastPart;
+                        } else {
+                                $ocPath = "files/.sys.internal.#/.projects.";
+                        }
+                        // we strip posible end slashes
+                        $ocPath = rtrim($ocPath, "/");
 			\OCP\Util::writeLog("eos", "The eos_prefix,eos_meta_dir,eos_recycle_dir does not match this path: $eosPath", \OCP\Util::ERROR);
-			return false;
+			return $ocPath;
 		}
 	}
 }

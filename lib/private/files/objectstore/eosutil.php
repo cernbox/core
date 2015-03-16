@@ -198,6 +198,10 @@ class EosUtil {
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
 	public static function getUidAndGid($username) { // VERIFIED
 		self::putEnv();
+		if(!$username) {
+			return false;
+		}
+		\OCP\Util::writeLog("eos", "username to uid: $username", \OCP\Util::ERROR);
 		$cmd     = "id " . $username;
 		$result  = null;
 		$errcode = null;
