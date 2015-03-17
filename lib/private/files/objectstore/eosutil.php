@@ -49,112 +49,20 @@ class EosUtil {
 	/eos/devbox/user/.metacernbox/l/labrador/avatar.png ---- labrador
 	*/
 	public static function getOwner($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
-		$eos_prefix = EosUtil::getEosPrefix();
-		$eos_meta_dir = EosUtil::getEosMetaDir();
-		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
-			$len_prefix = strlen($eos_meta_dir);
-			$rel        = substr($eosPath, $len_prefix);
-			$splitted   = explode("/", $rel);
-			if (count($splitted >= 2)){
-				$user       = $splitted[1];
-				return $user;
-			} else {
-				return false;
-			}
-		} else if (strpos($eosPath, $eos_prefix) === 0){ // match eos prefix like /eos/devbox/user/...
-			$len_prefix = strlen($eos_prefix);
-			$rel        = substr($eosPath, $len_prefix);
-			$splitted = explode("/", $rel);
-			if(count($splitted) >= 2){
-				$user     = $splitted[1];
-				return $user; 
-			} else {
-				return false;
-			}
-		} else {
+		$data = self::getFileByEosPath($eosPath);
+		if(!$data) {
 			return false;
 		}
-	}
-	public static function getOwnerNEW($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
-		$eosPathEscaped = escapeshellarg($eosPath);
-		$eos_prefix = EosUtil::getEosPrefix();
-		$eos_meta_dir = EosUtil::getEosMetaDir();
-		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
-			$len_prefix = strlen($eos_meta_dir);
-			$rel        = substr($eosPath, $len_prefix);
-			$splitted   = explode("/", $rel);
-			if (count($splitted >= 2)){
-				// eos stat
-				$get     = "eos -b -r 0 0  file info  $eosPathEscaped -m";
-				\OCP\Util::writeLog('getowner', "$get", \OCP\Util::ERROR);
-
-				$result  = null;
-				$errcode = null;
-				$info    = array();
-				exec($get, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$line_to_parse   = $result[0];
-				$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
-				$uid = $data["uid"];
-				$getusername = "getent passwd $uid";
-				\OCP\Util::writeLog('getusername', "$getusername", \OCP\Util::ERROR);
-
-				$result  = null;
-				$errcode = null;
-				exec($getusername, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$username = $result[0];
-				$username = explode(":", $username);
-				$username = $username[0];
-				\OCP\Util::writeLog('username', "$username", \OCP\Util::ERROR);
-
-				return $username;
-			} else {
-				return false;
-			}
-		} else if (strpos($eosPath, $eos_prefix) === 0){ // match eos prefix like /eos/devbox/user/...
-			$len_prefix = strlen($eos_prefix);
-			$rel        = substr($eosPath, $len_prefix);
-			$splitted = explode("/", $rel);
-			if(count($splitted) >= 2){
-				// eos stat
-				$get     = "eos -b -r 0 0  file info $eosPathEscaped -m";
-				\OCP\Util::writeLog('getowner', "$get", \OCP\Util::ERROR);
-
-				$result  = null;
-				$errcode = null;
-				$info    = array();
-				exec($get, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$line_to_parse   = $result[0];
-				$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
-				$uid = $data["eosuid"];
-				$getusername = "getent passwd $uid";
-				\OCP\Util::writeLog('getusername', "$getusername", \OCP\Util::ERROR);
-				$result  = null;
-				$errcode = null;
-				exec($getusername, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$username = $result[0];
-				$username = explode(":", $username);
-				$username = $username[0];
-				\OCP\Util::writeLog('username', "$username", \OCP\Util::ERROR);
-
-				return $username;
-			} else {
-				return false;
-			}
-		} else {
-			return false;
-		}
+		$uid = $data["eosuid"];
+		$getusername = "getent passwd $uid";
+                list($result, $errcode) = EosCmd::exec($getusername);
+                if ($errcode !== 0) {
+                	return false;
+                }
+                $username = $result[0];
+                $username = explode(":", $username);
+                $username = $username[0];
+                return $username;
 	}
 
 	// return the uid and gid of the user who should execute the eos command
@@ -282,7 +190,7 @@ class EosUtil {
 	// $to the recipient
 	// $fileid the inode of the file to be shared
 	// $ocPerm the permissions the file is going to be shared
-	public static function addUserToAcl($from, $to, $fileId, $ocPerm) {
+	public static function addUserToAcl($from, $to, $fileId, $ocPerm, $type) {
 		
 
 		$data = self::getFileById($fileId);
@@ -299,9 +207,9 @@ class EosUtil {
 			return false;
 		}
 
-		$ocacl = self::toOcAcl($data["sys.acl"], $data["sys.owner.auth"]);
-		$ocacl[$to] = array("type"=>"u", "ocperm"=>$ocPerm);
-		list($sysAcl, $sysOwner) = EosUtil::toEosAcl($ocacl);
+		$ocacl = self::toOcAcl($data["sys.acl"]);
+		$ocacl[$to] = array("type"=>$type, "ocperm"=>$ocPerm);
+		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
 		$username  = $from;
 		if($username) {
@@ -316,27 +224,20 @@ class EosUtil {
 		$addUserToSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
 		list($result, $errcode) = EosCmd::exec($addUserToSysAcl);
 		if ($errcode === 0 && $result) {
-			//return true;
+			return true;
 		} else {
-			\OCP\Util::writeLog('eos', "share folder $addUserToSysAcl $errcode", \OCP\Util::ERROR);
-		}
-		$addUserToSysOwner = "eos -b -r $uid $gid attr -r set sys.owner.auth=$sysOwner $eosPathEscaped";
-		$result   = null;
-		$errcode  = null;
-		exec($addUserToSysOwner, $result, $errcode);
-		if ($errcode !== 0) {
 			return false;
 		}
 	}
 
-	public static function changePermAcl($from, $to, $fileid, $permissions){
+	public static function changePermAcl($from, $to, $fileid, $permissions, $type){
 		$data = self::getFileById($fileid);
 		if(!$data) {
 			return false;
 		}
-		$ocacl = self::toOcAcl($data["sys.acl"], $data["sys.owner.auth"]);
-		$ocacl[$to] = array("type"=>"u", "ocperm"=>$permissions);
-		list($sysAcl, $sysOwner) = EosUtil::toEosAcl($ocacl);
+		$ocacl = self::toOcAcl($data["sys.acl"]);
+		$ocacl[$to] = array("type"=>$type, "ocperm"=>$permissions);
+		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$username  = $from;
@@ -347,21 +248,10 @@ class EosUtil {
 			}
 			list($uid, $gid) = $uidAndGid;
 		} else {
-			$uid =0;$gid=0; // harcoded because we cannot acces the storageID
+			//$uid =0;$gid=0; // harcoded because we cannot acces the storageID
 		}
 		$changeSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
-		if(empty($sysAcl)) {
-			$changeSysAcl = "eos -b -r $uid $gid attr -r rm sys.acl $eosPathEscaped";
-		}
 		list($result, $errcode) = EosCmd::exec($changeSysAcl);
-		if ($errcode !== 0) {
-			return false;
-		}
-		$changeSysOwner = "eos -b -r $uid $gid attr -r set sys.owner.auth=$sysOwner $eosPathEscaped";
-		if(empty($sysOwner)) {
-			$changeSysOwner = "eos -b -r $uid $gid attr -r rm sys.owner.auth $eosPathEscaped";
-		}
-		list($result, $errcode) = EosCmd::exec($changeSysOwner, $result, $errcode);
 		if ($errcode !== 0) {
 			return false;
 		}
@@ -373,7 +263,7 @@ class EosUtil {
 		if(!$data) {
 			return false;
 		}
-		$ocacl = self::toOcAcl($data["sys.acl"], $data["sys.owner.auth"]);
+		$ocacl = self::toOcAcl($data["sys.acl"]);
 		if(isset($ocacl[$to])){
 			return $ocacl[$to]["ocperm"];
 		}
@@ -385,41 +275,25 @@ class EosUtil {
 	// if the user is ONLY in sys.acl we return only oc read permission
 	// transform these 2 acls in a map
 	// "kuba" => array(type=>u, ocperm=>15, eosperm=>rwx)
-	public static function toOcAcl($sysAcl, $sysOwner){ // VERIFIED
+	public static function toOcAcl($sysAcl){ // VERIFIED
 		$ocAcl = array();
-		
 		$usersSysAcl = array();
-		$usersSysOwner = array();
-		
+
 		$parts = explode(",", $sysAcl);
 		if($parts) {
 		    foreach($parts as $user) {
 		        $data = explode(":",$user);
 		        if(count($data) >= 3) {
-		            $usersSysAcl[] = $data[1];
-		        }
-		    }
-		}
-		
-		$parts = explode(",", $sysOwner);
-		if($parts) {
-		    foreach($parts as $user) {
-		        $data = explode(":",$user);
-		        if(count($data) >= 2) {
-		            $usersSysOwner[] = $data[1];
+		            $usersSysAcl[] = $data;
 		        }
 		    }
 		}
 		
 		$usersSysAcl = array_unique($usersSysAcl);
-		$usersSysOwner = array_unique($usersSysOwner);
 		
 		
 		foreach($usersSysAcl as $user) {
-		    $ocAcl[$user] = array("type"=>"u", "ocperm"=>self::toOcPerm("rx"), "eosperm"=>"rx");
-		} 
-		foreach($usersSysOwner as $user) {
-		    $ocAcl[$user] = array("type"=>"u", "ocperm"=>self::toOcPerm("rwx+d"), "eosperm"=>"rwx+d");
+		    $ocAcl[$user[1]] = array("type"=>$user[0], "ocperm"=>self::toOcPerm($user[2]), "eosperm"=>$user[2]);
 		} 
 		return $ocAcl;
 	}
@@ -427,33 +301,22 @@ class EosUtil {
 	// transform the ocacl to eosacl 
 	public static function toEosAcl($ocAcl){ // VERIFIED
 		$sysAcl = array();
-		$sysOwner = array();
 		$loggedUser = \OCP\User::getUser();
 		foreach($ocAcl as $username=>$data) {
 		  if($username == $loggedUser) {
 		  	$entry = "u:$loggedUser:rwx!m";
 		  	$sysAcl[] = $entry;
 		  } else {
-	  	 	if($data["ocperm"] > 1 ) { // indicates user has write privileges
-	  	 	    $entry = "krb5:$username,https:$username,gsi:$username,unix:$username";
-	  	 	    $sysOwner[] = $entry;
-	  	 	    $type = $data["type"];
-	  	 	    $eosperm = self::toEosPerm($data["ocperm"]);
-	  	 	    $entry = "$type:$username:$eosperm"; // Be very careful with this
-	  	 	    $sysAcl[]  = $entry;
-	  	 	} else if ($data["ocperm"] == 1) {
-	  	 	    $type = $data["type"];
-	  	 	    $eosperm = self::toEosPerm($data["ocperm"]);
-	  	 	    $entry = "$type:$username:$eosperm"; // Be very careful with this
-	  	 	    $sysAcl[] = $entry;
-	  	 	} else { // permissions are set to 0 => remove user from sys.acl and sys.owner.auth
-	  	 		 //dont add
-	  	 	}
+		  	if($data["ocperm"] !== 0) {
+			    $type = $data["type"];
+                            $eosperm = self::toEosPerm($data["ocperm"]);
+                            $entry = "$type:$username:$eosperm"; // Be very careful with this
+                            $sysAcl[]  = $entry;
+			}	
 		  }
 		}
 		$sysAcl = implode(",", $sysAcl);
-		$sysOwner = implode(",", $sysOwner);
-		return array($sysAcl, $sysOwner);
+		return $sysAcl;
 	}
 	// transform unix perm to number
 	public static function toEosPerm($ocPerm) { // VERIFIED ASK KUBA/ANDREAS HOW TO MAP TO EOS PERM
