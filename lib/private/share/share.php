@@ -930,11 +930,12 @@ class Share extends \OC\Share\Constants {
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `permissions` = ? WHERE `id` = ?');
 			$query->execute(array($permissions, $item['id']));
 			// HUGO
-			if($item["share_type"] === 0){
+			if($item["share_type"] === 0 || $item["share_type"] === 1){
+				$type = $item["share_type"] === 0 ? "u" : "egroup";
 				$from = $item["uid_owner"];
 				$to = $item["share_with"];
 				$fileid = $item["item_source"];
-				EosUtil::changePermAcl($from , $to, $fileid, $permissions);
+				EosUtil::changePermAcl($from , $to, $fileid, $permissions, $type);
 			}
 			if ($itemType === 'file' || $itemType === 'folder') {
 				\OC_Hook::emit('OCP\Share', 'post_update_permissions', array(
@@ -1152,12 +1153,13 @@ class Share extends \OC\Share\Constants {
 		$hookParams['deletedShares'] = $deletedShares;
 		\OC_Hook::emit('OCP\Share', 'post_unshare', $hookParams);
 		// HUGO if we unshare we have to remove the shared user from the ACL for do that we change the permissions to 0
-			if($item["share_type"] == 0){
-				$from = $item["uid_owner"];
-				$to = $item["share_with"];
-				$fileid = $item["item_source"];
-				EosUtil::changePermAcl($from , $to, $fileid, 0);
-			}
+		if($shareType === 0 || $shareType ===1) {
+			$type = $shareType === 0 ? "u" : "egroup";
+			$from = $item["uid_owner"];
+			$to = $item["share_with"];
+			$fileid = $item["item_source"];
+			EosUtil::changePermAcl($from , $to, $fileid, 0, $type);
+		}
 	}
 
 	/**
@@ -2019,12 +2021,13 @@ class Share extends \OC\Share\Constants {
 		$query->execute();
 
 		// HUGO  add user to ACL and notify by email
-		if($shareData["shareType"] === 0) { //only folders
+		if($shareData["shareType"] == 0 || $shareData["shareType"] == 1) { // 0=>user, 1=>group, 2 => user inside group, 3 => link
+			$type = $shareData["shareType"] == 0 ? "u": "egroup";
 			$from = $shareData["uidOwner"];
 			$to = $shareData["shareWith"];
 			$fileid = $shareData["itemSource"];
 			$ocPerm = $shareData["permissions"];
-			$added = EosUtil::addUserToAcl($from, $to, $fileid, $ocPerm);
+			$added = EosUtil::addUserToAcl($from, $to, $fileid, $ocPerm, $type);
 
 			// Send mail
 			$filedata = \OC\Files\ObjectStore\EosUtil::getFileById($fileid);

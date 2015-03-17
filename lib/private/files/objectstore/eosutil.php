@@ -186,7 +186,7 @@ class EosUtil {
 	// $to the recipient
 	// $fileid the inode of the file to be shared
 	// $ocPerm the permissions the file is going to be shared
-	public static function addUserToAcl($from, $to, $fileId, $ocPerm) {
+	public static function addUserToAcl($from, $to, $fileId, $ocPerm, $type) {
 		
 
 		$data = self::getFileById($fileId);
@@ -204,7 +204,7 @@ class EosUtil {
 		}
 
 		$ocacl = self::toOcAcl($data["sys.acl"]);
-		$ocacl[$to] = array("type"=>"u", "ocperm"=>$ocPerm);
+		$ocacl[$to] = array("type"=>$type, "ocperm"=>$ocPerm);
 		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
 		$username  = $from;
@@ -226,13 +226,13 @@ class EosUtil {
 		}
 	}
 
-	public static function changePermAcl($from, $to, $fileid, $permissions){
+	public static function changePermAcl($from, $to, $fileid, $permissions, $type){
 		$data = self::getFileById($fileid);
 		if(!$data) {
 			return false;
 		}
 		$ocacl = self::toOcAcl($data["sys.acl"]);
-		$ocacl[$to] = array("type"=>"u", "ocperm"=>$permissions);
+		$ocacl[$to] = array("type"=>$type, "ocperm"=>$permissions);
 		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
