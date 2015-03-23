@@ -23,6 +23,20 @@
 namespace OCA\Files\Share;
 
 class Api {
+	
+	/**
+	 *  getOcPah returns the ocPath i.e without the home/ or /eos/... prefixes.
+	 *  this is needed because for ownCLoud all paths are relative to your home dir.
+	 */
+	private static function getOcPath($path) {
+		$prefix = 'home';
+		$str = $path;
+
+		if (substr($str, 0, strlen($prefix)) == $prefix) {
+			$str = substr($str, strlen($prefix));
+		}
+		return $str;
+	}
 
 	/**
 	 * get all shares
@@ -36,6 +50,7 @@ class Api {
 			}
 		// if a file is specified, get the share for this file
 		if (isset($_GET['path'])) {
+			$_GET['path'] = self::getOcPath($_GET['path']);
 			$params['itemSource'] = self::getFileId($_GET['path']);
 			$params['path'] = $_GET['path'];
 			$params['itemType'] = self::getItemType($_GET['path']);
@@ -242,6 +257,7 @@ class Api {
 		if($path === null) {
 			return new \OC_OCS_Result(null, 400, "please specify a file or folder path");
 		}
+		$path = self::getOcPath($path);
 		$itemSource = self::getFileId($path);
 		$itemType = self::getItemType($path);
 
