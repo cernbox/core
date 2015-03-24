@@ -9,9 +9,9 @@ class EosCmd {
 		$errcode = null;
 		exec($cmd, $result, $errcode);
 		if($errcode === 0) {
-			\OCP\Util::writeLog('EOS', "loggeduser: $user cmd:$cmd errcode:$errcode", \OCP\Util::WARN);
+			\OCP\Util::writeLog('EOSCMD', "luser: $user cmd:$cmd errcode:$errcode", \OCP\Util::WARN);
 		} else {
-			\OCP\Util::writeLog('EOS', "logggeduser: $user cmd:$cmd errcode:$errcode", \OCP\Util::ERROR);
+			\OCP\Util::writeLog('EOSCMD', "luser: $user cmd:$cmd errcode:$errcode", \OCP\Util::ERROR);
 		}
 		return array($result, $errcode);
 	}
