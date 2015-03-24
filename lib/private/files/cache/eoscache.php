@@ -335,7 +335,7 @@ class EosCache {
 	 */
 	public function searchByMime($mimetype) {
 		$files = self::getFolderContents("files", true);
-		$images = [];
+		$images = array();
 		foreach($files as $file) {
 			$ext = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
 			if($ext === "png" || $ext === "jpeg" || $ext === "jpg") {
