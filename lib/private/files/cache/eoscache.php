@@ -417,6 +417,11 @@ class EosCache {
 	 * @return array, first element holding the storage id, second the path
 	 */
 	static public function getById($id) {
+		if(!is_numeric($id)) { // we have received a ocpath instead of a inode
+			
+			$storage_id    = EosUtil::getStorageId($id);
+                	return array($storage_id, $id);
+		}
 		$uid = 0; $gid = 0;
 		EosUtil::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info inode:" . $id . " -m";

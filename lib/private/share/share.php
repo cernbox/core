@@ -142,7 +142,8 @@ class Share extends \OC\Share\Constants {
 				while ($row = $result->fetchRow()) {
 					$shares[] = $row['share_with'];
 					if ($returnUserPaths) {
-						$fileTargets[(int) $row['file_source']][$row['share_with']] = $row;
+						//$fileTargets[(int) $row['file_source']][$row['share_with']] = $row; HUGO need to allow files shared by path
+						$fileTargets[$row['file_source']][$row['share_with']] = $row;
 					}
 				}
 			}
@@ -166,7 +167,8 @@ class Share extends \OC\Share\Constants {
 					$shares = array_merge($shares, $usersInGroup);
 					if ($returnUserPaths) {
 						foreach ($usersInGroup as $user) {
-							$fileTargets[(int) $row['file_source']][$user] = $row;
+							//$fileTargets[(int) $row['file_source']][$user] = $row; HUGO needed to allow files shared by path
+							$fileTargets[$row['file_source']][$user] = $row;
 						}
 					}
 				}
@@ -2139,7 +2141,7 @@ class Share extends \OC\Share\Constants {
 			$row['file_parent'] = (int) $row['file_parent'];
 		}
 		if (isset($row['file_source'])) {
-			$row['file_source'] = (int) $row['file_source'];
+			//$row['file_source'] = (int) $row['file_source'];
 		}
 		if (isset($row['permissions'])) {
 			$row['permissions'] = (int) $row['permissions'];

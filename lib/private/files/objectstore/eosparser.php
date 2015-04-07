@@ -63,6 +63,10 @@ class EosParser {
 		$data["eosuid"]			  = $info["uid"];
 		$data["eosmode"]		  = $info["mode"];
 		$data["eostype"]		  = isset($info["container"]) ? 'folder' : 'file';
+		//HUGO return path as id for files
+		if($data["eostype"] === "file") {
+			$data["fileid"] = $data["path"];
+		}
 		/*
 		if(isset($info['xattrn']) && isset($info['xattrv']) && $info['xattrn'] === 'user.acl'){
 			$data["eosacl"] = $info['xattrv'];

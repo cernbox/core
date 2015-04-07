@@ -1172,7 +1172,7 @@ class View {
 	 * @return string|null
 	 */
 	public function getPath($id) {
-		$id = (int) $id;
+		//$id = (int) $id; HUGO we allow $id to be paths this is needed to allow file sharing by path
 		$manager = Filesystem::getMountManager();
 		$mounts = $manager->findIn($this->fakeRoot);
 		$mounts[] = $manager->find($this->fakeRoot);
