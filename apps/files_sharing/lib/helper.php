@@ -154,7 +154,16 @@ class Helper {
 			$idList = array_chunk($ids, 99, true);
 
 			foreach ($idList as $subList) {
-				$statement = "SELECT `share_with`, `share_type`, `file_target` FROM `*PREFIX*share` WHERE `file_source` IN (" . implode(',', $subList) . ") AND `share_type` IN (0, 1, 2)";
+				// HUGO sublist can contain numbers or strings, and strings must be quoted
+				$cleanSubList = array();	
+				foreach($subList as $itm) {
+					if(!is_int($itm)) {
+						$itm = "'".$itm."'";						
+					}
+					$cleanSubList[] = $itm; 
+				}
+				
+				$statement = "SELECT `share_with`, `share_type`, `file_target` FROM `*PREFIX*share` WHERE `file_source` IN (" . implode(',', $cleanSubList) . ") AND `share_type` IN (0, 1, 2)";
 				$query = \OCP\DB::prepare($statement);
 				$r = $query->execute();
 				$result = array_merge($result, $r->fetchAll());
