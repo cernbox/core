@@ -49,20 +49,112 @@ class EosUtil {
 	/eos/devbox/user/.metacernbox/l/labrador/avatar.png ---- labrador
 	*/
 	public static function getOwner($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
-		$data = self::getFileByEosPath($eosPath);
-		if(!$data) {
+		$eos_prefix = EosUtil::getEosPrefix();
+		$eos_meta_dir = EosUtil::getEosMetaDir();
+		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
+			$len_prefix = strlen($eos_meta_dir);
+			$rel        = substr($eosPath, $len_prefix);
+			$splitted   = explode("/", $rel);
+			if (count($splitted >= 2)){
+				$user       = $splitted[1];
+				return $user;
+			} else {
+				return false;
+			}
+		} else if (strpos($eosPath, $eos_prefix) === 0){ // match eos prefix like /eos/devbox/user/...
+			$len_prefix = strlen($eos_prefix);
+			$rel        = substr($eosPath, $len_prefix);
+			$splitted = explode("/", $rel);
+			if(count($splitted) >= 2){
+				$user     = $splitted[1];
+				return $user; 
+			} else {
+				return false;
+			}
+		} else {
 			return false;
 		}
-		$uid = $data["eosuid"];
-		$getusername = "getent passwd $uid";
-                list($result, $errcode) = EosCmd::exec($getusername);
-                if ($errcode !== 0) {
-                	return false;
-                }
-                $username = $result[0];
-                $username = explode(":", $username);
-                $username = $username[0];
-                return $username;
+	}
+	public static function getOwnerNEW($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
+		$eosPathEscaped = escapeshellarg($eosPath);
+		$eos_prefix = EosUtil::getEosPrefix();
+		$eos_meta_dir = EosUtil::getEosMetaDir();
+		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
+			$len_prefix = strlen($eos_meta_dir);
+			$rel        = substr($eosPath, $len_prefix);
+			$splitted   = explode("/", $rel);
+			if (count($splitted >= 2)){
+				// eos stat
+				$get     = "eos -b -r 0 0  file info  $eosPathEscaped -m";
+				\OCP\Util::writeLog('getowner', "$get", \OCP\Util::ERROR);
+
+				$result  = null;
+				$errcode = null;
+				$info    = array();
+				exec($get, $result, $errcode);
+				if ($errcode !== 0) {
+					return false;
+				}
+				$line_to_parse   = $result[0];
+				$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
+				$uid = $data["uid"];
+				$getusername = "getent passwd $uid";
+				\OCP\Util::writeLog('getusername', "$getusername", \OCP\Util::ERROR);
+
+				$result  = null;
+				$errcode = null;
+				exec($getusername, $result, $errcode);
+				if ($errcode !== 0) {
+					return false;
+				}
+				$username = $result[0];
+				$username = explode(":", $username);
+				$username = $username[0];
+				\OCP\Util::writeLog('username', "$username", \OCP\Util::ERROR);
+
+				return $username;
+			} else {
+				return false;
+			}
+		} else if (strpos($eosPath, $eos_prefix) === 0){ // match eos prefix like /eos/devbox/user/...
+			$len_prefix = strlen($eos_prefix);
+			$rel        = substr($eosPath, $len_prefix);
+			$splitted = explode("/", $rel);
+			if(count($splitted) >= 2){
+				// eos stat
+				$get     = "eos -b -r 0 0  file info $eosPathEscaped -m";
+				\OCP\Util::writeLog('getowner', "$get", \OCP\Util::ERROR);
+
+				$result  = null;
+				$errcode = null;
+				$info    = array();
+				exec($get, $result, $errcode);
+				if ($errcode !== 0) {
+					return false;
+				}
+				$line_to_parse   = $result[0];
+				$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
+				$uid = $data["eosuid"];
+				$getusername = "getent passwd $uid";
+				\OCP\Util::writeLog('getusername', "$getusername", \OCP\Util::ERROR);
+				$result  = null;
+				$errcode = null;
+				exec($getusername, $result, $errcode);
+				if ($errcode !== 0) {
+					return false;
+				}
+				$username = $result[0];
+				$username = explode(":", $username);
+				$username = $username[0];
+				\OCP\Util::writeLog('username', "$username", \OCP\Util::ERROR);
+
+				return $username;
+			} else {
+				return false;
+			}
+		} else {
+			return false;
+		}
 	}
 
 	// return the uid and gid of the user who should execute the eos command
