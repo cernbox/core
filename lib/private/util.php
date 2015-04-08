@@ -122,14 +122,15 @@ class OC_Util {
 			$fileOperationProxy = new OC_FileProxy_FileOperations();
 			OC_FileProxy::register($fileOperationProxy);
 			
-			// With EOS enabled the creation of the homedir is done on first login
+			// HUGO: With EOS enabled the creation of the homedir is done on first login
 			// and we don't use skeleton. If we don't disable this the system performance is really downgraded
 			// due to the fact of passing from average rate of 9 exec calls to 100.
 			//trigger creation of user home and /files folder
-			//\OC::$server->getUserFolder($user);
-
-			//OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
-
+			// for non-EOS filesystems we continue
+                        if (! \OC\Files\ObjectStore\EosUtil::getEosPrefix()) { //
+				\OC::$server->getUserFolder($user);
+				OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
+                        }
 		}
 		return true;
 	}
