@@ -59,7 +59,7 @@ class Storage {
 			$eosPath = EosProxy::toEos($file, "object::user:$username");
 			$eosPathEscaped = escapeshellarg($eosPath);
 			$cmd     = "eos -b -r $uid $gid file versions $eosPathEscaped $revision";
-			list($result, $errcode) = EosCmd::exec($cmd, $result, $errcode);
+			list($result, $errcode) = EosCmd::exec($cmd);
 			if ($errcode === 0) {
 				return true;
 			} else {
