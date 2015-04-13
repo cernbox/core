@@ -111,7 +111,7 @@ class Eos implements IObjectStore {
 		$urnEscaped = escapeshellarg($urn);
 		list($uid, $gid) = EosUtil::getEosRole($urn, false);
 		$cmd             = "eos -b -r $uid $gid rm -r $urnEscaped";
-		list($result, $errcode) = exec($cmd);
+		list($result, $errcode) = EosCmd::exec($cmd);
 		if($errcode !== 0) {
 			return false;
 		}
