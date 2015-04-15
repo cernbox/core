@@ -129,8 +129,8 @@ class OC_Util {
 			// for non-EOS filesystems we continue
                         if (! \OC\Files\ObjectStore\EosUtil::getEosPrefix()) { //
 				\OC::$server->getUserFolder($user);
-				OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
                         }
+			OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
 		}
 		return true;
 	}
