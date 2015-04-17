@@ -1073,6 +1073,7 @@ class View {
 			//add a folder for any mountpoint in this directory and add the sizes of other mountpoints to the folders
 			$mounts = Filesystem::getMountManager()->findIn($path);
 			$dirLength = strlen($path);
+			/*
 			foreach ($mounts as $mount) {
 				$mountPoint = $mount->getMountPoint();
 				$subStorage = $mount->getStorage();
@@ -1140,7 +1141,7 @@ class View {
 						}
 					}
 				}
-			}
+			}*/
 
 			if ($mimetype_filter) {
 				foreach ($files as $file) {

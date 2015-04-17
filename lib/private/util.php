@@ -96,13 +96,13 @@ class OC_Util {
 
 		//if we aren't logged in, there is no use to set up the filesystem
 		if ($user != "") {
-			\OC\Files\Filesystem::addStorageWrapper('oc_quota', function ($mountPoint, $storage) {
+			/*\OC\Files\Filesystem::addStorageWrapper('oc_quota', function ($mountPoint, $storage) {
 				// set up quota for home storages, even for other users
 				// which can happen when using sharing
 
 				/**
 				 * @var \OC\Files\Storage\Storage $storage
-				 */
+				 
 				if ($storage->instanceOfStorage('\OC\Files\Storage\Home')
 					|| $storage->instanceOfStorage('\OC\Files\ObjectStore\HomeObjectStoreStorage')
 				) {
@@ -116,20 +116,20 @@ class OC_Util {
 				}
 
 				return $storage;
-			});
+			});*/
 
 			$userDir = '/' . $user . '/files';
 
 			//jail the user into his "home" directory
 			\OC\Files\Filesystem::init($user, $userDir);
-
+		
 			$fileOperationProxy = new OC_FileProxy_FileOperations();
 			OC_FileProxy::register($fileOperationProxy);
 
 			//trigger creation of user home and /files folder
-			\OC::$server->getUserFolder($user);
+			//\OC::$server->getUserFolder($user);
 
-			OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
+			//OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
 		}
 		\OC::$server->getEventLogger()->end('setup_fs');
 		return true;
