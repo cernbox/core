@@ -127,6 +127,7 @@ class OC_Util {
 			OC_FileProxy::register($fileOperationProxy);
 
 			//trigger creation of user home and /files folder
+			// HUGO  We don't want to create the homedir on each request, we do it on login
 			//\OC::$server->getUserFolder($user);
 
 			OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
