@@ -16,7 +16,6 @@
 	var Files = {
 		// file space size sync
 		_updateStorageStatistics: function(currentDir) {
-			/*
 			var state = Files.updateStorageStatistics;
 			if (state.dir){
 				if (state.dir === currentDir) {
@@ -31,7 +30,6 @@
 				state.call = null;
 				Files.updateMaxUploadFilesize(response);
 			});
-			*/
 		},
 		/**
 		 * Update storage statistics such as free space, max upload,
