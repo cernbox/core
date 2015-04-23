@@ -16,6 +16,7 @@ use OC\Files\ObjectStore\EosUtil;
 use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosCmd;
+use OC\Files\ObjectStore\EosReqCache;
 
 /**
  * Metadata cache for the filesystem
@@ -124,6 +125,10 @@ class EosCache {
 	 * @return array|false
 	 */
 	public function get($ocPath) {
+		$cached = EosReqCache::getMeta($ocPath);
+		if($cached) {
+			return $cached;
+		}
 		$eos_prefix = EosUtil::getEosPrefix();
 		$ocPath = $this->normalize($ocPath);
 		$eosPath = EosProxy::toEos($ocPath, $this->storageId);
@@ -146,6 +151,7 @@ class EosCache {
 			}
 			$data["storage"] = $this->storageId;
 			$data["permissions"] = 31;
+			EosReqCache::setMeta($ocPath, $data);
 			return $data;
 		}
 	}

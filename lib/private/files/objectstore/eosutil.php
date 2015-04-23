@@ -49,6 +49,10 @@ class EosUtil {
 	/eos/devbox/user/.metacernbox/l/labrador/avatar.png ---- labrador
 	*/
 	public static function getOwner($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
+		$cached = EosReqCache::getOwner($eosPath);
+		if($cached) {
+			return $cached;
+		}
 		$eos_prefix = EosUtil::getEosPrefix();
 		$eos_meta_dir = EosUtil::getEosMetaDir();
 		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
@@ -57,6 +61,7 @@ class EosUtil {
 			$splitted   = explode("/", $rel);
 			if (count($splitted >= 2)){
 				$user       = $splitted[1];
+				EosReqCache::setOwner($eosPath, $user);
 				return $user;
 			} else {
 				return false;
@@ -67,6 +72,7 @@ class EosUtil {
 			$splitted = explode("/", $rel);
 			if(count($splitted) >= 2){
 				$user     = $splitted[1];
+				EosReqCache::setOwner($eosPath, $user);
 				return $user; 
 			} else {
 				return false;
@@ -75,6 +81,7 @@ class EosUtil {
 			return false;
 		}
 	}
+	/*
 	public static function getOwnerNEW($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$eos_prefix = EosUtil::getEosPrefix();
@@ -156,6 +163,30 @@ class EosUtil {
 			return false;
 		}
 	}
+	
+	public static function getOwner($eosPath) {
+		$cached = EosReqCache::getOwner($eosPath);
+		if($cached) {
+			return $cached;
+		}
+		$data = self::getFileByEosPath($eosPath);
+                if(!$data) {
+                        return false;
+                }
+                $uid = $data["eosuid"];
+                $getusername = "getent passwd $uid";
+                list($result, $errcode) = EosCmd::exec($getusername);
+                if ($errcode !== 0) {
+                       return false;
+                }
+                $username = $result[0];
+                $username = explode(":", $username);
+                $username = $username[0];
+		EosReqCache::setOwner($eosPath, $username);
+                return $username;
+	}
+
+	*/
 
 	// return the uid and gid of the user who should execute the eos command
 	// we have three cases
@@ -197,6 +228,10 @@ class EosUtil {
 
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
 	public static function getUidAndGid($username) { // VERIFIED
+		$cached = EosReqCache::getUidAndGid($username);
+		if($cached) {
+			return $cached;	
+		}
 		self::putEnv();
 		$cmd     = "id " . $username;
 		$result  = null;
@@ -226,6 +261,7 @@ class EosUtil {
 		if (count($list) != 2) {
 			return false;
 		}
+		EosReqCache::setUidAndGid($username, $list);
 		return $list;
 	}
 
@@ -438,7 +474,11 @@ class EosUtil {
 
 	// get the file/dir metadata by his eos fileid/inode
 	// due to we dont have the path we use the root user(0,0) to obtain the info
-	public static function getFileById($id){ 
+	public static function getFileById($id){
+		$cached = EosReqCache::getFileById($id);
+		if($cached) {
+			return $cached;
+		} 
 		$uid = 0; $gid = 0;
 		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid  file info  inode:" . $id . " -m";
@@ -447,6 +487,7 @@ class EosUtil {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
+			EosReqCache::setFileById($id, $data);
 			return $data;
 		}
 		return null;
@@ -455,6 +496,10 @@ class EosUtil {
 	// get the file/dir metadata by his eospath
 	// due to we dont have the path we use the root user to obtain the info
 	public static function getFileByEosPath($eospath){ 
+		$cached = EosReqCache::getFileByEosPath($eospath);
+		if($cached) {
+			return $cached;
+		}
 		$eospathEscaped = escapeshellarg($eospath);
 		$uid = 0; $gid = 0;
 		self::putEnv();
@@ -464,6 +509,7 @@ class EosUtil {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
+			EosReqCache::setFileByEosPath($eospath, $data);
 			return $data;
 		}
 		return null;
