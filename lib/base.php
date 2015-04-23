@@ -643,6 +643,7 @@ class OC {
 	 * register hooks for the cache
 	 */
 	public static function registerCacheHooks() {
+		/* HUGO we don't use background cache
 		if (\OC::$server->getSystemConfig()->getValue('installed', false) && !\OCP\Util::needUpgrade()) { //don't try to do this before we are properly setup
 			\OCP\BackgroundJob::registerJob('OC\Cache\FileGlobalGC');
 
@@ -650,6 +651,7 @@ class OC {
 			$userSession = \OC_User::getUserSession();
 			$userSession->listen('postLogin', '\OC\Cache\File', 'loginListener');
 		}
+		*/
 	}
 
 	/**
@@ -677,6 +679,7 @@ class OC {
 	 * register hooks for previews
 	 */
 	public static function registerPreviewHooks() {
+		/* HUGO we don't use previews, if we want to use it then the pre_delete hook must be disabled, is a performance stopper. See https://github.com/owncloud/core/issues/15784
 		OC_Hook::connect('OC_Filesystem', 'post_write', 'OC\Preview', 'post_write');
 		OC_Hook::connect('OC_Filesystem', 'delete', 'OC\Preview', 'prepare_delete_files');
 		OC_Hook::connect('\OCP\Versions', 'preDelete', 'OC\Preview', 'prepare_delete');
@@ -684,6 +687,7 @@ class OC {
 		OC_Hook::connect('OC_Filesystem', 'post_delete', 'OC\Preview', 'post_delete_files');
 		OC_Hook::connect('\OCP\Versions', 'delete', 'OC\Preview', 'post_delete');
 		OC_Hook::connect('\OCP\Trashbin', 'delete', 'OC\Preview', 'post_delete');
+		*/
 	}
 
 	/**
