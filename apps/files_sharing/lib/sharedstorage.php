@@ -397,6 +397,10 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 	}
 
 	public static function setup($options) {
+		/* HUGO in an normal request this hook is called at least twice, reducing performance, so we cached*/
+		if(isset($GLOBALS["shared_setup_hook"])) {
+			return;
+		}
 		$shares = \OCP\Share::getItemsSharedWithUser('file', $options['user']);
 		$manager = Filesystem::getMountManager();
 		$loader = Filesystem::getLoader();
@@ -419,6 +423,7 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 				}
 			}
 		}
+		$GLOBALS["shared_setup_hook"] = true;
 	}
 
 	/**
