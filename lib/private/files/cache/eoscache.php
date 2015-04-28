@@ -351,6 +351,47 @@ class EosCache {
 		\OCP\Util::writeLog('eosgallery', "entered number images = " . count($images), \OCP\Util::ERROR);
 		return $images;
 	}
+	
+	/**
+	 * Search for files by tag of a given users.
+	 *
+	 * Note that every user can tag files differently.
+	 *
+	 * @param string|int $tag name or tag id
+	 * @param string $userId owner of the tags
+	 * @return array file data
+	 */
+	public function searchByTag($tag, $userId) {
+		$sql = 'SELECT objid FROM ' .
+			'`*PREFIX*vcategory_to_object` `tagmap`, ' .
+			'`*PREFIX*vcategory` `tag` ' .
+			// JOIN vcategory_to_object to vcategory
+			'WHERE `tagmap`.`type` = `tag`.`type` ' .
+			'AND `tagmap`.`categoryid` = `tag`.`id` ' .
+			// conditions
+			'AND `tag`.`type` = \'files\' ' .
+			'AND `tag`.`uid` = ? ';
+		if (is_int($tag)) {
+			$sql .= 'AND `tag`.`id` = ? ';
+		} else {
+			$sql .= 'AND `tag`.`category` = ? ';
+		}
+		$result = \OC_DB::executeAudited(
+			$sql,
+			array(
+				//$this->getNumericStorageId(),
+				$userId,
+				$tag
+			)
+		);
+		$files = array();
+		while ($row = $result->fetchRow()) {
+			$path = $this->getPathById($row['objid']);
+			$meta = $this->get($path);
+			$files[] = $meta;
+		}
+		return $files;
+	}
 
 	/**
 	 * update the folder size and the size of all parent folders

@@ -57,6 +57,7 @@ OCA.Trashbin.App = {
 			);
 		}, t('files_trashbin', 'Restore'));
 
+		/* HUGO hide delete button per file. EOS does not support per file purge
 		fileActions.registerAction({
 			name: 'Delete',
 			displayName: '',
@@ -87,6 +88,7 @@ OCA.Trashbin.App = {
 				);
 			}
 		});
+		*/
 		return fileActions;
 	}
 };

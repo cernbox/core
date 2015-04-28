@@ -101,7 +101,7 @@
 			}
 			if (!dirListing) {
 				fileData.displayName = fileData.name;
-				fileData.name = fileData.name + '.d' + Math.floor(fileData.mtime / 1000);
+		                fileData.name = fileData.id;
 			}
 			return OCA.Files.FileList.prototype._renderRow.call(this, fileData, options);
 		},
