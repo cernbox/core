@@ -45,7 +45,7 @@ eos -b -r 0 0 attr -r set sys.versioning="10" $homedir
 
 eos -b -r 0 0 quota set -u $usr -v 2TB -i 1M -p ${STORAGE_PREFIX}
 
-eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
+#eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
 
 #eos -b -r 0 0 attr -r set sys.recycle="$RECYCLE_BIN" $homedir
 
