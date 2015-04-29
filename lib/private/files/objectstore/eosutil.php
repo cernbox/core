@@ -32,6 +32,10 @@ class EosUtil {
 		$eos_hide_regex = \OCP\Config::getSystemValue("eos_hide_regex");
 		return $eos_hide_regex;
 	}
+	public static function getEosVersionRegex() { 
+		$eos_version_regex = \OCP\Config::getSystemValue("eos_version_regex");
+		return $eos_version_regex;
+	}
 	public static function getBoxStagingDir() { 
 		$staging_dir = \OCP\Config::getSystemValue("box_staging_dir");
 		return $staging_dir;

@@ -163,6 +163,7 @@ class EosCache {
 	 */
 	public function getFolderContents($ocPath, $deep = false) {
 		$eos_hide_regex = EosUtil::getEosHideRegex();
+		$eos_version_regex = EosUtil::getEosVersionRegex();
 		$ocPath = $this->normalize($ocPath);
 		$lenPath = strlen($ocPath);
 		$eosPath = EosProxy::toEos($ocPath, $this->storageId);
@@ -180,26 +181,50 @@ class EosCache {
 		if ($errcode !== 0) {
 			return $files;
 		}
+		
+		/*
+		 * This array is used to pass extra attributes to a file/folder	
+		 * The keys are eos paths and the values are arrays of key-value pairs (attr/value) 
+  		 * Example: ["/eos/scratch/user/o/ourense/photos/1.png" => ["cboxid" => 456123]]
+	 	 */
+		$extraAttrs = array();
+
 		foreach ($result as $line_to_parse) {
 			$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
 			if( $data["path"] !== false && rtrim($data["eospath"],"/") !== rtrim($eosPath,"/") ){ 
 				$data["storage"] = $this->storageId;
 				$data["permissions"] = 31;
-				//$files[] = $data;
-				// HUGO versions. This function is called to get the list of files inside a folder.
-				// but we need to be careful of not showing .sys.v#. folders when the folder asked to show the contents is a standard folder
-				if ( !preg_match("|".$eos_hide_regex."|", $ocPath) ) {
-					if ( !preg_match("|".$eos_hide_regex."|", $data["eospath"]) ) {// the folder is a standar folder and we hide the .sys.v#. directories
-						$files[] = $data;
+				
+				// HUGO  we need to be careful of not showing .sys.v#. folders when the folder asked to show the contents is a non sys folder.
+				if ( !preg_match("|".$eos_hide_regex."|", $ocPath) ) { // the folder asked to list is not a sys folder, i.e does not have the hide_regex.
+					if ( !preg_match("|".$eos_hide_regex."|", $data["eospath"]) ) { // the subfolder/subfile does not match the hide_regex so we added to the final list. 
+						$files[$data['eospath']] = $data;
+					} else {
+						/* If we found a versions folder we add its inode to the original file under cboxid attribute */
+						if (preg_match("|".$eos_version_regex."|", $data["eospath"]) ) {
+							$dirname = dirname($data['eospath']);
+							$basename = basename($data['eospath']);
+							$filename = substr($basename, 8);
+							$filepath = $dirname . "/" . $filename;
+							$extraAttrs[$filepath]["cboxid"] = $data['fileid']; 
+						}
 					}
-				} else {
-					$files[] = $data;
+				} else { // the folder asked to list its contents is a sys folder, so we list the contents. This behaviour is not used directly by a user but it is used by versions and trashbin apps.
+					$files[$data['eospath']] = $data;
 				}
 			}
 		}
-		// we need to remove the current folder but now the file info about directories is listed at the end and the current dir can be the last or in the middle
-		//array_shift($files);
-		return $files;
+
+		/* Add extra attributes */
+		foreach($extraAttrs as $eospath => $attrs) {
+			$file = $files[$eospath];
+			foreach($attrs as $attr => $value) {
+				$file[$attr] = $value;
+			}
+			$files[$eospath] = $file;
+		}		
+
+		return array_values($files);
 	}
 
 	/**
