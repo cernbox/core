@@ -9,6 +9,8 @@
 namespace OCA\Files\Service;
 
 use OC\Files\FileInfo;
+use OC\Files\ObjectStore\EosUtil;
+
 
 /**
  * Service class to manage tags on files.
@@ -52,23 +54,19 @@ class TagService {
 	 */
 	public function updateFileTags($path, $tags) {
 		$fileInfo =  $this->homeFolder->get($path)->getFileInfo();
-		$versionFolder = dirname($path) . "/" . ".sys.v#." . basename($path);
 		$versionFolderInfo = null;
-		try {
-			$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
-		} catch (\OCP\Files\NotFoundException $e) {
-			/* HERE WE NEED TO TRIGGER THE CREATION OF A VERSION */
-        	        //\OCP\Util::writeLog("NOT", $versionFolder, \OCP\Util::ERROR);
+		
+		if($fileInfo['type'] === 'file') {	
+			$versionFolder = dirname($path) . "/" . ".sys.v#." . basename($path);
+			try {
+				$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
+			} catch (\OCP\Files\NotFoundException $e) {
+				EosUtil::createVersion($fileInfo['eospath']);			
+			 	$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();	
+			}
 		}
 		
-		
-		\OCP\Util::writeLog("TAGY", $versionFolder, \OCP\Util::ERROR);
-		$fileId = null;
-		if(isset($versionFolderInfo)) {
-			$fileId = $versionFolderInfo['fileid'];
-		} else {
-	                $fileId = $fileInfo['fileid'];
-		}
+		$fileId = $fileInfo['type'] === 'file' ?  $versionFolderInfo['fileid'] : $fileInfo['fileid'];
 
 		$currentTags = $this->tagger->getTagsForObjects(array($fileId));
 
