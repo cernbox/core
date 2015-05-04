@@ -163,11 +163,11 @@ class EosTrashbin {
 			if ($type === 'file') {
 				$extension = isset($extension) ? ('.' . $extension) : '';
 			}
-			$timestamp         = strtotime($rf['deletion-time']);
+			$timestamp         = (int)$rf['deletion-time'];
 			$file['id']        = $rf['restore-key'];
 			$file['name']      = $pathinfo['basename'];
-			$file['date']      = $rf['deletion-time'];
-			$file['timestamp'] = $timestamp;
+			$file['date']      = \OCP\Util::formatDate($timestamp);
+			$file['mtime'] = $timestamp * 1000;
 			//The icon of the file is changed depending on the mime
 			// We need to implement a mime type by extension may be in EosUtil
 			$file['type'] = $type;
