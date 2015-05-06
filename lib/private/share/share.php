@@ -1215,8 +1215,9 @@ class Share extends \OC\Share\Constants {
 		}
 		 // HUGO if we unshare we have to remove the shared user from the ACL for do that we change the permissions to 0
 		$shareType = $item['share_type'];
-                if($shareType === 0 || $shareType ===1) {
-                        $type = $shareType === 0 ? "u" : "egroup";
+		\OCP\Util::writeLog("EOSSHARE", $shareType, \OCP\Util::ERROR);
+                if($shareType == 0 || $shareType == 1) {
+                        $type = $shareType == 0 ? "u" : "egroup";
                         $from = $item["uid_owner"];
                         $to = $item["share_with"];
                         $fileid = $item["item_source"];
