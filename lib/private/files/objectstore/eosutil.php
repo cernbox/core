@@ -514,6 +514,24 @@ class EosUtil {
 		}
 		return null;
 	}
+	
+	// checks if a user is member or not of an egroup
+	public static function isMemberOfEGroup($username, $egroup) {
+		$uidAndGid = self::getUidAndGid($username);
+		if (!$uidAndGid) {
+			return false;
+		}
+		list($uid, $gid) = $uidAndGid;
+		$egroupEscaped = escapeshellarg($egroup);
+		$member = "eos -b -r $uid $gid member $egroupEscaped";
+		list($result, $errcode) = EosCmd::exec($member);
+                if ($errcode === 0 && $result) {
+                        $line_to_parse = $result[0];
+                        $data = EosParser::parseMember($line_to_parse);
+                        return $data;
+                }
+                return false;;
+	}
 
 	public static function getMimeType($path, $type){
 		$pathinfo = pathinfo($path);

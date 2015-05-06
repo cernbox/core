@@ -130,4 +130,54 @@ class EosParser {
 		}
 		return $info;
 	}
+	
+	//Parse eos -b -r uid gid member egroup command
+        public static function parseMember($line_to_parse) {
+
+                // we need to be careful with extra whitespace after recyle=ls
+                /*
+                Array
+                (
+                    [recycle] => ls
+                    [] => 
+                    [recycle-bin] => /eos/devbox/proc/recycle/
+                    [uid] => labrador
+                    [gid] => it
+                    [size] => 0
+                    [deletion-time] => 1414600390
+                    [type] => file
+                    [keylength.restore-path] => 48
+                    [restore-path] => /eos/devbox/user/l/labrador/YYY/ POCO MOCHP PIKO
+                    [restore-key] => 0000000000017bd3
+                )
+                */
+
+                $fields = explode(" ", $line_to_parse);
+                $keylength = explode("=",$fields[8]);
+                $keylength = $keylength[1];
+                $realFile = explode("=",$fields[9]);
+                $realFile = implode("=",array_slice($realFile,1));
+                $total = strlen($realFile);
+                if($total != $keylength){
+                  $index = 10; $stop = false;
+                  while(!$stop){
+                    $realFile .= " " . $fields[$index];
+                    $total += strlen($fields[$index]) + 1;
+                    unset($fields[$index]);
+                    $index++;
+                    if($total == $keylength){
+                      $stop = true;
+                    }
+                  }
+                  $fields[9] = "restore-path=" . $realFile;
+                  $fields = array_values($fields);
+                }
+                foreach ($fields as $value) {
+                        $splitted           = explode("=", $value);
+                        $info[$splitted[0]] = implode("=",array_slice($splitted,1));
+                }
+                return $info;
+	}
+
+
 }
