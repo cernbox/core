@@ -468,7 +468,7 @@ OC.Share={
 					}
 				});
 			}
-			if(itemType === 'folder' && actualPath === '/') {
+			if(itemType === 'folder') {
 			$('#shareWith').autocomplete({minLength: 2, delay: 750, source: function(search, response) {
 				var $loading = $('#dropdown .shareWithLoading');
 				$loading.removeClass('hidden');
