@@ -2129,6 +2129,11 @@ class Share extends \OC\Share\Constants {
 	 */
 	private static function insertShare(array $shareData)
 	{
+		/* HUGO if egroup share the file target is a combination of fileanem + inode to keep it unique */
+		if($shareData['shareType'] == 1) {
+			$shareData['fileTarget'] = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+		}
+
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
 			.' `item_type`, `item_source`, `item_target`, `share_type`,'
 			.' `share_with`, `uid_owner`, `permissions`, `stime`, `file_source`,'
