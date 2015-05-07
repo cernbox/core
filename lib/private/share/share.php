@@ -673,7 +673,9 @@ class Share extends \OC\Share\Constants {
 			$group = $shareWith;
 			$shareWith = array();
 			$shareWith['group'] = $group;
+			//\OCP\Util::writeLog("EGROUPS", "before", \OCP\Util::ERROR);
 			$shareWith['users'] = array_diff(\OC_Group::usersInGroup($group), array($uidOwner));
+			//\OCP\Util::writeLog("EGROUPS", "after", \OCP\Util::ERROR);
 		} else if ($shareType === self::SHARE_TYPE_LINK) {
 			$updateExistingShare = false;
 			if (\OC_Appconfig::getValue('core', 'shareapi_allow_links', 'yes') == 'yes') {
@@ -1447,6 +1449,7 @@ class Share extends \OC\Share\Constants {
 				}
 			}
 		}
+		\OCP\Util::writeLog("GROUPS", json_encode($groups), \OCP\Util::ERROR);
 		if (isset($uidOwner)) {
 			$where .= ' AND `uid_owner` = ?';
 			$queryArgs[] = $uidOwner;
@@ -1857,7 +1860,9 @@ class Share extends \OC\Share\Constants {
 		$isGroupShare = false;
 		if ($shareType == self::SHARE_TYPE_GROUP) {
 			$isGroupShare = true;
-			$users = \OC_Group::usersInGroup($shareWith['group']);
+			/* HUGO we don't want to resolve users when putting the share */
+			//$users = \OC_Group::usersInGroup($shareWith['group']);
+
 			// remove current user from list
 			if (in_array(\OCP\User::getUser(), $users)) {
 				unset($users[array_search(\OCP\User::getUser(), $users)]);
@@ -1907,7 +1912,7 @@ class Share extends \OC\Share\Constants {
 		$preHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$preHookData['shareWith'] = ($isGroupShare) ? $shareWith['group'] : $shareWith;
 
-		\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
+		//\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
 
 		if ($run === false) {
 			throw new \Exception($error);
@@ -2020,7 +2025,7 @@ class Share extends \OC\Share\Constants {
 		$postHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$postHookData['fileTarget'] = ($isGroupShare) ? $groupFileTarget : $fileTarget;
 
-		\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
+		//\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
 
 
 		return $id ? $id : false;

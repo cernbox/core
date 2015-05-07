@@ -303,7 +303,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * if the user exists at all.
 	 */
 	public function getUserGroups($uid) {
-		if(!$this->enabled) {
+		/*if(!$this->enabled) {
 			return array();
 		}
 		$cacheKey = 'getUserGroups'.$uid;
@@ -350,6 +350,12 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		$this->access->connection->writeToCache($cacheKey, $groups);
 
 		return $groups;
+		*/
+		
+		//HUGO here we need to call EosUtil to do the following:
+		// 1) Get all group shares 
+		// 2) Foreach group check if $uid is part of it and add to array.
+		return \OC\Files\ObjectStore\EosUtil::getEGroups($uid);
 	}
 
 	/**

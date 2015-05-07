@@ -138,7 +138,7 @@ class Shared_Updater {
 	 * @param array $params
 	 */
 	static public function postShareHook($params) {
-
+		/*
 		if ($params['itemType'] === 'folder' || $params['itemType'] === 'file') {
 
 			$shareWith = $params['shareWith'];
@@ -152,6 +152,7 @@ class Shared_Updater {
 				}
 			}
 		}
+		*/
 	}
 
 	/**
