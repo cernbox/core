@@ -679,7 +679,7 @@ class EosUtil {
 
 	// return the list of EGroups this member is part of, but NOT all, just the ones that appear in share database.
 	public static function getEGroups($username) {
-                $query = \OC_DB::prepare('SELECT share_with FROM `*PREFIX*share` WHERE share_type=?', null);
+                $query = \OC_DB::prepare('SELECT DISTINCT share_with FROM `*PREFIX*share` WHERE share_type=?', null);
 		$queryArgs = array(1); // 0 is group share
 		$result = $query->execute($queryArgs);
 		if (\OC_DB::isError($result)) {
@@ -693,6 +693,6 @@ class EosUtil {
 				$egroups[] = $row['share_with'];
 			}
 		}
-		return array_unique($egroups);	
+		return $egroups;	
 	}
 }
