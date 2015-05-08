@@ -14,6 +14,7 @@ class EosReqCache {
 			$GLOBALS['cernbox']['fileinfo'] = array();
 			$GLOBALS['cernbox']['getfilebyeospath'] = array();
 			$GLOBALS['cernbox']['getowner'] = array();
+			$GLOBALS['cernbox']['getegroups'] = array();
 		}
 	}
 	
@@ -79,12 +80,29 @@ class EosReqCache {
 			\OCP\Util::writeLog('EOSCACHE',"HIT op:" .  __FUNCTION__ . "(eospath:$eosPath)", \OCP\Util::ERROR);
                         return $GLOBALS['cernbox']['getowner'][$eosPath];
                 }
+		\OCP\Util::writeLog('EOSCACHE',"MIS op:" .  __FUNCTION__ . "(eospath:$eosPath)", \OCP\Util::ERROR);
                 return null;
         }
         public static function setOwner($eosPath, $data) {
                 self::init();
                 $GLOBALS['cernbox']['getowner'][$eosPath] = $data;
         }
+	
+	
+	public static function getEGroups($username) {
+                self::init();
+                if(isset($GLOBALS['cernbox']['getegroups'][$username])) {
+                        \OCP\Util::writeLog('EOSCACHE',"HIT op:" .  __FUNCTION__ . "(username:$username)", \OCP\Util::ERROR);
+                        return $GLOBALS['cernbox']['getegroups'][$username];
+                }
+		\OCP\Util::writeLog('EOSCACHE',"MIS op:" .  __FUNCTION__ . "(username:$username)", \OCP\Util::ERROR);
+                return null;
+        }
+	public static function setEGroups($username, $data) {
+                self::init();
+                $GLOBALS['cernbox']['getegroups'][$username] = $data;
+        }
+
 
 
 
