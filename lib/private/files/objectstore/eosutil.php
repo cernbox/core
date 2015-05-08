@@ -687,7 +687,7 @@ class EosUtil {
 		$queryArgs = array(1); // 0 is group share
 		$result = $query->execute($queryArgs);
 		if (\OC_DB::isError($result)) {
-			\OC_Log::write('EOSGETEGROUPS',	\OC_DB::getErrorMessage($result) . ', select=' . $query, \OC_Log::ERROR);
+			\OC_Log::write('EOSEGROUPS',	\OC_DB::getErrorMessage($result) . ', select=' . $query, \OC_Log::ERROR);
                 }
 		
 		$egroups = array();

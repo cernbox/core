@@ -673,9 +673,7 @@ class Share extends \OC\Share\Constants {
 			$group = $shareWith;
 			$shareWith = array();
 			$shareWith['group'] = $group;
-			//\OCP\Util::writeLog("EGROUPS", "before", \OCP\Util::ERROR);
 			$shareWith['users'] = array_diff(\OC_Group::usersInGroup($group), array($uidOwner));
-			//\OCP\Util::writeLog("EGROUPS", "after", \OCP\Util::ERROR);
 		} else if ($shareType === self::SHARE_TYPE_LINK) {
 			$updateExistingShare = false;
 			if (\OC_Appconfig::getValue('core', 'shareapi_allow_links', 'yes') == 'yes') {
@@ -1449,7 +1447,6 @@ class Share extends \OC\Share\Constants {
 				}
 			}
 		}
-		\OCP\Util::writeLog("GROUPS", json_encode($groups), \OCP\Util::ERROR);
 		if (isset($uidOwner)) {
 			$where .= ' AND `uid_owner` = ?';
 			$queryArgs[] = $uidOwner;
