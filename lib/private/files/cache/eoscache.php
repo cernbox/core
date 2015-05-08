@@ -138,7 +138,7 @@ class EosCache {
 		}
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
 		$eosPathEscaped = escapeshellarg($eosPath);
-		$get     = "eos -b -r $uid $gid  file info $eosPathEscaped -m";
+		$get     = "eos -b -r $uid $gid file info $eosPathEscaped -m";
 		$info    = array();
 		list($result, $errcode) = EosCmd::exec($get);
 		if ($errcode !== 0) { 
