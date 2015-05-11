@@ -146,6 +146,12 @@ class Helper
 		if (isset($i['extraData'])) {
 			$entry['extraData'] = $i['extraData'];
 		}
+
+		// HUGO allow eos attrs to be passed to the web frontend
+		if(isset($i['cboxid'])) {
+			$entry['cboxid'] = $i['cboxid'];
+		}
+		
 		return $entry;
 	}
 
@@ -187,7 +193,12 @@ class Helper
 	public static function populateTags(array $fileList) {
 		$filesById = array();
 		foreach ($fileList as $fileData) {
-			$filesById[$fileData['fileid']] = $fileData;
+			\OCP\Util::writeLog("TAG", $fileData['cboxid'], \OCP\Util::ERROR);
+			if(isset($fileData['cboxid'])) {
+				 $filesById[$fileData['cboxid']] = $fileData;
+			} else {
+				$filesById[$fileData['fileid']] = $fileData;
+			}
 		}
 		$tagger = \OC::$server->getTagManager()->load('files');
 		$tags = $tagger->getTagsForObjects(array_keys($filesById));

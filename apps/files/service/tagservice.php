@@ -9,6 +9,8 @@
 namespace OCA\Files\Service;
 
 use OC\Files\FileInfo;
+use OC\Files\ObjectStore\EosUtil;
+
 
 /**
  * Service class to manage tags on files.
@@ -51,7 +53,20 @@ class TagService {
 	 * @throws \OCP\NotFoundException if the file does not exist
 	 */
 	public function updateFileTags($path, $tags) {
-		$fileId = $this->homeFolder->get($path)->getId();
+		$fileInfo =  $this->homeFolder->get($path)->getFileInfo();
+		$versionFolderInfo = null;
+		
+		if($fileInfo['type'] === 'file') {	
+			$versionFolder = dirname($path) . "/" . ".sys.v#." . basename($path);
+			try {
+				$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
+			} catch (\OCP\Files\NotFoundException $e) {
+				EosUtil::createVersion($fileInfo['eospath']);			
+			 	$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();	
+			}
+		}
+		
+		$fileId = $fileInfo['type'] === 'file' ?  $versionFolderInfo['fileid'] : $fileInfo['fileid'];
 
 		$currentTags = $this->tagger->getTagsForObjects(array($fileId));
 
@@ -97,8 +112,31 @@ class TagService {
 				// storage is interrupted.
 			}
 		}
-
-		return $fileInfos;
+		// HUGO do here the trick of pointing to versions folder for files tagge
+		$fileInfosConverted = array();
+		foreach($fileInfos as $info) {
+			if($info['type'] === 'file') {
+				\OCP\Util::writeLog('TAG', $info['eospath'] . " must point to its sys folder. This should have been done is creating the FAV", \OCP\Util::ERROR);
+			} else {
+				$basename = basename($info['path']);
+				$dirname = dirname($info['path']);
+				if(strpos($basename, '.sys.v#.') !== false) {
+					\OCP\Util::writeLog('TAG', $info['eospath'] . " is a versions folder, we need to gave the user the real file", \OCP\Util::ERROR);
+					$filename = $basename;
+					$filepath =  substr($dirname, 6) . "/" . substr($filename, 8);
+                                        \OCP\Util::writeLog('TAG', $filepath, \OCP\Util::ERROR);
+					
+					$newInfo = $node = $this->homeFolder->get($filepath)->getFileInfo();
+                                        \OCP\Util::writeLog('TAG', $newInfo['eospath'], \OCP\Util::ERROR);
+					$fileInfosConverted[] = $newInfo;
+					
+				} else {
+					$fileInfosConverted[] = $info;
+				}
+				
+			}
+		}
+		return $fileInfosConverted;
 	}
 }
 

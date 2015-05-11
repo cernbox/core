@@ -32,6 +32,10 @@ class EosUtil {
 		$eos_hide_regex = \OCP\Config::getSystemValue("eos_hide_regex");
 		return $eos_hide_regex;
 	}
+	public static function getEosVersionRegex() { 
+		$eos_version_regex = \OCP\Config::getSystemValue("eos_version_regex");
+		return $eos_version_regex;
+	}
 	public static function getBoxStagingDir() { 
 		$staging_dir = \OCP\Config::getSystemValue("box_staging_dir");
 		return $staging_dir;
@@ -699,5 +703,16 @@ class EosUtil {
 		}
 		EosReqCache::setEGroups($username, $egroups);
 		return $egroups;	
+	public static function createVersion($eosPath) {
+		$eosPathEscaped = escapeshellarg($eosPath);
+		list($uid, $gid) = self::getEosRole($eosPath, false);
+		//$uid = 0; $gid = 0; // root is the only one allowed to change permissions
+                $cmd = "eos -b -r $uid $gid cp $eosPathEscaped $eosPathEscaped";
+                list($result, $errcode) = EosCmd::exec($cmd);
+                if ($errcode !== 0) {
+                        return false;
+                }
+                return true;
+
 	}
 }
