@@ -193,7 +193,6 @@ class Helper
 	public static function populateTags(array $fileList) {
 		$filesById = array();
 		foreach ($fileList as $fileData) {
-			\OCP\Util::writeLog("TAG", $fileData['cboxid'], \OCP\Util::ERROR);
 			if(isset($fileData['cboxid'])) {
 				 $filesById[$fileData['cboxid']] = $fileData;
 			} else {
