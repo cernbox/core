@@ -702,7 +702,9 @@ class EosUtil {
 			}
 		}
 		EosReqCache::setEGroups($username, $egroups);
-		return $egroups;	
+		return $egroups;
+	}
+		
 	public static function createVersion($eosPath) {
 		$eosPathEscaped = escapeshellarg($eosPath);
 		list($uid, $gid) = self::getEosRole($eosPath, false);
