@@ -96,6 +96,9 @@ class OC_Helper {
 		'text/csv' => 'x-office/spreadsheet',
 
 		'application/msaccess' => 'database',
+		
+		/* CERN MimeTypes */
+		'application/x-root' => 'root',
 	);
 
 	/**
