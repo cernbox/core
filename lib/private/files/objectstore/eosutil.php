@@ -676,4 +676,28 @@ class EosUtil {
 		}
 		return true;
 	}
+
+	// return the list of EGroups this member is part of, but NOT all, just the ones that appear in share database.
+	public static function getEGroups($username) {
+		$cached = EosReqCache::getEGroups($username);
+                if($cached) {
+                        return $cached;
+                }
+                $query = \OC_DB::prepare('SELECT DISTINCT share_with FROM `*PREFIX*share` WHERE share_type=?', null);
+		$queryArgs = array(1); // 0 is group share
+		$result = $query->execute($queryArgs);
+		if (\OC_DB::isError($result)) {
+			\OC_Log::write('EOSEGROUPS',	\OC_DB::getErrorMessage($result) . ', select=' . $query, \OC_Log::ERROR);
+                }
+		
+		$egroups = array();
+		while($row = $result->fetchRow()) {
+			$egroup = $row['share_with'];
+			if(self::isMemberOfEGroup($username, $egroup)) {
+				$egroups[] = $row['share_with'];
+			}
+		}
+		EosReqCache::setEGroups($username, $egroups);
+		return $egroups;	
+	}
 }

@@ -1857,7 +1857,9 @@ class Share extends \OC\Share\Constants {
 		$isGroupShare = false;
 		if ($shareType == self::SHARE_TYPE_GROUP) {
 			$isGroupShare = true;
-			$users = \OC_Group::usersInGroup($shareWith['group']);
+			/* HUGO we don't want to resolve users when putting the share */
+			//$users = \OC_Group::usersInGroup($shareWith['group']);
+
 			// remove current user from list
 			if (in_array(\OCP\User::getUser(), $users)) {
 				unset($users[array_search(\OCP\User::getUser(), $users)]);
@@ -1907,7 +1909,7 @@ class Share extends \OC\Share\Constants {
 		$preHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$preHookData['shareWith'] = ($isGroupShare) ? $shareWith['group'] : $shareWith;
 
-		\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
+		//\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
 
 		if ($run === false) {
 			throw new \Exception($error);
@@ -2020,7 +2022,7 @@ class Share extends \OC\Share\Constants {
 		$postHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$postHookData['fileTarget'] = ($isGroupShare) ? $groupFileTarget : $fileTarget;
 
-		\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
+		//\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
 
 
 		return $id ? $id : false;
@@ -2124,6 +2126,11 @@ class Share extends \OC\Share\Constants {
 	 */
 	private static function insertShare(array $shareData)
 	{
+		/* HUGO if egroup share the file target is a combination of fileanem + inode to keep it unique */
+		if($shareData['shareType'] == 1) {
+			$shareData['fileTarget'] = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+		}
+
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
 			.' `item_type`, `item_source`, `item_target`, `share_type`,'
 			.' `share_with`, `uid_owner`, `permissions`, `stime`, `file_source`,'
