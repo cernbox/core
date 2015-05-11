@@ -22,6 +22,10 @@
 
 namespace OC\Share;
 
+use OC\Files\ObjectStore\EosUtil;
+use OC\Files\ObjectStore\EosParser;
+use OC\Files\ObjectStore\EosProxy;
+
 /**
  * This class provides the ability for apps to share their content between users.
  * Apps must create a backend class that implements OCP\Share_Backend and register it with this class.
@@ -314,6 +318,7 @@ class Share extends \OC\Share\Constants {
 		$shares = array();
 		$fileDependend = false;
 
+		/* HUGO here we can avoid oc_filecache
 		if ($itemType === 'file' || $itemType === 'folder') {
 			$fileDependend = true;
 			$column = 'file_source';
@@ -322,6 +327,9 @@ class Share extends \OC\Share\Constants {
 			$column = 'item_source';
 			$where = 'WHERE';
 		}
+		*/
+		$column = 'item_source';
+		$where = 'WHERE';
 
 		$select = self::createSelectStatement(self::FORMAT_NONE, $fileDependend);
 
@@ -552,6 +560,13 @@ class Share extends \OC\Share\Constants {
 
 		// check if file can be shared
 		if ($itemType === 'file' or $itemType === 'folder') {
+			// HUGO WE DONT ALLOW INTERNAL FILE SHARING
+			if ($itemType === 'file' && $shareType !== 3) {
+				$message = 'Sharing %s failed, because internal file sharing is not allowed in this version, only link file sharing is allowed';
+				\OC_Log::write('OCP\Share', sprintf($message, $itemSourceName), \OC_Log::ERROR);
+				throw new \Exception(sprintf($message, $itemSourceName));
+			}
+
 			$path = \OC\Files\Filesystem::getPath($itemSource);
 			// verify that the file exists before we try to share it
 			if (!$path) {
@@ -977,6 +992,14 @@ class Share extends \OC\Share\Constants {
 			}
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `permissions` = ? WHERE `id` = ?');
 			$query->execute(array($permissions, $item['id']));
+			// HUGO
+			if($item["share_type"] === 0 || $item["share_type"] === 1){
+				$type = $item["share_type"] === 0 ? "u" : "egroup";
+				$from = $item["uid_owner"];
+				$to = $item["share_with"];
+				$fileid = $item["item_source"];
+				EosUtil::changePermAcl($from , $to, $fileid, $permissions, $type);
+			}
 			if ($itemType === 'file' || $itemType === 'folder') {
 				\OC_Hook::emit('OCP\Share', 'post_update_permissions', array(
 					'itemType' => $itemType,
@@ -1190,6 +1213,17 @@ class Share extends \OC\Share\Constants {
 			$urlParts = explode('@', $item['share_with'], 2);
 			self::sendRemoteUnshare($urlParts[1], $item['id'], $item['token']);
 		}
+		 // HUGO if we unshare we have to remove the shared user from the ACL for do that we change the permissions to 0
+		$shareType = $item['share_type'];
+		\OCP\Util::writeLog("EOSSHARE", $shareType, \OCP\Util::ERROR);
+                if($shareType == 0 || $shareType == 1) {
+                        $type = $shareType == 0 ? "u" : "egroup";
+                        $from = $item["uid_owner"];
+                        $to = $item["share_with"];
+                        $fileid = $item["item_source"];
+                        EosUtil::changePermAcl($from , $to, $fileid, 0, $type);
+                }
+
 	}
 
 	/**
@@ -1352,7 +1386,9 @@ class Share extends \OC\Share\Constants {
 			} else {
 				$root = '';
 			}
-			$where = 'INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid`';
+			//$where = 'INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid`';
+			//HUGO HACK TO BYPASS WHERE
+			$where = '';
 			if (!isset($item)) {
 				$where .= ' WHERE `file_target` IS NOT NULL';
 			}
@@ -1376,6 +1412,9 @@ class Share extends \OC\Share\Constants {
 				$where = ' WHERE `item_type` = ?';
 				$queryArgs = array($itemType);
 			}
+		}
+		if (!$where) {
+			$where = "WHERE 1=1 ";
 		}
 		if (\OC_Appconfig::getValue('core', 'shareapi_allow_links', 'yes') !== 'yes') {
 			$where .= ' AND `share_type` != ?';
@@ -1494,6 +1533,34 @@ class Share extends \OC\Share\Constants {
 		$switchedItems = array();
 		$mounts = array();
 		while ($row = $result->fetchRow()) {
+			// HUGO HACK TO OBTAIN STORAGE NUMERIC ID
+			$storage_id = "object::user:" . $row["uid_owner"];
+			$queryMine  = \OC_DB::prepare('SELECT numeric_id FROM `*PREFIX*storages` WHERE id=?', null);
+			$resultMine = $queryMine->execute(array($storage_id));
+			if (\OC_DB::isError($resultMine)) {
+				\OC_Log::write('OCP\Share',
+					\OC_DB::getErrorMessage($resultMine) . ', select=' . $queryMine,
+					\OC_Log::ERROR);
+			}
+			$tmprow     = $resultMine->fetchRow();
+			$numeric_id = $tmprow["numeric_id"];
+			//HUGO HACK ADDED PATH,STORAGE MANUALLY TO TEST
+			// WE HAVE TO PUT THE FILES PREFIX BECAUSE THEN OC CREATES A FULL PATH WITH YOUR USERNAME LIKE /labrador/files/test/txt
+			// AND THEN REMOVE THE ROOT PART (/labrador/files/) IF YOU ARE THE OWNER OF THE FILE
+			// WE SHOULD USE ITEM_SOURCE INSTEAD FILE_SOURCE
+			$path           = isset($row["item_source"]) ?  \OC\Files\FileSystem::getPath($row["item_source"]) : false;
+			// SCENARIO: SHARE A FOLDER WITH KUBA. REMOVE FOLER FROM EOS. SHARE TABLE STILL HAS THE SHARE. THE FILE IS NOW AT /EOS/RECYCLE/UID/GID AND HAS THE SAME INDODE NUMBER 
+			// SO THE CALL TO GETPATH RETURNS FALSE IN THIS CASE A WE NEED TO OMIT THIS FILE WITH NULL PATH
+			if(!$path) {continue;};
+			$row["path"]    = "files" . rtrim($path, "/");
+			$row['storage'] = $numeric_id;
+			// obtain share permissions from EOS and not from DB
+			if($row["share_type"] == 0 ) { // only share folder
+				$from = $row["uid_owner"];
+				$to = $row["share_with"];
+				$fileid = $row["item_source"];
+				$row["permissions"] = EosUtil::getAclPerm($from, $to, $fileid);
+			}
 			self::transformDBResults($row);
 			// Filter out duplicate group shares for users with unique targets
 			if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
@@ -2095,6 +2162,22 @@ class Share extends \OC\Share\Constants {
 			}
 
 		}
+		// HUGO  add user to ACL and notify by email
+                if($shareData["shareType"] == 0 || $shareData["shareType"] == 1) { // 0=>user, 1=>group, 2 => user inside group, 3 => link
+                        $type = $shareData["shareType"] == 0 ? "u": "egroup";
+                        $from = $shareData["uidOwner"];
+                        $to = $shareData["shareWith"];
+                        $fileid = $shareData["itemSource"];
+                        $ocPerm = $shareData["permissions"];
+                        $added = EosUtil::addUserToAcl($from, $to, $fileid, $ocPerm, $type);
+
+                        // Send mail
+                        $filedata = \OC\Files\ObjectStore\EosUtil::getFileById($fileid);
+                        $mailNotification = new \OC\Share\MailNotifications();
+                        $result = $mailNotification->sendLinkEos($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+
+                }
+
 
 		return $id;
 
@@ -2151,7 +2234,8 @@ class Share extends \OC\Share\Constants {
 		$select = '*';
 		if ($format == self::FORMAT_STATUSES) {
 			if ($fileDependent) {
-				$select = '`*PREFIX*share`.`id`, `*PREFIX*share`.`parent`, `share_type`, `path`, `storage`, `share_with`, `uid_owner` , `file_source`, `stime`, `*PREFIX*share`.`permissions`';
+				//$select = '`*PREFIX*share`.`id`, `*PREFIX*share`.`parent`, `share_type`, `path`, `storage`, `share_with`, `uid_owner` , `file_source`, `stime`, `*PREFIX*share`.`permissions`';
+				$select = '`*PREFIX*share`.`id`, `*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner` , `file_source`, `stime`, `*PREFIX*share`.`permissions`';
 			} else {
 				$select = '`id`, `parent`, `share_type`, `share_with`, `uid_owner`, `item_source`, `stime`, `*PREFIX*share`.`permissions`';
 			}
@@ -2159,23 +2243,22 @@ class Share extends \OC\Share\Constants {
 			if (isset($uidOwner)) {
 				if ($fileDependent) {
 					$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `*PREFIX*share`.`parent`,'
-						. ' `share_type`, `share_with`, `file_source`, `file_target`, `path`, `*PREFIX*share`.`permissions`, `stime`,'
-						. ' `expiration`, `token`, `storage`, `mail_send`, `uid_owner`';
+					. ' `share_type`, `share_with`, `file_source`, `file_target`, `*PREFIX*share`.`permissions`, `stime`,'
+					. ' `expiration`, `token`,  `mail_send`, `uid_owner`';
 				} else {
 					$select = '`id`, `item_type`, `item_source`, `parent`, `share_type`, `share_with`, `*PREFIX*share`.`permissions`,'
-						. ' `stime`, `file_source`, `expiration`, `token`, `mail_send`, `uid_owner`';
+							. ' `stime`, `file_source`, `expiration`, `token`, `mail_send`, `uid_owner`';
 				}
 			} else {
 				if ($fileDependent) {
 					if ($format == \OC_Share_Backend_File::FORMAT_GET_FOLDER_CONTENTS || $format == \OC_Share_Backend_File::FORMAT_FILE_APP_ROOT) {
 						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `*PREFIX*share`.`parent`, `uid_owner`, '
-							. '`share_type`, `share_with`, `file_source`, `path`, `file_target`, `stime`, '
-							. '`*PREFIX*share`.`permissions`, `expiration`, `storage`, `*PREFIX*filecache`.`parent` as `file_parent`, '
-							. '`name`, `mtime`, `mimetype`, `mimepart`, `size`, `unencrypted_size`, `encrypted`, `etag`, `mail_send`';
+						. '`share_type`, `share_with`, `file_source`,  `file_target`, `stime`, '
+						. '`*PREFIX*share`.`permissions`, `expiration`,  `*PREFIX*filecache`.`parent` as `file_parent`, '
+						. '`name`, `mtime`, `mimetype`, `mimepart`, `size`, `unencrypted_size`, `encrypted`, `etag`, `mail_send`';
 					} else {
-						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `item_target`,
-							`*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner`,
-							`file_source`, `path`, `file_target`, `*PREFIX*share`.`permissions`, `stime`, `expiration`, `token`, `storage`, `mail_send`';
+						//$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `item_target`, `*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner`,`file_source`, `path`, `file_target`, `*PREFIX*share`.`permissions`, `stime`, `expiration`, `token`, `storage`, `mail_send`';
+						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `item_target`, `*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner`,`file_source`,  `file_target`, `*PREFIX*share`.`permissions`, `stime`, `expiration`, `token`,  `mail_send`';
 					}
 				}
 			}
@@ -2243,99 +2326,6 @@ class Share extends \OC\Share\Constants {
 		} else {
 			return $backend->formatItems($items, $format, $parameters);
 		}
-	}
-
-	/**
-	 * remove protocol from URL
-	 *
-	 * @param string $url
-	 * @return string
-	 */
-	private static function removeProtocolFromUrl($url) {
-		if (strpos($url, 'https://') === 0) {
-			return substr($url, strlen('https://'));
-		} else if (strpos($url, 'http://') === 0) {
-			return substr($url, strlen('http://'));
-		}
-
-		return $url;
-	}
-
-	/**
-	 * try http post first with https and then with http as a fallback
-	 *
-	 * @param string $url
-	 * @param array $fields post parameters
-	 * @return bool
-	 */
-	private static function tryHttpPost($url, $fields) {
-		$protocol = 'https://';
-		$success = false;
-		$try = 0;
-		while ($success === false && $try < 2) {
-			$result = \OC::$server->getHTTPHelper()->post($protocol . $url, $fields);
-			$success = $result['success'];
-			$try++;
-			$protocol = 'http://';
-		}
-
-		return $result;
-	}
-
-	/**
-	 * send server-to-server share to remote server
-	 *
-	 * @param string $token
-	 * @param string $shareWith
-	 * @param string $name
-	 * @param int $remote_id
-	 * @param string $owner
-	 * @return bool
-	 */
-	private static function sendRemoteShare($token, $shareWith, $name, $remote_id, $owner) {
-
-		list($user, $remote) = explode('@', $shareWith, 2);
-
-		if ($user && $remote) {
-			$url = $remote . self::BASE_PATH_TO_SHARE_API . '?format=' . self::RESPONSE_FORMAT;
-
-			$local = \OC::$server->getURLGenerator()->getAbsoluteURL('/');
-
-			$fields = array(
-				'shareWith' => $user,
-				'token' => $token,
-				'name' => $name,
-				'remoteId' => $remote_id,
-				'owner' => $owner,
-				'remote' => $local,
-			);
-
-			$url = self::removeProtocolFromUrl($url);
-			$result = self::tryHttpPost($url, $fields);
-			$status = json_decode($result['result'], true);
-
-			return ($result['success'] && $status['ocs']['meta']['statuscode'] === 100);
-
-		}
-
-		return false;
-	}
-
-	/**
-	 * send server-to-server unshare to remote server
-	 *
-	 * @param string remote url
-	 * @param int $id share id
-	 * @param string $token
-	 * @return bool
-	 */
-	private static function sendRemoteUnshare($remote, $id, $token) {
-		$url = $remote . self::BASE_PATH_TO_SHARE_API . '/' . $id . '/unshare?format=' . self::RESPONSE_FORMAT;
-		$fields = array('token' => $token, 'format' => 'json');
-		$result = self::tryHttpPost($url, $fields);
-		$status = json_decode($result['result'], true);
-
-		return ($result['success'] && $status['ocs']['meta']['statuscode'] === 100);
 	}
 
 	/**

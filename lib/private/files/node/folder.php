@@ -273,7 +273,7 @@ class Folder extends Node implements \OCP\Files\Folder {
 				$files[] = $result;
 			}
 		}
-
+		/* HUGO don't mount shares for favourites
 		$mounts = $this->root->getMountsIn($this->path);
 		foreach ($mounts as $mount) {
 			$storage = $mount->getStorage();
@@ -290,7 +290,7 @@ class Folder extends Node implements \OCP\Files\Folder {
 				}
 			}
 		}
-
+		*/
 		$result = array();
 		foreach ($files as $file) {
 			$result[] = $this->createNode($this->normalizePath($this->path . '/' . $file['path']), $file);

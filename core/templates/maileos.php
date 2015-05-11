@@ -12,11 +12,9 @@
 <td width="20px">&nbsp;</td>
 <td style="font-weight:normal; font-size:0.8em; line-height:1.2em; font-family:verdana,'arial',sans;">
 <?php
-print_unescaped($l->t('Hey there,<br><br>just letting you know that %s shared <strong>%s</strong> with you.<br><a href="%s">View it!</a><br><br>%s', array($_['user_displayname'], $_['filename'], $_['link'],$_['custom_info'])));
-if ( isset($_['expiration']) ) {
-	p($l->t("The share will expire on %s.", array($_['expiration'])));
-	print_unescaped('<br><br>');
-}
+$msg = "Hey there,<br><br>just letting you know that %s shared the folder <strong>%s</strong> with you.<br><br>To see the share log in as <strong>%s</strong> in <a href='%s'>CERNBox</a> and click the tab <strong>Shared with me</strong>.<br><br>Also, if you want to sync the share in your desktop sync client add a new folder with this path <b><br><br><b>%s</b><br><br>";
+$msgreal = sprintf($msg,$_['user_displayname'], $_['filename'],$_['recipient'],$_['link'], $_['path']);
+print_unescaped($msgreal);
 p($l->t('Cheers!'));
 ?>
 </td>
