@@ -43,7 +43,7 @@ class EosReqCache {
 	}
 	public static function setFileById($id, $data) {
 		 self::init();
-                 $GLOBALS['cernbox']['idresolution'][$id] = $data;
+                 $GLOBALS['cernbox']['getfilebyid'][$id] = $data;
 
 	}
 	public static function getMeta($ocPath) {
