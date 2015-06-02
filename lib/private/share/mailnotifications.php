@@ -193,10 +193,26 @@ class MailNotifications {
 	 * @param int $expiration expiration date (timestamp)
 	 * @return array $result of failed recipients
 	 */
-	public function sendLinkEos($recipient, $filename, $path, $recipient_username) {
+	public function sendLinkEosUser($recipient, $filename, $path, $recipient_username) {
 		$link = \OCP\Config::getSystemValue("hostname_in_mail","https://box.cern.ch");
 		$subject = (string)$this->l->t('%s shared »%s« with you', array(\OCP\User::getUser(), $filename));
-		list($htmlMail, $alttextMail) = $this->createMailBodyEos($filename, $link, $recipient_username, $path);
+		list($htmlMail, $alttextMail) = $this->createMailBodyEosUser($filename, $link, $recipient_username, $path);
+		$rs = explode(' ', $recipient);
+		$failed = array();
+		foreach ($rs as $r) {
+			try {
+				\OCP\Util::sendMail($r, $r, $subject, $htmlMail,  \OCP\User::getUser() . "@cern.ch" , \OCP\User::getUser() . " via CERNBox", 1, $alttextMail);
+			} catch (\Exception $e) {
+				\OCP\Util::writeLog('sharing', "Can't send mail to $r: " . $e->getMessage(), \OCP\Util::ERROR);
+				$failed[] = $r;
+			}
+		}
+		return $failed;
+	}
+	public function sendLinkEosEGroup($recipient, $filename, $path, $recipient_username) {
+		$link = \OCP\Config::getSystemValue("hostname_in_mail","https://box.cern.ch");
+		$subject = (string)$this->l->t('%s shared »%s« with you through an e-group', array(\OCP\User::getUser(), $filename));
+		list($htmlMail, $alttextMail) = $this->createMailBodyEosEGroup($filename, $link, $recipient_username, $path);
 		$rs = explode(' ', $recipient);
 		$failed = array();
 		foreach ($rs as $r) {
@@ -217,8 +233,8 @@ class MailNotifications {
 	 * @param int $expiration expiration date (timestamp)
 	 * @return array an array of the html mail body and the plain text mail body
 	 */
-	private function createMailBodyEos($filename, $link, $recipient_username, $path) {
-		$html = new \OC_Template("core", "maileos", "");
+	private function createMailBodyEosUser($filename, $link, $recipient_username, $path) {
+		$html = new \OC_Template("core", "maileosuser", "");
 		$html->assign ('user_displayname',\OCP\User::getUser());
 		$html->assign ('filename', $filename);
 		$html->assign ('link', $link);
@@ -226,7 +242,27 @@ class MailNotifications {
 		$html->assign ('path', $path);
 		$htmlMail = $html->fetchPage();
 		
-		$alttext = new \OC_Template("core", "altmaileos", "");
+		$alttext = new \OC_Template("core", "altmaileosuser", "");
+		$alttext->assign ('user_displayname', \OCP\User::getUser());
+		$alttext->assign ('filename', $filename);
+		$alttext->assign ('link', $link);
+		$alttext->assign ('recipient', $recipient_username);
+		$alttext->assign('path', $path);
+		$alttextMail = $alttext->fetchPage();
+		
+
+		return array($htmlMail, $alttextMail);
+	}
+	private function createMailBodyEosEGroup($filename, $link, $recipient_username, $path) {
+		$html = new \OC_Template("core", "maileosegroup", "");
+		$html->assign ('user_displayname',\OCP\User::getUser());
+		$html->assign ('filename', $filename);
+		$html->assign ('link', $link);
+		$html->assign ('recipient', $recipient_username);
+		$html->assign ('path', $path);
+		$htmlMail = $html->fetchPage();
+		
+		$alttext = new \OC_Template("core", "altmaileosegroup", "");
 		$alttext->assign ('user_displayname', \OCP\User::getUser());
 		$alttext->assign ('filename', $filename);
 		$alttext->assign ('link', $link);

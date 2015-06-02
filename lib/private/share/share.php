@@ -2178,10 +2178,14 @@ class Share extends \OC\Share\Constants {
                         $ocPerm = $shareData["permissions"];
                         $added = EosUtil::addUserToAcl($from, $to, $fileid, $ocPerm, $type);
 
-                        // Send mail
+                        // Send different mails depending if the share was done to an user or to an egroup.
                         $filedata = \OC\Files\ObjectStore\EosUtil::getFileById($fileid);
                         $mailNotification = new \OC\Share\MailNotifications();
-                        $result = $mailNotification->sendLinkEos($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			if($type === 'u') {
+				$result = $mailNotification->sendLinkEosUser($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			} else {
+				$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			}
 
                 }
 
