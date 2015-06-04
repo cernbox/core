@@ -373,7 +373,6 @@ class EosCache {
 				$images[] = $file;
 			}
 		}
-		\OCP\Util::writeLog('eosgallery', "entered number images = " . count($images), \OCP\Util::ERROR);
 		return $images;
 	}
 	
