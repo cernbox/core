@@ -1857,7 +1857,9 @@ class Share extends \OC\Share\Constants {
 		$isGroupShare = false;
 		if ($shareType == self::SHARE_TYPE_GROUP) {
 			$isGroupShare = true;
-			$users = \OC_Group::usersInGroup($shareWith['group']);
+			/* HUGO we don't want to resolve users when putting the share */
+			//$users = \OC_Group::usersInGroup($shareWith['group']);
+
 			// remove current user from list
 			if (in_array(\OCP\User::getUser(), $users)) {
 				unset($users[array_search(\OCP\User::getUser(), $users)]);
@@ -1907,7 +1909,7 @@ class Share extends \OC\Share\Constants {
 		$preHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$preHookData['shareWith'] = ($isGroupShare) ? $shareWith['group'] : $shareWith;
 
-		\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
+		//\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
 
 		if ($run === false) {
 			throw new \Exception($error);
@@ -1920,7 +1922,12 @@ class Share extends \OC\Share\Constants {
 			$userShareType = ($isGroupShare) ? self::$shareTypeGroupUserUnique : $shareType;
 
 			if ($sourceExists) {
-				$fileTarget = $sourceExists['file_target'];
+				// HUGO we don't use the pre-existing shared item target because then we will arrive
+				// to the situation of having ugly names like /rootjs_integration_sample_files (#123456789) (#123456789)
+				// the repetition of the inode is done because we autoamtically append the inode when we insert a share.
+				// So picking the previous item_target  we will have this duplciation, so we use the original itemSourceName
+				//$fileTarget = $sourceExists['file_target'];
+				$fileTarget = $itemSourceName;
 				$itemTarget = $sourceExists['item_target'];
 
 				// for group shares we don't need a additional entry if the target is the same
@@ -2020,7 +2027,7 @@ class Share extends \OC\Share\Constants {
 		$postHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$postHookData['fileTarget'] = ($isGroupShare) ? $groupFileTarget : $fileTarget;
 
-		\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
+		//\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
 
 
 		return $id ? $id : false;
@@ -2124,6 +2131,12 @@ class Share extends \OC\Share\Constants {
 	 */
 	private static function insertShare(array $shareData)
 	{
+		// HUGO when inserting a share we append to the item_target (like a symlink, the one the user sees in Shared with me) the inode to keep it unique
+		// LUCA propossed to put the owner of the share as well like "root_js_sample_files (#ourense.1397353)" instead "just root_js_sample_files (#1397353)"
+		if($shareData['shareType'] == 0 || $shareData['shareType'] == 1) {
+			$shareData['fileTarget'] = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+		}
+
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
 			.' `item_type`, `item_source`, `item_target`, `share_type`,'
 			.' `share_with`, `uid_owner`, `permissions`, `stime`, `file_source`,'
@@ -2171,10 +2184,14 @@ class Share extends \OC\Share\Constants {
                         $ocPerm = $shareData["permissions"];
                         $added = EosUtil::addUserToAcl($from, $to, $fileid, $ocPerm, $type);
 
-                        // Send mail
+                        // Send different mails depending if the share was done to an user or to an egroup.
                         $filedata = \OC\Files\ObjectStore\EosUtil::getFileById($fileid);
                         $mailNotification = new \OC\Share\MailNotifications();
-                        $result = $mailNotification->sendLinkEos($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			if($type === 'u') {
+				$result = $mailNotification->sendLinkEosUser($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			} else {
+				$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			}
 
                 }
 
