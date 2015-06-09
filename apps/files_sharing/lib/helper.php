@@ -217,16 +217,7 @@ class Helper {
 	 * @return string $path
 	 */
 	public static function generateUniqueTarget($path, $excludeList, $view) {
-		$pathinfo = pathinfo($path);
-		$ext = (isset($pathinfo['extension'])) ? '.'.$pathinfo['extension'] : '';
-		$name = $pathinfo['filename'];
-		$dir = $pathinfo['dirname'];
-		$i = 2;
-		while ($view->file_exists($path) || in_array($path, $excludeList)) {
-			$path = \OC\Files\Filesystem::normalizePath($dir . '/' . $name . ' ('.$i.')' . $ext);
-			$i++;
-		}
-
+		// HUGO the generation of unique target is done when we insert the share at lib/private/share/share.php::insertShare
 		return $path;
 	}
 

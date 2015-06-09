@@ -1922,7 +1922,12 @@ class Share extends \OC\Share\Constants {
 			$userShareType = ($isGroupShare) ? self::$shareTypeGroupUserUnique : $shareType;
 
 			if ($sourceExists) {
-				$fileTarget = $sourceExists['file_target'];
+				// HUGO we don't use the pre-existing shared item target because then we will arrive
+				// to the situation of having ugly names like /rootjs_integration_sample_files (#123456789) (#123456789)
+				// the repetition of the inode is done because we autoamtically append the inode when we insert a share.
+				// So picking the previous item_target  we will have this duplciation, so we use the original itemSourceName
+				//$fileTarget = $sourceExists['file_target'];
+				$fileTarget = $itemSourceName;
 				$itemTarget = $sourceExists['item_target'];
 
 				// for group shares we don't need a additional entry if the target is the same
@@ -2126,8 +2131,9 @@ class Share extends \OC\Share\Constants {
 	 */
 	private static function insertShare(array $shareData)
 	{
-		/* HUGO if egroup share the file target is a combination of fileanem + inode to keep it unique */
-		if($shareData['shareType'] == 1) {
+		// HUGO when inserting a share we append to the item_target (like a symlink, the one the user sees in Shared with me) the inode to keep it unique
+		// LUCA propossed to put the owner of the share as well like "root_js_sample_files (#ourense.1397353)" instead "just root_js_sample_files (#1397353)"
+		if($shareData['shareType'] == 0 || $shareData['shareType'] == 1) {
 			$shareData['fileTarget'] = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
 		}
 
