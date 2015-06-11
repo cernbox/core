@@ -61,8 +61,9 @@ class MailNotifications {
 			$this->from = \OCP\Config::getUserValue($this->senderId, 'settings', 'email', $this->from);
 			$this->senderDisplayName = \OCP\User::getDisplayName($this->senderId);
 		} else {
-			/* HUGO Emaail. Modify to put CERNBox instead of logged username in sender name*/
-			$this->senderDisplayName = "CERNBox";
+			// HUGO here we can modify the sender of the email.
+			$this->from = \OCP\Config::getUserValue($this->senderId, 'settings', 'email', $this->from);
+                	$this->senderDisplayName = \OCP\User::getDisplayName($this->senderId);
 		}
 	}
 
