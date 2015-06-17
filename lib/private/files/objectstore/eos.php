@@ -83,22 +83,35 @@ class Eos implements IObjectStore {
 	}
 
 	/**
+	 * Copy a file from EOS to the stage directory with the following filename
+   	 * eosread:<inode>:<mtime>
+	 * Before copying the file from EOS we check if the file is in the staging area and the mtimes are the same else we start the copy
 	 * @param string $urn the unified resource name used to identify the object
 	 * @return resource stream with the read data
 	 * @throws Exception from openstack lib when something goes wrong
 	 */
 	public function readObject($urn) {
 		$eos_mgm_url = EosUtil::getEosMgmUrl();
-        $staging_dir = EosUtil::getBoxStagingDir();
-        list($uid, $gid) = EosUtil::getEosRole($urn, true);
-        $dst             = $staging_dir . "/" . uniqid("eosread");
-        $src = escapeshellarg($eos_mgm_url . "//" . $urn );
-        $cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
-        list($result, $errcode) = EosCmd::exec($cmd);
-        if($errcode !== 0){
-                return false;
-        }
-        return fopen($dst, "r");
+		$staging_dir = EosUtil::getBoxStagingDir();
+		list($uid, $gid) = EosUtil::getEosRole($urn, true);
+		
+		$meta = EosUtil::getFileByEosPath($urn);
+		if(!$meta) {
+			return false;
+		}
+		$dst = $staging_dir . "/eosread:" . $meta['fileid'] . ":" .  $meta['mtime'];
+		if(file_exists($dst)) {
+			\OCP\Util::writeLog("EOSSTAGE", sprintf("serving file from stage area. inode:%s mtime:%s eospath:%s", $meta['fileid'], $meta['mtime'], $urn), \OCP\Util::ERROR);
+			return fopen($dst, "r");
+		}
+		
+		$src = escapeshellarg($eos_mgm_url . "//" . $urn );
+		$cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
+		list($result, $errcode) = EosCmd::exec($cmd);
+		if($errcode !== 0){
+			return false;
+		}
+        	return fopen($dst, "r");
 	}
 
 
