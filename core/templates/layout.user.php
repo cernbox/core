@@ -104,6 +104,7 @@
 				<input id="searchbox" class="svg" type="search" name="query"
 					value="<?php if(isset($_POST['query'])) {p($_POST['query']);};?>"
 					autocomplete="off" tabindex="3" />
+			<span id="download-clients" style="float: right; margin-right: 200px; margin-top: 5px; font-weight: bold;"><a href="https://cernbox-resources.web.cern.ch/cernbox-resources/" style="color: white;" target=_blank">Download clients<a></span>
 			</form>
 		</div></header>
 
