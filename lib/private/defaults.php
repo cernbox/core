@@ -27,19 +27,19 @@ class OC_Defaults {
 		$this->l = \OC::$server->getL10N('lib');
 		$version = OC_Util::getVersion();
 
-		$this->defaultEntity = 'ownCloud'; /* e.g. company name, used for footers and copyright notices */
-		$this->defaultName = 'ownCloud'; /* short name, used when referring to the software */
-		$this->defaultTitle = 'ownCloud'; /* can be a longer name, for titles */
-		$this->defaultBaseUrl = 'https://owncloud.org';
-		$this->defaultSyncClientUrl = 'https://owncloud.org/sync-clients/';
-		$this->defaultiOSClientUrl = 'https://itunes.apple.com/us/app/owncloud/id543672169?mt=8';
+		$this->defaultEntity = 'CERNBox'; /* e.g. company name, used for footers and copyright notices */
+		$this->defaultName = 'CERNBox'; /* short name, used when referring to the software */
+		$this->defaultTitle = 'CERNBox'; /* can be a longer name, for titles */
+		$this->defaultBaseUrl = 'https://cernbox.cern.ch';
+		$this->defaultSyncClientUrl = 'http://cern.ch/cernbox-resources';
+		$this->defaultiOSClientUrl = 'https://cern.ch/cernbox-resources';
 		$this->defaultiTunesAppId = '543672169';
-		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=com.owncloud.android';
+		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=ch.cern.cernbox';
 		$this->defaultDocBaseUrl = 'http://doc.owncloud.org';
 		$this->defaultDocVersion = $version[0] . '.0'; // used to generate doc links
-		$this->defaultSlogan = $this->l->t('web services under your control');
+		$this->defaultSlogan = $this->l->t('CERN storage under your control');
 		$this->defaultLogoClaim = '';
-		$this->defaultMailHeaderColor = '#1d2d44'; /* header color of mail notifications */
+		$this->defaultMailHeaderColor = '#fff'; /* header color of mail notifications */
 
 		if (file_exists(OC::$SERVERROOT . '/themes/' . OC_Util::getTheme() . '/defaults.php')) {
 			// prevent defaults.php from printing output
