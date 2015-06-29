@@ -128,7 +128,8 @@ $formsMap = array_map(function($form){
 $formsAndMore = array_merge($formsAndMore, $formsMap);
 
 // add bottom hardcoded forms from the template
-$formsAndMore[]= array( 'anchor' => 'ssl-root-certificates', 'section-name' => $l->t('SSL root certificates') );
+// HUGO Hide ROOT SSL CERTIFICATES in personal settings
+// $formsAndMore[]= array( 'anchor' => 'ssl-root-certificates', 'section-name' => $l->t('SSL root certificates') );
 if($enableDecryptAll) {
 	$formsAndMore[]= array( 'anchor' => 'encryption', 'section-name' => $l->t('Encryption') );
 }
