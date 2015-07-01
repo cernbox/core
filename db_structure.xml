@@ -851,11 +851,14 @@
 			</field>
 
 			<!-- Foreign Key filecache::fileid -->
+			<!-- HUGO We need a bigint(20) here because EOS fid are bigger than 32 bit signed integers -->
+			<!-- Check this to see how it works: https://pear.php.net/manual/en/package.database.mdb2.datatypes.php -->
 			<field>
 				<name>file_source</name>
 				<type>integer</type>
 				<notnull>false</notnull>
-				<length>4</length>
+				<length>10</length>
+				<unsigned>true</unsigned>
 			</field>
 
 			<field>
