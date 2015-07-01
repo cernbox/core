@@ -6,15 +6,13 @@ usr=$1
 
 if [ x$usr == x ]; then
    echo missing user
-   echo syntax: eos-create-user-directory user instance [FORCE_ATTR_RESET]
+   echo syntax: eos-create-user-directory user
    exit 1
 fi
 
-instance=eospps
-export EOS_MGM_URL=root://eospps-slave.cern.ch
-STORAGE_PREFIX=/eos/scratch/user/
-RECYCLE_BIN=/eos/pps/proc/recycle
-FORCE_ATTR_RESET=1
+export EOS_MGM_URL=XEOS_MGM_URL
+STORAGE_PREFIX=XSTORAGE_PREFIX
+RECYCLE_BIN=XRECYCLE_BIN
 
 #FIXME: protect from local users, root included
 
@@ -45,7 +43,7 @@ eos -b -r 0 0 attr -r set sys.versioning="10" $homedir
 
 eos -b -r 0 0 quota set -u $usr -v 2TB -i 1M -p ${STORAGE_PREFIX}
 
-#eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
+eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
 
 #eos -b -r 0 0 attr -r set sys.recycle="$RECYCLE_BIN" $homedir
 
