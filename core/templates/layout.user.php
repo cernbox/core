@@ -61,6 +61,11 @@
 				</h1>
 				<div class="icon-caret svg"></div>
 			</a>
+			<a target="_blank" href="https://cern.ch/cernbox-resources" tabindex="2" style="display:inline-block; position:absolute; margin-left: 140px; height: 27px; padding-top: 18px">
+				<h1 class="header-appname" style="color: #C6CAD0; font-size: small"">
+				Help & Download Clients
+				</h1>
+			</a>
 
 			<div id="logo-claim" style="display:none;"><?php p($theme->getLogoClaim()); ?></div>
 			<div id="settings" class="svg">
@@ -104,7 +109,6 @@
 				<input id="searchbox" class="svg" type="search" name="query"
 					value="<?php if(isset($_POST['query'])) {p($_POST['query']);};?>"
 					autocomplete="off" tabindex="3" />
-			<span id="download-clients" style="float: right; margin-right: 200px; margin-top: 5px; font-weight: bold;"><a href="https://cernbox-resources.web.cern.ch/cernbox-resources/" style="color: white;" target=_blank">Download clients<a></span>
 			</form>
 		</div></header>
 
