@@ -46,7 +46,19 @@ class EosReqCache {
                  $GLOBALS['cernbox']['getfilebyid'][$id] = $data;
 
 	}
+	private static function dontUseCache() {
+		$avoid_paths = \OCP\Config::getSystemValue("avoid_req_cache_paths", array());
+                foreach($avoid_paths as $path) {
+                        if(strpos($_SERVER['REQUEST_URI'], $path) !== false) {
+				return true;
+			}
+                }
+		return false;
+	}
 	public static function getMeta($ocPath) {
+		if(self::dontUseCache()) {
+			return null;
+		}
 		self::init();
                 if(isset($GLOBALS['cernbox']['getmeta'][$ocPath])) {
 			\OCP\Util::writeLog('EOSCACHE',"HIT op:" .  __FUNCTION__ . "(ocpath:$ocPath)", \OCP\Util::ERROR);
