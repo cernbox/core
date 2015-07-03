@@ -178,7 +178,8 @@ class OC_Helper {
                 $prefix = \OC\Files\ObjectStore\EosUtil::getEosPrefix();
 		$eosWebDavRoot = \OCP\Config::getSystemValue('eoswebdavroot', '/cernbox/webdav');
                 if($service == "webdav"){
-                        $service = $eosWebDavRoot . $prefix . substr($user, 0, 1) . "/" . $user;
+                        // $service = $eosWebDavRoot . $prefix . substr($user, 0, 1) . "/" . $user;
+                        $service = $eosWebDavRoot . "/home";
                 }
 		return $service;
 	}
