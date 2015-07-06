@@ -215,7 +215,7 @@ class Session implements IUserSession, Emitter {
 					// TODO cache uid in User class to speed the system
 					$uidAndGid = \OC\Files\ObjectStore\EosUtil::getUidAndGid($uid);
 					if($uidAndGid === false) {
-						\OCP\Util::writeLog('EOSBOOT', "user: $uid has not a valid uid", \OCP\Util::ERROR);
+						\OCP\Util::writeLog('EOSLOGIN', "user: $uid has not a valid uid", \OCP\Util::ERROR);
 			                        $tmpl = new \OC_Template('', 'error', 'guest');
 			                        $tmpl->assign('errors', array(1 => array('error' => "Your account has no computing group assigned. <br> Please use the CERN Account Service to fix this.  You may also check out <a href=\"http://cern.ch/cernbox-resources/faq.html\">CERNBOX FAQ</a> for additional information. <br> If the problem persists then please report it via CERN Service Portal.")));
 			                        $tmpl->printPage();
@@ -223,23 +223,23 @@ class Session implements IUserSession, Emitter {
 			                        exit();
 			                        return false;
 					}	
-					\OCP\Util::writeLog('EOSBOOT', "user: $uid has valid uid", \OCP\Util::ERROR);
+					\OCP\Util::writeLog('EOSLOGIN', "user: $uid has valid uid", \OCP\Util::ERROR);
 
 					// HUGO check user has valid homedir if not we create it
 					$homedir = \OC\Files\ObjectStore\EosUtil::getEosPrefix() . substr($uid, 0, 1) . "/" . $uid;
 					$meta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($homedir);
 
 					if($meta) { // path exists so we let the user access the system
-						\OCP\Util::writeLog('EOSBOOT', "user: $uid has a valid homedir that is: $homedir", \OCP\Util::ERROR);
+						\OCP\Util::writeLog('EOSLOGIN', "user: $uid has a valid homedir that is: $homedir", \OCP\Util::ERROR);
 						return true;
 					}
 					
-					\OCP\Util::writeLog('EOSBOOT', "user: $uid does NOT have valid homedir that is:  $homedir", \OCP\Util::ERROR);
+					\OCP\Util::writeLog('EOSLOGIN', "user: $uid does NOT have valid homedir that is:  $homedir", \OCP\Util::ERROR);
 					// the path does not exists so we create it				
 					// create home dir
 					$script_path = \OCP\Config::getSystemValue("eos_configure_new_homedir_script_path", false);
                     if(!$script_path) {
-                        \OCP\Util::writeLog('EOSBOOT', "cannot find script for creating users. check config.php", \OCP\Util::ERROR);
+                        \OCP\Util::writeLog('EOSLOGIN', "cannot find script for creating users. check config.php", \OCP\Util::ERROR);
                         $tmpl = new \OC_Template('', 'error', 'guest');
                         $tmpl->assign('errors', array(1 => array('error' => "Your account could not be created on the fly (internal script not found). <br> Please report via CERN Service Portal.")));
                         $tmpl->printPage();
@@ -252,7 +252,7 @@ class Session implements IUserSession, Emitter {
                    $cmd2 = "/bin/bash $script_path " . $uid;
                    exec($cmd2, $result, $errcode);
                    if($errcode !== 0){
-                           \OCP\Util::writeLog('EOSBOOT', "error running the script to create the homedir: $homedir for user: $uid$ CMD: $cmd2 errcode: $errcode", \OCP\Util::ERROR);
+                           \OCP\Util::writeLog('EOSLOGIN', "error running the script to create the homedir: $homedir for user: $uid$ CMD: $cmd2 errcode: $errcode", \OCP\Util::ERROR);
                             $tmpl = new \OC_Template('', 'error', 'guest');
                             $tmpl->assign('errors', array(1 => array('error' => "Your account could not be created on the fly. <br> Please check if your account has a computing group defined on <a href=\"http://cern.ch/account\">http://cern.ch/account</a>. <br> This may be achieved by subscribing to Linux and Lxplus services. <br> If the problem persists then please report it via CERN Service Portal.")));
                             $tmpl->printPage();
@@ -260,7 +260,7 @@ class Session implements IUserSession, Emitter {
                             exit();
                            return false;
                     }
-                   \OCP\Util::writeLog('EOSBOOT', "homedir: $homedir created for user: $uid", \OCP\Util::ERROR);
+                   \OCP\Util::writeLog('EOSLOGIN', "homedir: $homedir created for user: $uid", \OCP\Util::ERROR);
 					
 					// all good, let the user enter
 					return true;
