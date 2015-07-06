@@ -237,5 +237,39 @@ class EosTrashbin {
 		}
 		return $keys;
 	}
-
+	
+	public static function compareFileNames($a,$b) {
+		$aType = $a['type'];
+		$bType = $b['type'];
+		if ($aType === 'dir' and $bType !== 'dir') {
+			return -1;
+		} elseif ($aType !== 'dir' and $bType === 'dir') {
+			return 1;
+		} else {
+			return \OCP\Util::naturalSortCompare(basename($a['restore-path']), basename($b['restore-path']));
+		}
+	}
+	public static function compareTimestamp($a,$b) {
+		$aTime = $a['mtime'];
+		$bTime = $b['mtime'];
+		return ($aTime < $bTime) ? -1 : 1;
+	}
+	public static function compareSize($a,$b) {
+		$aSize = $a['size'];
+		$bSize = $b['size'];
+		return ($aSize < $bSize) ? -1 : 1;
+	}
+	public static function sortFiles($files, $sortAttribute = 'name', $sortDescending = false) {
+		$sortFunc = 'compareFileNames';
+		if ($sortAttribute === 'mtime') {
+			$sortFunc = 'compareTimestamp';
+		} else if ($sortAttribute === 'size') {
+			$sortFunc = 'compareSize';
+		}
+		usort($files, array('\OCA\Files_Trashbin\EosTrashbinr', $sortFunc));
+		if ($sortDescending) {
+			$files = array_reverse($files);
+		}
+		return $files;
+	}
 }

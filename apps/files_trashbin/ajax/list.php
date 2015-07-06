@@ -21,7 +21,7 @@ $encodedDir = \OCP\Util::encodePath($dir);
 
 $data['permissions'] = 0;
 $data['directory'] = $dir;
-$data['files'] = /*\OCA\Files_Trashbin\Helper::formatFileInfos(*/$files/*)*/;
+$data['files'] = \OCA\Files_Trashbin\EosTrashbin::sortFiles($files, $sortAttribute, $sortDirection);
 
 OCP\JSON::success(array('data' => $data));
 
