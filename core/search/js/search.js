@@ -294,6 +294,18 @@
 			});
 			$searchBox.keyup(function(event) {
 				if (event.keyCode === 13) { //enter
+					var query = $searchBox.val();
+					if (lastQuery !== query) {
+						currentResult = -1;
+						if (query.length > 2) {
+							self.search(query);
+						} else {
+							self.hideResults();
+						}
+						if(self.hasFilter(getCurrentApp())) {
+							self.getFilter(getCurrentApp())(query);
+						}
+					}
 					if(currentResult > -1) {
 						var result = $searchResults.find('tr.result a')[currentResult];
 						window.location = $(result).attr('href');
@@ -307,19 +319,6 @@
 					if(lastResults.length > currentResult + 1){
 						currentResult++;
 						renderCurrent();
-					}
-				} else {
-					var query = $searchBox.val();
-					if (lastQuery !== query) {
-						currentResult = -1;
-						if (query.length > 2) {
-							self.search(query);
-						} else {
-							self.hideResults();
-						}
-						if(self.hasFilter(getCurrentApp())) {
-							self.getFilter(getCurrentApp())(query);
-						}
 					}
 				}
 			});
