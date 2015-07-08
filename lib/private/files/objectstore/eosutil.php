@@ -717,4 +717,29 @@ class EosUtil {
                 return true;
 
 	}
+	
+	// this function returns the fileid of the versions folder of a file
+	// if versions folder does not exist, it will create it
+	public static function getFileIDFromVersionsFolder($id) {
+		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+		$meta = self::getFileById($id);
+		// here we can receive the file to convert to version folder
+		// or the version folder itself
+		// so we need to check carefuly
+		$eos_version_regex = \OCP\Config::getSystemValue("eos_version_regex");
+		// if file is already version folder we return that inode
+		if (preg_match("|".$eos_version_regex."|", $meta["eospath"]) ) {
+			return $meta['fileid'];
+		} else {
+			$dirname = dirname($meta['eospath']);
+			$basename = basename($meta['eospath']);
+			$versionFolder = $dirname . "/.sys.v#." . $basename;
+			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
+			if(!$versionInfo) {
+				self::createVersion($meta['eospath']);	
+			}
+			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
+			return $versionInfo['fileid'];
+                }
+	}
 }

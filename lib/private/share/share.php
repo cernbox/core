@@ -445,6 +445,17 @@ class Share extends \OC\Share\Constants {
 		if ($checkPasswordProtection && !\OCP\Share::checkPasswordProtectedShare($row)) {
 			return false;
 		}
+		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+		if($row['item_type'] === 'file') { // this MUST be a version folder already
+			$meta = \OC\Files\ObjectStore\EosUtil::getFileById($row['item_source']);
+			$dirname = dirname($meta['eospath']);
+			$basename = basename($meta['eospath']);
+			$realfile = $dirname . "/" . substr($basename, 8);
+			$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
+			$row['item_source'] = $realfilemeta['fileid'];
+			$row['file_source'] = (int)$realfilemeta['fileid'];
+			
+		}
 
 		return $row;
 	}
@@ -540,6 +551,10 @@ class Share extends \OC\Share\Constants {
 	 * @throws \Exception
 	 */
 	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null) {
+		/* HUGO try to put here the logic to convert file share via link to version folder share */
+		if($shareType === 3 && $itemType === 'file') {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+		}
 
 		$backend = self::getBackend($itemType);
 		$l = \OC::$server->getL10N('lib');
@@ -779,7 +794,14 @@ class Share extends \OC\Share\Constants {
 	 * @return boolean true on success or false on failure
 	 */
 	public static function unshare($itemType, $itemSource, $shareType, $shareWith, $owner = null) {
-
+		/* HUGO this API function is different than OCS Share API. OCS Share API uses the share id to delete the share but here
+		 * we receive just the fileid/item_source so we need to get the path of this fileid and check if it is pointing to a file.
+		 * If it points to a file, we need to swap the parent arg for the fielid of the versions folders 
+		 * Hooks under hooks.php that could call unshare are related to groups so for us they will not been called
+		*/
+		if($itemType === 'file' && is_numeric($itemSource)) {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+		}
 		// check if it is a valid itemType
 		self::getBackend($itemType);
 
@@ -974,6 +996,10 @@ class Share extends \OC\Share\Constants {
 	 * @return boolean true on success or false on failure
 	 */
 	public static function setPermissions($itemType, $itemSource, $shareType, $shareWith, $permissions) {
+		// HUGO
+		if($itemType === 'file' && is_numeric($itemSource)) {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+		}
 		$l = \OC::$server->getL10N('lib');
 		if ($item = self::getItems($itemType, $itemSource, $shareType, $shareWith,
 			\OC_User::getUser(), self::FORMAT_NONE, null, 1, false)) {
@@ -1119,6 +1145,10 @@ class Share extends \OC\Share\Constants {
 	 * @return boolean
 	 */
 	public static function setExpirationDate($itemType, $itemSource, $date, $shareTime = null) {
+		// HUGO
+		if($itemType === 'file' && is_numeric($itemSource)) {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+		}
 		$user = \OC_User::getUser();
 
 		if ($date == '') {
@@ -1215,7 +1245,6 @@ class Share extends \OC\Share\Constants {
 		}
 		 // HUGO if we unshare we have to remove the shared user from the ACL for do that we change the permissions to 0
 		$shareType = $item['share_type'];
-		\OCP\Util::writeLog("EOSSHARE", $shareType, \OCP\Util::ERROR);
                 if($shareType == 0 || $shareType == 1) {
                         $type = $shareType == 0 ? "u" : "egroup";
                         $from = $item["uid_owner"];
@@ -1373,6 +1402,10 @@ class Share extends \OC\Share\Constants {
 	public static function getItems($itemType, $item = null, $shareType = null, $shareWith = null,
 									$uidOwner = null, $format = self::FORMAT_NONE, $parameters = null, $limit = -1,
 									$includeCollections = false, $itemShareWithBySource = false, $checkExpireDate  = true) {
+		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+		if($itemType === 'file' && is_numeric($item)) {
+			$item = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($item);	
+		}
 		if (!self::isEnabled()) {
 			return array();
 		}
@@ -1662,6 +1695,18 @@ class Share extends \OC\Share\Constants {
 			if ( isset($row['uid_owner']) && $row['uid_owner'] != '') {
 				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
 			}
+			/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+			if($row['item_type'] === 'file') { // this MUST be a version folder already
+				$meta = \OC\Files\ObjectStore\EosUtil::getFileById($row['item_source']);
+				$dirname = dirname($meta['eospath']);
+				$basename = basename($meta['eospath']);
+				$realfile = $dirname . "/" . substr($basename, 8);
+				$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
+				$row['item_source'] = $realfilemeta['fileid'];
+				$row['file_source'] = (int)$realfilemeta['fileid'];
+				$row['file_target'] = basename($realfilemeta['path']); 
+				$row['path'] = substr($realfilemeta['path'],5); // strip files prefix
+			}
 
 			if ($row['permissions'] > 0) {
 				$items[$row['id']] = $row;
@@ -1678,7 +1723,8 @@ class Share extends \OC\Share\Constants {
 			$collectionItems = array();
 			foreach ($items as &$row) {
 				// Return only the item instead of a 2-dimensional array
-				if ($limit == 1 && $row[$column] == $item && ($row['item_type'] == $itemType || $itemType == 'file')) {
+				// HUGO we comment the $row[$column] == $item because for us they will not match (fielid vs versions fileif)
+				if ($limit == 1 && /*$row[$column] == $item &&*/ ($row['item_type'] == $itemType || $itemType == 'file')) {
 					if ($format == self::FORMAT_NONE) {
 						return $row;
 					} else {
