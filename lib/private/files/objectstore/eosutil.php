@@ -720,8 +720,7 @@ class EosUtil {
 	
 	// this function returns the fileid of the versions folder of a file
 	// if versions folder does not exist, it will create it
-	public static function getFileIDFromVersionsFolder($id) {
-		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+	public static function getVersionsFolderIDFromFileID($id) {
 		$meta = self::getFileById($id);
 		// here we can receive the file to convert to version folder
 		// or the version folder itself
@@ -741,5 +740,14 @@ class EosUtil {
 			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
 			return $versionInfo['fileid'];
                 }
+	}
+	// given the fileid of a versions folder, returns the metadata of the real file
+	public static function getFileMetaFromVersionsFolderID($id) {
+		$meta = \OC\Files\ObjectStore\EosUtil::getFileById($id);
+		$dirname = dirname($meta['eospath']);
+		$basename = basename($meta['eospath']);
+		$realfile = $dirname . "/" . substr($basename, 8);
+		$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
+		return $realfilemeta;
 	}
 }

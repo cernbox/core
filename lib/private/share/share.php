@@ -447,14 +447,9 @@ class Share extends \OC\Share\Constants {
 		}
 		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
 		if($row['item_type'] === 'file') { // this MUST be a version folder already
-			$meta = \OC\Files\ObjectStore\EosUtil::getFileById($row['item_source']);
-			$dirname = dirname($meta['eospath']);
-			$basename = basename($meta['eospath']);
-			$realfile = $dirname . "/" . substr($basename, 8);
-			$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
+			$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileMetaFromVersionsFolderID($row['item_source']);
 			$row['item_source'] = $realfilemeta['fileid'];
 			$row['file_source'] = (int)$realfilemeta['fileid'];
-			
 		}
 
 		return $row;
@@ -553,7 +548,7 @@ class Share extends \OC\Share\Constants {
 	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null) {
 		/* HUGO try to put here the logic to convert file share via link to version folder share */
 		if($shareType === 3 && $itemType === 'file') {
-			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
 		}
 
 		$backend = self::getBackend($itemType);
@@ -800,7 +795,7 @@ class Share extends \OC\Share\Constants {
 		 * Hooks under hooks.php that could call unshare are related to groups so for us they will not been called
 		*/
 		if($itemType === 'file' && is_numeric($itemSource)) {
-			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
 		}
 		// check if it is a valid itemType
 		self::getBackend($itemType);
@@ -998,7 +993,7 @@ class Share extends \OC\Share\Constants {
 	public static function setPermissions($itemType, $itemSource, $shareType, $shareWith, $permissions) {
 		// HUGO
 		if($itemType === 'file' && is_numeric($itemSource)) {
-			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
 		}
 		$l = \OC::$server->getL10N('lib');
 		if ($item = self::getItems($itemType, $itemSource, $shareType, $shareWith,
@@ -1147,7 +1142,7 @@ class Share extends \OC\Share\Constants {
 	public static function setExpirationDate($itemType, $itemSource, $date, $shareTime = null) {
 		// HUGO
 		if($itemType === 'file' && is_numeric($itemSource)) {
-			$itemSource = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($itemSource);
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
 		}
 		$user = \OC_User::getUser();
 
@@ -1404,7 +1399,7 @@ class Share extends \OC\Share\Constants {
 									$includeCollections = false, $itemShareWithBySource = false, $checkExpireDate  = true) {
 		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
 		if($itemType === 'file' && is_numeric($item)) {
-			$item = \OC\Files\ObjectStore\EosUtil::getFileIDFromVersionsFolder($item);	
+			$item = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($item);	
 		}
 		if (!self::isEnabled()) {
 			return array();
@@ -1695,13 +1690,9 @@ class Share extends \OC\Share\Constants {
 			if ( isset($row['uid_owner']) && $row['uid_owner'] != '') {
 				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
 			}
-			/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+			/* HUGO convert versions folder to file*/
 			if($row['item_type'] === 'file') { // this MUST be a version folder already
-				$meta = \OC\Files\ObjectStore\EosUtil::getFileById($row['item_source']);
-				$dirname = dirname($meta['eospath']);
-				$basename = basename($meta['eospath']);
-				$realfile = $dirname . "/" . substr($basename, 8);
-				$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
+				$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileMetaFromVersionsFolderID($row['item_source']);
 				$row['item_source'] = $realfilemeta['fileid'];
 				$row['file_source'] = (int)$realfilemeta['fileid'];
 				$row['file_target'] = basename($realfilemeta['path']); 
