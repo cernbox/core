@@ -727,12 +727,19 @@ class EosUtil {
 		// so we need to check carefuly
 		$eos_version_regex = \OCP\Config::getSystemValue("eos_version_regex");
 		// if file is already version folder we return that inode
-		if (preg_match("|".$eos_version_regex."|", $meta["eospath"]) ) {
+		if (preg_match("|".$eos_version_regex."|", basename($meta["eospath"])) ) {
 			return $meta['fileid'];
 		} else {
 			$dirname = dirname($meta['eospath']);
 			$basename = basename($meta['eospath']);
+			// We need to handle the case where the file is already a version.
+			// In that case the version folder is the parent.	
 			$versionFolder = $dirname . "/.sys.v#." . $basename;
+			if (preg_match("|".$eos_version_regex."|", $dirname) ) {
+				$versionFolder = $dirname;	
+			}
+				
+
 			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
 			if(!$versionInfo) {
 				self::createVersion($meta['eospath']);	
