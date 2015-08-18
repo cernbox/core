@@ -111,6 +111,14 @@ class Eos implements IObjectStore {
 		if($errcode !== 0){
 			return false;
 		}
+
+		$url = 'http://eospps-slave.cern.ch:80/$urn';
+		$opts = array(
+		       'http' => array('method' => 'GET',
+				       'max_redirects' => '20')
+		       );
+		$context = stream_context_create($opts);
+		$stream = fopen($url, 'r', false, $context);
         	return fopen($dst, "r");
 	}
 
