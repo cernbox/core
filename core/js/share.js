@@ -399,9 +399,6 @@ OC.Share={
 				html += '<span class="icon-loading-small hidden"></span>';
 				html += '<input type="checkbox" name="linkCheckbox" id="linkCheckbox" value="1" /><label for="linkCheckbox">'+t('core', 'Share link')+'</label>';
 				html += '<br />';
-				if (itemType != 'folder') {
-                                	html += '<p>Share the <i>current version</i> of this file</p>';
-				}
 	                        html += '<p>See also the <a target="_blank" href="https://cern.service-now.com/service-portal/search.do?q=cernbox+share"><b>FAQ</b></a></p>';
 
 				var defaultExpireMessage = '';

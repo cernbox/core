@@ -37,11 +37,20 @@ class View {
 	protected $updater;
 
 	public function __construct($root = '') {
+		if (is_null($root)) {
+			throw new \InvalidArgumentException('Root can\'t be null');
+		}
+		if(!Filesystem::isValidPath($root)) {
+			throw new \Exception();
+		}
 		$this->fakeRoot = $root;
 		$this->updater = new Updater($this);
 	}
 
 	public function getAbsolutePath($path = '/') {
+		if ($path === null) {
+			return null;
+		}
 		$this->assertPathLength($path);
 		if ($path === '') {
 			$path = '/';
