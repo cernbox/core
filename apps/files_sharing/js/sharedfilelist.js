@@ -44,17 +44,21 @@
 		 * @private
 		 */
 		initialize: function($el, options) {
-			OCA.Files.FileList.prototype.initialize.apply(this, arguments);
-			if (this.initialized) {
-				return;
-			}
+		       /* OCA.Files.FileList.prototype.initialize.apply(this, arguments);
+                       if (this.initialized) {
+                               return;
+                       }*/
 
+			OCA.Files.FileList.prototype.initialize.apply(this, arguments);
 			// TODO: consolidate both options
 			if (options && options.sharedWithUser) {
 				this._sharedWithUser = true;
 			}
 			if (options && options.linksOnly) {
 				this._linksOnly = true;
+			}
+			if(options && options.justProjects) {
+				this._justProjects = true;
 			}
 			OC.Plugins.attach('OCA.Sharing.FileList', this);
 		},
@@ -127,7 +131,8 @@
 				/* jshint camelcase: false */
 				data: {
 					format: 'json',
-					shared_with_me: !!this._sharedWithUser
+					shared_with_me: !!this._sharedWithUser,
+					just_projects: !!this._justProjects
 				},
 				type: 'GET',
 				beforeSend: function(xhr) {

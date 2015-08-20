@@ -45,6 +45,25 @@ OCA.Sharing.App = {
 		return this._inFileList;
 	},
 
+	initSharingInProjects: function($el) {
+		this._inFileList = new OCA.Sharing.FileList(
+			$el,
+			{
+				id: 'shares.self',
+				scrollContainer: $('#app-content'),
+				sharedWithUser: true,
+				fileActions: this._createFileActions(),
+				justProjects: true,
+			}
+		);
+
+		this._extendFileList(this._inFileList);
+		this._inFileList.appName = t('files_sharing', 'Shared with you');
+		this._inFileList.$el.find('#emptycontent').html('<div class="icon-share"></div>' +
+			'<h2>' + t('files_sharing', 'Nothing shared with you yet') + '</h2>' +
+			'<p>' + t('files_sharing', 'Files and folders others share with you will show up here') + '</p>');
+		return this._inFileList;
+	},
 	initSharingOut: function($el) {
 		if (this._outFileList) {
 			return this._outFileList;
@@ -95,6 +114,11 @@ OCA.Sharing.App = {
 		}
 	},
 
+	removeSharingInProjects: function() {
+		if (this._inFileList) {
+			this._inFileList.$fileList.empty();
+		}
+	},
 	removeSharingOut: function() {
 		if (this._outFileList) {
 			this._outFileList.$fileList.empty();
@@ -177,6 +201,12 @@ $(document).ready(function() {
 	});
 	$('#app-content-sharingin').on('hide', function() {
 		OCA.Sharing.App.removeSharingIn();
+	});
+	$('#app-content-sharinginprojects').on('show', function(e) {
+		OCA.Sharing.App.initSharingInProjects($(e.target));
+	});
+	$('#app-content-sharinginprojects').on('hide', function() {
+		OCA.Sharing.App.removeSharingInProjects();
 	});
 	$('#app-content-sharingout').on('show', function(e) {
 		OCA.Sharing.App.initSharingOut($(e.target));
