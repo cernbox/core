@@ -20,6 +20,14 @@ class EosUtil {
 		return $eos_prefix;
 	}
 
+	public static function getEosProjectPrefix() { 
+		$eos_project_prefix = \OCP\Config::getSystemValue("eos_project_prefix");
+		return $eos_project_prefix;
+	}
+	public static function getEosProjectMapping() { 
+		$eos_project_mapping = \OCP\Config::getSystemValue("eos_project_mapping");
+		return $eos_project_mapping;
+	}
 	public static function getEosMetaDir() { 
 		$eos_meta_dir = \OCP\Config::getSystemValue("eos_meta_dir");
 		return $eos_meta_dir;
@@ -53,6 +61,7 @@ class EosUtil {
 	/eos/devbox/user/.metacernbox/l/labrador/avatar.png ---- labrador
 	*/
 	public static function getOwner($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
+		$eos_project_prefix = self::getEosProjectPrefix();
 		$cached = EosReqCache::getOwner($eosPath);
 		if($cached) {
 			return $cached;
@@ -81,6 +90,9 @@ class EosUtil {
 			} else {
 				return false;
 			}
+		} else if (strpos($eosPath, $eos_project_prefix) === 0){ // TODO: get the owner of the top level project dir
+			$len_prefix = strlen($eos_prefix);
+			return "boxsvc";
 		} else {
 			return false;
 		}
@@ -244,6 +256,7 @@ class EosUtil {
 		$list = array();
 		if ($errcode === 0) { // the user exists else it not exists
 			$output   = var_export($result, true);
+			\OCP\Util::writeLog("DEBUGID", $username . "----" . $output, \OCP\Util::ERROR);
 			$lines    = explode(" ", $result[0]);
 			$line_uid = $lines[0];
 			$line_gid = $lines[1];
@@ -756,5 +769,18 @@ class EosUtil {
 		$realfile = $dirname . "/" . substr($basename, 8);
 		$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
 		return $realfilemeta;
+	}
+	
+	// Given a username, it returns the name of the project the user is the owner.
+	// If the user is not the owner of a project, then it returns null.
+	// Example. given boxscv returns cernbox.
+	public static function getProjectNameForUser($username){
+		$eos_project_mapping = self::getEosProjectMapping();
+		foreach($eos_project_mapping as $user => $project) {
+			if($username === $user) {
+				return $project;
+			}
+		}
+		return null;
 	}
 }
