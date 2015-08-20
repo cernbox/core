@@ -43,6 +43,15 @@ if ($config->getAppValue('core', 'shareapi_enabled', 'yes') === 'yes') {
 			"name" => $l->t('Shared with you')
 		)
 	);
+	\OCA\Files\App::getNavigationManager()->add(
+		array(
+			"id" => 'sharinginprojects',
+			"appname" => 'files_sharing',
+			"script" => 'list.php',
+			"order" => 11,
+			"name" => $l->t('Projects')
+		)
+	);
 
 	if (\OCP\Util::isSharingDisabledForUser() === false) {
 
