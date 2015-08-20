@@ -23,6 +23,7 @@ class EosProxy {
 	// ocPath is local oc like "" or "files" or "files/A/B/test_file./txt"
 	// storageId is object::store:/eos/dev/user/ or object::user:labrador
 	public static function toEos($ocPath, $storageId) {//ocPath like files/abc.txt or cache/557 or files or ""
+		$eos_project_prefix = EosUtil::getEosProjectPrefix();
 		$eos_prefix   = EosUtil::getEosPrefix();
 		$eos_meta_dir = EosUtil::getEosMetaDir();
 		$username     = self::getUsernameFromStorageId($storageId);
@@ -31,6 +32,13 @@ class EosProxy {
 			///$eosPath = $eos_prefix;
 			//return $eosPath;
 		}
+		// if the user is a project owner,instead send him to his homedir we send him to the project dir.
+		$project = EosUtil::getProjectNameForUser($username);
+		if($project !== null) {
+			$project_path=  $eos_project_prefix . $project . substr($ocPath,6); 
+			return $project_path;
+		}		
+
 		if ($ocPath === "") {
 			$eosPath = $eos_prefix . substr($username, 0, 1) . "/" . $username . "/";
 			return $eosPath;
@@ -63,6 +71,7 @@ class EosProxy {
 
 	// EOS give us the path ended with a / so perfect
 	public static function toOc($eosPath) {//eosPath like /eos/dev/user/ or /eos/dev/user/l/labrador/abc.txt or /eos/dev/user/.metacernbox/l/labrador/cache/abc.txt or /eos/dev/user/.metacernbox/thumbnails/abc.txt
+		$eos_project_prefix = EosUtil::getEosProjectPrefix();
 		$eos_prefix   = EosUtil::getEosPrefix();
 		$eos_meta_dir = EosUtil::getEosMetaDir();
 		$eos_recycle_dir = EosUtil::getEosRecycleDir();
@@ -94,6 +103,14 @@ class EosProxy {
 			return $ocPath;
 		} else if(strpos($eosPath, $eos_recycle_dir) === 0){
 			return false;
+		} else if (strpos($eosPath, $eos_project_prefix) === 0) {
+			$len_prefix = strlen($eos_project_prefix);
+			$rel        = substr($eosPath, $len_prefix);
+			$splitted   = explode("/", $rel);
+			$projectname     = $splitted[0];
+			$ocPath = "files" . substr($eosPath, strlen($eos_project_prefix . $projectname));
+			$ocPath = rtrim($ocPath, "/");
+			return $ocPath;
 		} else {
 			\OCP\Util::writeLog("eos", "The eos_prefix,eos_meta_dir,eos_recycle_dir does not match this path: $eosPath", \OCP\Util::ERROR);
 			return false;
