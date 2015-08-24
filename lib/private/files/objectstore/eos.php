@@ -106,20 +106,24 @@ class Eos implements IObjectStore {
 		}
 		
 		$src = escapeshellarg($eos_mgm_url . "//" . $urn );
-		$cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
+		/*$cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
 		list($result, $errcode) = EosCmd::exec($cmd);
 		if($errcode !== 0){
 			return false;
 		}
 
-		$url = 'http://eospps-slave.cern.ch:80/$urn';
+		$url = "http://eospps-slave.cern.ch:8000/$urn";
 		$opts = array(
 		       'http' => array('method' => 'GET',
 				       'max_redirects' => '20')
 		       );
 		$context = stream_context_create($opts);
 		$stream = fopen($url, 'r', false, $context);
-        	return fopen($dst, "r");
+		\OCP\Util::writeLog("DEBUG", "URL:$url --- STREAM:$stream", \OCP\Util::ERROR);
+        	//return fopen($dst, "r");
+		return $stream;
+		*/
+		return fopen("xrdcopy --nopbar -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid -", "r");
 	}
 
 
