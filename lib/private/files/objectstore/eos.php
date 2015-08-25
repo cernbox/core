@@ -100,30 +100,23 @@ class Eos implements IObjectStore {
 			return false;
 		}
 		$dst = $staging_dir . "/eosread:" . $meta['fileid'] . ":" .  $meta['mtime'];
+		
+		$allowedToStream = EosUtil::isUserAllowedToStreamReadsFromEos($uid);
+		if ($allowedToStream) {
+			return fopen("xrdcopy --nopbar -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid -", "r");
+		}
+		
 		if(file_exists($dst)) {
 			\OCP\Util::writeLog("EOSSTAGE", sprintf("serving file from stage area. inode:%s mtime:%s eospath:%s", $meta['fileid'], $meta['mtime'], $urn), \OCP\Util::ERROR);
 			return fopen($dst, "r");
 		}
-		
 		$src = escapeshellarg($eos_mgm_url . "//" . $urn );
-		/*$cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
+		$cmd = "xrdcopy -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid";
 		list($result, $errcode) = EosCmd::exec($cmd);
 		if($errcode !== 0){
 			return false;
 		}
-
-		$url = "http://eospps-slave.cern.ch:8000/$urn";
-		$opts = array(
-		       'http' => array('method' => 'GET',
-				       'max_redirects' => '20')
-		       );
-		$context = stream_context_create($opts);
-		$stream = fopen($url, 'r', false, $context);
-		\OCP\Util::writeLog("DEBUG", "URL:$url --- STREAM:$stream", \OCP\Util::ERROR);
-        	//return fopen($dst, "r");
-		return $stream;
-		*/
-		return fopen("xrdcopy --nopbar -f $src $dst -OSeos.ruid=$uid\&eos.rgid=$gid -", "r");
+		return fopen($dst, "r");
 	}
 
 

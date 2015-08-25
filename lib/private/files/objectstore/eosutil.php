@@ -750,4 +750,15 @@ class EosUtil {
 		$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
 		return $realfilemeta;
 	}
+	
+	// This function returns true or false depending if the user is in the allowed_users_stream_reads_from_eos config parameter
+	public static function isUserAllowedToStreamReadsFromEos($uid) {
+		$userIds = \OCP\Config::getSystemValue("allowed_users_stream_reads_from_eos");
+		foreach($userIds as $u) {
+			if((int)$u === (int)$uid) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
