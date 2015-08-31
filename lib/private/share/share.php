@@ -2229,6 +2229,8 @@ class Share extends \OC\Share\Constants {
 			} else {
 				$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
 			}
+			// HUGO-TODO Add +x permissions to parent folders of a share
+			EosUtil::propagatePermissionXToParents($filedata, $to);
 
                 }
 

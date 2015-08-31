@@ -386,7 +386,7 @@ OC.Share={
 					return true;
 				}
 			});
-			if(itemType === 'folder' ){
+			if(itemType === 'folder' && actualPath === '/'){
 			html += '<label for="shareWith" class="hidden-visually">'+t('core', 'Share')+'</label>';
 			html += '<input id="shareWith" type="text" placeholder="'+t('core', 'Share with user or group …')+'" />';
 			html += '<span class="shareWithLoading icon-loading-small hidden"></span>';
@@ -465,7 +465,7 @@ OC.Share={
 					}
 				});
 			}
-			if(itemType === 'folder') {
+			if(itemType === 'folder' && actualPath === '/') {
 			$('#shareWith').autocomplete({minLength: 2, delay: 750, source: function(search, response) {
 				var $loading = $('#dropdown .shareWithLoading');
 				$loading.removeClass('hidden');
