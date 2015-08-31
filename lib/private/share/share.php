@@ -1582,12 +1582,21 @@ class Share extends \OC\Share\Constants {
 			if(!$path) {continue;};
 			$row["path"]    = "files" . rtrim($path, "/");
 			$row['storage'] = $numeric_id;
-			// obtain share permissions from EOS and not from DB
-			if($row["share_type"] == 0 ) { // only share folder
+			// HUGO obtain share permissions from EOS and not from DB
+			if($row["share_type"] == 0 || $row['share_type'] == 1 ) { // only internal individual and group folder sharing
 				$from = $row["uid_owner"];
 				$to = $row["share_with"];
 				$fileid = $row["item_source"];
 				$row["permissions"] = EosUtil::getAclPerm($from, $to, $fileid);
+				
+				// HUGO add project flag
+				$eos_project_prefix = EosUtil::getEosProjectPrefix();
+				$meta = EosUtil::getFileById($fileid);
+				if(strpos($meta['eospath'], $eos_project_prefix) === 0) {
+					$row['project_share'] = true;
+				} else {
+					$row['project_share'] = false;
+				}
 			}
 			self::transformDBResults($row);
 			// Filter out duplicate group shares for users with unique targets

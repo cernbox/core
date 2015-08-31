@@ -213,11 +213,16 @@ class Local {
 	private static function getFilesSharedWithMe() {
 		try	{
 			$shares = \OCP\Share::getItemsSharedWith('file');
-			foreach ($shares as &$share) {
+			foreach ($shares as $i => &$share) {
 				if ($share['item_type'] === 'file') {
 					$share['mimetype'] = \OC_Helper::getFileNameMimeType($share['file_target']);
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
+					}
+				}
+				if (isset($_GET['just_projects']) && $_GET['just_projects'] === 'true') {
+					if($share["project_share"] == false) {
+						unset($shares[$i]);
 					}
 				}
 			}
