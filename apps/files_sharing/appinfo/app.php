@@ -48,7 +48,7 @@ if ($config->getAppValue('core', 'shareapi_enabled', 'yes') === 'yes') {
 			"id" => 'sharinginprojects',
 			"appname" => 'files_sharing',
 			"script" => 'list.php',
-			"order" => 11,
+			"order" => 20,
 			"name" => $l->t('Projects')
 		)
 	);
