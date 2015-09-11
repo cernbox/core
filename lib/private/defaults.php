@@ -31,13 +31,13 @@ class OC_Defaults {
 		$this->defaultName = 'CERNBox'; /* short name, used when referring to the software */
 		$this->defaultTitle = 'CERNBox'; /* can be a longer name, for titles */
 		$this->defaultBaseUrl = 'https://cernbox.cern.ch';
-		$this->defaultSyncClientUrl = 'http://cern.ch/cernbox-resources';
-		$this->defaultiOSClientUrl = 'https://cern.ch/cernbox-resources';
+		$this->defaultSyncClientUrl = 'http://cernbox.cern.ch/cernbox/doc';
+		$this->defaultiOSClientUrl = 'https://cernbox.cern.ch/cernbox/doc';
 		$this->defaultiTunesAppId = '543672169';
 		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=ch.cern.cernbox';
 		$this->defaultDocBaseUrl = 'http://doc.owncloud.org';
 		$this->defaultDocVersion = $version[0] . '.0'; // used to generate doc links
-		$this->defaultSlogan = $this->l->t('CERN storage under your control');
+		$this->defaultSlogan = $this->l->t('<a href="http://cernbox.cern.ch/cernbox/doc">Help and Download Clients</a>');
 		$this->defaultLogoClaim = '';
 		$this->defaultMailHeaderColor = '#fff'; /* header color of mail notifications */
 

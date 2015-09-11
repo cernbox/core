@@ -217,7 +217,7 @@ class Session implements IUserSession, Emitter {
 					if($uidAndGid === false) {
 						\OCP\Util::writeLog('EOSLOGIN', "user: $uid has not a valid uid", \OCP\Util::ERROR);
 			                        $tmpl = new \OC_Template('', 'error', 'guest');
-			                        $tmpl->assign('errors', array(1 => array('error' => "Your account has no computing group assigned. <br> Please use the CERN Account Service to fix this.  You may also check out <a href=\"http://cern.ch/cernbox-resources/faq.html\">CERNBOX FAQ</a> for additional information. <br> If the problem persists then please report it via CERN Service Portal.")));
+			                        $tmpl->assign('errors', array(1 => array('error' => "Your account has no computing group assigned. <br> Please use the CERN Account Service to fix this.  You may also check out <a href=\"http://cern.ch/cernbox/doc/faq.html\">CERNBOX FAQ</a> for additional information. <br> If the problem persists then please report it via CERN Service Portal.")));
 			                        $tmpl->printPage();
 			                        \OCP\User::logout();
 			                        exit();

@@ -61,7 +61,7 @@
 				</h1>
 				<div class="icon-caret svg"></div>
 			</a>
-			<a target="_blank" href="https://cern.ch/cernbox-resources" tabindex="2" style="display:inline-block; position:absolute; margin-left: 140px; height: 27px; padding-top: 18px">
+			<a target="_blank" href="https://cernbox.cern.ch/cernbox/doc" tabindex="2" style="display:inline-block; position:absolute; margin-left: 140px; height: 27px; padding-top: 18px">
 				<h1 class="header-appname" style="color: #C6CAD0;">
 				Help & Download Clients
 				</h1>
