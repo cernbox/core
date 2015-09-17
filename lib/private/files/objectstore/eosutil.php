@@ -92,7 +92,15 @@ class EosUtil {
 			}
 		} else if (strpos($eosPath, $eos_project_prefix) === 0){ // TODO: get the owner of the top level project dir
 			$len_prefix = strlen($eos_prefix);
-			return "boxsvc";
+			$rel = substr($eosPath,$len_prefix);
+			$prjname = explode("/",$rel)[0];
+			$user=self::getUserForProjectName("/".$prjname);
+			EosReqCache::setOwner($eosPath, $user);
+			
+			\OCP\Util::writeLog('KUBA',"prj:" .  __FUNCTION__ . "(user:$user) (prjname:$prjname) (rel:$rel) (eosPath:$eosPath)", \OCP\Util::ERROR);
+			return $user;
+			
+			#return "boxsvc";
 		} else {
 			return false;
 		}
@@ -782,5 +790,10 @@ class EosUtil {
 			}
 		}
 		return null;
+	}
+	
+	public static function getUserForProjectName($prjname){
+	  $eos_project_mapping = self::getEosProjectMapping();
+	  return $eos_project_mapping[$prjname];
 	}
 }
