@@ -43,6 +43,8 @@ if ($config->getAppValue('core', 'shareapi_enabled', 'yes') === 'yes') {
 			"name" => $l->t('Shared with you')
 		)
 	);
+	// HUGO comment this to disable project view
+	/*
 	\OCA\Files\App::getNavigationManager()->add(
 		array(
 			"id" => 'sharinginprojects',
@@ -52,7 +54,7 @@ if ($config->getAppValue('core', 'shareapi_enabled', 'yes') === 'yes') {
 			"name" => $l->t('Projects')
 		)
 	);
-
+	*/
 	if (\OCP\Util::isSharingDisabledForUser() === false) {
 
 		\OCA\Files\App::getNavigationManager()->add(
