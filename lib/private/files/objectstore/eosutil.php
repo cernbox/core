@@ -1,6 +1,12 @@
 <?php
 namespace OC\Files\ObjectStore;
 
+function startsWith($haystack, $needle) {
+  // search backwards starting from haystack length characters from the end                                                                                                                                                                        
+  return $needle === "" || strrpos($haystack, $needle, -strlen($haystack)) !== FALSE;
+}
+
+
 class EosUtil {
 
 	public static function putEnv() { 
@@ -91,13 +97,12 @@ class EosUtil {
 				return false;
 			}
 		} else if (strpos($eosPath, $eos_project_prefix) === 0){ // TODO: get the owner of the top level project dir
-			$len_prefix = strlen($eos_prefix);
-			$rel = substr($eosPath,$len_prefix);
+		        $rel = substr($eosPath,strlen($eos_project_prefix));
 			$prjname = explode("/",$rel)[0];
-			$user=self::getUserForProjectName("/".$prjname);
-			EosReqCache::setOwner($eosPath, $user);
-			
-			\OCP\Util::writeLog('KUBA',"prj:" .  __FUNCTION__ . "(user:$user) (prjname:$prjname) (rel:$rel) (eosPath:$eosPath)", \OCP\Util::ERROR);
+			$user=self::getUserForProjectName($prjname);
+			#\OCP\Util::writeLog('KUBA',"prj:" .  __FUNCTION__ . "(user:$user) (prjname:$prjname) (rel:$rel) (eosPath:$eosPath)", \OCP\Util::ERROR);
+			if (!$user) { return false; } # FIXME: does false mean root user?
+			EosReqCache::setOwner($eosPath, $user);		    
 			return $user;
 			
 			#return "boxsvc";
@@ -500,6 +505,23 @@ class EosUtil {
 	// get the file/dir metadata by his eos fileid/inode
 	// due to we dont have the path we use the root user(0,0) to obtain the info
 	public static function getFileById($id){
+
+
+	       #ob_start();
+	       #var_dump(debug_backtrace());
+	       #$KUBA_backtrace=ob_get_contents();
+	       #ob_end_clean();
+	       #\OCP\Util::writeLog('KUBA',"BACKTRACE" .  __FUNCTION__ . "($KUBA_backtrace)", \OCP\Util::ERROR);
+
+#	       foreach (debug_backtrace() as $KUBA_b)
+#		 {
+#                  ob_start();
+#	          var_dump($KUBA_b);
+#	          $KUBA_bb=ob_get_contents();
+#	          ob_end_clean();
+#		   \OCP\Util::writeLog('KUBA',"BACKTRACE" .  __FUNCTION__ . "($KUBA_bb)", \OCP\Util::ERROR);
+#		 }
+
 		$cached = EosReqCache::getFileById($id);
 		if($cached) {
 			return $cached;
@@ -793,7 +815,46 @@ class EosUtil {
 	}
 	
 	public static function getUserForProjectName($prjname){
+	  # return NULL if project not defined
 	  $eos_project_mapping = self::getEosProjectMapping();
-	  return $eos_project_mapping[$prjname];
+	  return array_search($prjname,$eos_project_mapping); # FIXME: linear lookup (potential scaling problem with large arrays with many projects)
 	}
+
+        public static function isProjectURIPath($uri_path){
+	  # uri paths always start with  leading slash (e.g. ?dir=/bla)
+
+	  if(startsWith($uri_path,'/')) {
+	    $topdir=explode("/",$uri_path)[1]; 
+	    return startsWith($topdir,'  project ');
+	  }
+	  else {
+	    return false;
+	  }
+	}
+
+	function isSharedURIPath($uri_path){
+          # uri paths always start with  leading slash (e.g. ?dir=/bla)                                                                                                                                                                                     # assume that all shared items follow the same naming convention at the top directory (and they do not clash with normal files and directories)
+          # the convention for top directory is: "name (#123)"
+	  # examples:
+	  # "/aaa (#1234)/jas"   => true
+	  # "/ d s (#77663455)/jas"  => true
+	  # "/aaa (#1)/jas"      => false 
+      	  # "/aaa (#ssss)/jas"   => false
+          # "aaa (#1234)/jas"    => false
+          # "/(#7766)/jas"       => false
+          # "/ (#7766)/jas"       => true (this is a flaw)
+
+
+          if(startsWith($uri_path,'/')) {
+            $topdir=explode("/",$uri_path)[1];
+            $parts = explode(" ",$topdir);
+            if(count($parts)<2) { return false; }
+            $marker=end($parts);
+            return preg_match("/[(][#](\d{3,})[)]/", $marker); # we match at least 3 digits enclosed within our marker:  (#123)
+          }
+          else {
+            return false;
+          }
+        }
+
 }
