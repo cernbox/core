@@ -7,7 +7,7 @@ class EosReqCache {
 	
 	public static function init() {
 		if (!isset( $GLOBALS['cernbox'])) {
-			$GLOBLAS['cernbox'] = array();
+			$GLOBALS['cernbox'] = array();
 			$GLOBALS['cernbox']['idresolution'] = array();
 			$GLOBALS['cernbox']['getfilebyid'] = array();
 			$GLOBALS['cernbox']['getmeta'] = array();
