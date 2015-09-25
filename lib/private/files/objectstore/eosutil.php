@@ -269,7 +269,7 @@ class EosUtil {
 		$list = array();
 		if ($errcode === 0) { // the user exists else it not exists
 			$output   = var_export($result, true);
-			\OCP\Util::writeLog("DEBUGID", $username . "----" . $output, \OCP\Util::ERROR);
+			//\OCP\Util::writeLog("DEBUGID", $username . "----" . $output, \OCP\Util::ERROR);
 			$lines    = explode(" ", $result[0]);
 			$line_uid = $lines[0];
 			$line_gid = $lines[1];
@@ -696,7 +696,17 @@ class EosUtil {
 	*/
 
 	// the previous version was trying to modifiy permissions this one changes the sys acl
-	public static function propagatePermissionXToParents($filedata, $to){
+	
+	public static function propagatePermissionXToParents($filedata, $to, $type){
+	  // type == 'u' -- specifies that $to is a user name
+          // type == 'egroup' -- specifies that $to is egroup name
+          // other values of type are not allowed
+
+  	        if (!in_array($type, array('u','egroup'))) {
+		  \OCP\Util::writeLog("PROGRAMMNG ERROR", "Wrong type passed to propagatePermissionXToParents (".$type.")", \OCP\Util::ERROR);
+		  return false;
+		}
+
 		$eospath = $filedata["eospath"];
 		$eosprefix = self::getEosPrefix(); // like /eos/devbox/user/
 		$rest = substr($eospath, strlen($eosprefix));
@@ -714,7 +724,7 @@ class EosUtil {
 		if(strpos($sysAcl, $to) !== false) { // if the user is already in the acl we dont do nothing
 			return true;
 		}
-		$newSysAcl = implode(",", array($sysAcl, "u:$to:x"));
+		$newSysAcl = implode(",", array($sysAcl, "$type:$to:x"));
 		$uid = 0; $gid = 0; // root is the only one allowed to change permissions
 		$cmd = "eos -b -r $uid $gid attr set sys.acl=$newSysAcl '$rootFolder'";
 		list($result, $errcode) = EosCmd::exec($cmd, $result, $errcode);

@@ -2238,8 +2238,9 @@ class Share extends \OC\Share\Constants {
 			} else {
 				$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
 			}
-			// HUGO-TODO Add +x permissions to parent folders of a share
-			EosUtil::propagatePermissionXToParents($filedata, $to);
+			# FIXME: KUBA
+			# FIXME: after next client release we shouldnot need this anymore (no need to navigate to subdrectory as users may type the path directly into a text field since 1.8)
+			EosUtil::propagatePermissionXToParents($filedata, $to,$type);
 
                 }
 
