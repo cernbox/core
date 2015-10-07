@@ -137,7 +137,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			$file = $_POST['file'];
 			$to_address = $_POST['toaddress'];
 
-			$mailNotification = new \OC\Share\MailNotifications();
+			$mailNotification = new \OC\Share\MailNotifications(\OCP\User::getUser());
 
 			$expiration = null;
 			if (isset($_POST['expiration']) && $_POST['expiration'] !== '') {
