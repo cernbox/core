@@ -834,12 +834,13 @@ class EosUtil {
 	  # uri paths always start with  leading slash (e.g. ?dir=/bla)
 
 	  if(startsWith($uri_path,'/')) {
-	    $topdir=explode("/",$uri_path)[1]; 
-	    return startsWith($topdir,'  project ');
+	    $topdir=explode("/",$uri_path)[1];
 	  }
 	  else {
-	    return false;
+	    $topdir=explode("/",$uri_path)[0];
 	  }
+	  
+	  return startsWith($topdir,'  project ');
 	}
 
 	function isSharedURIPath($uri_path){
@@ -856,15 +857,16 @@ class EosUtil {
 
 
           if(startsWith($uri_path,'/')) {
-            $topdir=explode("/",$uri_path)[1];
-            $parts = explode(" ",$topdir);
-            if(count($parts)<2) { return false; }
-            $marker=end($parts);
-            return preg_match("/[(][#](\d{3,})[)]/", $marker); # we match at least 3 digits enclosed within our marker:  (#123)
-          }
-          else {
-            return false;
-          }
-        }
+            $topdir=explode("/",$uri_path)[1]; 
+	  }
+	  else {
+	    $topdir=explode("/",$uri_path)[0];
+	  }
+
+	  $parts = explode(" ",$topdir);
+	  if(count($parts)<2) { return false; }
+	  $marker=end($parts);
+	  return preg_match("/[(][#](\d{3,})[)]/", $marker); # we match at least 3 digits enclosed within our marker:  (#123)
+	}
 
 }
