@@ -105,7 +105,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			// don't send a mail to the user who shared the file
 			$recipientList = array_diff($recipientList, array(\OCP\User::getUser()));
 
-			$mailNotification = new OC\Share\MailNotifications();
+			$mailNotification = new OC\Share\MailNotifications(\OC::$server->getUserSession()->getUser()->getUID());
 			$result = $mailNotification->sendInternalShareMail($recipientList, $itemSource, $itemType);
 
 			\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, true);
@@ -137,7 +137,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			$file = $_POST['file'];
 			$to_address = $_POST['toaddress'];
 
-			$mailNotification = new \OC\Share\MailNotifications();
+			$mailNotification = new \OC\Share\MailNotifications(\OC::$server->getUserSession()->getUser()->getUID());
 
 			$expiration = null;
 			if (isset($_POST['expiration']) && $_POST['expiration'] !== '') {
@@ -259,7 +259,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							|| !in_array($uid, $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER]))
 							&& $uid != OC_User::getUser()) {
 							$shareWith[] = array(
-								'label' => $displayName,
+								'label' => $uid . ' (' . $displayName . ')' ,
 								'value' => array(
 									'shareType' => OCP\Share::SHARE_TYPE_USER,
 									'shareWith' => $uid)

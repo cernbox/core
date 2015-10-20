@@ -148,7 +148,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		//do the search and translate results to owncloud names
 		$ldap_users = $this->access->fetchListOfUsers(
 			$filter,
-			array($this->access->connection->ldapUserDisplayName, 'dn'),
+			array($this->access->connection->ldapUserDisplayName, 'dn', 'cn', 'displayName'),
 			$limit, $offset);
 		$ldap_users = $this->access->ownCloudUserNames($ldap_users);
 		\OCP\Util::writeLog('user_ldap', 'getUsers: '.count($ldap_users). ' Users found', \OCP\Util::DEBUG);
@@ -339,13 +339,10 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			return $displayNames;
 		}
 
-		$displayNames = array();
 		$users = $this->getUsers($search, $limit, $offset);
-		foreach ($users as $user) {
-			$displayNames[$user] = $this->getDisplayName($user);
-		}
-		$this->access->connection->writeToCache($cacheKey, $displayNames);
-		return $displayNames;
+		$this->access->connection->writeToCache($cacheKey, $users);
+		
+		return $users;
 	}
 
 	/**
@@ -359,10 +356,16 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	public function implementsActions($actions) {
 		return (bool)((OC_USER_BACKEND_CHECK_PASSWORD
 			| OC_USER_BACKEND_GET_HOME
+			| OC_USER_BACKEND_SET_DISPLAYNAME
 			| OC_USER_BACKEND_GET_DISPLAYNAME
 			| OC_USER_BACKEND_PROVIDE_AVATAR
 			| OC_USER_BACKEND_COUNT_USERS)
 			& $actions);
+	}
+
+	// NADIR: TODO Implement me
+	public function setDisplayName($userId, $displayName) {
+		return true;
 	}
 
 	/**
