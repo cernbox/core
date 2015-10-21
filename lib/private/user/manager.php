@@ -213,7 +213,9 @@ class Manager extends PublicEmitter implements IUserManager {
 			$backendUsers = $backend->getDisplayNames($pattern, $limit, $offset);
 			if (is_array($backendUsers)) {
 				foreach ($backendUsers as $uid => $displayName) {
-					$users[] = $this->getUserObject($uid, $backend);
+					$usr = $this->getUserObject($uid, $backend);
+					$usr->setDisplayName($displayName);
+					$users[] = $usr;
 				}
 			}
 		}

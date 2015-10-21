@@ -474,7 +474,7 @@ class Access extends LDAPUtility implements user\IUserTools {
 			$nameByLDAP = isset($ldapObject[$nameAttribute]) ? $ldapObject[$nameAttribute] : null;
 			$ocName = $this->dn2ocname($ldapObject['dn'], $nameByLDAP, $isUsers);
 			if($ocName) {
-				$ownCloudNames[] = $ocName;
+				$ownCloudNames[$ocName] = (isset($ldapObject['displayname'])? $ldapObject['displayname'] : $ocName);
 				if($isUsers) {
 					//cache the user names so it does not need to be retrieved
 					//again later (e.g. sharing dialogue).
@@ -1016,8 +1016,8 @@ class Access extends LDAPUtility implements user\IUserTools {
 	 */
 	public function getFilterPartForUserSearch($search) {
 		return $this->getFilterPartForSearch($search,
-			$this->connection->ldapAttributesForUserSearch,
-			$this->connection->ldapUserDisplayName);
+			array('cn', 'displayname'),	//$this->connection->ldapAttributesForUserSearch,
+			'displayname');				//$this->connection->ldapUserDisplayName);
 	}
 
 	/**
