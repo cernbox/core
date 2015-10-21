@@ -20,6 +20,7 @@ class OC_Defaults {
 	private $defaultDocBaseUrl;
 	private $defaultDocVersion;
 	private $defaultSlogan;
+	private $defaultSloganUrl;
 	private $defaultLogoClaim;
 	private $defaultMailHeaderColor;
 
@@ -37,7 +38,8 @@ class OC_Defaults {
 		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=ch.cern.cernbox';
 		$this->defaultDocBaseUrl = 'http://doc.owncloud.org';
 		$this->defaultDocVersion = $version[0] . '.0'; // used to generate doc links
-		$this->defaultSlogan = $this->l->t('<a href="http://cernbox.cern.ch/cernbox/doc">Help and Download Clients</a>');
+		$this->defaultSloganUrl = "http://cernbox.cern.ch/cernbox/doc";
+		$this->defaultSlogan = $this->l->t('Help and Download Clients');
 		$this->defaultLogoClaim = '';
 		$this->defaultMailHeaderColor = '#fff'; /* header color of mail notifications */
 
@@ -189,6 +191,14 @@ class OC_Defaults {
 			return $this->theme->getSlogan();
 		} else {
 			return $this->defaultSlogan;
+		}
+	}
+	
+	public function getSloganUrl() {
+		if ($this->themeExist('getSloganUrl')) {
+			return $this->theme->getSloganUrl();
+		} else {
+			return $this->defaultSloganUrl;
 		}
 	}
 
