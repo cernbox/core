@@ -443,13 +443,28 @@ class EosUtil {
 		    }
 		}
 		
-		$usersSysAcl = array_unique($usersSysAcl);
-		
+		//$usersSysAcl = array_unique($usersSysAcl);
+		$usersSysAcl = multi_array_unique($multiArray, 1);
 		
 		foreach($usersSysAcl as $user) {
 		    $ocAcl[$user[1]] = array("type"=>$user[0], "ocperm"=>self::toOcPerm($user[2]), "eosperm"=>$user[2]);
 		} 
 		return $ocAcl;
+	}
+	
+	private static function multi_array_unique($multiArray, $key) {
+		$keys = array();
+		$temp = array();
+		$i = 0;
+		
+		foreach($multiArray as $arrayEntry) {
+			if(!in_array($arrayEntry[$key], $keys)) {
+				$keys[$i] = $arrayEntry[$key];
+				$temp[$i] = $arrayEntry;
+			}
+		}
+		
+		return $temp;
 	}
 
 	// transform the ocacl to eosacl 
