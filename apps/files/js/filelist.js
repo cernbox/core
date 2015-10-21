@@ -986,18 +986,23 @@
 		 * @param {boolean} force set to true to force changing directory
 		 */
 		changeDirectory: function(targetDir, changeUrl, force) {
-			var self = this;
-			var currentDir = this.getCurrentDirectory();
-			targetDir = targetDir || '/';
-			if (!force && currentDir === targetDir) {
-				return;
-			}
-			this._setCurrentDir(targetDir, changeUrl);
-			this.reload().then(function(success){
-				if (!success) {
-					self.changeDirectory(currentDir, true);
+			
+			if(FileActions.editorStatusHandle && FileActions.editorStatusHandle()) {
+				FileActions.editorCloseHandle();
+			} else {
+				var self = this;
+				var currentDir = this.getCurrentDirectory();
+				targetDir = targetDir || '/';
+				if (!force && currentDir === targetDir) {
+					return;
 				}
-			});
+				this._setCurrentDir(targetDir, changeUrl);
+				this.reload().then(function(success){
+					if (!success) {
+						self.changeDirectory(currentDir, true);
+					}
+				});
+			}
 		},
 		linkTo: function(dir) {
 			return OC.linkTo('files', 'index.php')+"?dir="+ encodeURIComponent(dir).replace(/%2F/g, '/');
