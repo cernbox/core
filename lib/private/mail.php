@@ -78,7 +78,9 @@ class OC_Mail {
 
 			if($ccaddress != '') $mailo->AddCC($ccaddress, $ccname);
 			if($bcc != '') $mailo->AddBCC($bcc);
-
+			
+			$mailo->addEmbeddedImage(image_path('', 'logo-mail.gif'), 'cernbox_mail_logo');
+			
 			$mailo->AddReplyTo($fromaddress, $fromname);
 
 			$mailo->WordWrap = 78;
