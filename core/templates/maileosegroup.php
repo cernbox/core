@@ -12,8 +12,8 @@
 <td width="20px">&nbsp;</td>
 <td style="font-weight:normal; font-size:0.8em; line-height:1.2em; font-family:verdana,'arial',sans;">
 <?php
-$msg = 'Hey there,<br><br>just letting you know that <b><font color="#58ACFA">%s</font></b> (%s@cern.ch) shared the folder <strong>%s</strong> with the e-group %s.<br><br>To see the share log in with your account that belongs to %s in  <a href="%s">CERNBox</a> and click the tab <strong>Shared with you</strong>.<br><br>Also, if you want to sync the share in your desktop sync client add a new folder with this path <b><br><br><b>%s</b><br><br>';
-$msgreal = sprintf($msg,$_['user_displayname'], $_['user_displayname'], $_['filename'],$_['recipient'],$_['recipient'],$_['link'], $_['path']);
+$msg = 'Hey there,<br><br>just letting you know that <b><font color="#58ACFA">%s</font></b> (%s) shared the folder <strong>%s</strong> with the e-group %s.<br><br>To see the share log in with your account that belongs to %s in  <a href="%s">CERNBox</a> and click the tab <strong>Shared with you</strong>.<br><br>Also, if you want to sync the share in your desktop sync client add a new folder with this path <b><br><br><b>%s</b><br><br>';
+$msgreal = sprintf($msg,$_['user_displayname'], $_['user_id'], $_['filename'],$_['recipient'],$_['recipient'],$_['link'], $_['path']);
 print_unescaped($msgreal);
 p($l->t('Cheers!'));
 ?>
