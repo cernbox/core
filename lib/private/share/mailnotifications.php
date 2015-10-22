@@ -154,6 +154,29 @@ class MailNotifications {
 		}
 		return $failed;
 	}
+	
+	/**
+	 * Informs the author of a share about the file he shared (throught link share) and where he can find it
+	 *  
+	 * @param string $filename Name of the file or folder he shared
+	 * @param string $link URL Address of the share
+	 * @param int $expiration Date of expiration as unix timestamp
+	 * @return The address of the share owner if the email sent failed, NULL otherwise
+	 */
+	public function sendFeedbackMail($filename, $link, $expiration) {
+		$subject = (string)$this->l->t('You shared %s throught %s', array($filename, 'CERNBox'));
+		$htmlMail = $this->createFeedbackMailBody($filename, $link, $expiration);
+		$address = \OC::$server->getUserSession()->getUser()->getUID() . '@cern.ch';
+		$failed = NULL;
+		try {
+			\OCP\Util::sendMail($address, $address, $subject, $htmlMail, $address, 'CERNBox');
+		} catch(\Exception $e) {
+			\OCP\Util::writeLog('sharing', "Can't send share feedback mail to $address: " . $e->getMessage(), \OCP\Util::ERROR);
+			$failed = $address;
+		}
+		
+		return $address;
+	}
 
 	/**
 	 * create mail body for plain text and html mail
@@ -182,6 +205,25 @@ class MailNotifications {
 		$alttextMail = $alttext->fetchPage();
 
 		return array($htmlMail, $alttextMail);
+	}
+	
+	/**
+	 * Create the html mail body for the share owner feedback notification
+	 * @param string $filename Name of the file or folder he shared
+	 * @param string $link URL Address of the share
+	 * @param int $expiration Share expiration date as unix timestamp
+	 * @return string The html mail body
+	 */
+	private function createFeedbackMailBody($filename, $link, $expiration) {
+		$formatedDate = $expiration ? $this->l->l('date', $expiration) : null;
+
+		$html = new \OC_Template("core", "mailfeedback", "");
+		$html->assign ('link', $link);
+		$html->assign ('filename', $filename);
+		$html->assign('expiration',  $formatedDate);
+		$htmlMail = $html->fetchPage();
+
+		return $htmlMail;
 	}
 
 		/**

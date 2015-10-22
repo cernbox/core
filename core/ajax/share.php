@@ -107,6 +107,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 
 			$mailNotification = new OC\Share\MailNotifications();
 			$result = $mailNotification->sendInternalShareMail($recipientList, $itemSource, $itemType);
+			$mailNotification->sendFeedbackMail($file, $link, $expiration);
 
 			\OCP\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, true);
 
@@ -138,7 +139,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			$to_address = $_POST['toaddress'];
 
 			$mailNotification = new \OC\Share\MailNotifications();
-
+			
 			$expiration = null;
 			if (isset($_POST['expiration']) && $_POST['expiration'] !== '') {
 				try {
@@ -163,6 +164,8 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					)
 				));
 			}
+			
+			$mailNotification->sendFeedbackMail($file, $link, $expiration);
 
 			break;
 	}
