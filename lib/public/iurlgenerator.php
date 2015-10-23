@@ -65,6 +65,14 @@ interface IURLGenerator {
 	 * @return string the url
 	 */
 	public function imagePath($appName, $file);
+	
+	/**
+	 * Returns the absolute path within the local filesystem of the current server
+	 * @param string $appName the name of the app
+	 * @param string $file the name of the file
+	 * @return string the absolute path
+	 */
+	public function absoluteImagePath($appName, $file);
 
 
 	/**
