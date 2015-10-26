@@ -27,6 +27,7 @@
  */
 use OC\App\DependencyAnalyzer;
 use OC\App\Platform;
+use OCP\Defaults;
 
 /**
  * This class manages the apps. It allows them to register and integrate in the
@@ -410,6 +411,8 @@ class OC_App {
 	public static function getSettingsNavigation() {
 		$l = \OC::$server->getL10N('lib');
 
+		$themeSettings = new OC_Defaults(); 
+		
 		$settings = array();
 		// by default, settings only contain the help menu
 		if (OC_Util::getEditionString() === '' &&
@@ -419,7 +422,7 @@ class OC_App {
 				array(
 					"id" => "help",
 					"order" => 1000,
-					"href" => OC_Helper::linkToRoute("settings_help"),
+					"href" => $themeSettings->getDocBaseUrl(),//OC_Helper::linkToRoute("settings_help"),
 					"name" => $l->t("Help"),
 					"icon" => OC_Helper::imagePath("settings", "help.svg")
 				)
