@@ -771,6 +771,10 @@
 					'currentUploads': 0
 				}));
 			}
+			
+			var eosPath = $('<span></span>').addClass('pathtext');
+			linkElem.append(eosPath);
+			
 			td.append(linkElem);
 			tr.append(td);
 

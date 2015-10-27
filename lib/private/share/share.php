@@ -1598,6 +1598,10 @@ class Share extends \OC\Share\Constants {
 					$row['project_share'] = false;
 				}
 			}
+			
+			$meta = EosUtil::getFileById($row['item_source']);
+			$row['eospath'] = $meta['eospath'];
+			
 			self::transformDBResults($row);
 			// Filter out duplicate group shares for users with unique targets
 			if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
