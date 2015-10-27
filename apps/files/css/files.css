@@ -290,7 +290,7 @@ table td.filename .nametext, .uploadtext, .projecttext, .modified, .column-last>
 
 /* TODO fix usability bug (accidental file/folder selection) */
 table td.filename .nametext, .projecttext {
-	position: absolute;
+	position: relative;
 	left: 55px;
 	padding: 0;
 	overflow: hidden;
