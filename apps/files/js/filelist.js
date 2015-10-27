@@ -771,6 +771,10 @@
 					'currentUploads': 0
 				}));
 			}
+			
+			var egroupProject = $('<span></span>').addClass('projecttext');
+			linkElem.append(egroupProject);
+			
 			td.append(linkElem);
 			tr.append(td);
 

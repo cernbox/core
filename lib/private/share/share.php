@@ -1594,6 +1594,7 @@ class Share extends \OC\Share\Constants {
 				$meta = EosUtil::getFileById($fileid);
 				if(strpos($meta['eospath'], $eos_project_prefix) === 0) {
 					$row['project_share'] = true;
+					$row['projectname'] = EosUtil::getProjectNameForUser($row["uid_owner"]);
 				} else {
 					$row['project_share'] = false;
 				}

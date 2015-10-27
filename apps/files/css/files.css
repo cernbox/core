@@ -272,7 +272,7 @@ table td.filename input.filename {
 }
 
 table td.filename a, table td.login, table td.logout, table td.download, table td.upload, table td.create, table td.delete { padding:3px 8px 8px 3px; }
-table td.filename .nametext, .uploadtext, .modified, .column-last>span:first-child { float:left; padding:15px 0; }
+table td.filename .nametext, .uploadtext, .projecttext, .modified, .column-last>span:first-child { float:left; padding:15px 0; }
 
 .modified, .column-last>span:first-child {
 	position: relative;
@@ -289,7 +289,7 @@ table td.filename .nametext, .uploadtext, .modified, .column-last>span:first-chi
 }
 
 /* TODO fix usability bug (accidental file/folder selection) */
-table td.filename .nametext {
+table td.filename .nametext, .projecttext {
 	position: absolute;
 	left: 55px;
 	padding: 0;
@@ -299,15 +299,22 @@ table td.filename .nametext {
 	height: 100%;
 }
 /* IE8 text-overflow: ellipsis support */
-.ie8 table td.filename .nametext {
+.ie8 table td.filename .nametext, .projecttext {
 	min-width: 50%;
 }
+
+.projecttext {
+	opacity:.5;
+	width:100%;
+	float:right;
+}
+
 .has-favorites #fileList td.filename a.name {
 	left: 50px;
 	margin-right: 50px;
 }
 
-table td.filename .nametext .innernametext {
+table td.filename .nametext .innernametext .projecttext {
 	text-overflow: ellipsis;
 	overflow: hidden;
 	position: relative;

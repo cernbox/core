@@ -77,6 +77,11 @@
 			$tr.find('td.date').before($tr.children('td:first'));
 			$tr.find('td.filename input:checkbox').remove();
 			$tr.attr('data-share-id', _.pluck(fileData.shares, 'id').join(','));
+			
+            if('projectname' in fileData) {
+                $tr.find('span.projecttext').text('cernbox-project-' + fileData.projectname + '-readers<br>cernbox-project-' + fileData.projectname + '-writers');
+            }
+			
 			if (this._sharedWithUser) {
 				$tr.attr('data-share-owner', fileData.shareOwner);
 				$tr.attr('data-mounttype', 'shared-root');
@@ -183,6 +188,11 @@
 						id: share.file_source,
 						mimetype: share.mimetype
 					};
+					
+					if('projectname' in share) {
+						file.projectname = share.projectname;
+					}
+					
 					if (share.item_type === 'folder') {
 						file.type = 'dir';
 						file.mimetype = 'httpd/unix-directory';
