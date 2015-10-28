@@ -79,7 +79,7 @@
 			$tr.attr('data-share-id', _.pluck(fileData.shares, 'id').join(','));
 			
             if('projectname' in fileData) {
-                $tr.find('span.projecttext').text('cernbox-project-' + fileData.projectname + '-readers<br>cernbox-project-' + fileData.projectname + '-writers');
+                $tr.find('span.projecttext').append('<p>cernbox-project-' + fileData.projectname + '-readers</p><p>cernbox-project-' + fileData.projectname + '-writers</p>');
             }
 			
 			if (this._sharedWithUser) {
