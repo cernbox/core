@@ -162,7 +162,8 @@
 							' <img class="svg" src="' + OC.imagePath('core', 'actions/share') + '"></img>';
 					$tr.find('.fileactions').append(function() {
 						var shareBy = escapeHTML($tr.attr('data-share-owner'));
-						var $result = $(shareNotification + '<span> ' + shareBy + '</span></span>');
+						var shareByDisplayName = escapeHTML($tr.attr('data-share-owner-displayname'));
+						var $result = $(shareNotification + '<span> ' + shareByDisplayName + ' (' + shareBy + ')</span></span>');
 						$result.on('click', function() {
 							return false;
 						});

@@ -79,6 +79,7 @@
 			$tr.attr('data-share-id', _.pluck(fileData.shares, 'id').join(','));
 			if (this._sharedWithUser) {
 				$tr.attr('data-share-owner', fileData.shareOwner);
+				$tr.attr('data-share-owner-displayname', fileData.ownerDisplayName);
 				$tr.attr('data-mounttype', 'shared-root');
 				var permission = parseInt($tr.attr('data-permissions')) | OC.PERMISSION_DELETE;
 				$tr.attr('data-permissions', permission);
@@ -183,6 +184,11 @@
 						id: share.file_source,
 						mimetype: share.mimetype
 					};
+					
+					if('displayname_owner' in share) {
+						file.ownerDisplayName = share.displayname_owner;
+					}
+					
 					if (share.item_type === 'folder') {
 						file.type = 'dir';
 						file.mimetype = 'httpd/unix-directory';
