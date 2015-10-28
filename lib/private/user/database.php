@@ -133,7 +133,7 @@ class OC_User_Database extends OC_User_Backend implements \OCP\IUserBackend {
 	 *
 	 * Get a list of all display names and user ids.
 	 */
-	public function getDisplayNames($search = '', $limit = null, $offset = null) {
+	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
 		$displayNames = array();
 		$query = OC_DB::prepare('SELECT `uid`, `displayname` FROM `*PREFIX*users`'
 			. ' WHERE LOWER(`displayname`) LIKE LOWER(?) OR '
@@ -205,7 +205,7 @@ class OC_User_Database extends OC_User_Backend implements \OCP\IUserBackend {
 	 *
 	 * Get a list of all users.
 	 */
-	public function getUsers($search = '', $limit = null, $offset = null) {
+	public function getUsers($search = '', $limit = null, $offset = null, $searchParams = null) {
 		$query = OC_DB::prepare('SELECT `uid` FROM `*PREFIX*users` WHERE LOWER(`uid`) LIKE LOWER(?) ORDER BY `uid` ASC', $limit, $offset);
 		$result = $query->execute(array('%' . $search . '%'));
 		$users = array();

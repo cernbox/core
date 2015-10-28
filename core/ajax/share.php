@@ -236,7 +236,18 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			if (isset($_GET['search'])) {
 				$shareWithinGroupOnly = OC\Share\Share::shareWithGroupMembersOnly();
 				$shareWith = array();
-				$groups = OC_Group::getGroups($_GET['search']);
+				
+				$searchStr = '';
+				$searchParams = '';
+				$colonPos = FALSE;
+				if(($colonPos = strpos($_GET['search'], ';')) != FALSE) {
+					$searchParams = substr($_GET['search'], 0, $colonPos);
+					$searchStr = substr($_GET['search'], $colonPos + 1);
+				} else {
+					$searchStr = $_GET['search'];
+				}
+				
+				$groups = OC_Group::getGroups($searchStr);
 				if ($shareWithinGroupOnly) {
 					$usergroups = OC_Group::getUserGroups(OC_User::getUser());
 					$groups = array_intersect($groups, $usergroups);
@@ -248,9 +259,9 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				while ($count < 15 && count($users) == $limit) {
 					$limit = 15 - $count;
 					if ($shareWithinGroupOnly) {
-						$users = OC_Group::DisplayNamesInGroups($usergroups, $_GET['search'], $limit, $offset);
+						$users = OC_Group::DisplayNamesInGroups($usergroups, $searchStr, $limit, $offset);
 					} else {
-						$users = OC_User::getDisplayNames($_GET['search'], $limit, $offset);
+						$users = OC_User::getDisplayNames($searchStr, $limit, $offset, $searchParams);
 					}
 					$offset += $limit;
 					foreach ($users as $uid => $displayName) {

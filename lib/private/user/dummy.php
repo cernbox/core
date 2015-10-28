@@ -110,7 +110,7 @@ class OC_User_Dummy extends OC_User_Backend implements \OCP\IUserBackend {
 	 *
 	 * Get a list of all users.
 	 */
-	public function getUsers($search = '', $limit = null, $offset = null) {
+	public function getUsers($search = '', $limit = null, $offset = null, $searchParams = null) {
 		if (empty($search)) {
 			return array_keys($this->users);
 		}

@@ -1068,7 +1068,7 @@ class Access extends LDAPUtility implements user\IUserTools {
 	 */
 	private function getFilterPartForSearch($search, $searchAttributes, $fallbackAttribute) {
 		$filter = array();
-		$haveMultiSearchAttributes = (is_array($searchAttributes) && count($searchAttributes) > 0);
+		/*$haveMultiSearchAttributes = (is_array($searchAttributes) && count($searchAttributes) > 0);
 		if($haveMultiSearchAttributes && strpos(trim($search), ' ') !== false) {
 			try {
 				return $this->getAdvancedFilterPartForSearch($search, $searchAttributes);
@@ -1079,7 +1079,7 @@ class Access extends LDAPUtility implements user\IUserTools {
 					\OCP\Util::INFO
 				);
 			}
-		}
+		}*/
 		$search = empty($search) ? '*' : $search.'*';
 		if(!is_array($searchAttributes) || count($searchAttributes) === 0) {
 			if(empty($fallbackAttribute)) {

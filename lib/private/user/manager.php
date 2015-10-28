@@ -207,10 +207,10 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * @param int $offset
 	 * @return \OC\User\User[]
 	 */
-	public function searchDisplayName($pattern, $limit = null, $offset = null) {
+	public function searchDisplayName($pattern, $limit = null, $offset = null, $searchParams = null) {
 		$users = array();
 		foreach ($this->backends as $backend) {
-			$backendUsers = $backend->getDisplayNames($pattern, $limit, $offset);
+			$backendUsers = $backend->getDisplayNames($pattern, $limit, $offset, $searchParams);
 			if (is_array($backendUsers)) {
 				foreach ($backendUsers as $uid => $displayName) {
 					$usr = $this->getUserObject($uid, $backend);

@@ -122,7 +122,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 *
 	 * Get a list of all users.
 	 */
-	public function getUsers($search = '', $limit = 10, $offset = 0) {
+	public function getUsers($search = '', $limit = 10, $offset = 0, $searchParams = null) {
 		$search = $this->access->escapeFilterPart($search, true);
 		$cachekey = 'getUsers-'.$search.'-'.$limit.'-'.$offset;
 
@@ -137,10 +137,28 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		if($limit <= 0) {
 			$limit = null;
 		}
+		
+		$slicedParams = str_split($searchParams);
+		
+		// Nadir TODO Modularize parameters parsing
+		// By now, we will use only 'a' (search for secondary accounts as well as primary accounts)
+		
 		$filter = $this->access->combineFilterWithAnd(array(
 			$this->access->connection->ldapUserFilter,
-			$this->access->getFilterPartForUserSearch($search)
+			$this->access->getFilterPartForUserSearch($search),
 		));
+		
+		if($slicedParams[0] == 'a') {
+			$filter = $this->access->combineFilterWithAnd(array(
+				$filter,
+				'employeeType=*',
+			));		
+		} else {
+			$filter = $this->access->combineFilterWithAnd(array(
+					$filter,
+					'employeeType=Primary',
+			));
+		}
 
 		\OCP\Util::writeLog('user_ldap',
 			'getUsers: Options: search '.$search.' limit '.$limit.' offset '.$offset.' Filter: '.$filter,
@@ -333,13 +351,13 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 *
 	 * Get a list of all display names and user ids.
 	 */
-	public function getDisplayNames($search = '', $limit = null, $offset = null) {
+	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
 		$cacheKey = 'getDisplayNames-'.$search.'-'.$limit.'-'.$offset;
 		if(!is_null($displayNames = $this->access->connection->getFromCache($cacheKey))) {
 			return $displayNames;
 		}
 
-		$users = $this->getUsers($search, $limit, $offset);
+		$users = $this->getUsers($search, $limit, $offset, $searchParams);
 		$this->access->connection->writeToCache($cacheKey, $users);
 		return $users;
 	}

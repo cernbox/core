@@ -556,9 +556,9 @@ class OC_User {
 	 * Get a list of all display names and user ids.
 	 * @deprecated Use \OC::$server->getUserManager->searchDisplayName($search, $limit, $offset) instead.
 	 */
-	public static function getDisplayNames($search = '', $limit = null, $offset = null) {
+	public static function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
 		$displayNames = array();
-		$users = self::getManager()->searchDisplayName($search, $limit, $offset);
+		$users = self::getManager()->searchDisplayName($search, $limit, $offset, $searchParams);
 		foreach ($users as $user) {
 			$displayNames[$user->getUID()] = $user->getDisplayName();
 		}
