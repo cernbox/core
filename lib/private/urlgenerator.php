@@ -162,6 +162,7 @@ class URLGenerator implements IURLGenerator {
 	 * @return string Full path to the image
 	 */
 	public function absoluteImagePath($app, $image) {
+		$theme = \OC_Util::getTheme();
 		$imgPath = '';
 		if (file_exists(($imgPath = \OC::$SERVERROOT . "/themes/$theme/core/img/$image"))) {
 			return $imgPath;
