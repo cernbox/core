@@ -34,9 +34,9 @@ foreach ($files as $file) {
 		$dir = $pathinfo["dirname"];
 		$dir = substr($dir,6); // remove the files/ part
 		if($restoredFile === 17) {
-			$errors[] = $pathinfo["basename"] . " (folder/file already exists)";
+			$error[] = $pathinfo["basename"] . " (folder/file already exists)";
 		} else {
-			$errors[] = $pathinfo["basename"] . " (you need to create the folder: $dir)";
+			$error[] = $pathinfo["basename"] . " (you need to create the folder: $dir)";
 		}
 		OC_Log::write('trashbin', 'can\'t restore ' . $pathinfo['basename'], OC_Log::ERROR);
 	}
