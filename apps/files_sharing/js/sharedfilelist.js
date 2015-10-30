@@ -77,6 +77,13 @@
 			$tr.find('td.date').before($tr.children('td:first'));
 			$tr.find('td.filename input:checkbox').remove();
 			$tr.attr('data-share-id', _.pluck(fileData.shares, 'id').join(','));
+			
+			$tr.find('span.pathtext').text(fileData.eospath);
+			
+			if('projectname' in fileData) {
+				$tr.find('span.projecttext').append('<p>cernbox-project-' + fileData.projectname + '-readers</p><p>cernbox-project-' + fileData.projectname + '-writers</p>');
+			}
+			
 			if (this._sharedWithUser) {
 				$tr.attr('data-share-owner', fileData.shareOwner);
 				$tr.attr('data-mounttype', 'shared-root');
@@ -183,6 +190,15 @@
 						id: share.file_source,
 						mimetype: share.mimetype
 					};
+					
+					if('eospath' in share) {
+						file.eospath = share.eospath;
+					}
+					
+					if('projectname' in share) {
+						file.projectname = share.projectname;
+					}
+					
 					if (share.item_type === 'folder') {
 						file.type = 'dir';
 						file.mimetype = 'httpd/unix-directory';

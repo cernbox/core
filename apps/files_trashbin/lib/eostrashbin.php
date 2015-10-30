@@ -168,6 +168,7 @@ class EosTrashbin {
 			$file['name']      = $pathinfo['basename'];
 			$file['date']      = \OCP\Util::formatDate($timestamp);
 			$file['mtime'] = $timestamp * 1000;
+			$file['eosrestorepath'] = $rf['restore-path'];
 			//The icon of the file is changed depending on the mime
 			// We need to implement a mime type by extension may be in EosUtil
 			$file['type'] = $type;
