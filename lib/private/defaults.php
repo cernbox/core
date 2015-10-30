@@ -36,7 +36,7 @@ class OC_Defaults {
 		$this->defaultiOSClientUrl = 'https://cernbox.cern.ch/cernbox/doc';
 		$this->defaultiTunesAppId = '543672169';
 		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=ch.cern.cernbox';
-		$this->defaultDocBaseUrl = 'http://doc.owncloud.org';
+		$this->defaultDocBaseUrl = 'http://cernbox.cern.ch/cernbox/doc';
 		$this->defaultDocVersion = $version[0] . '.0'; // used to generate doc links
 		$this->defaultSloganUrl = "http://cernbox.cern.ch/cernbox/doc";
 		$this->defaultSlogan = $this->l->t('Help and Download Clients');
