@@ -771,6 +771,10 @@
 					'currentUploads': 0
 				}));
 			}
+			
+			var eosRestorePath = $('<span></span>').addClass('restorepathtext');
+			linkElem.append(eosRestorePath);
+			
 			td.append(linkElem);
 			tr.append(td);
 
@@ -1071,6 +1075,16 @@
 				}
 			}
 		},
+		
+		/**
+		 * Convenient function to process custom parameters in the
+		 * JSON Response among the different apps filelist
+		 * 
+		 * @parameter fileDataArray array containing response files data
+		 */
+		processJSONFileResponse: function(fileDataArray) {
+			return fileDataArray;
+		},
 
 		/**
 		 * Reloads the file list using ajax call
@@ -1130,7 +1144,8 @@
 				this.setDirectoryPermissions(result.data.permissions);
 			}
 
-			this.setFiles(result.data.files);
+			var processedFiles = this.processJSONFileResponse(result.data.files);
+			this.setFiles(processedFiles);
 			return true;
 		},
 

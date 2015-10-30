@@ -83,11 +83,16 @@
 				this.setPageTitle(getDeletedFileName(baseDir));
 			}
 		},
-
-		_createRow: function() {
+		
+		processJSONFileResponse: function(fileDataArray) {
+			return fileDataArray;
+		},
+		
+		_createRow: function(fileData) {
 			// FIXME: MEGAHACK until we find a better solution
 			var tr = OCA.Files.FileList.prototype._createRow.apply(this, arguments);
 			tr.find('td.filesize').remove();
+			tr.find('span.restorepathtext').append('<b>Restore path:</b> ' + fileData.eosrestorepath);
 			return tr;
 		},
 

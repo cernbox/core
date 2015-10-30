@@ -165,6 +165,9 @@ class EosTrashbin {
 			}
 			$timestamp         = (int)$rf['deletion-time'];
 			$file['id']        = $rf['restore-key'];
+			
+			$file['eosrestorepath'] = $rf['restore-path'];
+			
 			$file['name']      = $pathinfo['basename'];
 			$file['date']      = \OCP\Util::formatDate($timestamp);
 			$file['mtime'] = $timestamp * 1000;
