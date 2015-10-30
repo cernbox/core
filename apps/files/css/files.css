@@ -299,6 +299,13 @@ table td.filename .nametext, .pathtext, .projecttext, .restorepathtext {
 	height: 100%;
 }
 
+.hiddenpathtext .hiddenprojecttext .hiddenrestorepathtext {
+	margin:0;
+	padding:0;
+	width:0;
+	height:0;
+}
+
 .pathtext {
 	font-weight:bold;
     padding:0;

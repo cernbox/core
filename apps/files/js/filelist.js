@@ -772,13 +772,13 @@
 				}));
 			}
 			
-			var eosPath = $('<span></span>').addClass('pathtext');
+			var eosPath = $('<span></span>').addClass('hiddenpathtext');
 			linkElem.append(eosPath);
 			
-			var egroupProject = $('<span></span>').addClass('projecttext');
+			var egroupProject = $('<span></span>').addClass('hiddenprojecttext');
 			linkElem.append(egroupProject);
 			
-			var eosRestorePath = $('<span></span>').addClass('restorepathtext');
+			var eosRestorePath = $('<span></span>').addClass('hiddenrestorepathtext');
 			linkElem.append(eosRestorePath);
 			
 			td.append(linkElem);
