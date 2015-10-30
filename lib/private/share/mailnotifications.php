@@ -168,6 +168,7 @@ class MailNotifications {
 		$formatedDate = $expiration ? $this->l->l('date', $expiration) : null;
 
 		$html = new \OC_Template("core", "mail", "");
+		$html->assign('user_id', $this->senderId);
 		$html->assign ('link', $link);
 		$html->assign ('user_displayname', $this->senderDisplayName);
 		$html->assign ('filename', $filename);
@@ -235,7 +236,8 @@ class MailNotifications {
 	 */
 	private function createMailBodyEosUser($filename, $link, $recipient_username, $path) {
 		$html = new \OC_Template("core", "maileosuser", "");
-		$html->assign ('user_displayname',\OCP\User::getUser());
+		$html->assign ('user_id', \OC::$server->getUserSession()->getUser()->getUID());
+		$html->assign ('user_displayname',\OC::$server->getUserSession()->getUser()->getDisplayName());
 		$html->assign ('filename', $filename);
 		$html->assign ('link', $link);
 		$html->assign ('recipient', $recipient_username);
@@ -255,7 +257,8 @@ class MailNotifications {
 	}
 	private function createMailBodyEosEGroup($filename, $link, $recipient_username, $path) {
 		$html = new \OC_Template("core", "maileosegroup", "");
-		$html->assign ('user_displayname',\OCP\User::getUser());
+		$html->assign ('user_id', \OC::$server->getUserSession()->getUser()->getUID());
+		$html->assign ('user_displayname',\OC::$server->getUserSession()->getUser()->getDisplayName());
 		$html->assign ('filename', $filename);
 		$html->assign ('link', $link);
 		$html->assign ('recipient', $recipient_username);

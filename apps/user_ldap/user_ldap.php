@@ -317,7 +317,8 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		$displayName = $this->access->readAttribute(
 			$this->access->username2dn($uid),
-			$this->access->connection->ldapUserDisplayName);
+			//$this->access->connection->ldapUserDisplayName);
+			'displayname');
 
 		if($displayName && (count($displayName) > 0)) {
 			$this->access->connection->writeToCache($cacheKey, $displayName[0]);

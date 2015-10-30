@@ -153,6 +153,23 @@ class URLGenerator implements IURLGenerator {
 			throw new RuntimeException('image not found: image:' . $image . ' webroot:' . \OC::$WEBROOT . ' serverroot:' . \OC::$SERVERROOT);
 		}
 	}
+	
+	/**
+	 * Nadir TODO: Complete me
+	 * Returns the absolute image path of the given $image withing the local server
+	 * @param string $app (Optional), App from where it should look for the image
+	 * @param string $image Name of the image we are looking for
+	 * @return string Full path to the image
+	 */
+	public function absoluteImagePath($app, $image) {
+		$theme = \OC_Util::getTheme();
+		$imgPath = '';
+		if (file_exists(($imgPath = \OC::$SERVERROOT . "/themes/$theme/core/img/$image"))) {
+			return $imgPath;
+		}
+		
+		throw new RuntimeException('Absolut image path not found: image:' . $image . ' serverroot:' . \OC::$SERVERROOT);
+	}
 
 
 	/**
