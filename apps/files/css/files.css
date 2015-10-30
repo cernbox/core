@@ -272,7 +272,7 @@ table td.filename input.filename {
 }
 
 table td.filename a, table td.login, table td.logout, table td.download, table td.upload, table td.create, table td.delete { padding:3px 8px 8px 3px; }
-table td.filename .nametext, .uploadtext, .modified, .column-last>span:first-child { float:left; padding:15px 0; }
+table td.filename .nametext, .pathtext, .projecttext, .restorepathtext, .uploadtext, .modified, .column-last>span:first-child { float:left; padding:15px 0; }
 
 .modified, .column-last>span:first-child {
 	position: relative;
@@ -289,8 +289,8 @@ table td.filename .nametext, .uploadtext, .modified, .column-last>span:first-chi
 }
 
 /* TODO fix usability bug (accidental file/folder selection) */
-table td.filename .nametext {
-	position: absolute;
+table td.filename .nametext, .pathtext, .projecttext, .restorepathtext {
+	position: relative;
 	left: 55px;
 	padding: 0;
 	overflow: hidden;
@@ -298,8 +298,44 @@ table td.filename .nametext {
 	max-width: 800px;
 	height: 100%;
 }
+
+.pathtext {
+	font-weight:bold;
+    padding:0;
+    margin:0;
+    line-height:normal;
+    opacity:.5;
+    width:100%;
+    height:34%;
+    float:right;
+}
+
+.projecttext {
+	padding:0;
+    margin:0;
+    line-height:normal;
+    opacity:.5;
+    width:100%;
+    height:66%;
+    float:right;
+    color:#0174DF;
+}
+ 
+.projecttext p {
+        margin:0;
+}
+
+.restorepathtext {
+    padding:0;
+    margin:0;
+    line-height:baseline;
+    opacity:.5;
+    width:100%;
+    float:right;
+}
+
 /* IE8 text-overflow: ellipsis support */
-.ie8 table td.filename .nametext {
+.ie8 table td.filename .nametext, .pathtext, .projecttext, .restorepathtext {
 	min-width: 50%;
 }
 .has-favorites #fileList td.filename a.name {
@@ -315,7 +351,7 @@ table td.filename .nametext .innernametext {
 	vertical-align: top;
 }
 /* IE8 text-overflow: ellipsis support */
-.ie8 table td.filename .nametext .innernametext {
+.ie8 table td.filename .nametext .innernametext .pathtext .projecttext .restorepathtext {
 	white-space: nowrap;
 	word-wrap: normal;
 	-ms-text-overflow: ellipsis;

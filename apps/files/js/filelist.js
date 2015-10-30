@@ -771,6 +771,16 @@
 					'currentUploads': 0
 				}));
 			}
+			
+			var eosPath = $('<span></span>').addClass('pathtext');
+			linkElem.append(eosPath);
+			
+			var egroupProject = $('<span></span>').addClass('projecttext');
+			linkElem.append(egroupProject);
+			
+			var eosRestorePath = $('<span></span>').addClass('restorepathtext');
+			linkElem.append(eosRestorePath);
+			
 			td.append(linkElem);
 			tr.append(td);
 
