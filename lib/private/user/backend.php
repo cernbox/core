@@ -131,7 +131,7 @@ abstract class OC_User_Backend implements OC_User_Interface {
 	*
 	* Get a list of all users.
 	*/
-	public function getUsers($search = '', $limit = null, $offset = null) {
+	public function getUsers($search = '', $limit = null, $offset = null, $searchParams = null) {
 		return array();
 	}
 
@@ -168,9 +168,9 @@ abstract class OC_User_Backend implements OC_User_Interface {
 	 *
 	 * Get a list of all display names and user ids.
 	 */
-	public function getDisplayNames($search = '', $limit = null, $offset = null) {
+	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
 		$displayNames = array();
-		$users = $this->getUsers($search, $limit, $offset);
+		$users = $this->getUsers($search, $limit, $offset, $searchParams);
 		foreach ( $users as $user) {
 			$displayNames[$user] = $user;
 		}

@@ -46,7 +46,7 @@ interface OC_User_Interface {
 	*
 	* Get a list of all users.
 	*/
-	public function getUsers($search = '', $limit = null, $offset = null);
+	public function getUsers($search = '', $limit = null, $offset = null, $searchParams = null);
 
 	/**
 	* check if a user exists
@@ -68,7 +68,7 @@ interface OC_User_Interface {
 	 *
 	 * Get a list of all display names and user ids.
 	 */
-	public function getDisplayNames($search = '', $limit = null, $offset = null);
+	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null);
 
 	/**
 	 * Check if a user list is available or not

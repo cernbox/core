@@ -81,7 +81,7 @@ class OC_USER_WEBDAVAUTH extends OC_User_Backend implements \OCP\IUserBackend {
 	/*
 	* we don´t know the users so all we can do it return an empty array here
 	*/
-	public function getUsers($search = '', $limit = 10, $offset = 0) {
+	public function getUsers($search = '', $limit = 10, $offset = 0, $searchParams = null) {
 		$returnArray = array();
 
 		return $returnArray;
