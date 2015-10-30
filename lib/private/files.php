@@ -39,7 +39,10 @@ class OC_Files {
 	 * @param bool $zip
 	 */
 	private static function sendHeaders($filename, $name, $zip = false) {
-		OC_Response::setContentDispositionHeader($name, 'attachment');
+		// Nadir TODO: Create a file type filter to check which files we allow to be shown as inline content
+		if(!$zip) {
+			OC_Response::setContentDispositionHeader($name, 'attachment');
+		}
 		header('Content-Transfer-Encoding: binary');
 		OC_Response::disableCaching();
 		if ($zip) {
