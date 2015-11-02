@@ -218,44 +218,12 @@
 						return $result;
 					});
 				}
-				
-				//----
-				
-				/*$tr.find('.fileactions .action-share-info').remove();
-				var shareInfo = '<a class="action action-share-info permanent"' +
-						' data-action="Share-Information" href="#" original-title="">' +
-						' <img class="svg" src="' + OC.imagePath('core', 'actions/share') + '"></img>';
-				$tr.find('.fileactions').append(function() {
-					var $result = $(shareInfo + '<span>Info</span>');
-					$result.on('click', function() {
-						
-						if(OCA.Sharing.Util.infoDropDownShown) {
-							var curFileId = $tr.attr('data-item-id');
-							if($('#dropdown').data('item-id') != curFileId) {
-								OCA.Sharing.Util.hideInfoDropDown(function () {
-									OCA.Sharing.Util.showInfoDropDown(curFileId, $tr.attr('eospath'), $tr.attr('projectname'), $(this));
-								});
-							} else {
-								OCA.Sharing.Util.hideInfoDropDown();
-								OCA.Sharing.Util.infoDropDownShown = false;
-							}
-						} else {
-							OCA.Sharing.Util.showInfoDropDown($tr.attr('data-item-id'), $tr.attr('eospath'), $tr.attr('projectname'), $(this));
-							OCA.Sharing.Util.infoDropDownShown = true;
-						}
-							
-						return false;
-					});
-					return $result;
-				});*/
-				
-				//----
 			}
 			
 			$tr.find('.fileactions .action-share-info').remove();
 			var shareInfo = '<a class="action action-share-info permanent"' +
 					' data-action="Share-Information" href="#" original-title="">' +
-					' <img class="svg" src="' + OC.imagePath('core', 'actions/share') + '"></img>';
+					' <img class="svg" src="' + OC.imagePath('core', 'actions/info') + '"></img>';
 			$tr.find('.fileactions').append(function() {
 				var $result = $(shareInfo + '<span>Info</span>');
 				$result.on('click', function() {
