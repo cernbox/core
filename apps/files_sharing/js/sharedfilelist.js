@@ -77,13 +77,12 @@
 			$tr.find('td.date').before($tr.children('td:first'));
 			$tr.find('td.filename input:checkbox').remove();
 			$tr.attr('data-share-id', _.pluck(fileData.shares, 'id').join(','));
-
-			var eosPath = $tr.find('span.hiddenpathtext').removeClass('hiddenpathtext').addClass('pathtext');
-			eosPath.text(fileData.eospath);
+			
+			$tr.attr('data-item-id', fileData.id);
+			$tr.attr('eospath', fileData.eospath);
 			
 			if('projectname' in fileData) {
-				var egroupProject = $tr.find('span.hiddenprojecttext').removeClass('hiddenprojecttext').addClass('projecttext');
-				egroupProject.append('<p>cernbox-project-' + fileData.projectname + '-readers</p><p>cernbox-project-' + fileData.projectname + '-writers</p>');
+				$tr.attr('projectname', fileData.projectname);
 			}
 			
 			if (this._sharedWithUser) {

@@ -16,6 +16,9 @@
 	 * @namespace
 	 */
 	OCA.Sharing.Util = {
+			
+		infoDropDownShown: false,
+		
 		/**
 		 * Initialize the sharing plugin.
 		 *
@@ -24,7 +27,7 @@
 		 *
 		 * @param {OCA.Files.FileList} fileList file list to be extended
 		 */
-		attach: function(fileList) {
+		attach : function(fileList) {
 			if (fileList.id === 'trashbin' || fileList.id === 'files.public') {
 				return;
 			}
@@ -33,10 +36,14 @@
 			fileList._createRow = function(fileData) {
 				var tr = oldCreateRow.apply(this, arguments);
 				var sharePermissions = fileData.permissions;
-				if (fileData.mountType && fileData.mountType === "external-root"){
-					// for external storages we cant use the permissions of the mountpoint
-					// instead we show all permissions and only use the share permissions from the mountpoint to handle resharing
-					sharePermissions = sharePermissions | (OC.PERMISSION_ALL & ~OC.PERMISSION_SHARE);
+				if (fileData.mountType
+						&& fileData.mountType === "external-root") {
+					// for external storages we cant use the permissions of the
+					// mountpoint
+					// instead we show all permissions and only use the share
+					// permissions from the mountpoint to handle resharing
+					sharePermissions = sharePermissions
+							| (OC.PERMISSION_ALL & ~OC.PERMISSION_SHARE);
 				}
 				if (fileData.type === 'file') {
 					// files can't be shared with delete permissions
@@ -47,17 +54,19 @@
 					tr.attr('data-share-owner', fileData.ownerid);
 					// user should always be able to rename a mount point
 					if (fileData.isShareMountPoint) {
-						tr.attr('data-permissions', fileData.permissions | OC.PERMISSION_UPDATE);
+						tr.attr('data-permissions', fileData.permissions
+								| OC.PERMISSION_UPDATE);
 					}
 				}
 				if (fileData.recipientsDisplayName) {
-					tr.attr('data-share-recipients', fileData.recipientsDisplayName);
+					tr.attr('data-share-recipients',
+							fileData.recipientsDisplayName);
 				}
 				return tr;
 			};
 
 			// use delegate to catch the case with multiple file lists
-			fileList.$el.on('fileActionsReady', function(ev){
+			fileList.$el.on('fileActionsReady', function(ev) {
 				var fileList = ev.fileList;
 				var $files = ev.$files;
 
@@ -71,71 +80,107 @@
 					});
 				}
 
-				if (!OCA.Sharing.sharesLoaded){
+				if (!OCA.Sharing.sharesLoaded) {
 					OC.Share.loadIcons('file', fileList, function() {
-						// since we don't know which files are affected, just refresh them all
+						// since we don't know which files are affected, just
+						// refresh them all
 						updateIcons();
 					});
 					// assume that we got all shares, so switching directories
 					// will not invalidate that list
 					OCA.Sharing.sharesLoaded = true;
-				}
-				else{
+				} else {
 					updateIcons($files);
 				}
 			});
+			
+			/*fileActions.register(
+					'all',
+					'Info',
+					OC.PERMISSION_READ,
+					OC.imagePath('core', 'actions/share'),
+					function(filename, context) {
+						window.alert("here");
+					},
+					
+					t('files_sharing', 'Info'));*/
 
 			fileActions.register(
 					'all',
 					'Share',
 					OC.PERMISSION_SHARE,
 					OC.imagePath('core', 'actions/share'),
-					function(filename, context) {
+ 					function(filename, context) {
+						var $tr = context.$file;
+						var itemType = 'file';
+						if ($tr.data('type') === 'dir') {
+							itemType = 'folder';
+						}
+						var possiblePermissions = $tr.data('share-permissions');
+						if (_.isUndefined(possiblePermissions)) {
+							possiblePermissions = $tr.data('permissions');
+						}
 
-				var $tr = context.$file;
-				var itemType = 'file';
-				if ($tr.data('type') === 'dir') {
-					itemType = 'folder';
-				}
-				var possiblePermissions = $tr.data('share-permissions');
-				if (_.isUndefined(possiblePermissions)) {
-					possiblePermissions = $tr.data('permissions');
-				}
-
-				var appendTo = $tr.find('td.filename');
-				// Check if drop down is already visible for a different file
-				if (OC.Share.droppedDown) {
-					if ($tr.attr('data-id') !== $('#dropdown').attr('data-item-source')) {
-						OC.Share.hideDropDown(function () {
+						var appendTo = $tr.find('td.filename');
+						// Check if drop down is already visible for a different file
+						if (OC.Share.droppedDown) {
+							if ($tr.attr('data-id') !== $('#dropdown').attr('data-item-source')) {
+								OC.Share.hideDropDown(function() {
+									$tr.addClass('mouseOver');
+									OC.Share.showDropDown(itemType, $tr.data('id'), appendTo, true, possiblePermissions, filename);
+								});
+							} else {
+								OC.Share.hideDropDown();
+							}
+						} else {
 							$tr.addClass('mouseOver');
 							OC.Share.showDropDown(itemType, $tr.data('id'), appendTo, true, possiblePermissions, filename);
-						});
-					} else {
-						OC.Share.hideDropDown();
-					}
-				} else {
-					$tr.addClass('mouseOver');
-					OC.Share.showDropDown(itemType, $tr.data('id'), appendTo, true, possiblePermissions, filename);
+						}
+						
+						$('#dropdown').on(
+								'sharesChanged', function(ev) {
+									// files app current cannot show recipients on load,
+									// so we don't update the
+									// icon when changed for consistency
+									if (context.fileList.$el
+											.closest('#app-content-files').length) {
+										return;
+									}
+									var recipients = _.pluck(ev.shares[OC.Share.SHARE_TYPE_USER],'share_with_displayname');
+									var groupRecipients = _.pluck(ev.shares[OC.Share.SHARE_TYPE_GROUP],'share_with_displayname');
+									recipients = recipients.concat(groupRecipients);
+									// note: we only update the data attribute because
+									// updateIcon()
+									// is called automatically after this event
+									if (recipients.length) {
+										$tr.attr('data-share-recipients',OCA.Sharing.Util.formatRecipients(recipients));
+									} else {
+										$tr.removeAttr('data-share-recipients');
+									}
+								});
+					}, t('files_sharing', 'Share'));
+		},
+		
+		showInfoDropDown: function(fileId, eospath, projectname, appendTo) {
+			
+			var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
+			html += '<p class="pathtext">Eos Path: ' + eospath + '</p>';
+			html += '<p class="projecttext">cernbox-project-' + projectname + '-readers</p>';
+			html += '<p class="projecttext">cernbox-project-' + projectname + '-writers</p>';
+			html += '</div>';
+			
+			var dropDownEl = $(html);
+			dropDownEl = dropDownEl.appendTo(appendTo);
+		},
+		
+		hideInfoDropDown: function(callback) {
+			$('#dropdown').hide('blind', function() {
+				$('#dropdown').remove();
+				
+				if(callback) {
+					callback.call();
 				}
-				$('#dropdown').on('sharesChanged', function(ev) {
-					// files app current cannot show recipients on load, so we don't update the
-					// icon when changed for consistency
-					if (context.fileList.$el.closest('#app-content-files').length) {
-						return;
-					}
-					var recipients = _.pluck(ev.shares[OC.Share.SHARE_TYPE_USER], 'share_with_displayname');
-					var groupRecipients = _.pluck(ev.shares[OC.Share.SHARE_TYPE_GROUP], 'share_with_displayname');
-					recipients = recipients.concat(groupRecipients);
-					// note: we only update the data attribute because updateIcon()
-					// is called automatically after this event
-					if (recipients.length) {
-						$tr.attr('data-share-recipients', OCA.Sharing.Util.formatRecipients(recipients));
-					}
-					else {
-						$tr.removeAttr('data-share-recipients');
-					}
-				});
-			}, t('files_sharing', 'Share'));
+			});
 		},
 
 		/**
@@ -170,6 +215,38 @@
 						return $result;
 					});
 				}
+				
+				//----
+				
+				$tr.find('.fileactions .action-share-info').remove();
+				var shareInfo = '<a class="action action-share-info permanent"' +
+						' data-action="Share-Information" href="#" original-title="">' +
+						' <img class="svg" src="' + OC.imagePath('core', 'actions/share') + '"></img>';
+				$tr.find('.fileactions').append(function() {
+					var $result = $(shareInfo + '<span>Info</span>');
+					$result.on('click', function() {
+						
+						if(OCA.Sharing.Util.infoDropDownShown) {
+							var curFileId = $tr.attr('data-item-id');
+							if($('#dropdown').data('item-id') != curFileId) {
+								OCA.Sharing.Util.hideInfoDropDown(function () {
+									OCA.Sharing.Util.showInfoDropDown(curFileId, $tr.attr('eospath'), $tr.attr('projectname'), $(this));
+								});
+							} else {
+								OCA.Sharing.Util.hideInfoDropDown();
+								OCA.Sharing.Util.infoDropDownShown = false;
+							}
+						} else {
+							OCA.Sharing.Util.showInfoDropDown($tr.attr('data-item-id'), $tr.attr('eospath'), $tr.attr('projectname'), $(this));
+							OCA.Sharing.Util.infoDropDownShown = true;
+						}
+							
+						return false;
+					});
+					return $result;
+				});
+				
+				//----
 			}
 		},
 

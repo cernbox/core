@@ -270,7 +270,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							|| !in_array($uid, $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER]))
 							&& $uid != OC_User::getUser()) {
 							$shareWith[] = array(
-								'label' => $uid . ' (' . $displayName . ')' ,
+								'label' => $displayName . ' (' . $uid . ')' ,
 								'value' => array(
 									'shareType' => OCP\Share::SHARE_TYPE_USER,
 									'shareWith' => $uid)
