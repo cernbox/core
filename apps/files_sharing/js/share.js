@@ -165,8 +165,10 @@
 			
 			var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
 			html += '<p class="pathtext">Eos Path: ' + eospath + '</p>';
-			html += '<p class="projecttext">cernbox-project-' + projectname + '-readers</p>';
-			html += '<p class="projecttext">cernbox-project-' + projectname + '-writers</p>';
+			if(projectname != 'undefined') {
+				html += '<p class="projecttext">cernbox-project-' + projectname + '-readers</p>';
+				html += '<p class="projecttext">cernbox-project-' + projectname + '-writers</p>';
+			}
 			html += '</div>';
 			
 			var dropDownEl = $(html);
