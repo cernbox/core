@@ -1080,7 +1080,7 @@ class Access extends LDAPUtility implements user\IUserTools {
 				);
 			}
 		}*/
-		$search = empty($search) ? '*' : $search.'*';
+		$search = empty($search) ? '*' : '*'.$search.'*';
 		if(!is_array($searchAttributes) || count($searchAttributes) === 0) {
 			if(empty($fallbackAttribute)) {
 				return '';
