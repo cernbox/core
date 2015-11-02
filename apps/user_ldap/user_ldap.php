@@ -124,13 +124,13 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function getUsers($search = '', $limit = 10, $offset = 0, $searchParams = null) {
 		$search = $this->access->escapeFilterPart($search, true);
-		$cachekey = 'getUsers-'.$search.'-'.$limit.'-'.$offset;
+		//$cachekey = 'getUsers-'.$search.'-'.$limit.'-'.$offset;
 
 		//check if users are cached, if so return
-		$ldap_users = $this->access->connection->getFromCache($cachekey);
+		/*$ldap_users = $this->access->connection->getFromCache($cachekey);
 		if(!is_null($ldap_users)) {
 			return $ldap_users;
-		}
+		}*/
 
 		// if we'd pass -1 to LDAP search, we'd end up in a Protocol
 		// error. With a limit of 0, we get 0 results. So we pass null.
@@ -171,7 +171,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$ldap_users = $this->access->ownCloudUserNames($ldap_users);
 		\OCP\Util::writeLog('user_ldap', 'getUsers: '.count($ldap_users). ' Users found', \OCP\Util::DEBUG);
 
-		$this->access->connection->writeToCache($cachekey, $ldap_users);
+		//$this->access->connection->writeToCache($cachekey, $ldap_users);
 		return $ldap_users;
 	}
 
@@ -353,13 +353,13 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * Get a list of all display names and user ids.
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
-		$cacheKey = 'getDisplayNames-'.$search.'-'.$limit.'-'.$offset;
+		/*$cacheKey = 'getDisplayNames-'.$search.'-'.$limit.'-'.$offset;
 		if(!is_null($displayNames = $this->access->connection->getFromCache($cacheKey))) {
 			return $displayNames;
-		}
+		}*/
 
 		$users = $this->getUsers($search, $limit, $offset, $searchParams);
-		$this->access->connection->writeToCache($cacheKey, $users);
+		//$this->access->connection->writeToCache($cacheKey, $users);
 		return $users;
 	}
 

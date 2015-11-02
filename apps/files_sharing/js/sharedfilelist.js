@@ -87,7 +87,7 @@
 			}
 			
 			if (this._sharedWithUser) {
-				$tr.attr('data-share-owner', fileData.shareOwner);
+				$tr.attr('data-share-owner', fileData.ownderid);
 				$tr.attr('data-share-owner-displayname', fileData.ownerDisplayName);
 				$tr.attr('data-mounttype', 'shared-root');
 				var permission = parseInt($tr.attr('data-permissions')) | OC.PERMISSION_DELETE;
@@ -193,6 +193,8 @@
 						id: share.file_source,
 						mimetype: share.mimetype
 					};
+					
+					file.ownerid = share['uid_owner'];
 					
 					if('displayname_owner' in share) {
 						file.ownerDisplayName = share.displayname_owner;
