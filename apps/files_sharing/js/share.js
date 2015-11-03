@@ -164,8 +164,9 @@
 		showInfoDropDown: function(fileId, eospath, projectname, appendTo) {
 			OCA.Sharing.Util.infoDropDownShown = true;
 			var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
-			html += '<p class="pathtext">Eos Path: ' + eospath + '</p>';
+			html += '<p class="pathtext"><u>EOS Path</u>: ' + eospath + '</p>';
 			if(projectname != 'undefined') {
+				html += '<p class="pathtext"><u>Project EGroups permissions</u></p>';
 				html += '<p class="projecttext">cernbox-project-' + projectname + '-readers</p>';
 				html += '<p class="projecttext">cernbox-project-' + projectname + '-writers</p>';
 			}

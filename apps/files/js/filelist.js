@@ -628,6 +628,10 @@
 			this.$fileList.trigger($.Event('fileActionsReady', {fileList: this, $files: $files}));
 
 		},
+		
+		setFilesCallBack: function(filesArray) {
+			
+		},
 
 		/**
 		 * Sets the files to be displayed in the list.
@@ -636,6 +640,8 @@
 		 */
 		setFiles: function(filesArray) {
 			// detach to make adding multiple rows faster
+			this.setFilesCallBack(filesArray);
+			
 			this.files = filesArray;
 
 			this.$fileList.empty();
@@ -1069,6 +1075,7 @@
 				.addClass(direction === 'desc' ? this.SORT_INDICATOR_DESC_CLASS : this.SORT_INDICATOR_ASC_CLASS);
 			if (update) {
 				if (this._clientSideSort) {
+					window.alert('Called ' + this.files.length);
 					this.files.sort(this._sortComparator);
 					this.setFiles(this.files);
 				}
@@ -2151,6 +2158,7 @@
 		 * 0 if they are identify, 1 otherwise.
 		 */
 		name: function(fileInfo1, fileInfo2) {
+			
 			if (fileInfo1.type === 'dir' && fileInfo2.type !== 'dir') {
 				return -1;
 			}
@@ -2168,6 +2176,7 @@
 		 * 0 if they are identify, 1 otherwise.
 		 */
 		size: function(fileInfo1, fileInfo2) {
+			
 			return fileInfo1.size - fileInfo2.size;
 		},
 		/**
@@ -2179,6 +2188,7 @@
 		 * 0 if they are identify, 1 otherwise.
 		 */
 		mtime: function(fileInfo1, fileInfo2) {
+			
 			return fileInfo1.mtime - fileInfo2.mtime;
 		}
 	};

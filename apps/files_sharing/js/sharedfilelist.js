@@ -62,6 +62,8 @@
 			}
 			OC.Plugins.attach('OCA.Sharing.FileList', this);
 		},
+		
+		
 
 		_renderRow: function() {
 			// HACK: needed to call the overridden _renderRow

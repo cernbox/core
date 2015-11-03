@@ -86,7 +86,7 @@
 				<?php foreach($_['settingsnavigation'] as $entry):?>
 					<li>
 						<a href="<?php print_unescaped($entry['href']); ?>" title=""
-							<?php if( $entry["active"] ): ?> class="active"<?php endif; ?>>
+							<?php if( $entry["active"] ): ?> class="active"<?php endif; ?> target="_blank">
 							<img class="svg" alt="" src="<?php print_unescaped($entry['icon']); ?>">
 							<?php p($entry['name']) ?>
 						</a>

@@ -17,6 +17,8 @@ OCA.Trashbin = {};
  */
 OCA.Trashbin.App = {
 	_initialized: false,
+	
+	dropDownShown: false, 
 
 	initialize: function($el) {
 		if (this._initialized) {
@@ -29,6 +31,26 @@ OCA.Trashbin.App = {
 				fileActions: this._createFileActions()
 			}
 		);
+	},
+	
+	showInfoDropDown: function(fileId, eospath, appendTo) {
+		OCA.Trashbin.App.dropDownShown = true;
+		var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
+		html += '<p class="pathtext"><u>EOS Restore Path</u>: ' + eospath + '</p></div>';
+		
+		var dropDownEl = $(html);
+		dropDownEl = dropDownEl.appendTo(appendTo);
+	},
+	
+	hideInfoDropDown: function(callback) {
+		OCA.Trashbin.App.dropDownShown = false;
+		$('#dropdown').hide('blind', function() {
+			$('#dropdown').remove();
+			
+			if(callback) {
+				callback.call();
+			}
+		});
 	},
 
 	_createFileActions: function() {
@@ -56,6 +78,28 @@ OCA.Trashbin.App = {
 				_.bind(fileList._removeCallback, fileList)
 			);
 		}, t('files_trashbin', 'Restore'));
+		
+		
+		fileActions.register('all', 'Info', OC.PERMISSION_READ, OC.imagePath('core', 'actions/info'), function(filename, context) {
+			var fileList = context.fileList;
+			var tr = fileList.findFileEl(filename);
+			
+			if(OCA.Trashbin.App.dropDownShown) {
+				var curFileId = tr.attr('data-item-id');
+				if($('#dropdown').data('item-id') != curFileId) {
+					OCA.Trashbin.App.hideInfoDropDown(function () {
+						OCA.Trashbin.App.showInfoDropDown(curFileId, tr.attr('eospath'), $(tr).find('.action.action-info'));
+					});
+				} else {
+					OCA.Trashbin.App.hideInfoDropDown();
+					OCA.Trashbin.App.dropDownShown = false;
+				}
+			} else {
+				OCA.Trashbin.App.showInfoDropDown(tr.attr('data-item-id'), tr.attr('eospath'), $(tr).find('.action.action-info'));
+				OCA.Trashbin.App.dropDownShown = true;
+			}
+		
+		}, t('files_trashbin', 'Info'));
 
 		/* HUGO hide delete button per file. EOS does not support per file purge
 		fileActions.registerAction({
@@ -97,6 +141,7 @@ $(document).ready(function() {
 	$('#app-content-trashbin').one('show', function() {
 		var App = OCA.Trashbin.App;
 		App.initialize($('#app-content-trashbin'));
+		
 		// force breadcrumb init
 		// App.fileList.changeDirectory(App.fileList.getCurrentDirectory(), false, true);
 	});

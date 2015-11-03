@@ -42,15 +42,14 @@
 		/** @lends OCA.Trashbin.FileList.prototype */ {
 		id: 'trashbin',
 		appName: t('files_trashbin', 'Deleted files'),
-
+		
 		/**
 		 * @private
 		 */
 		initialize: function() {
 			var result = OCA.Files.FileList.prototype.initialize.apply(this, arguments);
 			this.$el.find('.undelete').click('click', _.bind(this._onClickRestoreSelected, this));
-
-			this.setSort('mtime', 'desc');
+			
 			/**
 			 * Override crumb making to add "Deleted Files" entry
 			 * and convert files with ".d" extensions to a more
@@ -65,7 +64,22 @@
 			};
 
 			OC.Plugins.attach('OCA.Trashbin.FileList', this);
+			
+			//this.$fileList.setSort('mtime', 'desc', true);
+			
+			/*this.$fileList.bind('updated', function () {
+				window.alert("Inside handler");
+				OCA.Trashbin.App.fileList.setSort('mtime', 'desc', true);
+			});*/
+			
 			return result;
+		},
+		
+		setFilesCallBack: function(filesArray) {
+			filesArray.sort(function(fileInfo1, fileInfo2) {
+				return -OCA.Files.FileList.Comparators.mtime(fileInfo1, fileInfo2);
+			});
+			OCA.Files.FileList.prototype.setFilesCallBack.apply(this, arguments);
 		},
 
 		/**
@@ -88,10 +102,10 @@
 			// FIXME: MEGAHACK until we find a better solution
 			var tr = OCA.Files.FileList.prototype._createRow.apply(this, arguments);
 			tr.find('td.filesize').remove();
-
-			var span = tr.find('span.hiddenrestorepathtext').removeClass('hiddenrestorepathtext').addClass('restorepathtext');
-			span.append('<b>Restore path:</b> ' + fileData.eosrestorepath);
-
+			
+			tr.attr('data-item-id', fileData.id);
+			tr.attr('eospath', fileData.eosrestorepath);
+		
 			return tr;
 		},
 
