@@ -247,11 +247,18 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					$searchStr = $_GET['search'];
 				}
 				
-				$groups = OC_Group::getGroups($searchStr);
-				if ($shareWithinGroupOnly) {
-					$usergroups = OC_Group::getUserGroups(OC_User::getUser());
-					$groups = array_intersect($groups, $usergroups);
+				$searchForGroups = (strpos($searchParams, 'a') === false);
+				$groups = array();
+				$usergroups = array();
+				
+				if($searchForGroups) {
+					$groups = OC_Group::getGroups($searchStr);
+					if ($shareWithinGroupOnly) {
+						$usergroups = OC_Group::getUserGroups(OC_User::getUser());
+						$groups = array_intersect($groups, $usergroups);
+					}
 				}
+				
 				$count = 0;
 				$users = array();
 				$limit = 0;
@@ -284,23 +291,25 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				// enable l10n support
 				$l = \OC::$server->getL10N('core');
 
-				foreach ($groups as $group) {
-					if ($count < 15) {
-						if (!isset($_GET['itemShares'])
-							|| !isset($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
-							|| !is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
-							|| !in_array($group, $_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])) {
-							$shareWith[] = array(
-								'label' => $group,
-								'value' => array(
-									'shareType' => OCP\Share::SHARE_TYPE_GROUP,
-									'shareWith' => $group
-								)
-							);
-							$count++;
+				if($searchForGroups) {
+					foreach ($groups as $group) {
+						if ($count < 15) {
+							if (!isset($_GET['itemShares'])
+								|| !isset($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
+								|| !is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
+								|| !in_array($group, $_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])) {
+								$shareWith[] = array(
+									'label' => $group,
+									'value' => array(
+										'shareType' => OCP\Share::SHARE_TYPE_GROUP,
+										'shareWith' => $group
+									)
+								);
+								$count++;
+							}
+						} else {
+							break;
 						}
-					} else {
-						break;
 					}
 				}
 
