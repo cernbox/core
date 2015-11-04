@@ -748,7 +748,7 @@
 
 			// from here work on the display name
 			name = fileData.displayName || name;
-
+			
 			// split extension from filename for non dirs
 			if (type !== 'dir' && name.indexOf('.') !== -1) {
 				basename = name.substr(0, name.lastIndexOf('.'));
@@ -1075,8 +1075,7 @@
 				.addClass(direction === 'desc' ? this.SORT_INDICATOR_DESC_CLASS : this.SORT_INDICATOR_ASC_CLASS);
 			if (update) {
 				if (this._clientSideSort) {
-					window.alert('Called ' + this.files.length);
-					this.files.sort(this._sortComparator);
+					//this.files.sort(this._sortComparator);
 					this.setFiles(this.files);
 				}
 				else {

@@ -42,6 +42,8 @@
 		/** @lends OCA.Trashbin.FileList.prototype */ {
 		id: 'trashbin',
 		appName: t('files_trashbin', 'Deleted files'),
+		initialSorted: false,
+		_clientSideSort: true,
 		
 		/**
 		 * @private
@@ -76,9 +78,12 @@
 		},
 		
 		setFilesCallBack: function(filesArray) {
-			filesArray.sort(function(fileInfo1, fileInfo2) {
-				return -OCA.Files.FileList.Comparators.mtime(fileInfo1, fileInfo2);
-			});
+			if(!this.initialSorted) {
+				filesArray.sort(function(fileInfo1, fileInfo2) {
+					return -OCA.Files.FileList.Comparators.mtime(fileInfo1, fileInfo2);
+				});
+				this.initialSorted = true;
+			}
 			OCA.Files.FileList.prototype.setFilesCallBack.apply(this, arguments);
 		},
 
@@ -118,8 +123,8 @@
 				fileData.mtime = parseInt(fileData.mtime, 10);
 			}
 			if (!dirListing) {
-				fileData.displayName = fileData.name;
-		                fileData.name = fileData.id;
+				fileData.displayName = fileData.displayName || fileData.name;
+		        fileData.name = fileData.id;
 			}
 			return OCA.Files.FileList.prototype._renderRow.call(this, fileData, options);
 		},
