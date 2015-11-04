@@ -143,19 +143,18 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		// Nadir TODO Modularize parameters parsing
 		// By now, we will use only 'a' (search for secondary accounts as well as primary accounts)
 		
-		$filter = $this->access->combineFilterWithAnd(array(
-			$this->access->connection->ldapUserFilter,
-			$this->access->getFilterPartForUserSearch($search),
-		));
+		$filter = '';
 		
 		if($slicedParams[0] == 'a') {
 			$filter = $this->access->combineFilterWithAnd(array(
-				$filter,
+				$this->access->connection->ldapUserFilter,
+				$this->access->getFilterPartForUserSearch($search),
 				'employeeType=*',
 			));		
 		} else {
 			$filter = $this->access->combineFilterWithAnd(array(
-					$filter,
+					$this->access->connection->ldapUserFilter,
+					$this->access->getFilterPartForUserSearch($search),
 					'employeeType=Primary',
 			));
 		}
