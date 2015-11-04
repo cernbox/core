@@ -560,7 +560,7 @@ class OC_User {
 		$displayNames = array();
 		$users = self::getManager()->searchDisplayName($search, $limit, $offset, $searchParams);
 		foreach ($users as $user) {
-			$displayNames[$user->getUID()] = $user->getDisplayName();
+			$displayNames[$user->getUID()] = $user->getDisplayName(false);
 		}
 		return $displayNames;
 	}

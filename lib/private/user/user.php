@@ -89,10 +89,10 @@ class User implements IUser {
 	 *
 	 * @return string
 	 */
-	public function getDisplayName() {
+	public function getDisplayName($forceBackend = true) {
 		if (!isset($this->displayName)) {
 			$displayName = '';
-			if ($this->backend and $this->backend->implementsActions(\OC_User_Backend::GET_DISPLAYNAME)) {
+			if ($forceBackend && $this->backend and $this->backend->implementsActions(\OC_User_Backend::GET_DISPLAYNAME)) {
 				// get display name and strip whitespace from the beginning and end of it
 				$backendDisplayName = $this->backend->getDisplayName($this->uid);
 				if (is_string($backendDisplayName)) {
