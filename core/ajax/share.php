@@ -240,7 +240,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				$searchStr = '';
 				$searchParams = '';
 				$colonPos = FALSE;
-				if(($colonPos = strpos($_GET['search'], ';')) != FALSE) {
+				if(($colonPos = strpos($_GET['search'], ':')) != FALSE) {
 					$searchParams = substr($_GET['search'], 0, $colonPos);
 					$searchStr = substr($_GET['search'], $colonPos + 1);
 				} else {
