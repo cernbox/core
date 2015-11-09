@@ -465,14 +465,19 @@ class Access extends LDAPUtility implements user\IUserTools {
 	private function ldap2ownCloudNames($ldapObjects, $isUsers) {
 		if($isUsers) {
 			$nameAttribute = $this->connection->ldapUserDisplayName;
+			$mapper = $this->getUserMapper();
 		} else {
 			$nameAttribute = $this->connection->ldapGroupDisplayName;
+			$mapper = $this->getGroupMapper();
 		}
 		$ownCloudNames = array();
 
 		foreach($ldapObjects as $ldapObject) {
 			$nameByLDAP = isset($ldapObject[$nameAttribute]) ? $ldapObject[$nameAttribute] : null;
-			$ocName = $this->dn2ocname($ldapObject['dn'], $nameByLDAP, $isUsers);
+			$ocName = $nameByLDAP; //$this->dn2ocname($ldapObject['dn'], $nameByLDAP, $isUsers);
+			
+			$mapper->map($ldapObject['dn'], $ocName, $ldapObject['cn']);
+			
 			if($ocName) {
 				$ownCloudNames[$ocName] = (isset($ldapObject['displayname'])? $ldapObject['displayname'] : $ocName);
 				if($isUsers) {
@@ -697,7 +702,7 @@ class Access extends LDAPUtility implements user\IUserTools {
 		}
 
 		//check whether paged search should be attempted
-		$pagedSearchOK = $this->initPagedSearch($filter, $base, $attr, intval($limit), $offset);
+		$pagedSearchOK = false; //XXX $this->initPagedSearch($filter, $base, $attr, intval($limit), $offset);
 
 		$linkResources = array_pad(array(), count($base), $cr);
 		$sr = $this->ldap->search($linkResources, $base, $filter, $attr);
@@ -847,9 +852,10 @@ class Access extends LDAPUtility implements user\IUserTools {
 			//i.e. result do not need to be fetched, we just need the cookie
 			//thus pass 1 or any other value as $iFoundItems because it is not
 			//used
-			$this->processPagedSearchStatus($sr, $filter, $base, 1, $limit,
+			
+			/* XXX $this->processPagedSearchStatus($sr, $filter, $base, 1, $limit,
 											$offset, $pagedSearchOK,
-											$skipHandling);
+											$skipHandling);*/
 			return array();
 		}
 
@@ -865,9 +871,9 @@ class Access extends LDAPUtility implements user\IUserTools {
 			$findings = array_merge($findings, $this->ldap->getEntries($cr	, $res ));
 		}
 
-		$this->processPagedSearchStatus($sr, $filter, $base, $findings['count'],
+		/* XXX $this->processPagedSearchStatus($sr, $filter, $base, $findings['count'],
 										$limit, $offset, $pagedSearchOK,
-										$skipHandling);
+										$skipHandling);*/
 
 		// if we're here, probably no connection resource is returned.
 		// to make ownCloud behave nicely, we simply give back an empty array.
@@ -1027,8 +1033,9 @@ class Access extends LDAPUtility implements user\IUserTools {
 	 */
 	public function getFilterPartForGroupSearch($search) {
 		return $this->getFilterPartForSearch($search,
-			$this->connection->ldapAttributesForGroupSearch,
-			$this->connection->ldapGroupDisplayName);
+				'cn', 'cn');
+			//$this->connection->ldapAttributesForGroupSearch,
+			//$this->connection->ldapGroupDisplayName);
 	}
 
 	/**

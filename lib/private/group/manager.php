@@ -103,9 +103,9 @@ class Manager extends PublicEmitter implements IGroupManager {
 	protected function getGroupObject($gid) {
 		$backends = array();
 		foreach ($this->backends as $backend) {
-			if ($backend->groupExists($gid)) {
+			//if ($backend->groupExists($gid)) {
 				$backends[] = $backend;
-			}
+			//}
 		}
 		if (count($backends) === 0) {
 			return null;

@@ -134,11 +134,11 @@ class User_Proxy extends lib\Proxy implements \OCP\IUserBackend, \OCP\UserInterf
 	 *
 	 * Get a list of all users.
 	 */
-	public function getUsers($search = '', $limit = 10, $offset = 0) {
+	public function getUsers($search = '', $limit = 10, $offset = 0, $searchParams = null) {
 		//we do it just as the /OC_User implementation: do not play around with limit and offset but ask all backends
 		$users = array();
 		foreach($this->backends as $backend) {
-			$backendUsers = $backend->getUsers($search, $limit, $offset);
+			$backendUsers = $backend->getUsers($search, $limit, $offset, $searchParams);
 			if (is_array($backendUsers)) {
 				$users = array_merge($users, $backendUsers);
 			}
@@ -211,11 +211,11 @@ class User_Proxy extends lib\Proxy implements \OCP\IUserBackend, \OCP\UserInterf
 	 *
 	 * Get a list of all display names and user ids.
 	 */
-	public function getDisplayNames($search = '', $limit = null, $offset = null) {
+	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
 		//we do it just as the /OC_User implementation: do not play around with limit and offset but ask all backends
 		$users = array();
 		foreach($this->backends as $backend) {
-			$backendUsers = $backend->getDisplayNames($search, $limit, $offset);
+			$backendUsers = $backend->getDisplayNames($search, $limit, $offset, $searchParams = null);
 			if (is_array($backendUsers)) {
 				$users = $users + $backendUsers;
 			}
@@ -256,4 +256,8 @@ class User_Proxy extends lib\Proxy implements \OCP\IUserBackend, \OCP\UserInterf
 		return $users;
 	}
 
+	
+	public function setDisplayName($displayName) {
+		
+	}
 }

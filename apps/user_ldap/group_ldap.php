@@ -600,7 +600,9 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		$filter = $this->access->combineFilterWithAnd(array(
 			$this->access->connection->ldapGroupFilter,
 			$this->access->getFilterPartForGroupSearch($search)
+			
 		));
+		
 		\OCP\Util::writeLog('user_ldap', 'getGroups Filter '.$filter, \OCP\Util::DEBUG);
 		$ldap_groups = $this->access->fetchListOfGroups($filter,
 				array($this->access->connection->ldapGroupDisplayName, 'dn'),
@@ -634,7 +636,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		   	|| empty($pagingSize)) {
 			return $this->getGroupsChunk($search, $limit, $offset);
 		}
-		$maxGroups = 100000; // limit max results (just for safety reasons)
+		$maxGroups = 15;//100000; // limit max results (just for safety reasons)
 		if ($limit > -1) {
 		   $overallLimit = min($limit, $maxGroups);
 		} else {
