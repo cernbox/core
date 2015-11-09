@@ -1075,7 +1075,7 @@
 				.addClass(direction === 'desc' ? this.SORT_INDICATOR_DESC_CLASS : this.SORT_INDICATOR_ASC_CLASS);
 			if (update) {
 				if (this._clientSideSort) {
-					//this.files.sort(this._sortComparator);
+					this.files.sort(this._sortComparator);
 					this.setFiles(this.files);
 				}
 				else {
