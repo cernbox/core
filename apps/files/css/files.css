@@ -300,15 +300,14 @@ table td.filename .nametext {
 }
 
 .pathtext {
-	font-weight:bold;
+	opacity: 0.5;
 	padding:0;
 	margin:0;
 	line-height:normal;
 }
 
 .projecttext {
-	font-weight:bold;
-	color:#01A9DB;
+	opacity: 0.5;
 	padding:0;
 	margin:0;
 	line-height:normal;

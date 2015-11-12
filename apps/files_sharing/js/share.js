@@ -164,9 +164,9 @@
 		showInfoDropDown: function(fileId, eospath, projectname, appendTo) {
 			OCA.Sharing.Util.infoDropDownShown = true;
 			var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
-			html += '<p class="pathtext"><u>EOS Path</u>: ' + eospath + '</p>';
+			html += '<p class="pathtext">EOS Path: ' + eospath + '</p>';
 			if(projectname && projectname != 'undefined') {
-				html += '<p class="pathtext"><u>Project EGroups permissions</u></p>';
+				html += '<p class="pathtext">Project EGroups permissions</p>';
 				html += '<p class="projecttext">cernbox-project-' + projectname + '-readers</p>';
 				html += '<p class="projecttext">cernbox-project-' + projectname + '-writers</p>';
 			}
@@ -232,14 +232,14 @@
 							var curFileId = $tr.attr('data-item-id');
 							if($('#dropdown').data('item-id') != curFileId) {
 								OCA.Sharing.Util.hideInfoDropDown(function () {
-									OCA.Sharing.Util.showInfoDropDown(curFileId, $tr.attr('eospath'), $tr.attr('projectname'), $(this));
+									OCA.Sharing.Util.showInfoDropDown(curFileId, $tr.attr('eospath'), $tr.attr('projectname'), $tr.find('td.filename'));
 								});
 							} else {
 								OCA.Sharing.Util.hideInfoDropDown();
 								OCA.Sharing.Util.infoDropDownShown = false;
 							}
 						} else {
-							OCA.Sharing.Util.showInfoDropDown($tr.attr('data-item-id'), $tr.attr('eospath'), $tr.attr('projectname'), $(this));
+							OCA.Sharing.Util.showInfoDropDown($tr.attr('data-item-id'), $tr.attr('eospath'), $tr.attr('projectname'), $tr.find('td.filename'));
 							OCA.Sharing.Util.infoDropDownShown = true;
 						}
 							
