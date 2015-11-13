@@ -90,6 +90,42 @@ $previewSupported = OC\Preview::isMimeSupported($_['mimetype']) ? 'true' : 'fals
 				<!-- Preview frame is filled via JS to support SVG images for modern browsers -->
 				<div id="imgframe"></div>
 			<?php endif; ?>
+			<?php $mime = $_['mimetype']; if($mime == 'application/x-root' || $mime == 'text/plain'): ?>
+				<div class="directDownload">
+					<a href="#" id="viewonline" mimetype="<?php p($_['mimetype']); ?>" class="button">
+						<img class="svg" alt="" src="<?php print_unescaped(OCP\image_path("core", "actions/play.svg")); ?>"/>
+						<?php p($l->t('View %s online', array($_['filename'])))?>
+					</a>
+					<script>
+						var dots = 0;
+						
+						$('#viewonline').on('click', function() {
+							var mimetype = $('#viewonline').attr('mimetype');
+							
+							 $('#imgframe').empty();
+							 $('#imgframe').text('Loading');
+							 setInterval(loadingAnimation, 600);
+                             $('div.directDownload').each( function(i) {
+                                     this.remove();
+                             });
+							
+							rootjsShowFileEditor('', $('#sharingToken').attr('value'), mimetype);
+
+							return false;
+						});
+
+						function loadingAnimation() {
+							if(dots < 3) {
+								$('#imgframe').append('.');
+								dots++;
+							} else {
+								dots = 0;
+								$('#imgframe').text('Loading');
+							}
+						}
+					</script>
+				</div>
+			<?php endif;?>
 			<div class="directDownload">
 				<a href="<?php p($_['downloadURL']); ?>" id="download" class="button">
 					<img class="svg" alt="" src="<?php print_unescaped(OCP\image_path("core", "actions/download.svg")); ?>"/>
