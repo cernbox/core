@@ -1,22 +1,23 @@
 <?php
 /**
- * ownCloud
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @author Thomas Tanghus
- * @copyright 2013 Thomas Tanghus thomas@tanghus.net
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -32,6 +33,7 @@ namespace OCP;
 
 /**
  * This interface defines method for accessing the file based user cache.
+ * @since 6.0.0
  */
 interface ICache {
 
@@ -39,6 +41,7 @@ interface ICache {
 	 * Get a value from the user cache
 	 * @param string $key
 	 * @return mixed
+	 * @since 6.0.0
 	 */
 	public function get($key);
 
@@ -48,6 +51,7 @@ interface ICache {
 	 * @param mixed $value
 	 * @param int $ttl Time To Live in seconds. Defaults to 60*60*24
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function set($key, $value, $ttl = 0);
 
@@ -55,6 +59,7 @@ interface ICache {
 	 * Check if a value is set in the user cache
 	 * @param string $key
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function hasKey($key);
 
@@ -62,6 +67,7 @@ interface ICache {
 	 * Remove an item from the user cache
 	 * @param string $key
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function remove($key);
 
@@ -69,6 +75,7 @@ interface ICache {
 	 * Clear the user cache of all entries starting with a prefix
 	 * @param string $prefix (optional)
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function clear($prefix = '');
 }

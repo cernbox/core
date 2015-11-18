@@ -1,30 +1,32 @@
 <?php
-
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright (C) 2015 ownCloud, Inc.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @author Bjoern Schiessle <schiessle@owncloud.com>
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCA\Files_Trashbin;
 
 use OC\Files\Filesystem;
 use OC\Files\Storage\Wrapper\Wrapper;
+use OCP\IUserManager;
 
 class Storage extends Wrapper {
 
@@ -40,8 +42,12 @@ class Storage extends Wrapper {
 	 */
 	private static $disableTrash = false;
 
-	function __construct($parameters) {
+	/** @var  IUserManager */
+	private $userManager;
+
+	function __construct($parameters, IUserManager $userManager = null) {
 		$this->mountPoint = $parameters['mountPoint'];
+		$this->userManager = $userManager;
 		parent::__construct($parameters);
 	}
 
@@ -62,14 +68,87 @@ class Storage extends Wrapper {
 	}
 
 	/**
+	 * Rename path1 to path2 by calling the wrapped storage.
+	 *
+	 * @param string $path1 first path
+	 * @param string $path2 second path
+	 */
+	public function rename($path1, $path2) {
+		$result = $this->storage->rename($path1, $path2);
+		if ($result === false) {
+			// when rename failed, the post_rename hook isn't triggered,
+			// but we still want to reenable the trash logic
+			self::$disableTrash = false;
+		}
+		return $result;
+	}
+
+	/**
 	 * Deletes the given file by moving it into the trashbin.
 	 *
-	 * @param string $path
+	 * @param string $path path of file or folder to delete
+	 *
+	 * @return bool true if the operation succeeded, false otherwise
 	 */
 	public function unlink($path) {
-		if (self::$disableTrash) {
-			return $this->storage->unlink($path);
+		return $this->doDelete($path, 'unlink');
+	}
+
+	/**
+	 * Deletes the given folder by moving it into the trashbin.
+	 *
+	 * @param string $path path of folder to delete
+	 *
+	 * @return bool true if the operation succeeded, false otherwise
+	 */
+	public function rmdir($path) {
+		return $this->doDelete($path, 'rmdir');
+	}
+
+	/**
+	 * check if it is a file located in data/user/files only files in the
+	 * 'files' directory should be moved to the trash
+	 *
+	 * @param $path
+	 * @return bool
+	 */
+	protected function shouldMoveToTrash($path){
+		$normalized = Filesystem::normalizePath($this->mountPoint . '/' . $path);
+		$parts = explode('/', $normalized);
+		if (count($parts) < 4) {
+			return false;
 		}
+
+		if ($this->userManager->userExists($parts[1]) && $parts[2] == 'files') {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Run the delete operation with the given method
+	 *
+	 * @param string $path path of file or folder to delete
+	 * @param string $method either "unlink" or "rmdir"
+	 *
+	 * @return bool true if the operation succeeded, false otherwise
+	 */
+	private function doDelete($path, $method) {
+		if (self::$disableTrash
+			|| !\OC_App::isEnabled('files_trashbin')
+			|| (pathinfo($path, PATHINFO_EXTENSION) === 'part')
+			|| $this->shouldMoveToTrash($path) === false
+		) {
+			return call_user_func_array([$this->storage, $method], [$path]);
+		}
+
+		// check permissions before we continue, this is especially important for
+		// shared files
+		if (!$this->isDeletable($path)) {
+			return false;
+		}
+
 		$normalized = Filesystem::normalizePath($this->mountPoint . '/' . $path);
 		$result = true;
 		if (!isset($this->deletedFiles[$normalized])) {
@@ -81,14 +160,14 @@ class Storage extends Wrapper {
 				// in cross-storage cases the file will be copied
 				// but not deleted, so we delete it here
 				if ($result) {
-					$this->storage->unlink($path);
+					call_user_func_array([$this->storage, $method], [$path]);
 				}
 			} else {
-				$result = $this->storage->unlink($path);
+				$result = call_user_func_array([$this->storage, $method], [$path]);
 			}
 			unset($this->deletedFiles[$normalized]);
 		} else if ($this->storage->file_exists($path)) {
-			$result = $this->storage->unlink($path);
+			$result = call_user_func_array([$this->storage, $method], [$path]);
 		}
 
 		return $result;
@@ -99,8 +178,11 @@ class Storage extends Wrapper {
 	 */
 	public static function setupStorage() {
 		\OC\Files\Filesystem::addStorageWrapper('oc_trashbin', function ($mountPoint, $storage) {
-			return new \OCA\Files_Trashbin\Storage(array('storage' => $storage, 'mountPoint' => $mountPoint));
-		});
+			return new \OCA\Files_Trashbin\Storage(
+				array('storage' => $storage, 'mountPoint' => $mountPoint),
+				\OC::$server->getUserManager()
+			);
+		}, 1);
 	}
 
 }

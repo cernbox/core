@@ -14,8 +14,6 @@ class CertificateManagerTest extends \Test\TestCase {
 	private $certificateManager;
 	/** @var String */
 	private $username;
-	/** @var  \OC\User\User */
-	private $user;
 
 	protected function setUp() {
 		parent::setUp();
@@ -28,7 +26,11 @@ class CertificateManagerTest extends \Test\TestCase {
 		\OC\Files\Filesystem::tearDown();
 		\OC_Util::setupFS($this->username);
 
-		$this->certificateManager = new CertificateManager($this->username, new \OC\Files\View());
+		$config = $this->getMock('OCP\IConfig');
+		$config->expects($this->any())->method('getSystemValue')
+			->with('installed', false)->willReturn(true);
+
+		$this->certificateManager = new CertificateManager($this->username, new \OC\Files\View(), $config);
 	}
 
 	protected function tearDown() {
@@ -67,9 +69,25 @@ class CertificateManagerTest extends \Test\TestCase {
 		$this->certificateManager->addCertificate('InvalidCertificate', 'invalidCertificate');
 	}
 
-	function testAddDangerousFile() {
-		$this->assertFalse($this->certificateManager->addCertificate(file_get_contents(__DIR__.'/../../data/certificates/expiredCertificate.crt'), '.htaccess'));
-		$this->assertFalse($this->certificateManager->addCertificate(file_get_contents(__DIR__.'/../../data/certificates/expiredCertificate.crt'), '../../foo.txt'));
+	/**
+	 * @return array
+	 */
+	public function dangerousFileProvider() {
+		return [
+			['.htaccess'],
+			['../../foo.txt'],
+			['..\..\foo.txt'],
+		];
+	}
+
+	/**
+	 * @expectedException \Exception
+	 * @expectedExceptionMessage Filename is not valid
+	 * @dataProvider dangerousFileProvider
+	 * @param string $filename
+	 */
+	function testAddDangerousFile($filename) {
+		$this->certificateManager->addCertificate(file_get_contents(__DIR__.'/../../data/certificates/expiredCertificate.crt'), $filename);
 	}
 
 	function testRemoveDangerousFile() {

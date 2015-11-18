@@ -1,16 +1,39 @@
 <?php
-
+/**
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 namespace OCA\Files_Sharing;
 
 class Helper {
 
 	public static function registerHooks() {
-		\OCP\Util::connectHook('OC_Filesystem', 'setup', '\OC\Files\Storage\Shared', 'setup');
-		\OCP\Util::connectHook('OC_Filesystem', 'setup', '\OCA\Files_Sharing\External\Manager', 'setup');
-		\OCP\Util::connectHook('OC_Filesystem', 'post_write', '\OC\Files\Cache\Shared_Updater', 'writeHook');
-		\OCP\Util::connectHook('OC_Filesystem', 'post_delete', '\OC\Files\Cache\Shared_Updater', 'postDeleteHook');
 		\OCP\Util::connectHook('OC_Filesystem', 'delete', '\OC\Files\Cache\Shared_Updater', 'deleteHook');
 		\OCP\Util::connectHook('OC_Filesystem', 'post_rename', '\OC\Files\Cache\Shared_Updater', 'renameHook');
+		\OCP\Util::connectHook('OC_Filesystem', 'post_delete', '\OCA\Files_Sharing\Hooks', 'unshareChildren');
 		\OCP\Util::connectHook('OC_Appconfig', 'post_set_value', '\OCA\Files\Share\Maintainer', 'configChangeHook');
 
 		\OCP\Util::connectHook('OCP\Share', 'post_shared', '\OC\Files\Cache\Shared_Updater', 'postShareHook');
@@ -32,13 +55,13 @@ class Helper {
 		$linkItem = \OCP\Share::getShareByToken($token, !$password);
 		if($linkItem === false || ($linkItem['item_type'] !== 'file' && $linkItem['item_type'] !== 'folder')) {
 			\OC_Response::setStatus(404);
-			\OC_Log::write('core-preview', 'Passed token parameter is not valid', \OC_Log::DEBUG);
+			\OCP\Util::writeLog('core-preview', 'Passed token parameter is not valid', \OCP\Util::DEBUG);
 			exit;
 		}
 
 		if(!isset($linkItem['uid_owner']) || !isset($linkItem['file_source'])) {
 			\OC_Response::setStatus(500);
-			\OC_Log::write('core-preview', 'Passed token seems to be valid, but it does not contain all necessary information . ("' . $token . '")', \OC_Log::WARN);
+			\OCP\Util::writeLog('core-preview', 'Passed token seems to be valid, but it does not contain all necessary information . ("' . $token . '")', \OCP\Util::WARN);
 			exit;
 		}
 
@@ -248,8 +271,21 @@ class Helper {
 	 */
 	public static function getShareFolder() {
 		$shareFolder = \OC::$server->getConfig()->getSystemValue('share_folder', '/');
+		$shareFolder = \OC\Files\Filesystem::normalizePath($shareFolder);
 
-		return \OC\Files\Filesystem::normalizePath($shareFolder);
+		if (!\OC\Files\Filesystem::file_exists($shareFolder)) {
+			$dir = '';
+			$subdirs = explode('/', $shareFolder);
+			foreach ($subdirs as $subdir) {
+				$dir = $dir . '/' . $subdir;
+				if (!\OC\Files\Filesystem::is_dir($dir)) {
+					\OC\Files\Filesystem::mkdir($dir);
+				}
+			}
+		}
+
+		return $shareFolder;
+
 	}
 
 	/**
@@ -259,6 +295,22 @@ class Helper {
 	 */
 	public static function setShareFolder($shareFolder) {
 		\OC::$server->getConfig()->setSystemValue('share_folder', $shareFolder);
+	}
+
+	/**
+	 * remove protocol from URL
+	 *
+	 * @param string $url
+	 * @return string
+	 */
+	public static function removeProtocolFromUrl($url) {
+		if (strpos($url, 'https://') === 0) {
+			return substr($url, strlen('https://'));
+		} else if (strpos($url, 'http://') === 0) {
+			return substr($url, strlen('http://'));
+		}
+
+		return $url;
 	}
 
 }

@@ -3,12 +3,18 @@
  See the COPYING-README file. */
 
 #searchresults {
-	background-color:#fff;
-	overflow-x:hidden;
-	text-overflow:ellipsis;
+	background-color: #fff;
+	overflow-x: hidden;
+	text-overflow: ellipsis;
 	padding-top: 65px;
 	box-sizing: border-box;
-	z-index:75;
+	z-index: 75;
+	/* account for margin-bottom in files list */
+	margin-top: -250px;
+}
+#searchresults.filter-empty {
+	/* remove whitespace on bottom when no search results, to fix layout */
+	margin-top: 0 !important;
 }
 
 #searchresults.hidden {
@@ -18,23 +24,23 @@
 	box-sizing: content-box;
 }
 
-#searchresults #status {
+#searchresults .status {
 	background-color: rgba(255, 255, 255, .85);
 	height: 12px;
 	padding: 28px 0 28px 56px;
 	font-size: 18px;
 }
-.has-favorites:not(.hidden) ~ #searchresults #status {
+.has-favorites:not(.hidden) ~ #searchresults .status {
 	padding-left: 102px;
 }
-#searchresults #status.fixed {
+#searchresults .status.fixed {
 	position: fixed;
 	bottom: 0;
 	width: 100%;
 	z-index: 10;
 }
 
-#searchresults #status .spinner {
+#searchresults .status .spinner {
 	height: 16px;
 	width: 16px;
 	vertical-align: middle;

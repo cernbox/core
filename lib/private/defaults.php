@@ -1,8 +1,32 @@
 <?php
-
 /**
- * Default strings and values which differ between the enterprise and the
- * community edition. Use the get methods to always get the right strings.
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Pascal de Bruijn <pmjdebruijn@pcode.nl>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author scolebrook <scolebrook@mac.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Volkan Gezer <volkangezer@gmail.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 class OC_Defaults {
 
@@ -37,18 +61,21 @@ class OC_Defaults {
 		$this->defaultiTunesAppId = '543672169';
 		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=ch.cern.cernbox';
 		$this->defaultDocBaseUrl = 'http://cernbox.cern.ch/cernbox/doc';
-		$this->defaultDocVersion = $version[0] . '.0'; // used to generate doc links
+		$this->defaultDocVersion = $version[0] . '.' . $version[1]; // used to generate doc links
 		$this->defaultSloganUrl = "http://cernbox.cern.ch/cernbox/doc";
 		$this->defaultSlogan = $this->l->t('Help and Download Clients');
 		$this->defaultLogoClaim = '';
 		$this->defaultMailHeaderColor = '#fff'; /* header color of mail notifications */
 
-		if (file_exists(OC::$SERVERROOT . '/themes/' . OC_Util::getTheme() . '/defaults.php')) {
+		$themePath = OC::$SERVERROOT . '/themes/' . OC_Util::getTheme() . '/defaults.php';
+		if (file_exists($themePath)) {
 			// prevent defaults.php from printing output
 			ob_start();
-			require_once 'themes/' . OC_Util::getTheme() . '/defaults.php';
+			require_once $themePath;
 			ob_end_clean();
-			$this->theme = new OC_Theme();
+			if (class_exists('OC_Theme')) {
+				$this->theme = new OC_Theme();
+			}
 		}
 	}
 

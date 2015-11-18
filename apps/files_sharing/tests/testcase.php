@@ -1,22 +1,29 @@
 <?php
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Bjoern Schiessle
- * @copyright 2013 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -24,6 +31,7 @@ namespace OCA\Files_Sharing\Tests;
 
 use OC\Files\Filesystem;
 use OCA\Files\Share;
+use OCA\Files_Sharing\Appinfo\Application;
 
 /**
  * Class Test_Files_Sharing_Base
@@ -35,10 +43,10 @@ abstract class TestCase extends \Test\TestCase {
 	const TEST_FILES_SHARING_API_USER1 = "test-share-user1";
 	const TEST_FILES_SHARING_API_USER2 = "test-share-user2";
 	const TEST_FILES_SHARING_API_USER3 = "test-share-user3";
+	const TEST_FILES_SHARING_API_USER4 = "test-share-user4";
 
 	const TEST_FILES_SHARING_API_GROUP1 = "test-share-group1";
 
-	public static $stateFilesEncryption;
 	public $filename;
 	public $data;
 	/**
@@ -51,27 +59,25 @@ abstract class TestCase extends \Test\TestCase {
 	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
-		// remember files_encryption state
-		self::$stateFilesEncryption = \OC_App::isEnabled('files_encryption');
-
-		//we don't want to tests with app files_encryption enabled
-		\OC_App::disable('files_encryption');
-
+		$application = new Application();
+		$application->registerMountProviders();
+		$application->setupPropagation();
+		
 		// reset backend
 		\OC_User::clearBackends();
-		\OC_User::useBackend('database');
+		\OC_Group::clearBackends();
 
 		// clear share hooks
 		\OC_Hook::clear('OCP\\Share');
 		\OC::registerShareHooks();
-		\OCP\Util::connectHook('OC_Filesystem', 'setup', '\OC\Files\Storage\Shared', 'setup');
 
 		// create users
-		$backend = new \OC_User_Dummy();
+		$backend = new \Test\Util\User\Dummy();
 		\OC_User::useBackend($backend);
 		$backend->createUser(self::TEST_FILES_SHARING_API_USER1, self::TEST_FILES_SHARING_API_USER1);
 		$backend->createUser(self::TEST_FILES_SHARING_API_USER2, self::TEST_FILES_SHARING_API_USER2);
 		$backend->createUser(self::TEST_FILES_SHARING_API_USER3, self::TEST_FILES_SHARING_API_USER3);
+		$backend->createUser(self::TEST_FILES_SHARING_API_USER4, self::TEST_FILES_SHARING_API_USER4);
 
 		// create group
 		$groupBackend = new \OC_Group_Dummy();
@@ -87,8 +93,6 @@ abstract class TestCase extends \Test\TestCase {
 
 	protected function setUp() {
 		parent::setUp();
-
-		$this->assertFalse(\OC_App::isEnabled('files_encryption'));
 
 		//login as user1
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
@@ -113,16 +117,15 @@ abstract class TestCase extends \Test\TestCase {
 		// delete group
 		\OC_Group::deleteGroup(self::TEST_FILES_SHARING_API_GROUP1);
 
-		// reset app files_encryption
-		if (self::$stateFilesEncryption) {
-			\OC_App::enable('files_encryption');
-		} else {
-			\OC_App::disable('files_encryption');
-		}
-
 		\OC_Util::tearDownFS();
 		\OC_User::setUserId('');
 		Filesystem::tearDown();
+
+		// reset backend
+		\OC_User::clearBackends();
+		\OC_User::useBackend('database');
+		\OC_Group::clearBackends();
+		\OC_Group::useBackend(new \OC_Group_Database());
 
 		parent::tearDownAfterClass();
 	}
@@ -144,11 +147,26 @@ abstract class TestCase extends \Test\TestCase {
 			\OC_Group::addToGroup($user, 'group');
 		}
 
+		self::resetStorage();
+
 		\OC_Util::tearDownFS();
 		\OC::$server->getUserSession()->setUser(null);
 		\OC\Files\Filesystem::tearDown();
 		\OC::$server->getUserSession()->login($user, $password);
+		\OC::$server->getUserFolder($user);
+
 		\OC_Util::setupFS($user);
+	}
+
+	/**
+	 * reset init status for the share storage
+	 */
+	protected static function resetStorage() {
+		$storage = new \ReflectionClass('\OC\Files\Storage\Shared');
+		$isInitialized = $storage->getProperty('isInitialized');
+		$isInitialized->setAccessible(true);
+		$isInitialized->setValue(array());
+		$isInitialized->setAccessible(false);
 	}
 
 	/**

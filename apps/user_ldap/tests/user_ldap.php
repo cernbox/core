@@ -1,24 +1,28 @@
 <?php
 /**
-* ownCloud
-*
-* @author Arthur Schiwon
-* @copyright 2013 Arthur Schiwon blizzz@owncloud.com
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace OCA\user_ldap\tests;
 
@@ -30,6 +34,7 @@ use \OCA\user_ldap\lib\ILDAPWrapper;
 class Test_User_Ldap_Direct extends \Test\TestCase {
 	protected $backend;
 	protected $access;
+	protected $configMock;
 
 	protected function setUp() {
 		parent::setUp();
@@ -57,8 +62,9 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 									$conMethods,
 									array($lw, null, null));
 
+		$this->configMock = $this->getMock('\OCP\IConfig');
 		$um = new \OCA\user_ldap\lib\user\Manager(
-				$this->getMock('\OCP\IConfig'),
+				$this->configMock,
 				$this->getMock('\OCA\user_ldap\lib\FilesystemHelper'),
 				$this->getMock('\OCA\user_ldap\lib\LogWrapper'),
 				$this->getMock('\OCP\IAvatarManager'),
@@ -105,12 +111,6 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 	 * @return void
 	 */
 	private function prepareAccessForCheckPassword(&$access, $noDisplayName = false) {
-		$access->expects($this->once())
-			   ->method('escapeFilterPart')
-			   ->will($this->returnCallback(function($uid) {
-				   return $uid;
-			   }));
-
 		$access->connection->expects($this->any())
 			   ->method('__get')
 			   ->will($this->returnCallback(function($name) {
@@ -124,10 +124,19 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 			   ->method('fetchListOfUsers')
 			   ->will($this->returnCallback(function($filter) {
 					if($filter === 'roland') {
-						return array(array('dn' => 'dnOfRoland,dc=test'));
+						return array(array('dn' => ['dnOfRoland,dc=test']));
 					}
 					return array();
 			   }));
+
+		$access->expects($this->any())
+			->method('fetchUsersByLoginName')
+			->will($this->returnCallback(function($uid) {
+				if($uid === 'roland') {
+					return array(array('dn' => ['dnOfRoland,dc=test']));
+				}
+				return array();
+			}));
 
 		$retVal = 'gunslinger';
 		if($noDisplayName === true) {
@@ -253,12 +262,15 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 		$config = $this->getMock('\OCP\IConfig');
 		$config->expects($this->exactly(2))
 			->method('getUserValue')
-			->will($this->returnValue(1));
+			->will($this->onConsecutiveCalls('1', '/var/vhome/jdings/'));
 
 		$backend = new UserLDAP($access, $config);
 
 		$result = $backend->deleteUser('jeremy');
 		$this->assertTrue($result);
+
+		$home = $backend->getHome('jeremy');
+		$this->assertSame($home, '/var/vhome/jdings/');
 	}
 
 	/**
@@ -411,21 +423,53 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 		$this->prepareMockForUserExists($access);
 
 		$access->expects($this->any())
-			   ->method('readAttribute')
-			   ->will($this->returnCallback(function($dn) {
-					if($dn === 'dnOfRoland,dc=test') {
-						return array();
-					}
-					return false;
-			   }));
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn) {
+				if($dn === 'dnOfRoland,dc=test') {
+					return array();
+				}
+				return false;
+			}));
 
 		//test for existing user
 		$result = $backend->userExists('gunslinger');
 		$this->assertTrue($result);
+	}
+
+	/**
+	 * @expectedException \Exception
+	 */
+	public function testUserExistsForDeleted() {
+		$access = $this->getAccessMock();
+		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
+		$this->prepareMockForUserExists($access);
+
+		$access->expects($this->any())
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn) {
+				if($dn === 'dnOfRoland,dc=test') {
+					return array();
+				}
+				return false;
+			}));
 
 		//test for deleted user
 		$result = $backend->userExists('formerUser');
-		$this->assertFalse($result);
+	}
+
+	public function testUserExistsForNeverExisting() {
+		$access = $this->getAccessMock();
+		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
+		$this->prepareMockForUserExists($access);
+
+		$access->expects($this->any())
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn) {
+				if($dn === 'dnOfRoland,dc=test') {
+					return array();
+				}
+				return false;
+			}));
 
 		//test for never-existing user
 		$result = $backend->userExists('mallory');
@@ -439,21 +483,55 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 		\OC_User::useBackend($backend);
 
 		$access->expects($this->any())
-			   ->method('readAttribute')
-			   ->will($this->returnCallback(function($dn) {
-					if($dn === 'dnOfRoland,dc=test') {
-						return array();
-					}
-					return false;
-			   }));
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn) {
+				if($dn === 'dnOfRoland,dc=test') {
+					return array();
+				}
+				return false;
+			}));
 
 		//test for existing user
 		$result = \OCP\User::userExists('gunslinger');
 		$this->assertTrue($result);
+	}
+
+	/**
+	 * @expectedException \Exception
+	 */
+	public function testUserExistsPublicAPIForDeleted() {
+		$access = $this->getAccessMock();
+		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
+		$this->prepareMockForUserExists($access);
+		\OC_User::useBackend($backend);
+
+		$access->expects($this->any())
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn) {
+				if($dn === 'dnOfRoland,dc=test') {
+					return array();
+				}
+				return false;
+			}));
 
 		//test for deleted user
 		$result = \OCP\User::userExists('formerUser');
-		$this->assertFalse($result);
+	}
+
+	public function testUserExistsPublicAPIForNeverExisting() {
+		$access = $this->getAccessMock();
+		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
+		$this->prepareMockForUserExists($access);
+		\OC_User::useBackend($backend);
+
+		$access->expects($this->any())
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn) {
+				if($dn === 'dnOfRoland,dc=test') {
+					return array();
+				}
+				return false;
+			}));
 
 		//test for never-existing user
 		$result = \OCP\User::userExists('mallory');
@@ -469,54 +547,107 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 		$this->assertFalse($result);
 	}
 
-	public function testGetHome() {
+	public function testGetHomeAbsolutePath() {
 		$access = $this->getAccessMock();
 		$config = $this->getMock('\OCP\IConfig');
 		$backend = new UserLDAP($access, $config);
 		$this->prepareMockForUserExists($access);
 
 		$access->connection->expects($this->any())
-			   ->method('__get')
-			   ->will($this->returnCallback(function($name) {
-					if($name === 'homeFolderNamingRule') {
-						return 'attr:testAttribute';
-					}
-					return null;
-			   }));
+			->method('__get')
+			->will($this->returnCallback(function($name) {
+				if($name === 'homeFolderNamingRule') {
+					return 'attr:testAttribute';
+				}
+				return null;
+			}));
 
 		$access->expects($this->any())
-			   ->method('readAttribute')
-			   ->will($this->returnCallback(function($dn, $attr) {
-					switch ($dn) {
-						case 'dnOfRoland,dc=test':
-							if($attr === 'testAttribute') {
-								return array('/tmp/rolandshome/');
-							}
-							return array();
-							break;
-						case 'dnOfLadyOfShadows,dc=test':
-							if($attr === 'testAttribute') {
-								return array('susannah/');
-							}
-							return array();
-							break;
-						default:
-							return false;
-				   }
-			   }));
-
-		$datadir = '/my/data/dir';
-		$config->expects($this->once())
-			->method('getSystemValue')
-			->will($this->returnValue($datadir));
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn, $attr) {
+				switch ($dn) {
+					case 'dnOfRoland,dc=test':
+						if($attr === 'testAttribute') {
+							return array('/tmp/rolandshome/');
+						}
+						return array();
+						break;
+					default:
+						return false;
+				}
+			}));
 
 		//absolut path
 		$result = $backend->getHome('gunslinger');
 		$this->assertEquals('/tmp/rolandshome/', $result);
+	}
 
-		//datadir-relativ path
+	public function testGetHomeRelative() {
+		$access = $this->getAccessMock();
+		$config = $this->getMock('\OCP\IConfig');
+		$backend = new UserLDAP($access, $config);
+		$this->prepareMockForUserExists($access);
+
+		$dataDir = \OC::$server->getConfig()->getSystemValue(
+			'datadirectory', \OC::$SERVERROOT.'/data');
+
+		$this->configMock->expects($this->once())
+			->method('getSystemValue')
+			->will($this->returnValue($dataDir));
+
+		$access->connection->expects($this->any())
+			->method('__get')
+			->will($this->returnCallback(function($name) {
+				if($name === 'homeFolderNamingRule') {
+					return 'attr:testAttribute';
+				}
+				return null;
+			}));
+
+		$access->expects($this->any())
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn, $attr) {
+				switch ($dn) {
+					case 'dnOfLadyOfShadows,dc=test':
+						if($attr === 'testAttribute') {
+							return array('susannah/');
+						}
+						return array();
+						break;
+					default:
+						return false;
+				}
+			}));
+
 		$result = $backend->getHome('ladyofshadows');
-		$this->assertEquals($datadir.'/susannah/', $result);
+		$this->assertEquals($dataDir.'/susannah/', $result);
+	}
+
+	/**
+	 * @expectedException \Exception
+	 */
+	public function testGetHomeNoPath() {
+		$access = $this->getAccessMock();
+		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
+		$this->prepareMockForUserExists($access);
+
+		$access->connection->expects($this->any())
+			->method('__get')
+			->will($this->returnCallback(function($name) {
+				if($name === 'homeFolderNamingRule') {
+					return 'attr:testAttribute';
+				}
+				return null;
+			}));
+
+		$access->expects($this->any())
+			->method('readAttribute')
+			->will($this->returnCallback(function($dn, $attr) {
+				switch ($dn) {
+					default:
+						return false;
+				}
+			}));
 
 		//no path at all – triggers OC default behaviour
 		$result = $backend->getHome('newyorker');
@@ -556,6 +687,12 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
 		$this->prepareMockForUserExists($access);
 
+		$access->connection->expects($this->any())
+			->method('getConnectionResource')
+			->will($this->returnCallback(function() {
+				return true;
+			}));
+
 		//with displayName
 		$result = $backend->getDisplayName('gunslinger');
 		$this->assertEquals('Roland Deschain', $result);
@@ -567,9 +704,36 @@ class Test_User_Ldap_Direct extends \Test\TestCase {
 
 	public function testGetDisplayNamePublicAPI() {
 		$access = $this->getAccessMock();
+		$access->expects($this->any())
+			->method('username2dn')
+			->will($this->returnCallback(function($uid) {
+				switch ($uid) {
+					case 'gunslinger':
+						return 'dnOfRoland,dc=test';
+						break;
+					case 'formerUser':
+						return 'dnOfFormerUser,dc=test';
+						break;
+					case 'newyorker':
+						return 'dnOfNewYorker,dc=test';
+						break;
+					case 'ladyofshadows':
+						return 'dnOfLadyOfShadows,dc=test';
+						break;
+					default:
+						return false;
+				}
+			}));
 		$this->prepareAccessForGetDisplayName($access);
 		$backend = new UserLDAP($access, $this->getMock('\OCP\IConfig'));
 		$this->prepareMockForUserExists($access);
+
+		$access->connection->expects($this->any())
+			->method('getConnectionResource')
+			->will($this->returnCallback(function() {
+				return true;
+			}));
+
 		\OC_User::useBackend($backend);
 
 		//with displayName

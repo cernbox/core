@@ -1,17 +1,14 @@
 OC.L10N.register(
     "files",
     {
+    "Close" : "మూసివేయి",
     "Delete" : "తొలగించు",
     "Error" : "పొరపాటు",
     "Name" : "పేరు",
     "Size" : "పరిమాణం",
-    "_%n folder_::_%n folders_" : ["",""],
-    "_%n file_::_%n files_" : ["",""],
-    "_Uploading %n file_::_Uploading %n files_" : ["",""],
-    "_matches '{filter}'_::_match '{filter}'_" : ["",""],
-    "Save" : "భద్రపరచు",
-    "Settings" : "అమరికలు",
+    "Folder" : "సంచయం",
     "New folder" : "కొత్త సంచయం",
-    "Folder" : "సంచయం"
+    "Save" : "భద్రపరచు",
+    "Settings" : "అమరికలు"
 },
 "nplurals=2; plural=(n != 1);");

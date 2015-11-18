@@ -1,25 +1,30 @@
 <?php
 /**
- * ownCloud
+ * @author Andrew Brown <andrew@casabrown.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is distributed in the hope that it will be useful,
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OC\Search\Result;
-use OC\Files\Filesystem;
 use OCP\Files\FileInfo;
+use OCP\Files\Folder;
 
 /**
  * A found file
@@ -87,14 +92,22 @@ class File extends \OCP\Search\Result {
 	}
 
 	/**
+	 * @var Folder $userFolderCache
+	 */
+	static protected $userFolderCache = null;
+
+	/**
 	 * converts a path relative to the users files folder
 	 * eg /user/files/foo.txt -> /foo.txt
 	 * @param string $path
 	 * @return string relative path
 	 */
 	protected function getRelativePath ($path) {
-		$root = \OC::$server->getUserFolder();
-		return $root->getRelativePath($path);
+		if (!isset(self::$userFolderCache)) {
+			$user = \OC::$server->getUserSession()->getUser()->getUID();
+			self::$userFolderCache = \OC::$server->getUserFolder($user);
+		}
+		return self::$userFolderCache->getRelativePath($path);
 	}
 
 }

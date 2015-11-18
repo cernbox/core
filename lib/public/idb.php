@@ -1,23 +1,22 @@
 <?php
-
 /**
- * ownCloud - App Framework
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt dev@bernhard-posselt.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -26,8 +25,9 @@ namespace OCP;
 
 /**
  * Small Facade for being able to inject the database connection for tests
+ * @since 7.0.0 - extends IDBConnection was added in 8.1.0
  */
-interface IDb {
+interface IDb extends IDBConnection {
 
 
     /**
@@ -36,6 +36,7 @@ interface IDb {
      * @param int $limit the maximum number of rows
      * @param int $offset from which row we want to start
      * @return \OC_DB_StatementWrapper prepared SQL query
+	 * @since 7.0.0
      */
     public function prepareQuery($sql, $limit=null, $offset=null);
 
@@ -44,6 +45,7 @@ interface IDb {
      * Used to get the id of the just inserted element
      * @param string $tableName the name of the table where we inserted the item
      * @return int the id of the inserted element
+	 * @since 7.0.0
      */
     public function getInsertId($tableName);
 

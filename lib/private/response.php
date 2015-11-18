@@ -1,9 +1,29 @@
 <?php
 /**
- * Copyright (c) 2011 Bart Visscher bartv@thisnet.nl
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 class OC_Response {
@@ -158,11 +178,12 @@ class OC_Response {
 	 * @param string $type disposition type, either 'attachment' or 'inline'
 	 */
 	static public function setContentDispositionHeader( $filename, $type = 'attachment' ) {
-		if (OC_Request::isUserAgent(array(
-				OC_Request::USER_AGENT_IE,
-				OC_Request::USER_AGENT_ANDROID_MOBILE_CHROME,
-				OC_Request::USER_AGENT_FREEBOX
-			))) {
+		if (\OC::$server->getRequest()->isUserAgent(
+			[
+				\OC\AppFramework\Http\Request::USER_AGENT_IE,
+				\OC\AppFramework\Http\Request::USER_AGENT_ANDROID_MOBILE_CHROME,
+				\OC\AppFramework\Http\Request::USER_AGENT_FREEBOX,
+			])) {
 			header( 'Content-Disposition: ' . rawurlencode($type) . '; filename="' . rawurlencode( $filename ) . '"' );
 		} else {
 			header( 'Content-Disposition: ' . rawurlencode($type) . '; filename*=UTF-8\'\'' . rawurlencode( $filename )
@@ -171,16 +192,38 @@ class OC_Response {
 	}
 
 	/**
-	* Send file as response, checking and setting caching headers
-	* @param string $filepath of file to send
-	*/
+	 * Sets the content length header (with possible workarounds)
+	 * @param string|int|float $length Length to be sent
+	 */
+	static public function setContentLengthHeader($length) {
+		if (PHP_INT_SIZE === 4) {
+			if ($length > PHP_INT_MAX && stripos(PHP_SAPI, 'apache') === 0) {
+				// Apache PHP SAPI casts Content-Length headers to PHP integers.
+				// This enforces a limit of PHP_INT_MAX (2147483647 on 32-bit
+				// platforms). So, if the length is greater than PHP_INT_MAX,
+				// we just do not send a Content-Length header to prevent
+				// bodies from being received incompletely.
+				return;
+			}
+			// Convert signed integer or float to unsigned base-10 string.
+			$lfh = new \OC\LargeFileHelper;
+			$length = $lfh->formatUnsignedInteger($length);
+		}
+		header('Content-Length: '.$length);
+	}
+
+	/**
+	 * Send file as response, checking and setting caching headers
+	 * @param string $filepath of file to send
+	 * @deprecated 8.1.0 - Use \OCP\AppFramework\Http\StreamResponse or another AppFramework controller instead
+	 */
 	static public function sendFile($filepath) {
 		$fp = fopen($filepath, 'rb');
 		if ($fp) {
 			self::setLastModifiedHeader(filemtime($filepath));
 			self::setETagHeader(md5_file($filepath));
 
-			header('Content-Length: '.filesize($filepath));
+			self::setContentLengthHeader(filesize($filepath));
 			fpassthru($fp);
 		}
 		else {
@@ -188,36 +231,36 @@ class OC_Response {
 		}
 	}
 
-	/*
+	/**
 	 * This function adds some security related headers to all requests served via base.php
 	 * The implementation of this function has to happen here to ensure that all third-party
 	 * components (e.g. SabreDAV) also benefit from this headers.
 	 */
 	public static function addSecurityHeaders() {
-		header('X-XSS-Protection: 1; mode=block'); // Enforce browser based XSS filters
-		header('X-Content-Type-Options: nosniff'); // Disable sniffing the content type for IE
-
-		// iFrame Restriction Policy
-		$xFramePolicy = OC_Config::getValue('xframe_restriction', true);
-		if ($xFramePolicy) {
-			header('X-Frame-Options: Sameorigin'); // Disallow iFraming from other domains
-		}
-
-		// Content Security Policy
-		// If you change the standard policy, please also change it in config.sample.php
-		$policy = OC_Config::getValue('custom_csp_policy',
-			'default-src \'self\'; '
+		/**
+		 * FIXME: Content Security Policy for legacy ownCloud components. This
+		 * can be removed once \OCP\AppFramework\Http\Response from the AppFramework
+		 * is used everywhere.
+		 * @see \OCP\AppFramework\Http\Response::getHeaders
+		 */
+		$policy = 'default-src \'self\'; '
 			. 'script-src \'self\' \'unsafe-eval\'; '
 			. 'style-src \'self\' \'unsafe-inline\'; '
 			. 'frame-src *; '
-			. 'img-src *; '
+			. 'img-src * data: blob:; '
 			. 'font-src \'self\' data:; '
 			. 'media-src *; ' 
-			. 'connect-src *');
+			. 'connect-src *';
 		header('Content-Security-Policy:' . $policy);
 
-		// https://developers.google.com/webmasters/control-crawl-index/docs/robots_meta_tag
-		header('X-Robots-Tag: none');
+		// Send fallback headers for installations that don't have the possibility to send
+		// custom headers on the webserver side
+		if(getenv('modHeadersAvailable') !== 'true') {
+			header('X-XSS-Protection: 1; mode=block'); // Enforce browser based XSS filters
+			header('X-Content-Type-Options: nosniff'); // Disable sniffing the content type for IE
+			header('X-Frame-Options: Sameorigin'); // Disallow iFraming from other domains
+			header('X-Robots-Tag: none'); // https://developers.google.com/webmasters/control-crawl-index/docs/robots_meta_tag
+		}
 	}
 
 }

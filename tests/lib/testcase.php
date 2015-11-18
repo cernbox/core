@@ -22,9 +22,97 @@
 
 namespace Test;
 
+use OC\Command\QueueBus;
+use OC\Files\Filesystem;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Security\ISecureRandom;
 
 abstract class TestCase extends \PHPUnit_Framework_TestCase {
+	/**
+	 * @var \OC\Command\QueueBus
+	 */
+	private $commandBus;
+
+	protected function getTestTraits() {
+		$traits = [];
+		$class = $this;
+		do {
+			$traits = array_merge(class_uses($class), $traits);
+		} while ($class = get_parent_class($class));
+		foreach ($traits as $trait => $same) {
+			$traits = array_merge(class_uses($trait), $traits);
+		}
+		$traits = array_unique($traits);
+		return array_filter($traits, function ($trait) {
+			return substr($trait, 0, 5) === 'Test\\';
+		});
+	}
+
+	protected function setUp() {
+		// overwrite the command bus with one we can run ourselves
+		$this->commandBus = new QueueBus();
+		\OC::$server->registerService('AsyncCommandBus', function () {
+			return $this->commandBus;
+		});
+
+		$traits = $this->getTestTraits();
+		foreach ($traits as $trait) {
+			$methodName = 'setUp' . basename(str_replace('\\', '/', $trait));
+			if (method_exists($this, $methodName)) {
+				call_user_func([$this, $methodName]);
+			}
+		}
+	}
+
+	protected function tearDown() {
+		$hookExceptions = \OC_Hook::$thrownExceptions;
+		\OC_Hook::$thrownExceptions = [];
+		\OC::$server->getLockingProvider()->releaseAll();
+		if (!empty($hookExceptions)) {
+			throw $hookExceptions[0];
+		}
+
+		$traits = $this->getTestTraits();
+		foreach ($traits as $trait) {
+			$methodName = 'tearDown' . basename(str_replace('\\', '/', $trait));
+			if (method_exists($this, $methodName)) {
+				call_user_func([$this, $methodName]);
+			}
+		}
+	}
+
+	/**
+	 * Allows us to test private methods/properties
+	 *
+	 * @param $object
+	 * @param $methodName
+	 * @param array $parameters
+	 * @return mixed
+	 */
+	protected static function invokePrivate($object, $methodName, array $parameters = array()) {
+		$reflection = new \ReflectionClass(get_class($object));
+
+		if ($reflection->hasMethod($methodName)) {
+			$method = $reflection->getMethod($methodName);
+
+			$method->setAccessible(true);
+
+			return $method->invokeArgs($object, $parameters);
+		} elseif ($reflection->hasProperty($methodName)) {
+			$property = $reflection->getProperty($methodName);
+
+			$property->setAccessible(true);
+
+			if (!empty($parameters)) {
+				$property->setValue($object, array_pop($parameters));
+			}
+
+			return $property->getValue($object);
+		}
+
+		return false;
+	}
+
 	/**
 	 * Returns a unique identifier as uniqid() is not reliable sometimes
 	 *
@@ -42,46 +130,46 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 
 	public static function tearDownAfterClass() {
 		$dataDir = \OC::$server->getConfig()->getSystemValue('datadirectory', \OC::$SERVERROOT . '/data-autotest');
+		$queryBuilder = \OC::$server->getDatabaseConnection()->getQueryBuilder();
 
-		self::tearDownAfterClassCleanFileMapper($dataDir);
-		self::tearDownAfterClassCleanStorages();
-		self::tearDownAfterClassCleanFileCache();
+		self::tearDownAfterClassCleanShares($queryBuilder);
+		self::tearDownAfterClassCleanStorages($queryBuilder);
+		self::tearDownAfterClassCleanFileCache($queryBuilder);
 		self::tearDownAfterClassCleanStrayDataFiles($dataDir);
 		self::tearDownAfterClassCleanStrayHooks();
-		self::tearDownAfterClassCleanProxies();
+		self::tearDownAfterClassCleanStrayLocks();
 
 		parent::tearDownAfterClass();
 	}
 
 	/**
-	 * Remove all entries from the files map table
-	 * @param string $dataDir
+	 * Remove all entries from the share table
+	 *
+	 * @param IQueryBuilder $queryBuilder
 	 */
-	static protected function tearDownAfterClassCleanFileMapper($dataDir) {
-		if (\OC_Util::runningOnWindows()) {
-			$mapper = new \OC\Files\Mapper($dataDir);
-			$mapper->removePath($dataDir, true, true);
-		}
+	static protected function tearDownAfterClassCleanShares(IQueryBuilder $queryBuilder) {
+		$queryBuilder->delete('share')
+			->execute();
 	}
 
 	/**
 	 * Remove all entries from the storages table
-	 * @throws \OC\DatabaseException
+	 *
+	 * @param IQueryBuilder $queryBuilder
 	 */
-	static protected function tearDownAfterClassCleanStorages() {
-		$sql = 'DELETE FROM `*PREFIX*storages`';
-		$query = \OC_DB::prepare($sql);
-		$query->execute();
+	static protected function tearDownAfterClassCleanStorages(IQueryBuilder $queryBuilder) {
+		$queryBuilder->delete('storages')
+			->execute();
 	}
 
 	/**
 	 * Remove all entries from the filecache table
-	 * @throws \OC\DatabaseException
+	 *
+	 * @param IQueryBuilder $queryBuilder
 	 */
-	static protected function tearDownAfterClassCleanFileCache() {
-		$sql = 'DELETE FROM `*PREFIX*filecache`';
-		$query = \OC_DB::prepare($sql);
-		$query->execute();
+	static protected function tearDownAfterClassCleanFileCache(IQueryBuilder $queryBuilder) {
+		$queryBuilder->delete('filecache')
+			->execute();
 	}
 
 	/**
@@ -91,11 +179,11 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 	 */
 	static protected function tearDownAfterClassCleanStrayDataFiles($dataDir) {
 		$knownEntries = array(
-			'owncloud.log'	=> true,
-			'owncloud.db'	=> true,
-			'.ocdata'		=> true,
-			'..'			=> true,
-			'.'				=> true,
+			'owncloud.log' => true,
+			'owncloud.db' => true,
+			'.ocdata' => true,
+			'..' => true,
+			'.' => true,
 		);
 
 		if ($dh = opendir($dataDir)) {
@@ -116,14 +204,13 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 	static protected function tearDownAfterClassCleanStrayDataUnlinkDir($dir) {
 		if ($dh = @opendir($dir)) {
 			while (($file = readdir($dh)) !== false) {
-				if ($file === '..' || $file === '.') {
+				if (\OC\Files\Filesystem::isIgnoredDir($file)) {
 					continue;
 				}
 				$path = $dir . '/' . $file;
 				if (is_dir($path)) {
 					self::tearDownAfterClassCleanStrayDataUnlinkDir($path);
-				}
-				else {
+				} else {
 					@unlink($path);
 				}
 			}
@@ -140,26 +227,26 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 	}
 
 	/**
-	 * Clean up the list of file proxies
-	 *
-	 * Also reenables file proxies, in case a test disabled them
+	 * Clean up the list of locks
 	 */
-	static protected function tearDownAfterClassCleanProxies() {
-		\OC_FileProxy::$enabled = true;
-		\OC_FileProxy::clearProxies();
+	static protected function tearDownAfterClassCleanStrayLocks() {
+		\OC::$server->getLockingProvider()->releaseAll();
 	}
 
 	/**
 	 * Login and setup FS as a given user,
 	 * sets the given user as the current user.
 	 *
-	 * @param string $user user id
+	 * @param string $user user id or empty for a generic FS
 	 */
-	static protected function loginAsUser($user) {
+	static protected function loginAsUser($user = '') {
 		self::logout();
 		\OC\Files\Filesystem::tearDown();
 		\OC_User::setUserId($user);
 		\OC_Util::setupFS($user);
+		if (\OC_User::userExists($user)) {
+			\OC::$server->getUserFolder($user);
+		}
 	}
 
 	/**
@@ -168,5 +255,65 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 	static protected function logout() {
 		\OC_Util::tearDownFS();
 		\OC_User::setUserId('');
+		// needed for fully logout
+		\OC::$server->getUserSession()->setUser(null);
+	}
+
+	/**
+	 * Run all commands pushed to the bus
+	 */
+	protected function runCommands() {
+		// get the user for which the fs is setup
+		$view = Filesystem::getView();
+		if ($view) {
+			list(, $user) = explode('/', $view->getRoot());
+		} else {
+			$user = null;
+		}
+
+		\OC_Util::tearDownFS(); // command cant reply on the fs being setup
+		$this->commandBus->run();
+		\OC_Util::tearDownFS();
+
+		if ($user) {
+			\OC_Util::setupFS($user);
+		}
+	}
+
+	/**
+	 * Check if the given path is locked with a given type
+	 *
+	 * @param \OC\Files\View $view view
+	 * @param string $path path to check
+	 * @param int $type lock type
+	 * @param bool $onMountPoint true to check the mount point instead of the
+	 * mounted storage
+	 *
+	 * @return boolean true if the file is locked with the
+	 * given type, false otherwise
+	 */
+	protected function isFileLocked($view, $path, $type, $onMountPoint = false) {
+		// Note: this seems convoluted but is necessary because
+		// the format of the lock key depends on the storage implementation
+		// (in our case mostly md5)
+
+		if ($type === \OCP\Lock\ILockingProvider::LOCK_SHARED) {
+			// to check if the file has a shared lock, try acquiring an exclusive lock
+			$checkType = \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE;
+		} else {
+			// a shared lock cannot be set if exclusive lock is in place
+			$checkType = \OCP\Lock\ILockingProvider::LOCK_SHARED;
+		}
+		try {
+			$view->lockFile($path, $checkType, $onMountPoint);
+			// no exception, which means the lock of $type is not set
+			// clean up
+			$view->unlockFile($path, $checkType, $onMountPoint);
+			return false;
+		} catch (\OCP\Lock\LockedException $e) {
+			// we could not acquire the counter-lock, which means
+			// the lock of $type was in place
+			return true;
+		}
 	}
 }

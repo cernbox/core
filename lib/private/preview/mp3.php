@@ -1,9 +1,25 @@
 <?php
 /**
- * Copyright (c) 2013 Georg Ehrke georg@ownCloud.com
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Olivier Paroz <github@oparoz.com>
+ * @author Thomas Tanghus <thomas@tanghus.net>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 namespace OC\Preview;
 
@@ -30,7 +46,12 @@ class MP3 extends Provider {
 			unlink($tmpPath);
 			$image = new \OC_Image();
 			$image->loadFromData($picture);
-			return $image->valid() ? $image : $this->getNoCoverThumbnail();
+
+			if ($image->valid()) {
+				$image->scaleDownToFit($maxX, $maxY);
+
+				return $image;
+			}
 		}
 
 		return $this->getNoCoverThumbnail();
@@ -39,8 +60,7 @@ class MP3 extends Provider {
 	/**
 	 * Generates a default image when the file has no cover
 	 *
-	 * @return false|\OC_Image	False if the default image is missing or invalid,
-	 *							otherwise the image is returned as \OC_Image
+	 * @return bool|\OCP\IImage false if the default image is missing or invalid
 	 */
 	private function getNoCoverThumbnail() {
 		$icon = \OC::$SERVERROOT . '/core/img/filetypes/audio.png';

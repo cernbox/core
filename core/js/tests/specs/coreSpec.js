@@ -134,6 +134,51 @@ describe('Core base tests', function() {
 			expect(escapeHTML('This is a good string without HTML.')).toEqual('This is a good string without HTML.');
 		});
 	});
+	describe('joinPaths', function() {
+		it('returns empty string with no or empty arguments', function() {
+			expect(OC.joinPaths()).toEqual('');
+			expect(OC.joinPaths('')).toEqual('');
+			expect(OC.joinPaths('', '')).toEqual('');
+		});
+		it('returns joined path sections', function() {
+			expect(OC.joinPaths('abc')).toEqual('abc');
+			expect(OC.joinPaths('abc', 'def')).toEqual('abc/def');
+			expect(OC.joinPaths('abc', 'def', 'ghi')).toEqual('abc/def/ghi');
+		});
+		it('keeps leading slashes', function() {
+			expect(OC.joinPaths('/abc')).toEqual('/abc');
+			expect(OC.joinPaths('/abc', '')).toEqual('/abc');
+			expect(OC.joinPaths('', '/abc')).toEqual('/abc');
+			expect(OC.joinPaths('/abc', 'def')).toEqual('/abc/def');
+			expect(OC.joinPaths('/abc', 'def', 'ghi')).toEqual('/abc/def/ghi');
+		});
+		it('keeps trailing slashes', function() {
+			expect(OC.joinPaths('', 'abc/')).toEqual('abc/');
+			expect(OC.joinPaths('abc/')).toEqual('abc/');
+			expect(OC.joinPaths('abc/', '')).toEqual('abc/');
+			expect(OC.joinPaths('abc', 'def/')).toEqual('abc/def/');
+			expect(OC.joinPaths('abc', 'def', 'ghi/')).toEqual('abc/def/ghi/');
+		});
+		it('splits paths in specified strings and discards extra slashes', function() {
+			expect(OC.joinPaths('//abc//')).toEqual('/abc/');
+			expect(OC.joinPaths('//abc//def//')).toEqual('/abc/def/');
+			expect(OC.joinPaths('//abc//', '//def//')).toEqual('/abc/def/');
+			expect(OC.joinPaths('//abc//', '//def//', '//ghi//')).toEqual('/abc/def/ghi/');
+			expect(OC.joinPaths('//abc//def//', '//ghi//jkl/mno/', '//pqr//'))
+				.toEqual('/abc/def/ghi/jkl/mno/pqr/');
+			expect(OC.joinPaths('/abc', '/def')).toEqual('/abc/def');
+			expect(OC.joinPaths('/abc/', '/def')).toEqual('/abc/def');
+			expect(OC.joinPaths('/abc/', 'def')).toEqual('/abc/def');
+		});
+		it('discards empty sections', function() {
+			expect(OC.joinPaths('abc', '', 'def')).toEqual('abc/def');
+		});
+		it('returns root if only slashes', function() {
+			expect(OC.joinPaths('//')).toEqual('/');
+			expect(OC.joinPaths('/', '/')).toEqual('/');
+			expect(OC.joinPaths('/', '//', '/')).toEqual('/');
+		});
+	});
 	describe('filePath', function() {
 		beforeEach(function() {
 			OC.webroot = 'http://localhost';
@@ -393,23 +438,34 @@ describe('Core base tests', function() {
 			expect(OC.generateUrl('heartbeat')).toEqual(OC.webroot + '/index.php/heartbeat');
 			expect(OC.generateUrl('/heartbeat')).toEqual(OC.webroot + '/index.php/heartbeat');
 		});
-		it('substitutes parameters', function() {
-			expect(OC.generateUrl('apps/files/download{file}', {file: '/Welcome.txt'})).toEqual(OC.webroot + '/index.php/apps/files/download/Welcome.txt');
+		it('substitutes parameters which are escaped by default', function() {
+			expect(OC.generateUrl('apps/files/download/{file}', {file: '<">ImAnUnescapedString/!'})).toEqual(OC.webroot + '/index.php/apps/files/download/%3C%22%3EImAnUnescapedString%2F!');
+		});
+		it('substitutes parameters which can also be unescaped via option flag', function() {
+			expect(OC.generateUrl('apps/files/download/{file}', {file: 'subfolder/Welcome.txt'}, {escape: false})).toEqual(OC.webroot + '/index.php/apps/files/download/subfolder/Welcome.txt');
+		});
+		it('substitutes multiple parameters which are escaped by default', function() {
+			expect(OC.generateUrl('apps/files/download/{file}/{id}', {file: '<">ImAnUnescapedString/!', id: 5})).toEqual(OC.webroot + '/index.php/apps/files/download/%3C%22%3EImAnUnescapedString%2F!/5');
+		});
+		it('substitutes multiple parameters which can also be unescaped via option flag', function() {
+			expect(OC.generateUrl('apps/files/download/{file}/{id}', {file: 'subfolder/Welcome.txt', id: 5}, {escape: false})).toEqual(OC.webroot + '/index.php/apps/files/download/subfolder/Welcome.txt/5');
 		});
 		it('doesnt error out with no params provided', function  () {
-			expect(OC.generateUrl('apps/files/download{file}')).toEqual(OC.webroot + '/index.php/apps/files/download{file}');
+			expect(OC.generateUrl('apps/files/download{file}')).toEqual(OC.webroot + '/index.php/apps/files/download%7Bfile%7D');
 		});
 	});
 	describe('Main menu mobile toggle', function() {
 		var clock;
 		var $toggle;
 		var $navigation;
-		var clock;
 
 		beforeEach(function() {
 			clock = sinon.useFakeTimers();
 			$('#testArea').append('<div id="header">' +
-				'<a class="menutoggle" href="#"></a>' +
+				'<a class="menutoggle header-appname-container" href="#">' +
+				'<h1 class="header-appname"></h1>' +
+				'<div class="icon-caret"></div>' +
+				'</a>' +
 				'</div>' +
 				'<div id="navigation"></div>');
 			$toggle = $('#header').find('.menutoggle');

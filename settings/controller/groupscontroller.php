@@ -1,17 +1,31 @@
 <?php
 /**
- * @author Lukas Reschke
- * @copyright 2014 Lukas Reschke lukas@owncloud.com
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Settings\Controller;
 
 use OC\AppFramework\Http;
-use \OCP\AppFramework\Controller;
+use OC\Group\MetaData;
+use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IGroupManager;
 use OCP\IL10N;
@@ -57,14 +71,15 @@ class GroupsController extends Controller {
 	 *
 	 * @param string $pattern
 	 * @param bool $filterGroups
+	 * @param int $sortGroups
 	 * @return DataResponse
 	 */
-	public function index($pattern = '', $filterGroups = false) {
+	public function index($pattern = '', $filterGroups = false, $sortGroups = MetaData::SORT_USERCOUNT) {
 		$groupPattern = $filterGroups ? $pattern : '';
 
-		$groupsInfo = new \OC\Group\MetaData($this->userSession->getUser()->getUID(),
+		$groupsInfo = new MetaData($this->userSession->getUser()->getUID(),
 			$this->isAdmin, $this->groupManager);
-		$groupsInfo->setSorting($groupsInfo::SORT_USERCOUNT);
+		$groupsInfo->setSorting($sortGroups);
 		list($adminGroups, $groups) = $groupsInfo->get($groupPattern, $pattern);
 
 		return new DataResponse(

@@ -1,14 +1,36 @@
 <?php
 /**
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OC;
 use OC_Defaults;
+use OCP\ICacheFactory;
+use OCP\IConfig;
 use OCP\IURLGenerator;
 use RuntimeException;
 
@@ -16,24 +38,25 @@ use RuntimeException;
  * Class to generate URLs
  */
 class URLGenerator implements IURLGenerator {
-
-	/**
-	 * @var \OCP\IConfig
-	 */
+	/** @var IConfig */
 	private $config;
+	/** @var ICacheFactory */
+	private $cacheFactory;
 
 	/**
-	 * @param \OCP\IConfig $config
+	 * @param IConfig $config
+	 * @param ICacheFactory $cacheFactory
 	 */
-	public function __construct($config) {
+	public function __construct(IConfig $config,
+								ICacheFactory $cacheFactory) {
 		$this->config = $config;
+		$this->cacheFactory = $cacheFactory;
 	}
 
 	/**
 	 * Creates an url using a defined route
 	 * @param string $route
-	 * @param array $parameters
-	 * @internal param array $args with param=>value, will be appended to the returned url
+	 * @param array $parameters args with param=>value, will be appended to the returned url
 	 * @return string the url
 	 *
 	 * Returns a url to the given route.
@@ -45,9 +68,8 @@ class URLGenerator implements IURLGenerator {
 
 	/**
 	 * Creates an absolute url using a defined route
-	 * @param string $route
-	 * @param array $parameters
-	 * @internal param array $args with param=>value, will be appended to the returned url
+	 * @param string $routeName
+	 * @param array $arguments args with param=>value, will be appended to the returned url
 	 * @return string the url
 	 *
 	 * Returns an absolute url to the given route.
@@ -115,40 +137,54 @@ class URLGenerator implements IURLGenerator {
 	 * Returns the path to the image.
 	 */
 	public function imagePath($app, $image) {
+		$cache = $this->cacheFactory->create('imagePath');
+		$cacheKey = $app.'-'.$image;
+		if($key = $cache->get($cacheKey)) {
+			return $key;
+		}
+
 		// Read the selected theme from the config file
 		$theme = \OC_Util::getTheme();
 
 		//if a theme has a png but not an svg always use the png
 		$basename = substr(basename($image),0,-4);
 
+		$appPath = \OC_App::getAppPath($app);
+
 		// Check if the app is in the app folder
+		$path = '';
 		if (file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$app/img/$image")) {
-			return \OC::$WEBROOT . "/themes/$theme/apps/$app/img/$image";
+			$path = \OC::$WEBROOT . "/themes/$theme/apps/$app/img/$image";
 		} elseif (!file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$app/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/apps/$app/img/$basename.png")) {
-			return \OC::$WEBROOT . "/themes/$theme/apps/$app/img/$basename.png";
-		} elseif (file_exists(\OC_App::getAppPath($app) . "/img/$image")) {
-			return \OC_App::getAppWebPath($app) . "/img/$image";
-		} elseif (!file_exists(\OC_App::getAppPath($app) . "/img/$basename.svg")
-			&& file_exists(\OC_App::getAppPath($app) . "/img/$basename.png")) {
-			return \OC_App::getAppPath($app) . "/img/$basename.png";
+			$path =  \OC::$WEBROOT . "/themes/$theme/apps/$app/img/$basename.png";
+		} elseif ($appPath && file_exists($appPath . "/img/$image")) {
+			$path =  \OC_App::getAppWebPath($app) . "/img/$image";
+		} elseif ($appPath && !file_exists($appPath . "/img/$basename.svg")
+			&& file_exists($appPath . "/img/$basename.png")) {
+			$path =  \OC_App::getAppWebPath($app) . "/img/$basename.png";
 		} elseif (!empty($app) and file_exists(\OC::$SERVERROOT . "/themes/$theme/$app/img/$image")) {
-			return \OC::$WEBROOT . "/themes/$theme/$app/img/$image";
+			$path =  \OC::$WEBROOT . "/themes/$theme/$app/img/$image";
 		} elseif (!empty($app) and (!file_exists(\OC::$SERVERROOT . "/themes/$theme/$app/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/$app/img/$basename.png"))) {
-			return \OC::$WEBROOT . "/themes/$theme/$app/img/$basename.png";
+			$path =  \OC::$WEBROOT . "/themes/$theme/$app/img/$basename.png";
 		} elseif (!empty($app) and file_exists(\OC::$SERVERROOT . "/$app/img/$image")) {
-			return \OC::$WEBROOT . "/$app/img/$image";
+			$path =  \OC::$WEBROOT . "/$app/img/$image";
 		} elseif (!empty($app) and (!file_exists(\OC::$SERVERROOT . "/$app/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/$app/img/$basename.png"))) {
-			return \OC::$WEBROOT . "/$app/img/$basename.png";
+			$path =  \OC::$WEBROOT . "/$app/img/$basename.png";
 		} elseif (file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$image")) {
-			return \OC::$WEBROOT . "/themes/$theme/core/img/$image";
+			$path =  \OC::$WEBROOT . "/themes/$theme/core/img/$image";
 		} elseif (!file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$basename.svg")
 			&& file_exists(\OC::$SERVERROOT . "/themes/$theme/core/img/$basename.png")) {
-			return \OC::$WEBROOT . "/themes/$theme/core/img/$basename.png";
+			$path =  \OC::$WEBROOT . "/themes/$theme/core/img/$basename.png";
 		} elseif (file_exists(\OC::$SERVERROOT . "/core/img/$image")) {
-			return \OC::$WEBROOT . "/core/img/$image";
+			$path =  \OC::$WEBROOT . "/core/img/$image";
+		}
+
+		if($path !== '') {
+			$cache->set($cacheKey, $path);
+			return $path;
 		} else {
 			throw new RuntimeException('image not found: image:' . $image . ' webroot:' . \OC::$WEBROOT . ' serverroot:' . \OC::$SERVERROOT);
 		}
@@ -189,7 +225,8 @@ class URLGenerator implements IURLGenerator {
 			? ''
 			: \OC::$WEBROOT;
 
-		return \OC_Request::serverProtocol() . '://' . \OC_Request::serverHost(). $webRoot . $separator . $url;
+		$request = \OC::$server->getRequest();
+		return $request->getServerProtocol() . '://' . $request->getServerHost() . $webRoot . $separator . $url;
 	}
 
 	/**

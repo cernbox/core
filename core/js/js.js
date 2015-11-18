@@ -68,14 +68,25 @@ var OC={
 	PERMISSION_ALL:31,
 	TAG_FAVORITE: '_$!<Favorite>!$_',
 	/* jshint camelcase: false */
+	/**
+	 * Relative path to ownCloud root.
+	 * For example: "/owncloud"
+	 *
+	 * @type string
+	 *
+	 * @deprecated since 8.2, use OC.getRootPath() instead
+	 * @see OC#getRootPath
+	 */
 	webroot:oc_webroot,
+
 	appswebroots:(typeof oc_appswebroots !== 'undefined') ? oc_appswebroots:false,
 	currentUser:(typeof oc_current_user!=='undefined')?oc_current_user:false,
 	config: window.oc_config,
 	appConfig: window.oc_appconfig || {},
 	theme: window.oc_defaults || {},
 	coreApps:['', 'admin','log','core/search','settings','core','3rdparty'],
-	menuSpeed: 100,
+	requestToken: oc_requesttoken,
+	menuSpeed: 50,
 
 	/**
 	 * Get an absolute url to a file in an app
@@ -116,17 +127,30 @@ var OC={
 
 	/**
 	 * Generates the absolute url for the given relative url, which can contain parameters.
+	 * Parameters will be URL encoded automatically.
 	 * @param {string} url
-	 * @param params
+	 * @param [params] params
+	 * @param [options] options
+	 * @param {bool} [options.escape=true] enable/disable auto escape of placeholders (by default enabled)
 	 * @return {string} Absolute URL for the given relative URL
 	 */
-	generateUrl: function(url, params) {
+	generateUrl: function(url, params, options) {
+		var defaultOptions = {
+				escape: true
+			},
+			allOptions = options || {};
+		_.defaults(allOptions, defaultOptions);
+
 		var _build = function (text, vars) {
 			var vars = vars || [];
 			return text.replace(/{([^{}]*)}/g,
 				function (a, b) {
-					var r = vars[b];
-					return typeof r === 'string' || typeof r === 'number' ? r : a;
+					var r = (vars[b]);
+					if(allOptions.escape) {
+						return (typeof r === 'string' || typeof r === 'number') ? encodeURIComponent(r) : encodeURIComponent(a);
+					} else {
+						return (typeof r === 'string' || typeof r === 'number') ? r : a;
+					}
 				}
 			);
 		};
@@ -195,6 +219,49 @@ var OC={
 	 */
 	redirect: function(targetURL) {
 		window.location = targetURL;
+	},
+
+	/**
+	 * Protocol that is used to access this ownCloud instance
+	 * @return {string} Used protocol
+	 */
+	getProtocol: function() {
+		return window.location.protocol.split(':')[0];
+	},
+
+	/**
+	 * Returns the host name used to access this ownCloud instance
+	 *
+	 * @return {string} host name
+	 *
+	 * @since 8.2
+	 */
+	getHost: function() {
+		return window.location.host;
+	},
+
+	/**
+	 * Returns the port number used to access this ownCloud instance
+	 *
+	 * @return {int} port number
+	 *
+	 * @since 8.2
+	 */
+	getPort: function() {
+		return window.location.port;
+	},
+
+	/**
+	 * Returns the web root path where this ownCloud instance
+	 * is accessible, with a leading slash.
+	 * For example "/owncloud".
+	 *
+	 * @return {string} web root path
+	 *
+	 * @since 8.2
+	 */
+	getRootPath: function() {
+		return OC.webroot;
 	},
 
 	/**
@@ -302,6 +369,58 @@ var OC={
 	 */
 	dirname: function(path) {
 		return path.replace(/\\/g,'/').replace(/\/[^\/]*$/, '');
+	},
+
+	/**
+	 * Join path sections
+	 *
+	 * @param {...String} path sections
+	 *
+	 * @return {String} joined path, any leading or trailing slash
+	 * will be kept
+	 *
+	 * @since 8.2
+	 */
+	joinPaths: function() {
+		if (arguments.length < 1) {
+			return '';
+		}
+		var path = '';
+		// convert to array
+		var args = Array.prototype.slice.call(arguments);
+		// discard empty arguments
+		args = _.filter(args, function(arg) {
+			return arg.length > 0;
+		});
+		if (args.length < 1) {
+			return '';
+		}
+
+		var lastArg = args[args.length - 1];
+		var leadingSlash = args[0].charAt(0) === '/';
+		var trailingSlash = lastArg.charAt(lastArg.length - 1) === '/';
+		var sections = [];
+		var i;
+		for (i = 0; i < args.length; i++) {
+			sections = sections.concat(args[i].split('/'));
+		}
+		var first = !leadingSlash;
+		for (i = 0; i < sections.length; i++) {
+			if (sections[i] !== '') {
+				if (first) {
+					first = false;
+				} else {
+					path += '/';
+				}
+				path += sections[i];
+			}
+		}
+
+		if (trailingSlash) {
+			// add it back
+			path += '/';
+		}
+		return path;
 	},
 
 	/**
@@ -453,23 +572,24 @@ var OC={
 	 * @todo Write documentation
 	 */
 	registerMenu: function($toggle, $menuEl) {
+		var self = this;
 		$menuEl.addClass('menu');
 		$toggle.on('click.menu', function(event) {
+			// prevent the link event (append anchor to URL)
+			event.preventDefault();
+
 			if ($menuEl.is(OC._currentMenu)) {
-				$menuEl.slideUp(OC.menuSpeed);
-				OC._currentMenu = null;
-				OC._currentMenuToggle = null;
-				return false;
+				self.hideMenus();
+				return;
 			}
 			// another menu was open?
 			else if (OC._currentMenu) {
 				// close it
-				OC._currentMenu.hide();
+				self.hideMenus();
 			}
 			$menuEl.slideToggle(OC.menuSpeed);
 			OC._currentMenu = $menuEl;
 			OC._currentMenuToggle = $toggle;
-			return false;
 		});
 	},
 
@@ -479,12 +599,53 @@ var OC={
 	unregisterMenu: function($toggle, $menuEl) {
 		// close menu if opened
 		if ($menuEl.is(OC._currentMenu)) {
-			$menuEl.slideUp(OC.menuSpeed);
-			OC._currentMenu = null;
-			OC._currentMenuToggle = null;
+			this.hideMenus();
 		}
 		$toggle.off('click.menu').removeClass('menutoggle');
 		$menuEl.removeClass('menu');
+	},
+
+	/**
+	 * Hides any open menus
+	 *
+	 * @param {Function} complete callback when the hiding animation is done
+	 */
+	hideMenus: function(complete) {
+		if (OC._currentMenu) {
+			var lastMenu = OC._currentMenu;
+			OC._currentMenu.trigger(new $.Event('beforeHide'));
+			OC._currentMenu.slideUp(OC.menuSpeed, function() {
+				lastMenu.trigger(new $.Event('afterHide'));
+				if (complete) {
+					complete.apply(this, arguments);
+				}
+			});
+		}
+		OC._currentMenu = null;
+		OC._currentMenuToggle = null;
+	},
+
+	/**
+	 * Shows a given element as menu
+	 *
+	 * @param {Object} [$toggle=null] menu toggle
+	 * @param {Object} $menuEl menu element
+	 * @param {Function} complete callback when the showing animation is done
+	 */
+	showMenu: function($toggle, $menuEl, complete) {
+		if ($menuEl.is(OC._currentMenu)) {
+			return;
+		}
+		this.hideMenus();
+		OC._currentMenu = $menuEl;
+		OC._currentMenuToggle = $toggle;
+		$menuEl.trigger(new $.Event('beforeShow'));
+		$menuEl.show();
+		$menuEl.trigger(new $.Event('afterShow'));
+		// no animation
+		if (_.isFunction(complete)) {
+			complete();
+		}
 	},
 
 	/**
@@ -605,34 +766,30 @@ OC.addStyle.loaded=[];
 OC.addScript.loaded=[];
 
 /**
- * @todo Write documentation
+ * A little class to manage a status field for a "saving" process.
+ * It can be used to display a starting message (e.g. "Saving...") and then
+ * replace it with a green success message or a red error message.
+ *
+ * @namespace OC.msg
  */
-OC.msg={
+OC.msg = {
 	/**
-	 * @param selector
-	 * @todo Write documentation
+	 * Displayes a "Saving..." message in the given message placeholder
+	 *
+	 * @param {Object} selector	Placeholder to display the message in
 	 */
-	startSaving:function(selector){
-		OC.msg.startAction(selector, t('core', 'Saving...'));
+	startSaving: function(selector) {
+		this.startAction(selector, t('core', 'Saving...'));
 	},
 
 	/**
-	 * @param selector
-	 * @param data
-	 * @todo Write documentation
+	 * Displayes a custom message in the given message placeholder
+	 *
+	 * @param {Object} selector	Placeholder to display the message in
+	 * @param {string} message	Plain text message to display (no HTML allowed)
 	 */
-	finishedSaving:function(selector, data){
-		OC.msg.finishedAction(selector, data);
-	},
-
-	/**
-	 * @param selector
-	 * @param {string} message Message to display
-	 * @todo WRite documentation
-	 */
-	startAction:function(selector, message){
-		$(selector)
-			.html( message )
+	startAction: function(selector, message) {
+		$(selector).text(message)
 			.removeClass('success')
 			.removeClass('error')
 			.stop(true, true)
@@ -640,25 +797,64 @@ OC.msg={
 	},
 
 	/**
-	 * @param selector
-	 * @param data
-	 * @todo Write documentation
+	 * Displayes an success/error message in the given selector
+	 *
+	 * @param {Object} selector	Placeholder to display the message in
+	 * @param {Object} response	Response of the server
+	 * @param {Object} response.data	Data of the servers response
+	 * @param {string} response.data.message	Plain text message to display (no HTML allowed)
+	 * @param {string} response.status	is being used to decide whether the message
+	 * is displayed as an error/success
 	 */
-	finishedAction:function(selector, data){
-		if( data.status === "success" ){
-			$(selector).html( data.data.message )
-					.addClass('success')
-					.removeClass('error')
-					.stop(true, true)
-					.delay(3000)
-					.fadeOut(900)
-					.show();
-		}else{
-			$(selector).html( data.data.message )
-					.addClass('error')
-					.removeClass('success')
-					.show();
+	finishedSaving: function(selector, response) {
+		this.finishedAction(selector, response);
+	},
+
+	/**
+	 * Displayes an success/error message in the given selector
+	 *
+	 * @param {Object} selector	Placeholder to display the message in
+	 * @param {Object} response	Response of the server
+	 * @param {Object} response.data Data of the servers response
+	 * @param {string} response.data.message Plain text message to display (no HTML allowed)
+	 * @param {string} response.status is being used to decide whether the message
+	 * is displayed as an error/success
+	 */
+	finishedAction: function(selector, response) {
+		if (response.status === "success") {
+			this.finishedSuccess(selector, response.data.message);
+		} else {
+			this.finishedError(selector, response.data.message);
 		}
+	},
+
+	/**
+	 * Displayes an success message in the given selector
+	 *
+	 * @param {Object} selector Placeholder to display the message in
+	 * @param {string} message Plain text success message to display (no HTML allowed)
+	 */
+	finishedSuccess: function(selector, message) {
+		$(selector).text(message)
+			.addClass('success')
+			.removeClass('error')
+			.stop(true, true)
+			.delay(3000)
+			.fadeOut(900)
+			.show();
+	},
+
+	/**
+	 * Displayes an error message in the given selector
+	 *
+	 * @param {Object} selector Placeholder to display the message in
+	 * @param {string} message Plain text error message to display (no HTML allowed)
+	 */
+	finishedError: function(selector, message) {
+		$(selector).text(message)
+			.addClass('error')
+			.removeClass('success')
+			.show();
 	}
 };
 
@@ -1020,12 +1216,34 @@ function object(o) {
  * Initializes core
  */
 function initCore() {
+	/**
+	 * Disable automatic evaluation of responses for $.ajax() functions (and its
+	 * higher-level alternatives like $.get() and $.post()).
+	 *
+	 * If a response to a $.ajax() request returns a content type of "application/javascript"
+	 * JQuery would previously execute the response body. This is a pretty unexpected
+	 * behaviour and can result in a bypass of our Content-Security-Policy as well as
+	 * multiple unexpected XSS vectors.
+	 */
+	$.ajaxSetup({
+		contents: {
+			script: false
+		}
+	});
 
 	/**
 	 * Set users locale to moment.js as soon as possible
 	 */
 	moment.locale(OC.getLocale());
 
+	if ($.browser.msie || !!navigator.userAgent.match(/Trident\/7\./)) {
+		// for IE10+ that don't have conditional comments
+		// and IE11 doesn't identify as MSIE any more...
+		$('html').addClass('ie');
+	} else if (!!navigator.userAgent.match(/Edge\/12/)) {
+		// for edge
+		$('html').addClass('edge');
+	}
 
 	/**
 	 * Calls the server periodically to ensure that session doesn't
@@ -1065,35 +1283,7 @@ function initCore() {
 		SVGSupport.checkMimeType();
 	}
 
-	// user menu
-	$('#settings #expand').keydown(function(event) {
-		if (event.which === 13 || event.which === 32) {
-			$('#expand').click();
-		}
-	});
-	$('#settings #expand').click(function(event) {
-		$('#settings #expanddiv').slideToggle(OC.menuSpeed);
-		event.stopPropagation();
-	});
-	$('#settings #expanddiv').click(function(event){
-		event.stopPropagation();
-	});
-	//hide the user menu when clicking outside it
-	$(document).click(function(){
-		$('#settings #expanddiv').slideUp(OC.menuSpeed);
-	});
-
-	// all the tipsy stuff needs to be here (in reverse order) to work
-	$('.displayName .action').tipsy({gravity:'se', fade:true, live:true});
-	$('.password .action').tipsy({gravity:'se', fade:true, live:true});
-	$('#upload').tipsy({gravity:'w', fade:true});
-	$('.selectedActions a').tipsy({gravity:'s', fade:true, live:true});
-	$('a.action.delete').tipsy({gravity:'e', fade:true, live:true});
-	$('a.action').tipsy({gravity:'s', fade:true, live:true});
-	$('td .modified').tipsy({gravity:'s', fade:true, live:true});
-	$('td.lastLogin').tipsy({gravity:'s', fade:true, html:true});
-	$('input').tipsy({gravity:'w', fade:true});
-	$('.extra-data').tipsy({gravity:'w', fade:true, live:true});
+	OC.registerMenu($('#expand'), $('#expanddiv'));
 
 	// toggle for menus
 	$(document).on('mouseup.closemenus', function(event) {
@@ -1102,13 +1292,9 @@ function initCore() {
 			// don't close when clicking on the menu directly or a menu toggle
 			return false;
 		}
-		if (OC._currentMenu) {
-			OC._currentMenu.slideUp(OC.menuSpeed);
-		}
-		OC._currentMenu = null;
-		OC._currentMenuToggle = null;
-	});
 
+		OC.hideMenus();
+	});
 
 	/**
 	 * Set up the main menu toggle to react to media query changes.
@@ -1117,7 +1303,7 @@ function initCore() {
 	 */
 	function setupMainMenu() {
 		// toggle the navigation
-		var $toggle = $('#header .menutoggle');
+		var $toggle = $('#header .header-appname-container');
 		var $navigation = $('#navigation');
 
 		// init the menu
@@ -1140,6 +1326,20 @@ function initCore() {
 
 	setupMainMenu();
 
+	// move triangle of apps dropdown to align with app name triangle
+	// 2 is the additional offset between the triangles
+	if($('#navigation').length) {
+		$('#header #owncloud + .menutoggle').one('click', function(){
+			var caretPosition = $('.header-appname + .icon-caret').offset().left - 2;
+			if(caretPosition > 255) {
+				// if the app name is longer than the menu, just put the triangle in the middle
+				return;
+			} else {
+				$('head').append('<style>#navigation:after { left: '+ caretPosition +'px; }</style>');
+			}
+		});
+	}
+
 	// just add snapper for logged in users
 	if($('#app-navigation').length && !$('html').hasClass('lte9')) {
 
@@ -1147,7 +1347,8 @@ function initCore() {
 		var snapper = new Snap({
 			element: document.getElementById('app-content'),
 			disable: 'right',
-			maxPosition: 250
+			maxPosition: 250,
+			minDragDistance: 100
 		});
 		$('#app-content').prepend('<div id="app-navigation-toggle" class="icon-menu" style="display:none;"></div>');
 		$('#app-navigation-toggle').click(function(){
@@ -1159,7 +1360,7 @@ function initCore() {
 		});
 		// close sidebar when switching navigation entry
 		var $appNavigation = $('#app-navigation');
-		$appNavigation.delegate('a', 'click', function(event) {
+		$appNavigation.delegate('a, :button', 'click', function(event) {
 			var $target = $(event.target);
 			// don't hide navigation when changing settings or adding things
 			if($target.is('.app-navigation-noclose') ||
@@ -1190,6 +1391,39 @@ function initCore() {
 
 		// initial call
 		toggleSnapperOnSize();
+
+		// adjust controls bar width
+		var adjustControlsWidth = function() {
+			if($('#controls').length) {
+				var controlsWidth;
+				// if there is a scrollbar …
+				if($('#app-content').get(0).scrollHeight > $('#app-content').height()) {
+					if($(window).width() > 768) {
+						controlsWidth = $('#content').width() - $('#app-navigation').width() - getScrollBarWidth();
+						if (!$('#app-sidebar').hasClass('hidden') && !$('#app-sidebar').hasClass('disappear')) {
+							controlsWidth -= $('#app-sidebar').width();
+						}
+					} else {
+						controlsWidth = $('#content').width() - getScrollBarWidth();
+					}
+				} else { // if there is none
+					if($(window).width() > 768) {
+						controlsWidth = $('#content').width() - $('#app-navigation').width();
+						if (!$('#app-sidebar').hasClass('hidden') && !$('#app-sidebar').hasClass('disappear')) {
+							controlsWidth -= $('#app-sidebar').width();
+						}
+					} else {
+						controlsWidth = $('#content').width();
+					}
+				}
+				$('#controls').css('width', controlsWidth);
+				$('#controls').css('min-width', controlsWidth);
+			}
+		};
+
+		$(window).resize(_.debounce(adjustControlsWidth, 250));
+
+		$('body').delegate('#app-content', 'apprendered appresized', adjustControlsWidth);
 
 	}
 
@@ -1282,7 +1516,7 @@ OC.Util = {
 	 * @returns {string} timestamp formatted as requested
 	 */
 	formatDate: function (timestamp, format) {
-		format = format || "MMMM D, YYYY h:mm";
+		format = format || "LLL";
 		return moment(timestamp).format(format);
 	},
 
@@ -1291,6 +1525,10 @@ OC.Util = {
 	 * @returns {string} human readable difference from now
 	 */
 	relativeModifiedDate: function (timestamp) {
+		var diff = moment().diff(moment(timestamp));
+		if (diff >= 0 && diff < 45000 ) {
+			return t('core', 'seconds ago');
+		}
 		return moment(timestamp).fromNow();
 	},
 	/**
@@ -1355,6 +1593,94 @@ OC.Util = {
 	},
 
 	/**
+	 * Fix image scaling for IE8, since background-size is not supported.
+	 *
+	 * This scales the image to the element's actual size, the URL is
+	 * taken from the "background-image" CSS attribute.
+	 *
+	 * @param {Object} $el image element
+	 */
+	scaleFixForIE8: function($el) {
+		if (!this.isIE8()) {
+			return;
+		}
+		var self = this;
+		$($el).each(function() {
+			var url = $(this).css('background-image');
+			var r = url.match(/url\(['"]?([^'")]*)['"]?\)/);
+			if (!r) {
+				return;
+			}
+			url = r[1];
+			url = self.replaceSVGIcon(url);
+			// TODO: escape
+			url = url.replace(/'/g, '%27');
+			$(this).css({
+				'filter': 'progid:DXImageTransform.Microsoft.AlphaImageLoader(src=\'' + url + '\', sizingMethod=\'scale\')',
+				'background-image': ''
+			});
+		});
+		return $el;
+	},
+
+	/**
+	 * Returns whether this is IE
+	 *
+	 * @return {bool} true if this is IE, false otherwise
+	 */
+	isIE: function() {
+		return $('html').hasClass('ie');
+	},
+
+	/**
+	 * Returns whether this is IE8
+	 *
+	 * @return {bool} true if this is IE8, false otherwise
+	 */
+	isIE8: function() {
+		return $('html').hasClass('ie8');
+	},
+
+	/**
+	 * Returns the width of a generic browser scrollbar
+	 *
+	 * @return {int} width of scrollbar
+	 */
+	getScrollBarWidth: function() {
+		if (this._scrollBarWidth) {
+			return this._scrollBarWidth;
+		}
+
+		var inner = document.createElement('p');
+		inner.style.width = "100%";
+		inner.style.height = "200px";
+
+		var outer = document.createElement('div');
+		outer.style.position = "absolute";
+		outer.style.top = "0px";
+		outer.style.left = "0px";
+		outer.style.visibility = "hidden";
+		outer.style.width = "200px";
+		outer.style.height = "150px";
+		outer.style.overflow = "hidden";
+		outer.appendChild (inner);
+
+		document.body.appendChild (outer);
+		var w1 = inner.offsetWidth;
+		outer.style.overflow = 'scroll';
+		var w2 = inner.offsetWidth;
+		if(w1 === w2) {
+			w2 = outer.clientWidth;
+		}
+
+		document.body.removeChild (outer);
+
+		this._scrollBarWidth = (w1 - w2);
+
+		return this._scrollBarWidth;
+	},
+
+	/**
 	 * Remove the time component from a given date
 	 *
 	 * @param {Date} date date
@@ -1414,8 +1740,38 @@ OC.Util = {
 			}
 		}
 		return aa.length - bb.length;
+	},
+	/**
+	 * Calls the callback in a given interval until it returns true
+	 * @param {function} callback
+	 * @param {integer} interval in milliseconds
+	 */
+	waitFor: function(callback, interval) {
+		var internalCallback = function() {
+			if(callback() !== true) {
+				setTimeout(internalCallback, interval);
+			}
+		};
+
+		internalCallback();
+	},
+	/**
+	 * Checks if a cookie with the given name is present and is set to the provided value.
+	 * @param {string} name name of the cookie
+	 * @param {string} value value of the cookie
+	 * @return {boolean} true if the cookie with the given name has the given value
+	 */
+	isCookieSetToValue: function(name, value) {
+		var cookies = document.cookie.split(';');
+		for (var i=0; i < cookies.length; i++) {
+			var cookie = cookies[i].split('=');
+			if (cookie[0].trim() === name && cookie[1].trim() === value) {
+				return true;
+			}
+		}
+		return false;
 	}
-}
+};
 
 /**
  * Utility class for the history API,
@@ -1501,9 +1857,7 @@ OC.Util.History = {
 			params = OC.parseQueryString(this._decodeQuery(query));
 		}
 		// else read from query attributes
-		if (!params) {
-			params = OC.parseQueryString(this._decodeQuery(location.search));
-		}
+		params = _.extend(params || {}, OC.parseQueryString(this._decodeQuery(location.search)));
 		return params || {};
 	},
 
@@ -1615,3 +1969,70 @@ jQuery.fn.selectRange = function(start, end) {
 jQuery.fn.exists = function(){
 	return this.length > 0;
 };
+
+/**
+ * @deprecated use OC.Util.getScrollBarWidth() instead
+ */
+function getScrollBarWidth() {
+	return OC.Util.getScrollBarWidth();
+}
+
+/**
+ * jQuery tipsy shim for the bootstrap tooltip
+ */
+jQuery.fn.tipsy = function(argument) {
+	console.warn('Deprecation warning: tipsy is deprecated. Use tooltip instead.');
+	if(typeof argument === 'object' && argument !== null) {
+
+		// tipsy defaults
+		var options = {
+			placement: 'bottom',
+			delay: { 'show': 0, 'hide': 0},
+			trigger: 'hover',
+			html: false,
+			container: 'body'
+		};
+		if(argument.gravity) {
+			switch(argument.gravity) {
+				case 'n':
+				case 'nw':
+				case 'ne':
+					options.placement='bottom';
+					break;
+				case 's':
+				case 'sw':
+				case 'se':
+					options.placement='top';
+					break;
+				case 'w':
+					options.placement='right';
+					break;
+				case 'e':
+					options.placement='left';
+					break;
+			}
+		}
+		if(argument.trigger) {
+			options.trigger = argument.trigger;
+		}
+		if(argument.delayIn) {
+			options.delay["show"] = argument.delayIn;
+		}
+		if(argument.delayOut) {
+			options.delay["hide"] = argument.delayOut;
+		}
+		if(argument.html) {
+			options.html = true;
+		}
+		if(argument.fallback) {
+			options.title = argument.fallback;
+		}
+		// destroy old tooltip in case the title has changed
+		jQuery.fn.tooltip.call(this, 'destroy');
+		jQuery.fn.tooltip.call(this, options);
+	} else {
+		this.tooltip(argument);
+		jQuery.fn.tooltip.call(this, argument);
+	}
+	return this;
+}

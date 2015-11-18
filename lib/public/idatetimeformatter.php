@@ -1,17 +1,33 @@
 <?php
 /**
- * ownCloud
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @author Joas Schilling
- * @copyright 2014 Joas Schilling nickvergessen@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCP;
 
+/**
+ * Interface IDateTimeFormatter
+ *
+ * @package OCP
+ * @since 8.0.0
+ */
 interface IDateTimeFormatter {
 	/**
 	 * Formats the date of the given timestamp
@@ -26,6 +42,7 @@ interface IDateTimeFormatter {
 	 * @param \DateTimeZone	$timeZone	The timezone to use
 	 * @param \OCP\IL10N	$l			The locale to use
 	 * @return string Formatted date string
+	 * @since 8.0.0
 	 */
 	public function formatDate($timestamp, $format = 'long', \DateTimeZone $timeZone = null, \OCP\IL10N $l = null);
 
@@ -43,6 +60,7 @@ interface IDateTimeFormatter {
 	 * @param \DateTimeZone	$timeZone	The timezone to use
 	 * @param \OCP\IL10N	$l			The locale to use
 	 * @return string Formatted relative date string
+	 * @since 8.0.0
 	 */
 	public function formatDateRelativeDay($timestamp, $format = 'long', \DateTimeZone $timeZone = null, \OCP\IL10N $l = null);
 
@@ -58,6 +76,7 @@ interface IDateTimeFormatter {
 	 * 				>= 13 month	=> last year, n years ago
 	 * @param \OCP\IL10N		$l			The locale to use
 	 * @return string Formatted date span
+	 * @since 8.0.0
 	 */
 	public function formatDateSpan($timestamp, $baseTimestamp = null, \OCP\IL10N $l = null);
 
@@ -74,6 +93,7 @@ interface IDateTimeFormatter {
 	 * @param \DateTimeZone	$timeZone	The timezone to use
 	 * @param \OCP\IL10N		$l			The locale to use
 	 * @return string Formatted time string
+	 * @since 8.0.0
 	 */
 	public function formatTime($timestamp, $format = 'medium', \DateTimeZone $timeZone = null, \OCP\IL10N $l = null);
 
@@ -91,6 +111,7 @@ interface IDateTimeFormatter {
 	 * 				>= 13 month	=> last year, n years ago
 	 * @param \OCP\IL10N		$l			The locale to use
 	 * @return string Formatted time span
+	 * @since 8.0.0
 	 */
 	public function formatTimeSpan($timestamp, $baseTimestamp = null, \OCP\IL10N $l = null);
 
@@ -103,6 +124,7 @@ interface IDateTimeFormatter {
 	 * @param \DateTimeZone	$timeZone	The timezone to use
 	 * @param \OCP\IL10N		$l			The locale to use
 	 * @return string Formatted date and time string
+	 * @since 8.0.0
 	 */
 	public function formatDateTime($timestamp, $formatDate = 'long', $formatTime = 'medium', \DateTimeZone $timeZone = null, \OCP\IL10N $l = null);
 
@@ -116,6 +138,7 @@ interface IDateTimeFormatter {
 	 * @param \DateTimeZone	$timeZone	The timezone to use
 	 * @param \OCP\IL10N		$l			The locale to use
 	 * @return string Formatted relative date and time string
+	 * @since 8.0.0
 	 */
 	public function formatDateTimeRelativeDay($timestamp, $formatDate = 'long', $formatTime = 'medium', \DateTimeZone $timeZone = null, \OCP\IL10N $l = null);
 }

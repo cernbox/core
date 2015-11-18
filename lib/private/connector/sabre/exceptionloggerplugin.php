@@ -1,17 +1,35 @@
 <?php
-
 /**
- * ownCloud
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Vincent Petry
- * @copyright 2014 Vincent Petry <pvince81@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @license AGPL3
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
-class OC_Connector_Sabre_ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin
-{
-	private $nonFatalExceptions = array(
+namespace OC\Connector\Sabre;
+
+use OCP\ILogger;
+use Sabre\DAV\Exception;
+use Sabre\HTTP\Response;
+
+class ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin {
+	protected $nonFatalExceptions = array(
 		'Sabre\DAV\Exception\NotAuthenticated' => true,
 		// the sync client uses this to find out whether files exist,
 		// so it is not always an error, log it as debug
@@ -20,15 +38,24 @@ class OC_Connector_Sabre_ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin
 		// exactly the same time from two clients, only one client
 		// wins, the second one gets "Precondition failed"
 		'Sabre\DAV\Exception\PreconditionFailed' => true,
+		// forbidden can be expected when trying to upload to
+		// read-only folders for example
+		'Sabre\DAV\Exception\Forbidden' => true,
 	);
 
+	/** @var string */
 	private $appName;
+
+	/** @var ILogger */
+	private $logger;
 
 	/**
 	 * @param string $loggerAppName app name to use when logging
+	 * @param ILogger $logger
 	 */
-	public function __construct($loggerAppName = 'webdav') {
+	public function __construct($loggerAppName, $logger) {
 		$this->appName = $loggerAppName;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -44,20 +71,37 @@ class OC_Connector_Sabre_ExceptionLoggerPlugin extends \Sabre\DAV\ServerPlugin
 	 */
 	public function initialize(\Sabre\DAV\Server $server) {
 
-		$server->subscribeEvent('exception', array($this, 'logException'), 10);
+		$server->on('exception', array($this, 'logException'), 10);
 	}
 
 	/**
 	 * Log exception
 	 *
-	 * @internal param Exception $e exception
 	 */
-	public function logException($e) {
-		$exceptionClass = get_class($e);
+	public function logException(\Exception $ex) {
+		$exceptionClass = get_class($ex);
 		$level = \OCP\Util::FATAL;
 		if (isset($this->nonFatalExceptions[$exceptionClass])) {
 			$level = \OCP\Util::DEBUG;
 		}
-		\OCP\Util::logException($this->appName, $e, $level);
+
+		$message = $ex->getMessage();
+		if ($ex instanceof Exception) {
+			if (empty($message)) {
+				$response = new Response($ex->getHTTPCode());
+				$message = $response->getStatusText();
+			}
+			$message = "HTTP/1.1 {$ex->getHTTPCode()} $message";
+		}
+
+		$exception = [
+			'Message' => $message,
+			'Exception' => $exceptionClass,
+			'Code' => $ex->getCode(),
+			'Trace' => $ex->getTraceAsString(),
+			'File' => $ex->getFile(),
+			'Line' => $ex->getLine(),
+		];
+		$this->logger->log($level, 'Exception: ' . json_encode($exception), ['app' => $this->appName]);
 	}
 }

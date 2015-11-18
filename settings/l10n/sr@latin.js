@@ -1,6 +1,8 @@
 OC.L10N.register(
     "settings",
     {
+    "External Storage" : "Spoljašnje skladište",
+    "Updates" : "Ažuriranja",
     "Authentication error" : "Greška pri autentifikaciji",
     "Language changed" : "Jezik je izmenjen",
     "Invalid request" : "Neispravan zahtev",
@@ -14,7 +16,6 @@ OC.L10N.register(
     "Delete" : "Obriši",
     "Groups" : "Grupe",
     "never" : "nikad",
-    "Security Warning" : "Bezbednosno upozorenje",
     "Port" : "Port",
     "by" : "od",
     "Cheers!" : "U zdravlje!",

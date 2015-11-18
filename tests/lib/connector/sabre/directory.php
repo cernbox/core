@@ -8,7 +8,9 @@
  */
 class Test_OC_Connector_Sabre_Directory extends \Test\TestCase {
 
+	/** @var OC\Files\View | PHPUnit_Framework_MockObject_MockObject */
 	private $view;
+	/** @var OC\Files\FileInfo | PHPUnit_Framework_MockObject_MockObject */
 	private $info;
 
 	protected function setUp() {
@@ -18,39 +20,28 @@ class Test_OC_Connector_Sabre_Directory extends \Test\TestCase {
 		$this->info = $this->getMock('OC\Files\FileInfo', array(), array(), '', false);
 	}
 
-	private function getRootDir() {
+	private function getDir($path = '/') {
 		$this->view->expects($this->once())
 			->method('getRelativePath')
-			->will($this->returnValue(''));
+			->will($this->returnValue($path));
 
 		$this->info->expects($this->once())
 			->method('getPath')
-			->will($this->returnValue(''));
+			->will($this->returnValue($path));
 
-		return new OC_Connector_Sabre_Directory($this->view, $this->info);
+		return new \OC\Connector\Sabre\Directory($this->view, $this->info);
 	}
 
 	/**
 	 * @expectedException \Sabre\DAV\Exception\Forbidden
 	 */
-	public function testCreateSharedFileFails() {
-		$dir = $this->getRootDir();
-		$dir->createFile('Shared');
-	}
-
-	/**
-	 * @expectedException \Sabre\DAV\Exception\Forbidden
-	 */
-	public function testCreateSharedFolderFails() {
-		$dir = $this->getRootDir();
-		$dir->createDirectory('Shared');
-	}
-
-	/**
-	 * @expectedException \Sabre\DAV\Exception\Forbidden
-	 */
-	public function testDeleteSharedFolderFails() {
-		$dir = $this->getRootDir();
+	public function testDeleteRootFolderFails() {
+		$this->info->expects($this->any())
+			->method('isDeletable')
+			->will($this->returnValue(true));
+		$this->view->expects($this->never())
+			->method('rmdir');
+		$dir = $this->getDir();
 		$dir->delete();
 	}
 
@@ -66,9 +57,10 @@ class Test_OC_Connector_Sabre_Directory extends \Test\TestCase {
 		// but fails
 		$this->view->expects($this->once())
 			->method('rmdir')
+			->with('sub')
 			->will($this->returnValue(true));
 
-		$dir = $this->getRootDir();
+		$dir = $this->getDir('sub');
 		$dir->delete();
 	}
 
@@ -80,7 +72,7 @@ class Test_OC_Connector_Sabre_Directory extends \Test\TestCase {
 			->method('isDeletable')
 			->will($this->returnValue(false));
 
-		$dir = $this->getRootDir();
+		$dir = $this->getDir('sub');
 		$dir->delete();
 	}
 
@@ -96,9 +88,10 @@ class Test_OC_Connector_Sabre_Directory extends \Test\TestCase {
 		// but fails
 		$this->view->expects($this->once())
 			->method('rmdir')
+			->with('sub')
 			->will($this->returnValue(false));
 
-		$dir = $this->getRootDir();
+		$dir = $this->getDir('sub');
 		$dir->delete();
 	}
 
@@ -131,28 +124,69 @@ class Test_OC_Connector_Sabre_Directory extends \Test\TestCase {
 			->method('getRelativePath')
 			->will($this->returnValue(''));
 
-		$dir = new OC_Connector_Sabre_Directory($this->view, $this->info);
+		$dir = new \OC\Connector\Sabre\Directory($this->view, $this->info);
 		$nodes = $dir->getChildren();
 
 		$this->assertEquals(2, count($nodes));
 
 		// calling a second time just returns the cached values,
 		// does not call getDirectoryContents again
-		$nodes = $dir->getChildren();
+		$dir->getChildren();
+	}
 
-		$properties = array('testprop', OC_Connector_Sabre_Node::GETETAG_PROPERTYNAME);
-		$this->assertEquals(2, count($nodes));
-		$this->assertEquals(
-			array(
-				OC_Connector_Sabre_Node::GETETAG_PROPERTYNAME => '"abc"'
-			),
-			$nodes[0]->getProperties($properties)
-		);
-		$this->assertEquals(
-			array(
-				OC_Connector_Sabre_Node::GETETAG_PROPERTYNAME => '"def"'
-			),
-			$nodes[1]->getProperties($properties)
-		);
+	/**
+	 * @expectedException \Sabre\DAV\Exception\ServiceUnavailable
+	 */
+	public function testGetChildThrowStorageNotAvailableException() {
+		$this->view->expects($this->once())
+			->method('getFileInfo')
+			->willThrowException(new \OCP\Files\StorageNotAvailableException());
+
+		$dir = new \OC\Connector\Sabre\Directory($this->view, $this->info);
+		$dir->getChild('.');
+	}
+
+	/**
+	 * @expectedException \OC\Connector\Sabre\Exception\InvalidPath
+	 */
+	public function testGetChildThrowInvalidPath() {
+		$this->view->expects($this->once())
+			->method('verifyPath')
+			->willThrowException(new \OCP\Files\InvalidPathException());
+		$this->view->expects($this->never())
+			->method('getFileInfo');
+
+		$dir = new \OC\Connector\Sabre\Directory($this->view, $this->info);
+		$dir->getChild('.');
+	}
+
+	public function testGetQuotaInfo() {
+		$storage = $this->getMockBuilder('\OC\Files\Storage\Wrapper\Quota')
+			->disableOriginalConstructor()
+			->getMock();
+
+		$storage->expects($this->once())
+			->method('instanceOfStorage')
+			->with('\OC\Files\Storage\Wrapper\Quota')
+			->will($this->returnValue(true));
+
+		$storage->expects($this->once())
+			->method('getQuota')
+			->will($this->returnValue(1000));
+
+		$storage->expects($this->once())
+			->method('free_space')
+			->will($this->returnValue(800));
+
+		$this->info->expects($this->once())
+			->method('getSize')
+			->will($this->returnValue(200));
+
+		$this->info->expects($this->once())
+			->method('getStorage')
+			->will($this->returnValue($storage));
+
+		$dir = new \OC\Connector\Sabre\Directory($this->view, $this->info);
+		$this->assertEquals([200, 800], $dir->getQuotaInfo()); //200 used, 800 free
 	}
 }

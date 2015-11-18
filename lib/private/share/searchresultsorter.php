@@ -1,12 +1,29 @@
 <?php
 /**
- * Copyright (c) 2014 Arthur Schiwon <blizzz@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 namespace OC\Share;
+
+use OCP\ILogger;
 
 class SearchResultSorter {
 	private $search;
@@ -19,9 +36,9 @@ class SearchResultSorter {
 	 * @param string $key the array key containing the value that should be compared
 	 * against
 	 * @param string $encoding optional, encoding to use, defaults to UTF-8
-	 * @param \OC\Log $log optional
+	 * @param ILogger $log optional
 	 */
-	public function __construct($search, $key, \OC\Log $log = null, $encoding = 'UTF-8') {
+	public function __construct($search, $key, ILogger $log = null, $encoding = 'UTF-8') {
 		$this->encoding = $encoding;
 		$this->key = $key;
 		$this->log = $log;

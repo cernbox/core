@@ -77,10 +77,11 @@
 			var self = this;
 			// register "star" action
 			fileActions.registerAction({
-				name: 'favorite',
-				displayName: 'Favorite',
+				name: 'Favorite',
+				displayName: t('files', 'Favorite'),
 				mime: 'all',
 				permissions: OC.PERMISSION_READ,
+				type: OCA.Files.FileActions.TYPE_INLINE,
 				render: function(actionSpec, isDefault, context) {
 					var $file = context.$file;
 					var isFavorite = $file.data('favorite') === true;
@@ -91,6 +92,7 @@
 				actionHandler: function(fileName, context) {
 					var $actionEl = context.$file.find('.action-favorite');
 					var $file = context.$file;
+					var fileInfo = context.fileList.files[$file.index()];
 					var dir = context.dir || context.fileList.getCurrentDirectory();
 					var tags = $file.attr('data-tags');
 					if (_.isUndefined(tags)) {
@@ -105,23 +107,28 @@
 					} else {
 						tags.push(OC.TAG_FAVORITE);
 					}
+
+					// pre-toggle the star
 					toggleStar($actionEl, !isFavorite);
+
+					context.fileInfoModel.trigger('busy', context.fileInfoModel, true);
 
 					self.applyFileTags(
 						dir + '/' + fileName,
-						tags
+						tags,
+						$actionEl,
+						isFavorite
 					).then(function(result) {
+						context.fileInfoModel.trigger('busy', context.fileInfoModel, false);
 						// response from server should contain updated tags
 						var newTags = result.tags;
 						if (_.isUndefined(newTags)) {
 							newTags = tags;
 						}
-						var fileInfo = context.fileList.files[$file.index()];
-						// read latest state from result
-						toggleStar($actionEl, (newTags.indexOf(OC.TAG_FAVORITE) >= 0));
-						$file.attr('data-tags', newTags.join('|'));
-						$file.attr('data-favorite', !isFavorite);
-						fileInfo.tags = newTags;
+						context.fileInfoModel.set({
+							'tags': newTags,
+							'favorite': !isFavorite
+						});
 					});
 				}
 			});
@@ -142,6 +149,18 @@
 				$tr.find('td:first').prepend('<div class="favorite"></div>');
 				return $tr;
 			};
+			var oldElementToFile = fileList.elementToFile;
+			fileList.elementToFile = function($el) {
+				var fileInfo = oldElementToFile.apply(this, arguments);
+				var tags = $el.attr('data-tags');
+				if (_.isUndefined(tags)) {
+					tags = '';
+				}
+				tags = tags.split('|');
+				tags = _.without(tags, '');
+				fileInfo.tags = tags;
+				return fileInfo;
+			};
 		},
 
 		attach: function(fileList) {
@@ -157,8 +176,10 @@
 		 *
 		 * @param {String} fileName path to the file or folder to tag
 		 * @param {Array.<String>} tagNames array of tag names
+		 * @param {Object} $actionEl element
+		 * @param {boolean} isFavorite Was the item favorited before
 		 */
-		applyFileTags: function(fileName, tagNames) {
+		applyFileTags: function(fileName, tagNames, $actionEl, isFavorite) {
 			var encodedPath = OC.encodePath(fileName);
 			while (encodedPath[0] === '/') {
 				encodedPath = encodedPath.substr(1);
@@ -171,6 +192,14 @@
 				}),
 				dataType: 'json',
 				type: 'POST'
+			}).fail(function(response) {
+				var message = '';
+				// show message if it is available
+				if(response.responseJSON && response.responseJSON.message) {
+					message = ': ' + response.responseJSON.message;
+				}
+				OC.Notification.showTemporary(t('files', 'An error occurred while trying to update the tags') + message);
+				toggleStar($actionEl, isFavorite);
 			});
 		}
 	};

@@ -1,24 +1,25 @@
 <?php
-
 /**
- * ownCloud
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright (C) 2014 ownCloud, Inc.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @author Tom <tom@owncloud.com>
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -29,9 +30,23 @@ use \OC_App;
 
 class Apps {
 
-	public static function getApps($parameters){
+	/** @var \OCP\App\IAppManager */
+	private $appManager;
+
+	/**
+	 * @param \OCP\App\IAppManager $appManager
+	 */
+	public function __construct(\OCP\App\IAppManager $appManager) {
+		$this->appManager = $appManager;
+	}
+
+	/**
+	 * @param array $parameters
+	 * @return OC_OCS_Result
+	 */
+	public function getApps($parameters) {
 		$apps = OC_App::listAllApps();
-		$list = array();
+		$list = [];
 		foreach($apps as $app) {
 			$list[] = $app['id'];
 		}
@@ -56,25 +71,37 @@ class Apps {
 		}
 	}
 
-	public static function getAppInfo($parameters){
+	/**
+	 * @param array $parameters
+	 * @return OC_OCS_Result
+	 */
+	public function getAppInfo($parameters) {
 		$app = $parameters['appid'];
-		$info = OC_App::getAppInfo($app);
+		$info = \OCP\App::getAppInfo($app);
 		if(!is_null($info)) {
 			return new OC_OCS_Result(OC_App::getAppInfo($app));
 		} else {
-			return new OC_OCS_Result(null, \OC_API::RESPOND_NOT_FOUND, 'The request app was not found');
+			return new OC_OCS_Result(null, \OCP\API::RESPOND_NOT_FOUND, 'The request app was not found');
 		}
 	}
 
-	public static function enable($parameters){
+	/**
+	 * @param array $parameters
+	 * @return OC_OCS_Result
+	 */
+	public function enable($parameters) {
 		$app = $parameters['appid'];
-		OC_App::enable($app);
+		$this->appManager->enableApp($app);
 		return new OC_OCS_Result(null, 100);
 	}
 
-	public static function disable($parameters){
+	/**
+	 * @param array $parameters
+	 * @return OC_OCS_Result
+	 */
+	public function disable($parameters) {
 		$app = $parameters['appid'];
-		OC_App::disable($app);
+		$this->appManager->disableApp($app);
 		return new OC_OCS_Result(null, 100);
 	}
 

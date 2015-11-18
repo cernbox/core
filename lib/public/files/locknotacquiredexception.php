@@ -1,18 +1,23 @@
 <?php
 /**
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Owen Winkler <a_github@midnightcircus.com>
+ * @author Robin Appelman <icewind@owncloud.com>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is distributed in the hope that it will be useful,
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -27,6 +32,7 @@ namespace OCP\Files;
 
 /**
  * Exception for a file that is locked
+ * @since 7.0.0
  */
 class LockNotAcquiredException extends \Exception {
 	/** @var string $path The path that could not be locked */
@@ -35,12 +41,20 @@ class LockNotAcquiredException extends \Exception {
 	/** @var integer $lockType The type of the lock that was attempted */
 	public $lockType;
 
+	/**
+	 * @since 7.0.0
+	 */
 	public function __construct($path, $lockType, $code = 0, \Exception $previous = null) {
 		$message = \OC::$server->getL10N('core')->t('Could not obtain lock type %d on "%s".', array($lockType, $path));
 		parent::__construct($message, $code, $previous);
 	}
 
-	// custom string representation of object
+	/**
+	 * custom string representation of object
+	 *
+	 * @return string
+	 * @since 7.0.0
+	 */
 	public function __toString() {
 		return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
 	}

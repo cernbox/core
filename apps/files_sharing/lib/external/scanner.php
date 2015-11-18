@@ -1,9 +1,26 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Olivier Paroz <github@oparoz.com>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCA\Files_Sharing\External;
@@ -14,12 +31,11 @@ use OCP\Files\StorageInvalidException;
 use OCP\Files\StorageNotAvailableException;
 
 class Scanner extends \OC\Files\Cache\Scanner {
-	/**
-	 * @var \OCA\Files_Sharing\External\Storage
-	 */
+	/** @var \OCA\Files_Sharing\External\Storage */
 	protected $storage;
 
-	public function scan($path, $recursive = self::SCAN_RECURSIVE, $reuse = -1) {
+	/** {@inheritDoc} */
+	public function scan($path, $recursive = self::SCAN_RECURSIVE, $reuse = -1, $lock = true) {
 		$this->scanAll();
 	}
 
@@ -31,9 +47,12 @@ class Scanner extends \OC\Files\Cache\Scanner {
 	 *
 	 * @param string $file file to scan
 	 * @param int $reuseExisting
+	 * @param int $parentId
+	 * @param array | null $cacheData existing data in the cache for the file to be scanned
+	 * @param bool $lock set to false to disable getting an additional read lock during scanning
 	 * @return array an array of metadata of the scanned file
 	 */
-	public function scanFile($file, $reuseExisting = 0) {
+	public function scanFile($file, $reuseExisting = 0, $parentId = -1, $cacheData = null, $lock = true) {
 		try {
 			return parent::scanFile($file, $reuseExisting);
 		} catch (ForbiddenException $e) {
@@ -54,6 +73,9 @@ class Scanner extends \OC\Files\Cache\Scanner {
 	 * Checks the remote share for changes.
 	 * If changes are available, scan them and update
 	 * the cache.
+	 * @throws NotFoundException
+	 * @throws StorageInvalidException
+	 * @throws \Exception
 	 */
 	public function scanAll() {
 		try {
@@ -76,10 +98,14 @@ class Scanner extends \OC\Files\Cache\Scanner {
 		}
 	}
 
+	/**
+	 * @param array $data
+	 * @param string $path
+	 */
 	private function addResult($data, $path) {
 		$id = $this->cache->put($path, $data);
 		if (isset($data['children'])) {
-			$children = array();
+			$children = [];
 			foreach ($data['children'] as $child) {
 				$children[$child['name']] = true;
 				$this->addResult($child, ltrim($path . '/' . $child['name'], '/'));

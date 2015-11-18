@@ -1,5 +1,29 @@
 <?php
-
+/**
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 try {
 
 	require_once 'lib/base.php';
@@ -12,13 +36,15 @@ try {
 	}
 
 	OC::checkMaintenanceMode();
-	OC::checkSingleUserMode();
-	$pathInfo = OC_Request::getPathInfo();
-	if (!$pathInfo && !isset($_GET['service'])) {
+	OC::checkSingleUserMode(true);
+	$request = \OC::$server->getRequest();
+	$pathInfo = $request->getPathInfo();
+
+	if (!$pathInfo && $request->getParam('service', '') === '') {
 		header('HTTP/1.0 404 Not Found');
 		exit;
-	} elseif (isset($_GET['service'])) {
-		$service = $_GET['service'];
+	} elseif ($request->getParam('service', '')) {
+		$service = $request->getParam('service', '');
 	} else {
 		$pathInfo = trim($pathInfo, '/');
 		list($service) = explode('/', $pathInfo);

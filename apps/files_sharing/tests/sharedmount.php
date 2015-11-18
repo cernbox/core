@@ -1,22 +1,27 @@
 <?php
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Bjoern Schiessle
- * @copyright 2014 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -58,11 +63,11 @@ class Test_Files_Sharing_Mount extends OCA\Files_sharing\Tests\TestCase {
 			self::TEST_FILES_SHARING_API_USER2, 31);
 
 		$statement = "UPDATE `*PREFIX*share` SET `file_target` = ? where `share_with` = ?";
-		$query = \OC_DB::prepare($statement);
+		$query = \OCP\DB::prepare($statement);
 		$arguments = array('/foo/bar' . $this->folder, self::TEST_FILES_SHARING_API_USER2);
 		$query->execute($arguments);
 
-		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*share`');
+		$query = \OCP\DB::prepare('SELECT * FROM `*PREFIX*share`');
 		$result = $query->execute();
 
 		$shares = $result->fetchAll();
@@ -76,7 +81,7 @@ class Test_Files_Sharing_Mount extends OCA\Files_sharing\Tests\TestCase {
 
 		// share should have moved up
 
-		$query = \OC_DB::prepare('SELECT * FROM `*PREFIX*share`');
+		$query = \OCP\DB::prepare('SELECT * FROM `*PREFIX*share`');
 		$result = $query->execute();
 
 		$shares = $result->fetchAll();
@@ -141,14 +146,20 @@ class Test_Files_Sharing_Mount extends OCA\Files_sharing\Tests\TestCase {
 
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER2);
 
-		\OC\Files\Filesystem::rename($this->filename, "newFileName");
+		\OC\Files\Filesystem::rename($this->filename, $this->filename . '_renamed');
 
-		$this->assertTrue(\OC\Files\Filesystem::file_exists('newFileName'));
+		$this->assertTrue(\OC\Files\Filesystem::file_exists($this->filename . '_renamed'));
 		$this->assertFalse(\OC\Files\Filesystem::file_exists($this->filename));
 
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
 		$this->assertTrue(\OC\Files\Filesystem::file_exists($this->filename));
-		$this->assertFalse(\OC\Files\Filesystem::file_exists("newFileName"));
+		$this->assertFalse(\OC\Files\Filesystem::file_exists($this->filename . '_renamed'));
+
+		// rename back to original name
+		self::loginHelper(self::TEST_FILES_SHARING_API_USER2);
+		\OC\Files\Filesystem::rename($this->filename . '_renamed', $this->filename);
+		$this->assertFalse(\OC\Files\Filesystem::file_exists($this->filename . '_renamed'));
+		$this->assertTrue(\OC\Files\Filesystem::file_exists($this->filename));
 
 		//cleanup
 		\OCP\Share::unshare('file', $fileinfo['fileid'], \OCP\Share::SHARE_TYPE_USER, self::TEST_FILES_SHARING_API_USER2);

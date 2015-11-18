@@ -1,26 +1,35 @@
 <?php
-
 /**
-* ownCloud
-*
-* @author Michael Gapczynski
-* @copyright 2012 Michael Gapczynski mtgap@owncloud.com
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Philipp Kapfer <philipp.kapfer@gmx.at>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Sascha Schmidt <realriot@realriot.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace OC\Files\Storage;
+
+use Icewind\Streams\IteratorDirectory;
 
 require_once __DIR__ . '/../3rdparty/Dropbox/autoload.php';
 
@@ -70,7 +79,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 	 * @return mixed directory contents if $list is true, file metadata if $list is
 	 * false, null if the file doesn't exist or "false" if the operation failed
 	 */
-	private function getMetaData($path, $list = false) {
+	private function getDropBoxMetaData($path, $list = false) {
 		$path = $this->root.$path;
 		if ( ! $list && isset($this->metaData[$path])) {
 			return $this->metaData[$path];
@@ -100,7 +109,12 @@ class Dropbox extends \OC\Files\Storage\Common {
 				return $contents;
 			} else {
 				try {
-					$response = $this->dropbox->getMetaData($path, 'false');
+					$requestPath = $path;
+					if ($path === '.') {
+						$requestPath = '';
+					}
+
+					$response = $this->dropbox->getMetaData($requestPath, 'false');
 					if (!isset($response['is_deleted']) || !$response['is_deleted']) {
 						$this->metaData[$path] = $response;
 						return $response;
@@ -138,20 +152,19 @@ class Dropbox extends \OC\Files\Storage\Common {
 	}
 
 	public function opendir($path) {
-		$contents = $this->getMetaData($path, true);
+		$contents = $this->getDropBoxMetaData($path, true);
 		if ($contents !== false) {
 			$files = array();
 			foreach ($contents as $file) {
 				$files[] = basename($file['path']);
 			}
-			\OC\Files\Stream\Dir::register('dropbox'.$path, $files);
-			return opendir('fakedir://dropbox'.$path);
+			return IteratorDirectory::wrap($files);
 		}
 		return false;
 	}
 
 	public function stat($path) {
-		$metaData = $this->getMetaData($path);
+		$metaData = $this->getDropBoxMetaData($path);
 		if ($metaData) {
 			$stat['size'] = $metaData['bytes'];
 			$stat['atime'] = time();
@@ -165,7 +178,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 		if ($path == '' || $path == '/') {
 			return 'dir';
 		} else {
-			$metaData = $this->getMetaData($path);
+			$metaData = $this->getDropBoxMetaData($path);
 			if ($metaData) {
 				if ($metaData['is_dir'] == 'true') {
 					return 'dir';
@@ -181,7 +194,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 		if ($path == '' || $path == '/') {
 			return true;
 		}
-		if ($this->getMetaData($path)) {
+		if ($this->getDropBoxMetaData($path)) {
 			return true;
 		}
 		return false;
@@ -201,7 +214,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 	public function rename($path1, $path2) {
 		try {
 			// overwrite if target file exists and is not a directory
-			$destMetaData = $this->getMetaData($path2);
+			$destMetaData = $this->getDropBoxMetaData($path2);
 			if (isset($destMetaData) && $destMetaData !== false && !$destMetaData['is_dir']) {
 				$this->unlink($path2);
 			}
@@ -231,7 +244,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 		switch ($mode) {
 			case 'r':
 			case 'rb':
-				$tmpFile = \OC_Helper::tmpFile();
+				$tmpFile = \OCP\Files::tmpFile();
 				try {
 					$data = $this->dropbox->getFile($path);
 					file_put_contents($tmpFile, $data);
@@ -257,7 +270,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 				} else {
 					$ext = '';
 				}
-				$tmpFile = \OC_Helper::tmpFile($ext);
+				$tmpFile = \OCP\Files::tmpFile($ext);
 				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
 				if ($this->file_exists($path)) {
 					$source = $this->fopen($path, 'r');
@@ -275,6 +288,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 			try {
 				$this->dropbox->putFile(self::$tempFiles[$tmpFile], $handle);
 				unlink($tmpFile);
+				$this->deleteMetaData(self::$tempFiles[$tmpFile]);
 			} catch (\Exception $exception) {
 				\OCP\Util::writeLog('files_external', $exception->getMessage(), \OCP\Util::ERROR);
 			}
@@ -285,7 +299,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 		if ($this->filetype($path) == 'dir') {
 			return 'httpd/unix-directory';
 		} else {
-			$metaData = $this->getMetaData($path);
+			$metaData = $this->getDropBoxMetaData($path);
 			if ($metaData) {
 				return $metaData['mime_type'];
 			}
@@ -316,11 +330,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 	 * check if curl is installed
 	 */
 	public static function checkDependencies() {
-		if (function_exists('curl_init')) {
-			return true;
-		} else {
-			return array('curl');
-		}
+		return true;
 	}
 
 }

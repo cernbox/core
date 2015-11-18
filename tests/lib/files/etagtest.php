@@ -16,42 +16,33 @@ class EtagTest extends \Test\TestCase {
 
 	private $tmpDir;
 
-	private $uid;
-
 	/**
-	 * @var \OC_User_Dummy $userBackend
+	 * @var \Test\Util\User\Dummy $userBackend
 	 */
 	private $userBackend;
-
-	/** @var \OC\Files\Storage\Storage */
-	private $originalStorage;
 
 	protected function setUp() {
 		parent::setUp();
 
 		\OC_Hook::clear('OC_Filesystem', 'setup');
-		\OCP\Util::connectHook('OC_Filesystem', 'setup', '\OC\Files\Storage\Shared', 'setup');
+		$application = new \OCA\Files_Sharing\AppInfo\Application();
+		$application->registerMountProviders();
+		$application->setupPropagation();
 		\OCP\Share::registerBackend('file', 'OC_Share_Backend_File');
 		\OCP\Share::registerBackend('folder', 'OC_Share_Backend_Folder', 'file');
 
 		$this->datadir = \OC_Config::getValue('datadirectory');
 		$this->tmpDir = \OC_Helper::tmpFolder();
 		\OC_Config::setValue('datadirectory', $this->tmpDir);
-		$this->uid = \OC_User::getUser();
-		\OC_User::setUserId(null);
 
-		$this->userBackend = new \OC_User_Dummy();
+		$this->userBackend = new \Test\Util\User\Dummy();
 		\OC_User::useBackend($this->userBackend);
-		$this->originalStorage = \OC\Files\Filesystem::getStorage('/');
-		\OC_Util::tearDownFS();
 	}
 
 	protected function tearDown() {
 		\OC_Config::setValue('datadirectory', $this->datadir);
-		\OC_User::setUserId($this->uid);
-		\OC_Util::setupFS($this->uid);
-		\OC\Files\Filesystem::mount($this->originalStorage, array(), '/');
 
+		$this->logout();
 		parent::tearDown();
 	}
 
@@ -59,9 +50,7 @@ class EtagTest extends \Test\TestCase {
 		$user1 = $this->getUniqueID('user_');
 		$this->userBackend->createUser($user1, '');
 
-		\OC_Util::tearDownFS();
-		\OC_User::setUserId($user1);
-		\OC_Util::setupFS($user1);
+		$this->loginAsUser($user1);
 		Filesystem::mkdir('/folder');
 		Filesystem::mkdir('/folder/subfolder');
 		Filesystem::file_put_contents('/foo.txt', 'asd');

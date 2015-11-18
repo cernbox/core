@@ -1,23 +1,24 @@
 <?php
-
 /**
- * ownCloud - user_ldap
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
  *
- * @author Arthur Schiwon
- * @copyright 2013 Arthur Schiwon blizzz@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -31,13 +32,13 @@ $l = \OC::$server->getL10N('user_ldap');
 if(!isset($_POST['action'])) {
 	\OCP\JSON::error(array('message' => $l->t('No action specified')));
 }
-$action = $_POST['action'];
+$action = (string)$_POST['action'];
 
 
 if(!isset($_POST['ldap_serverconfig_chooser'])) {
 	\OCP\JSON::error(array('message' => $l->t('No configuration specified')));
 }
-$prefix = $_POST['ldap_serverconfig_chooser'];
+$prefix = (string)$_POST['ldap_serverconfig_chooser'];
 
 $ldapWrapper = new \OCA\user_ldap\lib\LDAP();
 $configuration = new \OCA\user_ldap\lib\Configuration($prefix);
@@ -71,13 +72,11 @@ switch($action) {
 	case 'determineGroupsForGroups':
 	case 'determineAttributes':
 	case 'getUserListFilter':
-	case 'getLoginFilterMode':
 	case 'getUserLoginFilter':
-	case 'getUserFilterMode':
 	case 'getGroupFilter':
-	case 'getGroupFilterMode':
 	case 'countUsers':
 	case 'countGroups':
+	case 'countInBaseDN':
 		try {
 			$result = $wizard->$action();
 			if($result !== false) {
@@ -91,7 +90,24 @@ switch($action) {
 		\OCP\JSON::error();
 		exit;
 		break;
-
+			
+	case 'testLoginName': {
+		try {
+			$loginName = $_POST['ldap_test_loginname'];
+			$result = $wizard->$action($loginName);
+			if($result !== false) {
+				OCP\JSON::success($result->getResultArray());
+				exit;
+			}
+		} catch (\Exception $e) {
+			\OCP\JSON::error(array('message' => $e->getMessage(), 'code' => $e->getCode()));
+			exit;
+		}
+		\OCP\JSON::error();
+		exit;
+		break;
+	}
+	
 	case 'save':
 		$key = isset($_POST['cfgkey']) ? $_POST['cfgkey'] : false;
 		$val = isset($_POST['cfgval']) ? $_POST['cfgval'] : null;
@@ -114,6 +130,6 @@ switch($action) {
 		OCP\JSON::success();
 		break;
 	default:
-		//TODO: return 4xx error
+		\OCP\JSON::error(array('message' => $l->t('Action does not exist')));
 		break;
 }

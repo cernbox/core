@@ -1,16 +1,36 @@
 <?php
 /**
- * @author Lukas Reschke
- * @copyright 2014-2015 Lukas Reschke lukas@owncloud.com
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Settings;
 
+use OC\Files\View;
 use OC\Settings\Controller\AppSettingsController;
+use OC\Settings\Controller\CertificateController;
+use OC\Settings\Controller\CheckSetupController;
+use OC\Settings\Controller\EncryptionController;
 use OC\Settings\Controller\GroupsController;
 use OC\Settings\Controller\LogSettingsController;
 use OC\Settings\Controller\MailSettingsController;
@@ -31,7 +51,7 @@ class Application extends App {
 	/**
 	 * @param array $urlParams
 	 */
-	public function __construct(array $urlParams=array()){
+	public function __construct(array $urlParams=[]){
 		parent::__construct('settings', $urlParams);
 
 		$container = $this->getContainer();
@@ -47,8 +67,20 @@ class Application extends App {
 				$c->query('Config'),
 				$c->query('UserSession'),
 				$c->query('Defaults'),
-				$c->query('Mail'),
+				$c->query('Mailer'),
 				$c->query('DefaultMailAddress')
+			);
+		});
+		$container->registerService('EncryptionController', function(IContainer $c) {
+			return new EncryptionController(
+				$c->query('AppName'),
+				$c->query('Request'),
+				$c->query('L10N'),
+				$c->query('Config'),
+				$c->query('DatabaseConnection'),
+				$c->query('UserManager'),
+				new View(),
+				$c->query('Logger')
 			);
 		});
 		$container->registerService('AppSettingsController', function(IContainer $c) {
@@ -57,7 +89,10 @@ class Application extends App {
 				$c->query('Request'),
 				$c->query('L10N'),
 				$c->query('Config'),
-				$c->query('ICacheFactory')
+				$c->query('ICacheFactory'),
+				$c->query('INavigationManager'),
+				$c->query('IAppManager'),
+				$c->query('OcsClient')
 			);
 		});
 		$container->registerService('SecuritySettingsController', function(IContainer $c) {
@@ -65,6 +100,15 @@ class Application extends App {
 				$c->query('AppName'),
 				$c->query('Request'),
 				$c->query('Config')
+			);
+		});
+		$container->registerService('CertificateController', function(IContainer $c) {
+			return new CertificateController(
+				$c->query('AppName'),
+				$c->query('Request'),
+				$c->query('CertificateManager'),
+				$c->query('L10N'),
+				$c->query('IAppManager')
 			);
 		});
 		$container->registerService('GroupsController', function(IContainer $c) {
@@ -89,7 +133,7 @@ class Application extends App {
 				$c->query('L10N'),
 				$c->query('Logger'),
 				$c->query('Defaults'),
-				$c->query('Mail'),
+				$c->query('Mailer'),
 				$c->query('DefaultMailAddress'),
 				$c->query('URLGenerator'),
 				$c->query('OCP\\App\\IAppManager'),
@@ -101,8 +145,18 @@ class Application extends App {
 				$c->query('AppName'),
 				$c->query('Request'),
 				$c->query('Config'),
-				$c->query('L10N'),
-				$c->query('TimeFactory')
+				$c->query('L10N')
+			);
+		});
+		$container->registerService('CheckSetupController', function(IContainer $c) {
+			return new CheckSetupController(
+				$c->query('AppName'),
+				$c->query('Request'),
+				$c->query('Config'),
+				$c->query('ClientService'),
+				$c->query('URLGenerator'),
+				$c->query('Util'),
+				$c->query('L10N')
 			);
 		});
 
@@ -151,8 +205,8 @@ class Application extends App {
 		$container->registerService('SubAdminFactory', function(IContainer $c) {
 			return new SubAdminFactory();
 		});
-		$container->registerService('Mail', function(IContainer $c) {
-			return new \OC_Mail;
+		$container->registerService('Mailer', function(IContainer $c) {
+			return $c->query('ServerContainer')->getMailer();
 		});
 		$container->registerService('Defaults', function(IContainer $c) {
 			return new \OC_Defaults;
@@ -165,6 +219,27 @@ class Application extends App {
 		});
 		$container->registerService('URLGenerator', function(IContainer $c) {
 			return $c->query('ServerContainer')->getURLGenerator();
+		});
+		$container->registerService('ClientService', function(IContainer $c) {
+			return $c->query('ServerContainer')->getHTTPClientService();
+		});
+		$container->registerService('INavigationManager', function(IContainer $c) {
+			return $c->query('ServerContainer')->getNavigationManager();
+		});
+		$container->registerService('IAppManager', function(IContainer $c) {
+			return $c->query('ServerContainer')->getAppManager();
+		});
+		$container->registerService('OcsClient', function(IContainer $c) {
+			return $c->query('ServerContainer')->getOcsClient();
+		});
+		$container->registerService('Util', function(IContainer $c) {
+			return new \OC_Util();
+		});
+		$container->registerService('DatabaseConnection', function(IContainer $c) {
+			return $c->query('ServerContainer')->getDatabaseConnection();
+		});
+		$container->registerService('CertificateManager', function(IContainer $c){
+			return $c->query('ServerContainer')->getCertificateManager();
 		});
 	}
 }

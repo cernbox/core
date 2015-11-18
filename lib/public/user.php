@@ -1,22 +1,30 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lorenzo M. Catucci <lorenzo@sancho.ccd.uniroma2.it>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -33,12 +41,14 @@ namespace OCP;
 /**
  * This class provides access to the user management. You can get information
  * about the currently logged in user and the permissions for example
+ * @since 5.0.0
  */
 class User {
 	/**
 	 * Get the user id of the user currently logged in.
 	 * @return string uid or false
-	 * @deprecated Use \OC::$server->getUserSession()->getUser()->getUID()
+	 * @deprecated 8.0.0 Use \OC::$server->getUserSession()->getUser()->getUID()
+	 * @since 5.0.0
 	 */
 	public static function getUser() {
 		return \OC_User::getUser();
@@ -50,6 +60,8 @@ class User {
 	 * @param int|null $limit
 	 * @param int|null $offset
 	 * @return array an array of all uids
+	 * @deprecated 8.1.0 use method search() of \OCP\IUserManager - \OC::$server->getUserManager()
+	 * @since 5.0.0
 	 */
 	public static function getUsers( $search = '', $limit = null, $offset = null ) {
 		return \OC_User::getUsers( $search, $limit, $offset );
@@ -59,6 +71,9 @@ class User {
 	 * Get the user display name of the user currently logged in.
 	 * @param string|null $user user id or null for current user
 	 * @return string display name
+	 * @deprecated 8.1.0 fetch \OCP\IUser (has getDisplayName()) by using method
+	 *                   get() of \OCP\IUserManager - \OC::$server->getUserManager()
+	 * @since 5.0.0
 	 */
 	public static function getDisplayName( $user = null ) {
 		return \OC_User::getDisplayName( $user );
@@ -70,6 +85,8 @@ class User {
 	 * @param int|null $limit
 	 * @param int|null $offset
 	 * @return array an array of all display names (value) and the correspondig uids (key)
+	 * @deprecated 8.1.0 use method searchDisplayName() of \OCP\IUserManager - \OC::$server->getUserManager()
+	 * @since 5.0.0
 	 */
 	public static function getDisplayNames( $search = '', $limit = null, $offset = null ) {
 		return \OC_User::getDisplayNames( $search, $limit, $offset );
@@ -78,6 +95,7 @@ class User {
 	/**
 	 * Check if the user is logged in
 	 * @return boolean
+	 * @since 5.0.0
 	 */
 	public static function isLoggedIn() {
 		return \OC_User::isLoggedIn();
@@ -88,6 +106,8 @@ class User {
 	 * @param string $uid the username
 	 * @param string $excludingBackend (default none)
 	 * @return boolean
+	 * @deprecated 8.1.0 use method userExists() of \OCP\IUserManager - \OC::$server->getUserManager()
+	 * @since 5.0.0
 	 */
 	public static function userExists( $uid, $excludingBackend = null ) {
 		return \OC_User::userExists( $uid, $excludingBackend );
@@ -95,7 +115,8 @@ class User {
 	/**
 	 * Logs the user out including all the session data
 	 * Logout, destroys session
-	 * @deprecated Use \OC::$server->getUserSession()->logout();
+	 * @deprecated 8.0.0 Use \OC::$server->getUserSession()->logout();
+	 * @since 5.0.0
 	 */
 	public static function logout() {
 		\OC_User::logout();
@@ -108,23 +129,26 @@ class User {
 	 * @return string|false username on success, false otherwise
 	 *
 	 * Check if the password is correct without logging in the user
-	 * @deprecated Use \OC::$server->getUserManager()->checkPassword();
+	 * @deprecated 8.0.0 Use \OC::$server->getUserManager()->checkPassword();
+	 * @since 5.0.0
 	 */
 	public static function checkPassword( $uid, $password ) {
 		return \OC_User::checkPassword( $uid, $password );
 	}
 
 	/**
-	* Check if the user is a admin, redirects to home if not
-	*/
+	 * Check if the user is a admin, redirects to home if not
+	 * @since 5.0.0
+	 */
 	public static function checkAdminUser() {
 		\OC_Util::checkAdminUser();
 	}
 
 	/**
-	* Check if the user is logged in, redirects to home if not. With
-	* redirect URL parameter to the request URI.
-	*/
+	 * Check if the user is logged in, redirects to home if not. With
+	 * redirect URL parameter to the request URI.
+	 * @since 5.0.0
+	 */
 	public static function checkLoggedIn() {
 		\OC_Util::checkLoggedIn();
 	}

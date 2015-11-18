@@ -1,27 +1,38 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Bjoern Schiessle, Michael Gapczynski
- * @copyright 2012 Michael Gapczynski <mtgap@owncloud.com>
- *            2014 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Cache;
 
+use OC\User\NoUserException;
 use OCP\Share_Backend_Collection;
 
 /**
@@ -38,6 +49,7 @@ class Shared_Cache extends Cache {
 	 * @param \OC\Files\Storage\Shared $storage
 	 */
 	public function __construct($storage) {
+		parent::__construct($storage);
 		$this->storage = $storage;
 	}
 
@@ -45,15 +57,20 @@ class Shared_Cache extends Cache {
 	 * Get the source cache of a shared file or folder
 	 *
 	 * @param string $target Shared target file path
-	 * @return \OC\Files\Cache\Cache
+	 * @return \OC\Files\Cache\Cache|false
 	 */
 	private function getSourceCache($target) {
 		if ($target === false || $target === $this->storage->getMountPoint()) {
 			$target = '';
 		}
-		$source = \OC_Share_Backend_File::getSource($target, $this->storage->getMountPoint(), $this->storage->getItemType());
+		$source = \OC_Share_Backend_File::getSource($target, $this->storage->getShare());
 		if (isset($source['path']) && isset($source['fileOwner'])) {
-			\OC\Files\Filesystem::initMountPoints($source['fileOwner']);
+			try {
+				\OC\Files\Filesystem::initMountPoints($source['fileOwner']);
+			} catch(NoUserException $e) {
+				\OC::$server->getLogger()->logException($e, ['app' => 'files_sharing']);
+				return false;
+			}
 			$mounts = \OC\Files\Filesystem::getMountByNumericId($source['storage']);
 			if (is_array($mounts) and !empty($mounts)) {
 				$fullPath = $mounts[0]->getMountPoint() . $source['path'];
@@ -82,9 +99,10 @@ class Shared_Cache extends Cache {
 	 * get the stored metadata of a file or folder
 	 *
 	 * @param string|int $file
-	 * @return array
+	 * @return array|false
 	 */
 	public function get($file) {
+		$mimetypeLoader = \OC::$server->getMimeTypeLoader();
 		if (is_string($file)) {
 			$cache = $this->getSourceCache($file);
 			if ($cache) {
@@ -111,9 +129,9 @@ class Shared_Cache extends Cache {
 			if (!is_int($sourceId) || $sourceId === 0) {
 				$sourceId = $this->storage->getSourceId();
 			}
-			$query = \OC_DB::prepare(
+			$query = \OCP\DB::prepare(
 				'SELECT `fileid`, `storage`, `path`, `parent`, `name`, `mimetype`, `mimepart`,'
-				. ' `size`, `mtime`, `encrypted`, `unencrypted_size`, `storage_mtime`, `etag`, `permissions`'
+				. ' `size`, `mtime`, `encrypted`, `storage_mtime`, `etag`, `permissions`'
 				. ' FROM `*PREFIX*filecache` WHERE `fileid` = ?');
 			$result = $query->execute(array($sourceId));
 			$data = $result->fetchRow();
@@ -121,17 +139,12 @@ class Shared_Cache extends Cache {
 			$data['mtime'] = (int)$data['mtime'];
 			$data['storage_mtime'] = (int)$data['storage_mtime'];
 			$data['encrypted'] = (bool)$data['encrypted'];
-			$data['mimetype'] = $this->getMimetype($data['mimetype']);
-			$data['mimepart'] = $this->getMimetype($data['mimepart']);
+			$data['mimetype'] = $mimetypeLoader->getMimetypeById($data['mimetype']);
+			$data['mimepart'] = $mimetypeLoader->getMimetypeById($data['mimepart']);
 			if ($data['storage_mtime'] === 0) {
 				$data['storage_mtime'] = $data['mtime'];
 			}
-			if ($data['encrypted'] or ($data['unencrypted_size'] > 0 and $data['mimetype'] === 'httpd/unix-directory')) {
-				$data['encrypted_size'] = (int)$data['size'];
-				$data['size'] = (int)$data['unencrypted_size'];
-			} else {
-				$data['size'] = (int)$data['size'];
-			}
+			$data['size'] = (int)$data['size'];
 			$data['permissions'] = (int)$data['permissions'];
 			if (!is_int($file) || $file === 0) {
 				$data['path'] = '';
@@ -148,7 +161,7 @@ class Shared_Cache extends Cache {
 	 * get the metadata of all files stored in $folder
 	 *
 	 * @param string $folderId
-	 * @return array
+	 * @return array|false
 	 */
 	public function getFolderContentsById($folderId) {
 		$cache = $this->getSourceCache('');
@@ -178,7 +191,7 @@ class Shared_Cache extends Cache {
 	 * @param string $file
 	 * @param array $data
 	 *
-	 * @return int file id
+	 * @return int|false file id
 	 */
 	public function put($file, array $data) {
 		$file = ($file === false) ? '' : $file;
@@ -231,18 +244,15 @@ class Shared_Cache extends Cache {
 	}
 
 	/**
-	 * Move a file or folder in the cache
+	 * Get the storage id and path needed for a move
 	 *
-	 * @param string $source
-	 * @param string $target
+	 * @param string $path
+	 * @return array [$storageId, $internalPath]
 	 */
-	public function move($source, $target) {
-		if ($cache = $this->getSourceCache($source)) {
-			$file = \OC_Share_Backend_File::getSource($target, $this->storage->getMountPoint(), $this->storage->getItemType());
-			if ($file && isset($file['path'])) {
-				$cache->move($this->files[$source], $file['path']);
-			}
-		}
+	protected function getMoveInfo($path) {
+		$cache = $this->getSourceCache($path);
+		$file = \OC_Share_Backend_File::getSource($path, $this->storage->getShare());
+		return [$cache->getNumericStorageId(), $file['path']];
 	}
 
 	/**
@@ -395,6 +405,32 @@ class Shared_Cache extends Cache {
 	}
 
 	/**
+	 * update the folder size and the size of all parent folders
+	 *
+	 * @param string|boolean $path
+	 * @param array $data (optional) meta data of the folder
+	 */
+	public function correctFolderSize($path, $data = null) {
+		$this->calculateFolderSize($path, $data);
+		if ($path !== '') {
+			$parent = dirname($path);
+			if ($parent === '.' or $parent === '/') {
+				$parent = '';
+			}
+			$this->correctFolderSize($parent);
+		} else {
+			// bubble up to source cache
+			$sourceCache = $this->getSourceCache($path);
+			if (isset($this->files[$path])) {
+				$parent = dirname($this->files[$path]);
+				if ($sourceCache) {
+					$sourceCache->correctFolderSize($parent);
+				}
+			}
+		}
+	}
+
+	/**
 	 * get the size of a folder and set it in the cache
 	 *
 	 * @param string $path
@@ -472,7 +508,7 @@ class Shared_Cache extends Cache {
 	 */
 	private function getParentInfo($id) {
 		$sql = 'SELECT `parent`, `name` FROM `*PREFIX*filecache` WHERE `fileid` = ?';
-		$query = \OC_DB::prepare($sql);
+		$query = \OCP\DB::prepare($sql);
 		$result = $query->execute(array($id));
 		if ($row = $result->fetchRow()) {
 			return array((int)$row['parent'], $row['name']);

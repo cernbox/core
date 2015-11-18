@@ -1,21 +1,44 @@
 <?php
-
 /**
- * ownCloud
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bartek Przybylski <bart.p.pl@gmail.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Byron Marohn <combustible@live.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author j-ed <juergen@eisfair.org>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Johannes Willnecker <johannes@willnecker.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Olivier Paroz <github@oparoz.com>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @author Thomas Tanghus
- * @copyright 2011 Thomas Tanghus <thomas@tanghus.net>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 /**
  * Class for basic image manipulation
  */
-class OC_Image {
+class OC_Image implements \OCP\IImage {
 	protected $resource = false; // tmp resource.
 	protected $imageType = IMAGETYPE_PNG; // Default to png if file type isn't evident.
 	protected $mimeType = "image/png"; // Default to png
@@ -283,9 +306,12 @@ class OC_Image {
 	}
 
 	/**
-	 * @return string Returns the raw image data.
+	 * @return null|string Returns the raw image data.
 	 */
-	function data() {
+	public function data() {
+		if (!$this->valid()) {
+			return null;
+		}
 		ob_start();
 		switch ($this->mimeType) {
 			case "image/png":
@@ -925,6 +951,8 @@ class OC_Image {
 
 	/**
 	 * Resizes the image to fit within a boundary while preserving ratio.
+	 * 
+	 * Warning: Images smaller than $maxWidth x $maxHeight will end up being scaled up
 	 *
 	 * @param integer $maxWidth
 	 * @param integer $maxHeight
@@ -945,7 +973,32 @@ class OC_Image {
 		$this->preciseResize(round($newWidth), round($newHeight));
 		return true;
 	}
-
+	
+	/**
+	 * Shrinks larger images to fit within specified boundaries while preserving ratio.
+	 *
+	 * @param integer $maxWidth
+	 * @param integer $maxHeight
+	 * @return bool
+	 */
+	public function scaleDownToFit($maxWidth, $maxHeight) {
+		if (!$this->valid()) {
+			$this->logger->error(__METHOD__ . '(): No image loaded', array('app' => 'core'));
+			return false;
+		}
+		$widthOrig = imageSX($this->resource);
+		$heightOrig = imageSY($this->resource);
+	
+		if ($widthOrig > $maxWidth || $heightOrig > $maxHeight) {
+			return $this->fitIn($maxWidth, $maxHeight);
+		}
+	
+		return false;
+	}
+	
+	/**
+	 * Destroys the current image and resets the object
+	 */
 	public function destroy() {
 		if ($this->valid()) {
 			imagedestroy($this->resource);

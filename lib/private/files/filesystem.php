@@ -1,9 +1,37 @@
 <?php
 /**
- * Copyright (c) 2012 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Florin Peter <github@florin-peter.de>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Sam Tuke <mail@samtuke.com>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ * @author Stephan Peijnik <speijnik@anexia-it.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 /**
@@ -30,7 +58,11 @@
 
 namespace OC\Files;
 
+use OC\Cache\File;
+use OC\Files\Config\MountProviderCollection;
 use OC\Files\Storage\StorageFactory;
+use OCP\Files\Config\IMountProvider;
+use OCP\IUserManager;
 
 class Filesystem {
 
@@ -48,6 +80,8 @@ class Filesystem {
 	static private $usersSetup = array();
 
 	static private $normalizedPathCache = array();
+
+	static private $listeningForProviders = false;
 
 	/**
 	 * classname which used for hooks handling
@@ -172,11 +206,13 @@ class Filesystem {
 	private static $loader;
 
 	/**
+	 * @param string $wrapperName
 	 * @param callable $wrapper
+	 * @param int $priority
 	 */
-	public static function addStorageWrapper($wrapperName, $wrapper) {
+	public static function addStorageWrapper($wrapperName, $wrapper, $priority = 50) {
 		$mounts = self::getMountManager()->getAll();
-		if (!self::getLoader()->addStorageWrapper($wrapperName, $wrapper, $mounts)) {
+		if (!self::getLoader()->addStorageWrapper($wrapperName, $wrapper, $priority, $mounts)) {
 			// do not re-wrap if storage with this name already existed
 			return;
 		}
@@ -307,7 +343,7 @@ class Filesystem {
 		self::$defaultInstance = new View($root);
 
 		if (!self::$mounts) {
-			self::$mounts = new Mount\Manager();
+			self::$mounts = \OC::$server->getMountManager();
 		}
 
 		//load custom mount config
@@ -318,9 +354,9 @@ class Filesystem {
 		return true;
 	}
 
-	static public function initMounts() {
+	static public function initMountManager() {
 		if (!self::$mounts) {
-			self::$mounts = new Mount\Manager();
+			self::$mounts = \OC::$server->getMountManager();
 		}
 	}
 
@@ -328,6 +364,7 @@ class Filesystem {
 	 * Initialize system and personal mount points for a user
 	 *
 	 * @param string $user
+	 * @throws \OC\User\NoUserException if the user is not available
 	 */
 	public static function initMountPoints($user = '') {
 		if ($user == '') {
@@ -340,69 +377,88 @@ class Filesystem {
 
 		$root = \OC_User::getHome($user);
 
-		$userObject = \OC_User::getManager()->get($user);
+		$userManager = \OC::$server->getUserManager();
+		$userObject = $userManager->get($user);
 
-		if (!is_null($userObject)) {
-			$homeStorage = \OC_Config::getValue( 'objectstore' );
-			if (!empty($homeStorage)) {
-				// sanity checks
-				if (empty($homeStorage['class'])) {
-					\OCP\Util::writeLog('files', 'No class given for objectstore', \OCP\Util::ERROR);
-				}
-				if (!isset($homeStorage['arguments'])) {
-					$homeStorage['arguments'] = array();
-				}
-				// instantiate object store implementation
-				$homeStorage['arguments']['objectstore'] = new $homeStorage['class']($homeStorage['arguments']);
-				// mount with home object store implementation
-				$homeStorage['class'] = '\OC\Files\ObjectStore\HomeObjectStoreStorage';
-			} else {
-				$homeStorage = array(
-					//default home storage configuration:
-					'class' => '\OC\Files\Storage\Home',
-					'arguments' => array()
-				);
-			}
-			$homeStorage['arguments']['user'] = $userObject;
-
-			// check for legacy home id (<= 5.0.12)
-			if (\OC\Files\Cache\Storage::exists('local::' . $root . '/')) {
-				$homeStorage['arguments']['legacy'] = true;
-			}
-
-			self::mount($homeStorage['class'], $homeStorage['arguments'], $user);
-
-			$home = \OC\Files\Filesystem::getStorage($user);
+		if (is_null($userObject)) {
+			\OCP\Util::writeLog('files', ' Backends provided no user object for ' . $user, \OCP\Util::ERROR);
+			throw new \OC\User\NoUserException('Backends provided no user object for ' . $user);
 		}
-		else {
-			self::mount('\OC\Files\Storage\Local', array('datadir' => $root), $user);
+
+		$homeStorage = \OC_Config::getValue('objectstore');
+		if (!empty($homeStorage)) {
+			// sanity checks
+			if (empty($homeStorage['class'])) {
+				\OCP\Util::writeLog('files', 'No class given for objectstore', \OCP\Util::ERROR);
+			}
+			if (!isset($homeStorage['arguments'])) {
+				$homeStorage['arguments'] = array();
+			}
+			// instantiate object store implementation
+			$homeStorage['arguments']['objectstore'] = new $homeStorage['class']($homeStorage['arguments']);
+			// mount with home object store implementation
+			$homeStorage['class'] = '\OC\Files\ObjectStore\HomeObjectStoreStorage';
+		} else {
+			$homeStorage = array(
+				//default home storage configuration:
+				'class' => '\OC\Files\Storage\Home',
+				'arguments' => array()
+			);
 		}
+		$homeStorage['arguments']['user'] = $userObject;
+
+		// check for legacy home id (<= 5.0.12)
+		if (\OC\Files\Cache\Storage::exists('local::' . $root . '/')) {
+			$homeStorage['arguments']['legacy'] = true;
+		}
+
+		self::mount($homeStorage['class'], $homeStorage['arguments'], $user);
+
+		$home = \OC\Files\Filesystem::getStorage($user);
 
 		self::mountCacheDir($user);
 
 		// Chance to mount for other storages
-		if($userObject) {
-			$mountConfigManager = \OC::$server->getMountProviderCollection();
+		/** @var \OC\Files\Config\MountProviderCollection $mountConfigManager */
+		$mountConfigManager = \OC::$server->getMountProviderCollection();
+		if ($userObject) {
 			$mounts = $mountConfigManager->getMountsForUser($userObject);
 			array_walk($mounts, array(self::$mounts, 'addMount'));
 		}
+
+		self::listenForNewMountProviders($mountConfigManager, $userManager);
 		\OC_Hook::emit('OC_Filesystem', 'post_initMountPoints', array('user' => $user, 'user_dir' => $root));
 	}
 
 	/**
+	 * Get mounts from mount providers that are registered after setup
+	 *
+	 * @param MountProviderCollection $mountConfigManager
+	 * @param IUserManager $userManager
+	 */
+	private static function listenForNewMountProviders(MountProviderCollection $mountConfigManager, IUserManager $userManager) {
+		if (!self::$listeningForProviders) {
+			self::$listeningForProviders = true;
+			$mountConfigManager->listen('\OC\Files\Config', 'registerMountProvider', function (IMountProvider $provider) use ($userManager) {
+				foreach (Filesystem::$usersSetup as $user => $setup) {
+					$userObject = $userManager->get($user);
+					if ($userObject) {
+						$mounts = $provider->getMountsForUser($userObject, Filesystem::getLoader());
+						array_walk($mounts, array(self::$mounts, 'addMount'));
+					}
+				}
+			});
+		}
+	}
+
+	/**
 	 * Mounts the cache directory
+	 *
 	 * @param string $user user name
 	 */
 	private static function mountCacheDir($user) {
 		$cacheBaseDir = \OC_Config::getValue('cache_path', '');
-		if ($cacheBaseDir === '') {
-			// use local cache dir relative to the user's home
-			$subdir = 'cache';
-			$view = new \OC\Files\View('/' . $user);
-			if(!$view->file_exists($subdir)) {
-				$view->mkdir($subdir);
-			}
-		} else {
+		if ($cacheBaseDir !== '') {
 			$cacheDir = rtrim($cacheBaseDir, '/') . '/' . $user;
 			if (!file_exists($cacheDir)) {
 				mkdir($cacheDir, 0770, true);
@@ -431,6 +487,7 @@ class Filesystem {
 
 	/**
 	 * get the relative path of the root data directory for the current user
+	 *
 	 * @return string
 	 *
 	 * Returns path like /admin/files
@@ -513,7 +570,7 @@ class Filesystem {
 		if (!$path || $path[0] !== '/') {
 			$path = '/' . $path;
 		}
-		if (strpos($path, '/../') !== FALSE || strrchr($path, '/') === '/..') {
+		if (strpos($path, '/../') !== false || strrchr($path, '/') === '/..') {
 			return false;
 		}
 		return true;
@@ -553,6 +610,7 @@ class Filesystem {
 	/**
 	 * check if the directory should be ignored when scanning
 	 * NOTE: the special directories . and .. would cause never ending recursion
+	 *
 	 * @param String $dir
 	 * @return boolean
 	 */
@@ -721,14 +779,24 @@ class Filesystem {
 
 	/**
 	 * Fix common problems with a file path
+	 *
 	 * @param string $path
 	 * @param bool $stripTrailingSlash
+	 * @param bool $isAbsolutePath
 	 * @return string
 	 */
 	public static function normalizePath($path, $stripTrailingSlash = true, $isAbsolutePath = false) {
+		/**
+		 * FIXME: This is a workaround for existing classes and files which call
+		 *        this function with another type than a valid string. This
+		 *        conversion should get removed as soon as all existing
+		 *        function calls have been fixed.
+		 */
+		$path = (string)$path;
+
 		$cacheKey = json_encode([$path, $stripTrailingSlash, $isAbsolutePath]);
 
-		if(isset(self::$normalizedPathCache[$cacheKey])) {
+		if (isset(self::$normalizedPathCache[$cacheKey])) {
 			return self::$normalizedPathCache[$cacheKey];
 		}
 

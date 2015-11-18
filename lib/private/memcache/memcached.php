@@ -1,18 +1,41 @@
 <?php
 /**
- * Copyright (c) 2012 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Memcache;
 
-class Memcached extends Cache {
+use OCP\IMemcache;
+
+class Memcached extends Cache implements IMemcache {
+	use CASTrait;
+
 	/**
 	 * @var \Memcached $cache
 	 */
 	private static $cache = null;
+
+	use CADTrait;
 
 	public function __construct($prefix = '') {
 		parent::__construct($prefix);
@@ -67,6 +90,11 @@ class Memcached extends Cache {
 	public function clear($prefix = '') {
 		$prefix = $this->getNamespace() . $prefix;
 		$allKeys = self::$cache->getAllKeys();
+		if ($allKeys === false) {
+			// newer Memcached doesn't like getAllKeys(), flush everything
+			self::$cache->flush();
+			return true;
+		}
 		$keys = array();
 		$prefixLength = strlen($prefix);
 		foreach ($allKeys as $key) {
@@ -82,6 +110,41 @@ class Memcached extends Cache {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Set a value in the cache if it's not already stored
+	 *
+	 * @param string $key
+	 * @param mixed $value
+	 * @param int $ttl Time To Live in seconds. Defaults to 60*60*24
+	 * @return bool
+	 */
+	public function add($key, $value, $ttl = 0) {
+		return self::$cache->add($this->getPrefix() . $key, $value, $ttl);
+	}
+
+	/**
+	 * Increase a stored number
+	 *
+	 * @param string $key
+	 * @param int $step
+	 * @return int | bool
+	 */
+	public function inc($key, $step = 1) {
+		$this->add($key, 0);
+		return self::$cache->increment($this->getPrefix() . $key, $step);
+	}
+
+	/**
+	 * Decrease a stored number
+	 *
+	 * @param string $key
+	 * @param int $step
+	 * @return int | bool
+	 */
+	public function dec($key, $step = 1) {
+		return self::$cache->decrement($this->getPrefix() . $key, $step);
 	}
 
 	static public function isAvailable() {

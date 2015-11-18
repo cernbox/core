@@ -1,24 +1,26 @@
 <?php
 /**
-* ownCloud
-*
-* @author Arthur Schiwon
-* @copyright 2014 Arthur Schiwon blizzz@owncloud.com
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Viktor Szépe <viktor@szepe.net>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace OCA\user_ldap\tests;
 
@@ -139,7 +141,7 @@ class Test_Wizard extends \Test\TestCase {
 				return $uidnumber++;
 			}));
 
-		# The following expectations are the real test #
+		// The following expectations are the real test
 		$filters = array('f1', 'f2', '*');
 		$wizard->cumulativeSearchOnAttribute($filters, 'cn', 5);
 		unset($uidnumber);
@@ -215,7 +217,7 @@ class Test_Wizard extends \Test\TestCase {
 				return $uidnumber++;
 			}));
 
-		# The following expectations are the real test #
+		// The following expectations are the real test
 		$filters = array('f1', 'f2', '*');
 		$wizard->cumulativeSearchOnAttribute($filters, 'cn', 0);
 		unset($uidnumber);
@@ -274,7 +276,7 @@ class Test_Wizard extends \Test\TestCase {
 				} else if($filter === 'mailPrimaryAddress') {
 					return 17;
 				}
-				var_dump($filter);
+				throw new \Exception('Untested filter: ' . $filter);
 			}));
 
 		$result = $wizard->detectEmailAttribute()->getResultArray();
@@ -313,7 +315,7 @@ class Test_Wizard extends \Test\TestCase {
 				} else if($filter === 'mailPrimaryAddress') {
 					return 17;
 				}
-				var_dump($filter);
+				throw new \Exception('Untested filter: ' . $filter);
 			}));
 
 		$result = $wizard->detectEmailAttribute()->getResultArray();
@@ -352,7 +354,7 @@ class Test_Wizard extends \Test\TestCase {
 				} else if($filter === 'mailPrimaryAddress') {
 					return 0;
 				}
-				var_dump($filter);
+				throw new \Exception('Untested filter: ' . $filter);
 			}));
 
 		$result = $wizard->detectEmailAttribute();
@@ -430,7 +432,7 @@ class Test_Wizard extends \Test\TestCase {
 				return $b;
 			}));
 
-		# The following expectations are the real test #
+		// The following expectations are the real test
 		$filters = array('f1', 'f2', '*');
 		$resultArray = $wizard->cumulativeSearchOnAttribute($filters, 'cn', 0);
 		$this->assertSame(6, count($resultArray));

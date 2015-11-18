@@ -1,9 +1,23 @@
 <?php
 /**
- * Copyright (c) 2014 Lukas Reschke <lukas@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCP\Security;
@@ -17,6 +31,7 @@ namespace OCP\Security;
  * $encryptWithCustomPassword = \OC::$server->getCrypto()->encrypt('EncryptedText', 'password');
  *
  * @package OCP\Security
+ * @since 8.0.0
  */
 interface ICrypto {
 
@@ -24,6 +39,7 @@ interface ICrypto {
 	 * @param string $message The message to authenticate
 	 * @param string $password Password to use (defaults to `secret` in config.php)
 	 * @return string Calculated HMAC
+	 * @since 8.0.0
 	 */
 	public function calculateHMAC($message, $password = '');
 
@@ -32,6 +48,7 @@ interface ICrypto {
 	 * @param string $plaintext
 	 * @param string $password Password to encrypt, if not specified the secret from config.php will be taken
 	 * @return string Authenticated ciphertext
+	 * @since 8.0.0
 	 */
 	public function encrypt($plaintext, $password = '');
 
@@ -41,6 +58,7 @@ interface ICrypto {
 	 * @param string $password Password to encrypt, if not specified the secret from config.php will be taken
 	 * @return string plaintext
 	 * @throws \Exception If the HMAC does not match
+	 * @since 8.0.0
 	 */
 	public function decrypt($authenticatedCiphertext, $password = '');
 }

@@ -1,25 +1,30 @@
 <?php
-
 /**
- * ownCloud
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Dominik Schmidt <dev@dominik-schmidt.de>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @author Dominik Schmidt
- * @author Artuhr Schiwon
- * @copyright 2011 Dominik Schmidt dev@dominik-schmidt.de
- * @copyright 2012 Arthur Schiwon blizzz@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -63,6 +68,42 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		return false;
 	}
+	
+	/**
+	 * returns the username for the given login name, if available
+	 *
+	 * @param string $loginName
+	 * @return string|false
+	 */
+	public function loginName2UserName($loginName) {
+		try {
+			$ldapRecord = $this->getLDAPUserByLoginName($loginName);
+			$user = $this->access->userManager->get($ldapRecord['dn'][0]);
+			if($user instanceof OfflineUser) {
+				return false;
+			}
+			return $user->getUsername();
+		} catch (\Exception $e) {
+			return false;
+		}
+	}
+	
+	/**
+	 * returns an LDAP record based on a given login name
+	 *
+	 * @param string $loginName
+	 * @return array
+	 * @throws \Exception
+	 */
+	public function getLDAPUserByLoginName($loginName) {
+		//find out dn of the user name
+		$attrs = $this->access->userManager->getAttributes();
+		$users = $this->access->fetchUsersByLoginName($loginName, $attrs, 1);
+		if(count($users) < 1) {
+			throw new \Exception('No user available for the given login name.');
+		}
+		return $users[0];
+	}
 
 	/**
 	 * Check if the password is correct
@@ -73,19 +114,14 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * Check if the password is correct without logging in the user
 	 */
 	public function checkPassword($uid, $password) {
-		$uid = $this->access->escapeFilterPart($uid);
-
-		//find out dn of the user name
-		$attrs = array($this->access->connection->ldapUserDisplayName, 'dn',
-			'uid', 'samaccountname');
-		$filter = \OCP\Util::mb_str_replace(
-			'%uid', $uid, $this->access->connection->ldapLoginFilter, 'UTF-8');
-		$users = $this->access->fetchListOfUsers($filter, $attrs);
-		if(count($users) < 1) {
+		try {
+			$ldapRecord = $this->getLDAPUserByLoginName($uid);
+		} catch(\Exception $e) {
 			return false;
 		}
-		$dn = $users[0]['dn'];
+		$dn = $ldapRecord['dn'][0];
 		$user = $this->access->userManager->get($dn);
+		
 		if(!$user instanceof User) {
 			\OCP\Util::writeLog('user_ldap',
 				'LDAP Login: Could not get user object for DN ' . $dn .
@@ -99,16 +135,9 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 				return false;
 			}
 
+			$this->access->cacheUserExists($user->getUsername());
+			$user->processAttributes($ldapRecord);
 			$user->markLogin();
-			if(isset($users[0][$this->access->connection->ldapUserDisplayName])) {
-				$dpn = $users[0][$this->access->connection->ldapUserDisplayName];
-				$user->storeDisplayName($dpn);
-			}
-			if(isset($users[0]['uid'])) {
-				$user->storeLDAPUserName($users[0]['uid']);
-			} else if(isset($users[0]['samaccountname'])) {
-				$user->storeLDAPUserName($users[0]['samaccountname']);
-			}
 
 			return $user->getUsername();
 		}
@@ -118,9 +147,10 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 	/**
 	 * Get a list of all users
-	 * @return string[] with all uids
-	 *
-	 * Get a list of all users.
+	 * @param string $search
+	 * @param null|int $limit
+	 * @param null|int $offset
+	 * @return string[] an array of all uids
 	 */
 	public function getUsers($search = '', $limit = 10, $offset = 0, $searchParams = null) {
 		$search = $this->access->escapeFilterPart($search, true);
@@ -172,6 +202,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$ldap_users = $this->access->fetchListOfUsers(
 			$filter,
 			array($this->access->connection->ldapUserDisplayName, 'dn', 'cn', 'displayName'),
+			//$this->access->userManager->getAttributes(true), //XXX ownCloud 8.2.0
 			$limit, $offset);
 		$ldap_users = $this->access->ownCloudUserNames($ldap_users);
 		\OCP\Util::writeLog('user_ldap', 'getUsers: '.count($ldap_users). ' Users found', \OCP\Util::DEBUG);
@@ -211,6 +242,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * check if a user exists
 	 * @param string $uid the username
 	 * @return boolean
+	 * @throws \Exception when connection could not be established
 	 */
 	public function userExists($uid) {
 		if($this->access->connection->isCached('userExists'.$uid)) {
@@ -218,6 +250,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		}
 		//getting dn, if false the user does not exist. If dn, he may be mapped only, requires more checking.
 		$user = $this->access->userManager->get($uid);
+		
 		if(is_null($user)) {
 			\OCP\Util::writeLog('user_ldap', 'No DN found for '.$uid.' on '.
 				$this->access->connection->ldapHost, \OCP\Util::DEBUG);
@@ -229,17 +262,12 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			return true;
 		}
 
-		try {
-			$result = $this->userExistsOnLDAP($user);
-			$this->access->connection->writeToCache('userExists'.$uid, $result);
-			if($result === true) {
-				$user->update();
-			}
-			return $result;
-		} catch (\Exception $e) {
-			\OCP\Util::writeLog('user_ldap', $e->getMessage(), \OCP\Util::WARN);
-			return false;
+		$result = $this->userExistsOnLDAP($user);
+		$this->access->connection->writeToCache('userExists'.$uid, $result);
+		if($result === true) {
+			$user->update();
 		}
+		return $result;
 	}
 
 	/**
@@ -274,59 +302,31 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	* @return string|bool
 	*/
 	public function getHome($uid) {
-		// user Exists check required as it is not done in user proxy!
-		if(!$this->userExists($uid)) {
-			return false;
-		}
-
 		if(isset($this->homesToKill[$uid]) && !empty($this->homesToKill[$uid])) {
 			//a deleted user who needs some clean up
 			return $this->homesToKill[$uid];
+		}
+		
+		// user Exists check required as it is not done in user proxy!
+		if(!$this->userExists($uid)) {
+			return false;
 		}
 
 		$cacheKey = 'getHome'.$uid;
 		if($this->access->connection->isCached($cacheKey)) {
 			return $this->access->connection->getFromCache($cacheKey);
 		}
-		if(strpos($this->access->connection->homeFolderNamingRule, 'attr:') === 0) {
-			$attr = substr($this->access->connection->homeFolderNamingRule, strlen('attr:'));
-			$homedir = $this->access->readAttribute(
-						$this->access->username2dn($uid), $attr);
-			if($homedir && isset($homedir[0])) {
-				$path = $homedir[0];
-				//if attribute's value is an absolute path take this, otherwise append it to data dir
-				//check for / at the beginning or pattern c:\ resp. c:/
-				if(
-					'/' === $path[0]
-					|| (3 < strlen($path) && ctype_alpha($path[0])
-						&& $path[1] === ':' && ('\\' === $path[2] || '/' === $path[2]))
-				) {
-					$homedir = $path;
-				} else {
-					$homedir = $this->ocConfig->getSystemValue('datadirectory',
-						\OC::$SERVERROOT.'/data' ) . '/' . $homedir[0];
-				}
-				$this->access->connection->writeToCache($cacheKey, $homedir);
-				//we need it to store it in the DB as well in case a user gets
-				//deleted so we can clean up afterwards
-				$this->ocConfig->setUserValue(
-					$uid, 'user_ldap', 'homePath', $homedir
-				);
-				//TODO: if home directory changes, the old one needs to be removed.
-				return $homedir;
-			}
-		}
+		$user = $this->access->userManager->get($uid);
+		$path = $user->getHomePath();
+		$this->access->cacheUserHome($uid, $path);
 
-		//false will apply default behaviour as defined and done by OC_User
-		$this->access->connection->writeToCache($cacheKey, false);
-		$this->ocConfig->setUserValue($uid, 'user_ldap', 'homePath', '');
-		return false;
+		return $path;
 	}
 
 	/**
 	 * get display name of the user
 	 * @param string $uid user ID of the user
-	 * @return string display name
+	 * @return string|false display name
 	 */
 	public function getDisplayName($uid) {
 		if(!$this->userExists($uid)) {
@@ -353,9 +353,10 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 	/**
 	 * Get a list of all display names
-	 * @return array with all displayNames (value) and the correspondig uids (key)
-	 *
-	 * Get a list of all display names and user ids.
+	 * @param string $search
+	 * @param string|null $limit
+	 * @param string|null $offset
+	 * @return array an array of all displayNames (value) and the corresponding uids (key)
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
 		$cacheKey = '';
@@ -383,12 +384,12 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	* compared with OC_USER_BACKEND_CREATE_USER etc.
 	*/
 	public function implementsActions($actions) {
-		return (bool)((OC_USER_BACKEND_CHECK_PASSWORD
-			| OC_USER_BACKEND_GET_HOME
-			| OC_USER_BACKEND_SET_DISPLAYNAME
-			| OC_USER_BACKEND_GET_DISPLAYNAME
-			| OC_USER_BACKEND_PROVIDE_AVATAR
-			| OC_USER_BACKEND_COUNT_USERS)
+		return (bool)((\OC_User_Backend::CHECK_PASSWORD
+			| \OC_User_Backend::GET_HOME
+			| \OC_User_Backend::SET_DISPLAYNAME
+			| \OC_User_Backend::GET_DISPLAYNAME
+			| \OC_User_Backend::PROVIDE_AVATAR
+			| \OC_User_Backend::COUNT_USERS)
 			& $actions);
 	}
 	

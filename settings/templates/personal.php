@@ -5,6 +5,7 @@
  */
 
 /** @var $_ array */
+/** @var $_['urlGenerator'] */
 ?>
 
 <div id="app-navigation">
@@ -21,7 +22,7 @@
 
 <div id="app-content">
 
-<div class="clientsbox center">
+<div id="clientsbox" class="clientsbox center">
 	<h2><?php p($l->t('Get the apps to sync your files'));?></h2>
 	<a href="<?php p($_['clients']['desktop']); ?>" target="_blank">
 		<img src="<?php print_unescaped(OCP\Util::imagePath('core', 'desktopapp.png')); ?>"
@@ -40,10 +41,10 @@
 	<p class="center">
 		<?php print_unescaped($l->t('If you want to support the project
 		<a href="https://owncloud.org/contribute"
-			target="_blank">join development</a>
+			target="_blank" rel="noreferrer">join development</a>
 		or
 		<a href="https://owncloud.org/promote"
-			target="_blank">spread the word</a>!'));?>
+			target="_blank" rel="noreferrer">spread the word</a>!'));?>
 	</p>
 	<?php endif; ?>
 
@@ -69,17 +70,20 @@ if($_['passwordChangeSupported']) {
 	script('jquery-showpassword');
 ?>
 <form id="passwordform" class="section">
-	<h2><?php p($l->t('Password'));?></h2>
-	<div id="passwordchanged"><?php echo $l->t('Your password was changed');?></div>
-	<div id="passworderror"><?php echo $l->t('Unable to change your password');?></div>
+	<h2 class="inlineblock"><?php p($l->t('Password'));?></h2>
+	<div class="hidden icon-checkmark" id="password-changed"></div>
+	<div class="hidden" id="password-error"><?php p($l->t('Unable to change your password'));?></div>
+	<br>
+	<label for="pass1" class="onlyInIE8"><?php echo $l->t('Current password');?>: </label>
 	<input type="password" id="pass1" name="oldpassword"
 		placeholder="<?php echo $l->t('Current password');?>"
 		autocomplete="off" autocapitalize="off" autocorrect="off" />
+	<label for="pass2" class="onlyInIE8"><?php echo $l->t('New password');?>: </label>
 	<input type="password" id="pass2" name="personal-password"
 		placeholder="<?php echo $l->t('New password');?>"
 		data-typetoggle="#personal-show"
 		autocomplete="off" autocapitalize="off" autocorrect="off" />
-	<input type="checkbox" id="personal-show" name="show" /><label for="personal-show"></label>
+	<input type="checkbox" id="personal-show" name="show" /><label for="personal-show" class="svg"></label>
 	<input id="passwordbutton" type="submit" value="<?php echo $l->t('Change password');?>" />
 	<br/>
 	<div class="strengthify-wrapper"></div>
@@ -93,7 +97,7 @@ if($_['displayNameChangeSupported']) {
 ?>
 <form id="displaynameform" class="section">
 	<h2>
-		<label for="displayName"><?php echo $l->t('Full Name');?></label>
+		<label for="displayName"><?php echo $l->t('Full name');?></label>
 	</h2>
 	<input type="text" id="displayName" name="displayName"
 		value="<?php p($_['displayName'])?>"
@@ -105,7 +109,7 @@ if($_['displayNameChangeSupported']) {
 } else {
 ?>
 <div class="section">
-	<h2><?php echo $l->t('Full Name');?></h2>
+	<h2><?php echo $l->t('Full name');?></h2>
 	<span><?php if(isset($_['displayName'][0])) { p($_['displayName']); } else { p($l->t('No display name set')); } ?></span>
 </div>
 <?php
@@ -136,19 +140,27 @@ if($_['passwordChangeSupported']) {
 }
 ?>
 
+<div id="groups" class="section">
+	<h2><?php p($l->t('Groups')); ?></h2>
+	<p><?php p($l->t('You are member of the following groups:')); ?></p>
+	<p>
+	<?php p(implode(', ', $_['groups'])); ?>
+	</p>
+</div>
+
 <?php if ($_['enableAvatars']): ?>
-<form id="avatar" class="section" method="post" action="<?php p(\OC_Helper::linkToRoute('core_avatar_post')); ?>">
+<form id="avatar" class="section" method="post" action="<?php p(\OC_Helper::linkToRoute('core.avatar.postAvatar')); ?>">
 	<h2><?php p($l->t('Profile picture')); ?></h2>
 	<div id="displayavatar">
 		<div class="avatardiv"></div><br>
 		<div class="warning hidden"></div>
 		<?php if ($_['avatarChangeSupported']): ?>
-		<div class="inlineblock button" id="uploadavatarbutton"><?php p($l->t('Upload new')); ?></div>
-		<input type="file" class="hidden" name="files[]" id="uploadavatar">
+		<label for="uploadavatar" class="inlineblock button" id="uploadavatarbutton"><?php p($l->t('Upload new')); ?></label>
 		<div class="inlineblock button" id="selectavatar"><?php p($l->t('Select new from Files')); ?></div>
-		<div class="inlineblock button" id="removeavatar"><?php p($l->t('Remove image')); ?></div><br>
-		<?php p($l->t('Either png or jpg. Ideally square but you will be able to crop it.')); ?>
-		<?php else: ?>
+		<div class="inlineblock button" id="removeavatar"><?php p($l->t('Remove image')); ?></div>
+		<input type="file" name="files[]" id="uploadavatar" class="hiddenuploadfield">
+		<br>
+		<?php p($l->t('Either png or jpg. Ideally square but you will be able to crop it. The file is not allowed to exceed the maximum size of 20 MB.')); ?>		<?php else: ?>
 		<?php p($l->t('Your avatar is provided by your original account.')); ?>
 		<?php endif; ?>
 	</div>
@@ -181,7 +193,7 @@ if($_['passwordChangeSupported']) {
 	</select>
 	<?php if (OC_Util::getEditionString() === ''): ?>
 	<a href="https://www.transifex.com/projects/p/owncloud/team/<?php p($_['activelanguage']['code']);?>/"
-		target="_blank">
+		target="_blank" rel="noreferrer">
 		<em><?php p($l->t('Help translate'));?></em>
 	</a>
 	<?php endif; ?>
@@ -194,6 +206,7 @@ if($_['passwordChangeSupported']) {
 };?>
 
 <!-- HUGO Hide SSL ROOT CERTIFICATE section in personal settings
+<?php if($_['showCertificates']) : ?>
 <div id="ssl-root-certificates" class="section">
 	<h2><?php p($l->t('SSL root certificates')); ?></h2>
 	<table id="sslCertificate" class="grid">
@@ -226,70 +239,18 @@ if($_['passwordChangeSupported']) {
 			<?php endforeach; ?>
 		</tbody>
 	</table>
-	<form class="uploadButton" method="post" action="<?php p(\OC_Helper::linkToRoute('settings_cert_post')); ?>" target="certUploadFrame">
-		<input type="file" id="rootcert_import" name="rootcert_import" class="hidden">
-		<input type="button" id="rootcert_import_button" value="<?php p($l->t('Import Root Certificate')); ?>"/>
+	<form class="uploadButton" method="post" action="<?php p($_['urlGenerator']->linkToRoute('settings.Certificate.addPersonalRootCertificate')); ?>" target="certUploadFrame">
+		<label for="rootcert_import" class="inlineblock button" id="rootcert_import_button"><?php p($l->t('Import root certificate')); ?></label>
+		<input type="file" id="rootcert_import" name="rootcert_import" class="hiddenuploadfield">
 	</form>
 </div>
 -->
-<?php if($_['enableDecryptAll']): ?>
-<div id="encryption" class="section">
-
-	<h2>
-		<?php p( $l->t( 'Encryption' ) ); ?>
-	</h2>
-
-	<?php if($_['filesStillEncrypted']): ?>
-
-	<div id="decryptAll">
-	<?php p($l->t( "The encryption app is no longer enabled, please decrypt all your files" )); ?>
-	<p>
-		<input
-			type="password"
-			name="privateKeyPassword"
-			id="privateKeyPassword" />
-		<label for="privateKeyPassword"><?php p($l->t( "Log-in password" )); ?></label>
-		<br />
-		<button
-			type="button"
-			disabled
-			name="submitDecryptAll"><?php p($l->t( "Decrypt all Files" )); ?>
-		</button>
-		<span class="msg"></span>
-	</p>
-	<br />
-	</div>
-	<?php endif; ?>
-
-	<div id="restoreBackupKeys" <?php $_['backupKeysExists'] ? '' : print_unescaped("class='hidden'") ?>>
-
-	<?php p($l->t( "Your encryption keys are moved to a backup location. If something went wrong you can restore the keys. Only delete them permanently if you are sure that all files are decrypted correctly." )); ?>
-	<p>
-		<button
-			type="button"
-			name="submitRestoreKeys"><?php p($l->t( "Restore Encryption Keys" )); ?>
-		</button>
-		<button
-			type="button"
-			name="submitDeleteKeys"><?php p($l->t( "Delete Encryption Keys" )); ?>
-		</button>
-		<span class="msg"></span>
-
-	</p>
-	<br />
-
-	</div>
-
-
-</div>
-	<?php endif; ?>
+<?php endif; ?>
 
 <div class="section">
 	<h2><?php p($l->t('Version'));?></h2>
 	<strong><?php p($theme->getTitle()); ?></strong> <?php p(OC_Util::getHumanVersion()) ?><br />
-<?php if (OC_Util::getEditionString() === ''): ?>
-	<?php print_unescaped($l->t('Developed by the <a href="http://ownCloud.org/contact" target="_blank">ownCloud community</a>, the <a href="https://github.com/owncloud" target="_blank">source code</a> is licensed under the <a href="http://www.gnu.org/licenses/agpl-3.0.html" target="_blank"><abbr title="Affero General Public License">AGPL</abbr></a>.')); ?>
-<?php endif; ?>
+<?php include('settings.development.notice.php'); ?>
 </div>
 
 <div class="section credits-footer">

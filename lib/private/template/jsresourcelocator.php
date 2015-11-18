@@ -1,15 +1,34 @@
 <?php
 /**
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Template;
 
 class JSResourceLocator extends ResourceLocator {
-	public function doFind( $script ) {
+	/**
+	 * @param string $script
+	 */
+	public function doFind($script) {
 		$theme_dir = 'themes/'.$this->theme.'/';
 		if (strpos($script, '3rdparty') === 0
 			&& $this->appendIfExist($this->thirdpartyroot, $script.'.js')
@@ -25,16 +44,18 @@ class JSResourceLocator extends ResourceLocator {
 		$script = substr($script, strpos($script, '/')+1);
 		$app_path = \OC_App::getAppPath($app);
 		$app_url = \OC_App::getAppWebPath($app);
-		if ($this->appendIfExist($app_path, $script.'.js', $app_url)) {
-			return;
-		}
+
 		// missing translations files fill be ignored
-		if (strpos($script, "l10n/") === 0) {
+		if (strpos($script, 'l10n/') === 0) {
+			$this->appendIfExist($app_path, $script . '.js', $app_url);
 			return;
 		}
-		throw new \Exception('js file not found: script:'.$script);
+		$this->append($app_path, $script . '.js', $app_url);
 	}
 
-	public function doFindTheme( $script ) {
+	/**
+	 * @param string $script
+	 */
+	public function doFindTheme($script) {
 	}
 }

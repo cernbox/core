@@ -1,22 +1,25 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Bart Visscher
- * @copyright 2013 Bart Visscher bartv@thisnet.nl
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -31,15 +34,27 @@
 namespace OCP;
 
 /**
- * TODO: Description
+ * Interface IDBConnection
+ *
+ * @package OCP
+ * @since 6.0.0
  */
 interface IDBConnection {
 	/**
-	 * Used to abstract the owncloud database access away
+	 * Gets the QueryBuilder for the connection.
+	 *
+	 * @return \OCP\DB\QueryBuilder\IQueryBuilder
+	 * @since 8.2.0
+	 */
+	public function getQueryBuilder();
+
+	/**
+	 * Used to abstract the ownCloud database access away
 	 * @param string $sql the sql query with ? placeholder for params
 	 * @param int $limit the maximum number of rows
 	 * @param int $offset from which row we want to start
 	 * @return \Doctrine\DBAL\Driver\Statement The prepared statement.
+	 * @since 6.0.0
 	 */
 	public function prepare($sql, $limit=null, $offset=null);
 
@@ -53,6 +68,7 @@ interface IDBConnection {
 	 * @param string[] $params The parameters to bind to the query, if any.
 	 * @param array $types The types the previous parameters are in.
 	 * @return \Doctrine\DBAL\Driver\Statement The executed statement.
+	 * @since 8.0.0
 	 */
 	public function executeQuery($query, array $params = array(), $types = array());
 
@@ -66,6 +82,7 @@ interface IDBConnection {
 	 * @param array $params The query parameters.
 	 * @param array $types The parameter types.
 	 * @return integer The number of affected rows.
+	 * @since 8.0.0
 	 */
 	public function executeUpdate($query, array $params = array(), array $types = array());
 
@@ -73,47 +90,54 @@ interface IDBConnection {
 	 * Used to get the id of the just inserted element
 	 * @param string $table the name of the table where we inserted the item
 	 * @return int the id of the inserted element
+	 * @since 6.0.0
 	 */
 	public function lastInsertId($table = null);
 
 	/**
-	 * Insert a row if a matching row doesn't exists.
-	 * @param string $table The table name (will replace *PREFIX*) to perform the replace on.
-	 * @param array $input
-	 * @throws \OC\HintException
+	 * Insert a row if the matching row does not exists.
 	 *
-	 * The input array if in the form:
-	 *
-	 * array ( 'id' => array ( 'value' => 6,
-	 *	'key' => true
-	 *	),
-	 *	'name' => array ('value' => 'Stoyan'),
-	 *	'family' => array ('value' => 'Stefanov'),
-	 *	'birth_date' => array ('value' => '1975-06-20')
-	 *	);
-	 * @return bool
-	 *
+	 * @param string $table The table name (will replace *PREFIX* with the actual prefix)
+	 * @param array $input data that should be inserted into the table  (column name => value)
+	 * @param array|null $compare List of values that should be checked for "if not exists"
+	 *				If this is null or an empty array, all keys of $input will be compared
+	 *				Please note: text fields (clob) must not be used in the compare array
+	 * @return int number of inserted rows
+	 * @throws \Doctrine\DBAL\DBALException
+	 * @since 6.0.0 - parameter $compare was added in 8.1.0, return type changed from boolean in 8.1.0
 	 */
-	public function insertIfNotExist($table, $input);
+	public function insertIfNotExist($table, $input, array $compare = null);
 
 	/**
 	 * Start a transaction
+	 * @since 6.0.0
 	 */
 	public function beginTransaction();
 
 	/**
+	 * Check if a transaction is active
+	 *
+	 * @return bool
+	 * @since 8.2.0
+	 */
+	public function inTransaction();
+
+	/**
 	 * Commit the database changes done during a transaction that is in progress
+	 * @since 6.0.0
 	 */
 	public function commit();
 
 	/**
 	 * Rollback the database changes done during a transaction that is in progress
+	 * @since 6.0.0
 	 */
 	public function rollBack();
 
 	/**
 	 * Gets the error code and message as a string for logging
 	 * @return string
+	 * @since 6.0.0
 	 */
 	public function getError();
 
@@ -121,6 +145,7 @@ interface IDBConnection {
 	 * Fetch the SQLSTATE associated with the last database operation.
 	 *
 	 * @return integer The last error code.
+	 * @since 8.0.0
 	 */
 	public function errorCode();
 
@@ -128,6 +153,7 @@ interface IDBConnection {
 	 * Fetch extended error information associated with the last database operation.
 	 *
 	 * @return array The last error information.
+	 * @since 8.0.0
 	 */
 	public function errorInfo();
 
@@ -135,11 +161,13 @@ interface IDBConnection {
 	 * Establishes the connection with the database.
 	 *
 	 * @return bool
+	 * @since 8.0.0
 	 */
 	public function connect();
 
 	/**
 	 * Close the database connection
+	 * @since 8.0.0
 	 */
 	public function close();
 
@@ -149,6 +177,7 @@ interface IDBConnection {
 	 * @param mixed $input Parameter to be quoted.
 	 * @param int $type Type of the parameter.
 	 * @return string The quoted parameter.
+	 * @since 8.0.0
 	 */
 	public function quote($input, $type = \PDO::PARAM_STR);
 
@@ -157,6 +186,7 @@ interface IDBConnection {
 	 * the platform this driver connects to.
 	 *
 	 * @return \Doctrine\DBAL\Platforms\AbstractPlatform The database platform.
+	 * @since 8.0.0
 	 */
 	public function getDatabasePlatform();
 
@@ -164,6 +194,7 @@ interface IDBConnection {
 	 * Drop a table from the database if it exists
 	 *
 	 * @param string $table table name without the prefix
+	 * @since 8.0.0
 	 */
 	public function dropTable($table);
 
@@ -172,6 +203,7 @@ interface IDBConnection {
 	 *
 	 * @param string $table table name without the prefix
 	 * @return bool
+	 * @since 8.0.0
 	 */
 	public function tableExists($table);
 }

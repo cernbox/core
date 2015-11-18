@@ -1,4 +1,4 @@
-<?php /** @var $l OC_L10N */ ?>
+<?php /** @var $l \OCP\IL10N */ ?>
 <div id="controls">
 	<div id="file_action_panel"></div>
 </div>
@@ -7,7 +7,7 @@
 <div id="emptycontent" class="hidden">
 	<div class="icon-external"></div>
 	<h2><?php p($l->t('No external storage configured')); ?></h2>
-	<p><?php p($l->t('You can configure external storages in the personal settings')); ?></p>
+	<p><?php p($l->t('You can add external storages in the personal settings')); ?></p>
 </div>
 
 <input type="hidden" name="dir" value="" id="dir">

@@ -1,27 +1,40 @@
 <?php
-
 /**
- * ownCloud
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Christian Seiler <christian@iwakd.de>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Markus Goetz <markus@woboq.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Jakob Sack
- * @copyright 2011 Jakob Sack kde@jakobsack.de
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
+namespace OC\Connector\Sabre;
 
-class OC_Connector_Sabre_Auth extends \Sabre\DAV\Auth\Backend\AbstractBasic {
+use Exception;
+use Sabre\DAV\Auth\Backend\AbstractBasic;
+use Sabre\DAV\Exception\NotAuthenticated;
+use Sabre\DAV\Exception\ServiceUnavailable;
+
+class Auth extends AbstractBasic {
 	const DAV_AUTHENTICATED = 'AUTHENTICATED_TO_DAV_BACKEND';
 
 	/**
@@ -51,19 +64,19 @@ class OC_Connector_Sabre_Auth extends \Sabre\DAV\Auth\Backend\AbstractBasic {
 	 * @return bool
 	 */
 	protected function validateUserPass($username, $password) {
-		if (OC_User::isLoggedIn() &&
-			$this->isDavAuthenticated(OC_User::getUser())
+		if (\OC_User::isLoggedIn() &&
+			$this->isDavAuthenticated(\OC_User::getUser())
 		) {
-			OC_Util::setupFS(OC_User::getUser());
+			\OC_Util::setupFS(\OC_User::getUser());
 			\OC::$server->getSession()->close();
 			return true;
 		} else {
-			OC_Util::setUpFS(); //login hooks may need early access to the filesystem
-			if(OC_User::login($username, $password)) {
-			        // make sure we use owncloud's internal username here
-			        // and not the HTTP auth supplied one, see issue #14048
-			        $ocUser = OC_User::getUser();
-				OC_Util::setUpFS($ocUser);
+			\OC_Util::setUpFS(); //login hooks may need early access to the filesystem
+			if(\OC_User::login($username, $password)) {
+				// make sure we use ownCloud's internal username here
+				// and not the HTTP auth supplied one, see issue #14048
+				$ocUser = \OC_User::getUser();
+				\OC_Util::setUpFS($ocUser);
 				\OC::$server->getSession()->set(self::DAV_AUTHENTICATED, $ocUser);
 				\OC::$server->getSession()->close();
 				return true;
@@ -82,30 +95,45 @@ class OC_Connector_Sabre_Auth extends \Sabre\DAV\Auth\Backend\AbstractBasic {
 	 * @return string|null
 	 */
 	public function getCurrentUser() {
-		$user = OC_User::getUser();
+		$user = \OC_User::getUser();
 		if($user && $this->isDavAuthenticated($user)) {
 			return $user;
 		}
+		
+		if($user && is_null(\OC::$server->getSession()->get(self::DAV_AUTHENTICATED))) {
+			return $user;
+		}
+		
 		return null;
 	}
 
 	/**
-	  * Override function here. We want to cache authentication cookies
-	  * in the syncing client to avoid HTTP-401 roundtrips.
-	  * If the sync client supplies the cookies, then OC_User::isLoggedIn()
-	  * will return true and we can see this WebDAV request as already authenticated,
-	  * even if there are no HTTP Basic Auth headers.
-	  * In other case, just fallback to the parent implementation.
-	  *
-	  * @param \Sabre\DAV\Server $server
-	  * @param $realm
-	  * @return bool
-	  */
+	 	 * Override function here. We want to cache authentication cookies
+	 * in the syncing client to avoid HTTP-401 roundtrips.
+	 * If the sync client supplies the cookies, then OC_User::isLoggedIn()
+	 * will return true and we can see this WebDAV request as already authenticated,
+	 * even if there are no HTTP Basic Auth headers.
+	 * In other case, just fallback to the parent implementation.
+	 *
+	 * @param \Sabre\DAV\Server $server
+	 * @param string $realm
+	 * @return bool
+	 * @throws ServiceUnavailable
+	 * @throws NotAuthenticated
+	 */
 	public function authenticate(\Sabre\DAV\Server $server, $realm) {
 
-		$result = $this->auth($server, $realm);
-		return $result;
-    }
+			try {
+			$result = $this->auth($server, $realm);
+			return $result;
+		} catch (NotAuthenticated $e) {
+			throw $e;
+		} catch (Exception $e) {
+			$class = get_class($e);
+			$msg = $e->getMessage();
+			throw new ServiceUnavailable("$class: $msg");
+		}
+	}
 
 	/**
 	 * @param \Sabre\DAV\Server $server
@@ -113,11 +141,11 @@ class OC_Connector_Sabre_Auth extends \Sabre\DAV\Auth\Backend\AbstractBasic {
 	 * @return bool
 	 */
 	private function auth(\Sabre\DAV\Server $server, $realm) {
-		if (OC_User::handleApacheAuth() ||
-			(OC_User::isLoggedIn() && is_null(\OC::$server->getSession()->get(self::DAV_AUTHENTICATED)))
+		if (\OC_User::handleApacheAuth() ||
+			(\OC_User::isLoggedIn() && is_null(\OC::$server->getSession()->get(self::DAV_AUTHENTICATED)))
 		) {
-			$user = OC_User::getUser();
-			OC_Util::setupFS($user);
+			$user = \OC_User::getUser();
+			\OC_Util::setupFS($user);
 			$this->currentUser = $user;
 			\OC::$server->getSession()->close();
 			return true;

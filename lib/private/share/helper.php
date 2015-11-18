@@ -1,25 +1,34 @@
 <?php
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Miguel Prokop <miguel.prokop@vtu.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Bjoern Schiessle
- * @copyright 2014 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Share;
+
+use OC\HintException;
 
 class Helper extends \OC\Share\Constants {
 
@@ -44,24 +53,9 @@ class Helper extends \OC\Share\Constants {
 			}
 			return $backend->generateTarget($itemSource, false);
 		} else {
-			if ($itemType == 'file' || $itemType == 'folder') {
-				$column = 'file_target';
-				$columnSource = 'file_source';
-			} else {
-				$column = 'item_target';
-				$columnSource = 'item_source';
-			}
 			if ($shareType == self::SHARE_TYPE_USER) {
 				// Share with is a user, so set share type to user and groups
 				$shareType = self::$shareTypeUserAndGroups;
-			}
-			$exclude = array();
-
-			$result = \OCP\Share::getItemsSharedWithUser($itemType, $shareWith);
-			foreach ($result as $row) {
-				if ($row['permissions'] > 0) {
-					$exclude[] = $row[$column];
-				}
 			}
 
 			// Check if suggested target exists first
@@ -69,9 +63,9 @@ class Helper extends \OC\Share\Constants {
 				$suggestedTarget = $itemSource;
 			}
 			if ($shareType == self::SHARE_TYPE_GROUP) {
-				$target = $backend->generateTarget($suggestedTarget, false, $exclude);
+				$target = $backend->generateTarget($suggestedTarget, false);
 			} else {
-				$target = $backend->generateTarget($suggestedTarget, $shareWith, $exclude);
+				$target = $backend->generateTarget($suggestedTarget, $shareWith);
 			}
 
 			return $target;
@@ -164,14 +158,16 @@ class Helper extends \OC\Share\Constants {
 	 */
 	public static function getDefaultExpireSetting() {
 
+		$config = \OC::$server->getConfig();
+
 		$defaultExpireSettings = array('defaultExpireDateSet' => false);
 
 		// get default expire settings
-		$defaultExpireDate = \OC_Appconfig::getValue('core', 'shareapi_default_expire_date', 'no');
+		$defaultExpireDate = $config->getAppValue('core', 'shareapi_default_expire_date', 'no');
 		if ($defaultExpireDate === 'yes') {
-			$enforceExpireDate = \OC_Appconfig::getValue('core', 'shareapi_enforce_expire_date', 'no');
+			$enforceExpireDate = $config->getAppValue('core', 'shareapi_enforce_expire_date', 'no');
 			$defaultExpireSettings['defaultExpireDateSet'] = true;
-			$defaultExpireSettings['expireAfterDays'] = (int)\OC_Appconfig::getValue('core', 'shareapi_expire_after_n_days', '7');
+			$defaultExpireSettings['expireAfterDays'] = (int)($config->getAppValue('core', 'shareapi_expire_after_n_days', '7'));
 			$defaultExpireSettings['enforceExpireDate'] = $enforceExpireDate === 'yes' ? true : false;
 		}
 
@@ -220,5 +216,77 @@ class Helper extends \OC\Share\Constants {
 		}
 
 		return $expires;
+	}
+
+	/**
+	 * Strips away a potential file names and trailing slashes:
+	 * - http://localhost
+	 * - http://localhost/
+	 * - http://localhost/index.php
+	 * - http://localhost/index.php/s/{shareToken}
+	 *
+	 * all return: http://localhost
+	 *
+	 * @param string $shareWith
+	 * @return string
+	 */
+	protected static function fixRemoteURL($remote) {
+		$remote = str_replace('\\', '/', $remote);
+		if ($fileNamePosition = strpos($remote, '/index.php')) {
+			$remote = substr($remote, 0, $fileNamePosition);
+		}
+		$remote = rtrim($remote, '/');
+
+		return $remote;
+	}
+
+	/**
+	 * split user and remote from federated cloud id
+	 *
+	 * @param string $id
+	 * @return array
+	 * @throws HintException
+	 */
+	public static function splitUserRemote($id) {
+		if (strpos($id, '@') === false) {
+			$l = \OC::$server->getL10N('core');
+			$hint = $l->t('Invalid Federated Cloud ID');
+			throw new HintException('Invalid Federated Cloud ID', $hint);
+		}
+
+		// Find the first character that is not allowed in user names
+		$id = str_replace('\\', '/', $id);
+		$posSlash = strpos($id, '/');
+		$posColon = strpos($id, ':');
+
+		if ($posSlash === false && $posColon === false) {
+			$invalidPos = strlen($id);
+		} else if ($posSlash === false) {
+			$invalidPos = $posColon;
+		} else if ($posColon === false) {
+			$invalidPos = $posSlash;
+		} else {
+			$invalidPos = min($posSlash, $posColon);
+		}
+
+		// Find the last @ before $invalidPos
+		$pos = $lastAtPos = 0;
+		while ($lastAtPos !== false && $lastAtPos <= $invalidPos) {
+			$pos = $lastAtPos;
+			$lastAtPos = strpos($id, '@', $pos + 1);
+		}
+
+		if ($pos !== false) {
+			$user = substr($id, 0, $pos);
+			$remote = substr($id, $pos + 1);
+			$remote = self::fixRemoteURL($remote);
+			if (!empty($user) && !empty($remote)) {
+				return array($user, $remote);
+			}
+		}
+
+		$l = \OC::$server->getL10N('core');
+		$hint = $l->t('Invalid Federated Cloud ID');
+		throw new HintException('Invalid Fededrated Cloud ID', $hint);
 	}
 }

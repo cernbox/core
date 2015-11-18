@@ -15,14 +15,10 @@ class Watcher extends \Test\TestCase {
 	 */
 	private $storages = array();
 
-	/** @var \OC\Files\Storage\Storage */
-	private $originalStorage;
-
 	protected function setUp() {
 		parent::setUp();
 
-		$this->originalStorage = \OC\Files\Filesystem::getStorage('/');
-		\OC\Files\Filesystem::clearMounts();
+		$this->loginAsUser();
 	}
 
 	protected function tearDown() {
@@ -32,9 +28,7 @@ class Watcher extends \Test\TestCase {
 			$cache->clear();
 		}
 
-		\OC\Files\Filesystem::clearMounts();
-		\OC\Files\Filesystem::mount($this->originalStorage, array(), '/');
-
+		$this->logout();
 		parent::tearDown();
 	}
 
@@ -45,6 +39,7 @@ class Watcher extends \Test\TestCase {
 		$storage = $this->getTestStorage();
 		$cache = $storage->getCache();
 		$updater = $storage->getWatcher();
+		$updater->setPolicy(\OC\Files\Cache\Watcher::CHECK_ONCE);
 
 		//set the mtime to the past so it can detect an mtime change
 		$cache->put('', array('storage_mtime' => 10));
@@ -85,6 +80,7 @@ class Watcher extends \Test\TestCase {
 		$storage = $this->getTestStorage();
 		$cache = $storage->getCache();
 		$updater = $storage->getWatcher();
+		$updater->setPolicy(\OC\Files\Cache\Watcher::CHECK_ONCE);
 
 		//set the mtime to the past so it can detect an mtime change
 		$cache->put('', array('storage_mtime' => 10));
@@ -101,6 +97,7 @@ class Watcher extends \Test\TestCase {
 		$storage = $this->getTestStorage();
 		$cache = $storage->getCache();
 		$updater = $storage->getWatcher();
+		$updater->setPolicy(\OC\Files\Cache\Watcher::CHECK_ONCE);
 
 		//set the mtime to the past so it can detect an mtime change
 		$cache->put('foo.txt', array('storage_mtime' => 10));

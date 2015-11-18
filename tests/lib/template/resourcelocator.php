@@ -6,14 +6,29 @@
  * See the COPYING-README file.
  */
 
-class Test_ResourceLocator extends \Test\TestCase {
+namespace Test\Template;
+
+use OC\Template\ResourceNotFoundException;
+
+class ResourceLocator extends \Test\TestCase {
+	/** @var \PHPUnit_Framework_MockObject_MockObject */
+	protected $logger;
+
+	protected function setUp() {
+		parent::setUp();
+		$this->logger = $this->getMock('OCP\ILogger');
+	}
 
 	/**
 	 * @param string $theme
+	 * @param array $core_map
+	 * @param array $party_map
+	 * @param array $appsRoots
+	 * @return \PHPUnit_Framework_MockObject_MockObject
 	 */
-	public function getResourceLocator( $theme, $core_map, $party_map, $appsroots ) {
+	public function getResourceLocator($theme, $core_map, $party_map, $appsRoots) {
 		return $this->getMockForAbstractClass('OC\Template\ResourceLocator',
-			array( $theme, $core_map, $party_map, $appsroots ),
+			array($this->logger, $theme, $core_map, $party_map, $appsRoots ),
 			'', true, true, true, array());
 	}
 
@@ -30,32 +45,40 @@ class Test_ResourceLocator extends \Test\TestCase {
 
 	public function testFind() {
 		$locator = $this->getResourceLocator('theme',
-			array('core'=>'map'), array('3rd'=>'party'), array('foo'=>'bar'));
+			array('core' => 'map'), array('3rd' => 'party'), array('foo' => 'bar'));
 		$locator->expects($this->once())
 			->method('doFind')
 			->with('foo');
 		$locator->expects($this->once())
 			->method('doFindTheme')
 			->with('foo');
+		/** @var \OC\Template\ResourceLocator $locator */
 		$locator->find(array('foo'));
+	}
 
+	public function testFindNotFound() {
 		$locator = $this->getResourceLocator('theme',
 			array('core'=>'map'), array('3rd'=>'party'), array('foo'=>'bar'));
 		$locator->expects($this->once())
 			->method('doFind')
 			->with('foo')
-			->will($this->throwException(new Exception('test')));
-		try {
-			$locator->find(array('foo'));
-		} catch (\Exception $e) {
-			$this->assertEquals('test serverroot:core', $e->getMessage());
-		}
+			->will($this->throwException(new ResourceNotFoundException('foo', 'map')));
+		$locator->expects($this->once())
+			->method('doFindTheme')
+			->with('foo')
+			->will($this->throwException(new ResourceNotFoundException('foo', 'map')));
+		$this->logger->expects($this->exactly(2))
+			->method('error')
+			->with($this->stringContains('map/foo'));
+		/** @var \OC\Template\ResourceLocator $locator */
+		$locator->find(array('foo'));
 	}
 
 	public function testAppendIfExist() {
 		$locator = $this->getResourceLocator('theme',
 			array(__DIR__=>'map'), array('3rd'=>'party'), array('foo'=>'bar'));
-		$method = new ReflectionMethod($locator, 'appendIfExist');
+		/** @var \OC\Template\ResourceLocator $locator */
+		$method = new \ReflectionMethod($locator, 'appendIfExist');
 		$method->setAccessible(true);
 
 		$method->invoke($locator, __DIR__, basename(__FILE__), 'webroot');

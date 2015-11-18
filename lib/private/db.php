@@ -1,26 +1,33 @@
 <?php
 /**
- * ownCloud
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Dan Bartram <daneybartram@gmail.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-
-define('MDB2_SCHEMA_DUMP_STRUCTURE', '1');
 
 /**
  * This class manages the access to the database. It basically is a wrapper for
@@ -40,8 +47,7 @@ class OC_DB {
 	 *
 	 * @return \OC\DB\MDB2SchemaManager
 	 */
-	private static function getMDB2SchemaManager()
-	{
+	private static function getMDB2SchemaManager() {
 		return new \OC\DB\MDB2SchemaManager(\OC::$server->getDatabaseConnection());
 	}
 
@@ -115,7 +121,7 @@ class OC_DB {
 		if (is_string($stmt)) {
 			// convert to an array with 'sql'
 			if (stripos($stmt, 'LIMIT') !== false) { //OFFSET requires LIMIT, so we only need to check for LIMIT
-				// TODO try to convert LIMIT OFFSET notation to parameters, see fixLimitClauseForMSSQL
+				// TODO try to convert LIMIT OFFSET notation to parameters
 				$message = 'LIMIT and OFFSET are forbidden for portability reasons,'
 						 . ' pass an array with \'limit\' and \'offset\' instead';
 				throw new \OC\DatabaseException($message);
@@ -167,16 +173,6 @@ class OC_DB {
 	}
 
 	/**
-	 * Insert a row if a matching row doesn't exists.
-	 * @param string $table The table to insert into in the form '*PREFIX*tableName'
-	 * @param array $input An array of fieldname/value pairs
-	 * @return boolean number of updated rows
-	 */
-	public static function insertIfNotExist($table, $input) {
-		return \OC::$server->getDatabaseConnection()->insertIfNotExist($table, $input);
-	}
-
-	/**
 	 * Start a transaction
 	 */
 	public static function beginTransaction() {
@@ -205,7 +201,7 @@ class OC_DB {
 	 *
 	 * TODO: write more documentation
 	 */
-	public static function getDbStructure( $file, $mode = 0) {
+	public static function getDbStructure($file) {
 		$schemaManager = self::getMDB2SchemaManager();
 		return $schemaManager->getDbStructure($file);
 	}
@@ -234,7 +230,7 @@ class OC_DB {
 		try {
 			$result = $schemaManager->updateDbFromStructure($file);
 		} catch (Exception $e) {
-			OC_Log::write('core', 'Failed to update database structure ('.$e.')', OC_Log::FATAL);
+			\OCP\Util::writeLog('core', 'Failed to update database structure ('.$e.')', \OCP\Util::FATAL);
 			throw $e;
 		}
 		return $result;
@@ -251,7 +247,7 @@ class OC_DB {
 		try {
 			$result = $schemaManager->simulateUpdateDbFromStructure($file);
 		} catch (Exception $e) {
-			OC_Log::write('core', 'Simulated database structure update failed ('.$e.')', OC_Log::FATAL);
+			\OCP\Util::writeLog('core', 'Simulated database structure update failed ('.$e.')', \OCP\Util::FATAL);
 			throw $e;
 		}
 		return $result;
@@ -294,25 +290,24 @@ class OC_DB {
 	public static function raiseExceptionOnError($result, $message = null) {
 		if(self::isError($result)) {
 			if ($message === null) {
-				$message = self::getErrorMessage($result);
+				$message = self::getErrorMessage();
 			} else {
-				$message .= ', Root cause:' . self::getErrorMessage($result);
+				$message .= ', Root cause:' . self::getErrorMessage();
 			}
-			throw new \OC\DatabaseException($message, self::getErrorCode($result));
+			throw new \OC\DatabaseException($message, self::getErrorCode());
 		}
 	}
 
-	public static function getErrorCode($error) {
+	public static function getErrorCode() {
 		$connection = \OC::$server->getDatabaseConnection();
 		return $connection->errorCode();
 	}
 	/**
 	 * returns the error code and message as a string for logging
 	 * works with DoctrineException
-	 * @param mixed $error
 	 * @return string
 	 */
-	public static function getErrorMessage($error) {
+	public static function getErrorMessage() {
 		$connection = \OC::$server->getDatabaseConnection();
 		return $connection->getError();
 	}

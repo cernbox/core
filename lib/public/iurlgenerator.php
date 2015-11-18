@@ -1,22 +1,24 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Bart Visscher
- * @copyright 2013 Bart Visscher bartv@thisnet.nl
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -39,6 +41,7 @@ interface IURLGenerator {
 	 * @param string $routeName the name of the route
 	 * @param array $arguments an array with arguments which will be filled into the url
 	 * @return string the url
+	 * @since 6.0.0
 	 */
 	public function linkToRoute($routeName, $arguments = array());
 
@@ -47,6 +50,7 @@ interface IURLGenerator {
 	 * @param string $routeName the name of the route
 	 * @param array $arguments an array with arguments which will be filled into the url
 	 * @return string the absolute url
+	 * @since 8.0.0
 	 */
 	public function linkToRouteAbsolute($routeName, $arguments = array());
 
@@ -55,6 +59,7 @@ interface IURLGenerator {
 	 * @param string $appName the name of the app
 	 * @param string $file the name of the file
 	 * @return string the url
+	 * @since 6.0.0
 	 */
 	public function linkTo($appName, $file);
 
@@ -63,6 +68,7 @@ interface IURLGenerator {
 	 * @param string $appName the name of the app
 	 * @param string $file the name of the file
 	 * @return string the url
+	 * @since 6.0.0
 	 */
 	public function imagePath($appName, $file);
 	
@@ -71,6 +77,7 @@ interface IURLGenerator {
 	 * @param string $appName the name of the app
 	 * @param string $file the name of the file
 	 * @return string the absolute path
+	 * @since 6.0.0
 	 */
 	public function absoluteImagePath($appName, $file);
 
@@ -79,12 +86,14 @@ interface IURLGenerator {
 	 * Makes an URL absolute
 	 * @param string $url the url in the ownCloud host
 	 * @return string the absolute version of the url
+	 * @since 6.0.0
 	 */
 	public function getAbsoluteURL($url);
 
 	/**
 	 * @param string $key
 	 * @return string url to the online documentation
+	 * @since 8.0.0
 	 */
 	public function linkToDocs($key);
 }

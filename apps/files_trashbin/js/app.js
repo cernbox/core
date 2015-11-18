@@ -28,7 +28,8 @@ OCA.Trashbin.App = {
 		this.fileList = new OCA.Trashbin.FileList(
 			$('#app-content-trashbin'), {
 				scrollContainer: $('#app-content'),
-				fileActions: this._createFileActions()
+				fileActions: this._createFileActions(),
+				detailsViewEnabled: false
 			}
 		);
 	},
@@ -104,7 +105,7 @@ OCA.Trashbin.App = {
 		/* HUGO hide delete button per file. EOS does not support per file purge
 		fileActions.registerAction({
 			name: 'Delete',
-			displayName: '',
+			displayName: t('files', 'Delete'),
 			mime: 'all',
 			permissions: OC.PERMISSION_READ,
 			icon: function() {

@@ -1,21 +1,35 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Node;
 
-use OC\Files\Cache\Cache;
 use OC\Files\Mount\Manager;
 use OC\Files\Mount\MountPoint;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
-use OC\Hooks\Emitter;
 use OC\Hooks\PublicEmitter;
-
 use OCP\Files\IRootFolder;
 
 /**
@@ -80,7 +94,7 @@ class Root extends Folder implements IRootFolder {
 	 * @param string $method
 	 * @param callable $callback
 	 */
-	public function listen($scope, $method, $callback) {
+	public function listen($scope, $method, callable $callback) {
 		$this->emitter->listen($scope, $method, $callback);
 	}
 
@@ -89,7 +103,7 @@ class Root extends Folder implements IRootFolder {
 	 * @param string $method optional
 	 * @param callable $callback optional
 	 */
-	public function removeListener($scope = null, $method = null, $callback = null) {
+	public function removeListener($scope = null, $method = null, callable $callback = null) {
 		$this->emitter->removeListener($scope, $method, $callback);
 	}
 
@@ -308,5 +322,34 @@ class Root extends Folder implements IRootFolder {
 	 */
 	public function getName() {
 		return '';
+	}
+
+	/**
+	 * Returns a view to user's files folder
+	 *
+	 * @param String $userId user ID
+	 * @return \OCP\Files\Folder
+	 */
+	public function getUserFolder($userId) {
+		\OC\Files\Filesystem::initMountPoints($userId);
+		$dir = '/' . $userId;
+		$folder = null;
+
+		if (!$this->nodeExists($dir)) {
+			$folder = $this->newFolder($dir);
+		} else {
+			$folder = $this->get($dir);
+		}
+
+		$dir = '/files';
+		if (!$folder->nodeExists($dir)) {
+			$folder = $folder->newFolder($dir);
+			\OC_Util::copySkeleton($userId, $folder);
+		} else {
+			$folder = $folder->get($dir);
+		}
+
+		return $folder;
+
 	}
 }

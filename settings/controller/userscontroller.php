@@ -1,11 +1,25 @@
 <?php
 /**
- * @author Lukas Reschke
- * @copyright 2014-2015 Lukas Reschke lukas@owncloud.com
+ * @author Clark Tomlinson <fallen013@gmail.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas MÃŒller <thomas.mueller@tmit.eu>
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 namespace OC\Settings\Controller;
@@ -26,6 +40,7 @@ use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use OCP\Mail\IMailer;
 
 /**
  * @package OC\Settings\Controller
@@ -47,8 +62,8 @@ class UsersController extends Controller {
 	private $log;
 	/** @var \OC_Defaults */
 	private $defaults;
-	/** @var \OC_Mail */
-	private $mail;
+	/** @var IMailer */
+	private $mailer;
 	/** @var string */
 	private $fromMailAddress;
 	/** @var IURLGenerator */
@@ -71,7 +86,7 @@ class UsersController extends Controller {
 	 * @param IL10N $l10n
 	 * @param ILogger $log
 	 * @param \OC_Defaults $defaults
-	 * @param \OC_Mail $mail
+	 * @param IMailer $mailer
 	 * @param string $fromMailAddress
 	 * @param IURLGenerator $urlGenerator
 	 * @param IAppManager $appManager
@@ -87,7 +102,7 @@ class UsersController extends Controller {
 								IL10N $l10n,
 								ILogger $log,
 								\OC_Defaults $defaults,
-								\OC_Mail $mail,
+								IMailer $mailer,
 								$fromMailAddress,
 								IURLGenerator $urlGenerator,
 								IAppManager $appManager,
@@ -101,16 +116,16 @@ class UsersController extends Controller {
 		$this->l10n = $l10n;
 		$this->log = $log;
 		$this->defaults = $defaults;
-		$this->mail = $mail;
+		$this->mailer = $mailer;
 		$this->fromMailAddress = $fromMailAddress;
 		$this->urlGenerator = $urlGenerator;
 		$this->subAdminFactory = $subAdminFactory;
 
 		// check for encryption state - TODO see formatUserForIndex
-		$this->isEncryptionAppEnabled = $appManager->isEnabledForUser('files_encryption');
+		$this->isEncryptionAppEnabled = $appManager->isEnabledForUser('encryption');
 		if($this->isEncryptionAppEnabled) {
 			// putting this directly in empty is possible in PHP 5.5+
-			$result = $config->getAppValue('files_encryption', 'recoveryAdminEnabled', 0);
+			$result = $config->getAppValue('encryption', 'recoveryAdminEnabled', 0);
 			$this->isRestoreEnabled = !empty($result);
 		}
 	}
@@ -133,7 +148,7 @@ class UsersController extends Controller {
 		if ($this->isEncryptionAppEnabled) {
 			if ($this->isRestoreEnabled) {
 				// check for the users recovery setting
-				$recoveryMode = $this->config->getUserValue($user->getUID(), 'files_encryption', 'recovery_enabled', '0');
+				$recoveryMode = $this->config->getUserValue($user->getUID(), 'encryption', 'recoveryEnabled', '0');
 				// method call inside empty is possible with PHP 5.5+
 				$recoveryModeEnabled = !empty($recoveryMode);
 				if ($recoveryModeEnabled) {
@@ -263,7 +278,7 @@ class UsersController extends Controller {
 	 */
 	public function create($username, $password, array $groups=array(), $email='') {
 
-		if($email !== '' && !$this->mail->validateAddress($email)) {
+		if($email !== '' && !$this->mailer->validateMailAddress($email)) {
 			return new DataResponse(
 				array(
 					'message' => (string)$this->l10n->t('Invalid mail address')
@@ -286,6 +301,15 @@ class UsersController extends Controller {
 			}
 		}
 
+		if ($this->userManager->userExists($username)) {
+			return new DataResponse(
+					array(
+							'message' => (string)$this->l10n->t('A user with that name already exists.')
+					),
+					Http::STATUS_CONFLICT
+					);
+		}
+		
 		try {
 			$user = $this->userManager->createUser($username, $password);
 		} catch (\Exception $exception) {
@@ -329,15 +353,13 @@ class UsersController extends Controller {
 				$subject = $this->l10n->t('Your %s account was created', [$this->defaults->getName()]);
 
 				try {
-					$this->mail->send(
-						$email,
-						$username,
-						$subject,
-						$mailContent,
-						$this->fromMailAddress,
-						$this->defaults->getName(),
-						1,
-						$plainTextMailContent);
+					$message = $this->mailer->createMessage();
+					$message->setTo([$email => $username]);
+					$message->setSubject($subject);
+					$message->setHtmlBody($mailContent);
+					$message->setPlainBody($plainTextMailContent);
+					$message->setFrom([$this->fromMailAddress => $this->defaults->getName()]);
+					$this->mailer->send($message);
 				} catch(\Exception $e) {
 					$this->log->error("Can't send new user mail to $email: " . $e->getMessage(), array('app' => 'settings'));
 				}
@@ -444,7 +466,7 @@ class UsersController extends Controller {
 			);
 		}
 
-		if($mailAddress !== '' && !$this->mail->validateAddress($mailAddress)) {
+		if($mailAddress !== '' && !$this->mailer->validateMailAddress($mailAddress)) {
 			return new DataResponse(
 				array(
 					'status' => 'error',
@@ -483,7 +505,12 @@ class UsersController extends Controller {
 			);
 		}
 
-		$this->config->setUserValue($id, 'settings', 'email', $mailAddress);
+			// delete user value if email address is empty
+		if($mailAddress === '') {
+			$this->config->deleteUserValue($id, 'settings', 'email');
+		} else {
+			$this->config->setUserValue($id, 'settings', 'email', $mailAddress);
+		}
 
 		return new DataResponse(
 			array(
@@ -498,4 +525,45 @@ class UsersController extends Controller {
 		);
 	}
 
+	/**
+	 * Count all unique users visible for the current admin/subadmin.
+	 *
+	 * @NoAdminRequired
+	 *
+	 * @return DataResponse
+	 */
+	public function stats() {
+		$userCount = 0;
+		if ($this->isAdmin) {
+			$countByBackend = $this->userManager->countUsers();
+	
+			if (!empty($countByBackend)) {
+				foreach ($countByBackend as $count) {
+					$userCount += $count;
+				}
+			}
+		} else {
+	
+			$groupNames = $this->subAdminFactory->getSubAdminsOfGroups($this->userSession->getUser()->getUID());
+	
+			$uniqueUsers = [];
+			foreach ($groupNames as $groupName) {
+				$group = $this->groupManager->get($groupName);
+				if (!is_null($group)) {
+					foreach($group->getUsers() as $uid => $displayName) {
+						$uniqueUsers[$uid] = true;
+					}
+				}
+			}
+	
+			$userCount = count($uniqueUsers);
+		}
+	
+		return new DataResponse(
+				[
+						'totalUsers' => $userCount
+				]
+				);
+	}
+	
 }

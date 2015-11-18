@@ -1,9 +1,29 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC;
@@ -13,13 +33,19 @@ use OC\Hooks\Emitter;
 use OC\Repair\AssetCache;
 use OC\Repair\CleanTags;
 use OC\Repair\Collation;
-use OC\Repair\EnableFilesApp;
+use OC\Repair\DropOldJobs;
+use OC\Repair\OldGroupMembershipShares;
+use OC\Repair\RemoveGetETagEntries;
+use OC\Repair\SqliteAutoincrement;
+use OC\Repair\DropOldTables;
 use OC\Repair\FillETags;
 use OC\Repair\InnoDB;
 use OC\Repair\RepairConfig;
 use OC\Repair\RepairLegacyStorages;
 use OC\Repair\RepairMimeTypes;
 use OC\Repair\SearchLuceneTables;
+use OC\Repair\UpdateOutdatedOcsIds;
+use OC\Repair\RepairInvalidShares;
 
 class Repair extends BasicEmitter {
 	/**
@@ -78,15 +104,31 @@ class Repair extends BasicEmitter {
 	 * @return array of RepairStep instances
 	 */
 	public static function getRepairSteps() {
-		return array(
-			new RepairMimeTypes(),
-			new RepairLegacyStorages(\OC::$server->getConfig(), \OC_DB::getConnection()),
+		return [
+			new RepairMimeTypes(\OC::$server->getConfig()),
+			new RepairLegacyStorages(\OC::$server->getConfig(), \OC::$server->getDatabaseConnection()),
 			new RepairConfig(),
 			new AssetCache(),
-			new FillETags(\OC_DB::getConnection()),
-			new CleanTags(\OC_DB::getConnection()),
-			new EnableFilesApp(\OC::$server->getConfig()),
-		);
+			new FillETags(\OC::$server->getDatabaseConnection()),
+			new CleanTags(\OC::$server->getDatabaseConnection()),
+			new DropOldTables(\OC::$server->getDatabaseConnection()),
+			new DropOldJobs(\OC::$server->getJobList()),
+			new RemoveGetETagEntries(\OC::$server->getDatabaseConnection()),
+			new UpdateOutdatedOcsIds(\OC::$server->getConfig()),
+			new RepairInvalidShares(\OC::$server->getConfig(), \OC::$server->getDatabaseConnection()),
+		];
+	}
+
+	/**
+	 * Returns expensive repair steps to be run on the
+	 * command line with a special option.
+	 *
+	 * @return array of RepairStep instances
+	 */
+	public static function getExpensiveRepairSteps() {
+		return [
+			new OldGroupMembershipShares(\OC::$server->getDatabaseConnection(), \OC::$server->getGroupManager()),
+		];
 	}
 
 	/**
@@ -99,6 +141,7 @@ class Repair extends BasicEmitter {
 		$steps = array(
 			new InnoDB(),
 			new Collation(\OC::$server->getConfig(), \OC_DB::getConnection()),
+			new SqliteAutoincrement(\OC_DB::getConnection()),
 			new SearchLuceneTables(),
 			new RepairConfig()
 		);
@@ -119,7 +162,7 @@ class Repair extends BasicEmitter {
 	 *
 	 * Re-declared as public to allow invocation from within the closure above in php 5.3
 	 */
-	public function emit($scope, $method, $arguments = array()) {
+	public function emit($scope, $method, array $arguments = array()) {
 		parent::emit($scope, $method, $arguments);
 	}
 }

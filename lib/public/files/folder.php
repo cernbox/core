@@ -1,22 +1,23 @@
 <?php
 /**
- * ownCloud
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Robin Appelman
- * @copyright 2013 Robin Appelman icewind@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -29,6 +30,9 @@
 // This means that they should be used by apps instead of the internal ownCloud classes
 namespace OCP\Files;
 
+/**
+ * @since 6.0.0
+ */
 interface Folder extends Node {
 	/**
 	 * Get the full path of an item in the folder within owncloud's filesystem
@@ -36,6 +40,7 @@ interface Folder extends Node {
 	 * @param string $path relative path of an item in the folder
 	 * @return string
 	 * @throws \OCP\Files\NotPermittedException
+	 * @since 6.0.0
 	 */
 	public function getFullPath($path);
 
@@ -45,6 +50,7 @@ interface Folder extends Node {
 	 * @param string $path absolute path of an item in the folder
 	 * @throws \OCP\Files\NotFoundException
 	 * @return string
+	 * @since 6.0.0
 	 */
 	public function getRelativePath($path);
 
@@ -53,6 +59,7 @@ interface Folder extends Node {
 	 *
 	 * @param \OCP\Files\Node $node
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function isSubNode($node);
 
@@ -61,6 +68,7 @@ interface Folder extends Node {
 	 *
 	 * @throws \OCP\Files\NotFoundException
 	 * @return \OCP\Files\Node[]
+	 * @since 6.0.0
 	 */
 	public function getDirectoryListing();
 
@@ -70,6 +78,7 @@ interface Folder extends Node {
 	 * @param string $path relative path of the file or folder
 	 * @return \OCP\Files\Node
 	 * @throws \OCP\Files\NotFoundException
+	 * @since 6.0.0
 	 */
 	public function get($path);
 
@@ -78,6 +87,7 @@ interface Folder extends Node {
 	 *
 	 * @param string $path relative path of the file or folder
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function nodeExists($path);
 
@@ -87,6 +97,7 @@ interface Folder extends Node {
 	 * @param string $path relative path of the new folder
 	 * @return \OCP\Files\Folder
 	 * @throws \OCP\Files\NotPermittedException
+	 * @since 6.0.0
 	 */
 	public function newFolder($path);
 
@@ -96,6 +107,7 @@ interface Folder extends Node {
 	 * @param string $path relative path of the new file
 	 * @return \OCP\Files\File
 	 * @throws \OCP\Files\NotPermittedException
+	 * @since 6.0.0
 	 */
 	public function newFile($path);
 
@@ -104,6 +116,7 @@ interface Folder extends Node {
 	 *
 	 * @param string $query
 	 * @return \OCP\Files\Node[]
+	 * @since 6.0.0
 	 */
 	public function search($query);
 
@@ -113,6 +126,7 @@ interface Folder extends Node {
 	 *
 	 * @param string $mimetype
 	 * @return \OCP\Files\Node[]
+	 * @since 6.0.0
 	 */
 	public function searchByMime($mimetype);
 
@@ -122,6 +136,7 @@ interface Folder extends Node {
 	 * @param string|int $tag tag name or tag id
 	 * @param string $userId owner of the tags
 	 * @return \OCP\Files\Node[]
+	 * @since 8.0.0
 	 */
 	public function searchByTag($tag, $userId);
 
@@ -130,6 +145,7 @@ interface Folder extends Node {
 	 *
 	 * @param int $id
 	 * @return \OCP\Files\Node[]
+	 * @since 6.0.0
 	 */
 	public function getById($id);
 
@@ -137,6 +153,7 @@ interface Folder extends Node {
 	 * Get the amount of free space inside the folder
 	 *
 	 * @return int
+	 * @since 6.0.0
 	 */
 	public function getFreeSpace();
 
@@ -144,6 +161,17 @@ interface Folder extends Node {
 	 * Check if new files or folders can be created within the folder
 	 *
 	 * @return bool
+	 * @since 6.0.0
 	 */
 	public function isCreatable();
+
+	/**
+	 * Add a suffix to the name in case the file exists
+	 *
+	 * @param string $name
+	 * @return string
+	 * @throws NotPermittedException
+	 * @since 8.1.0
+	 */
+	public function getNonExistingName($name);
 }

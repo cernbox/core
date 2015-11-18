@@ -1,29 +1,34 @@
 <?php
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Clark Tomlinson <fallen013@gmail.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Bjoern Schiessle
- * @copyright 2014 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 use OCA\Files_Trashbin;
 
 /**
- * Class Test_Encryption_Crypt
+ * Class Test_Encryption
  */
 class Test_Trashbin extends \Test\TestCase {
 
@@ -33,9 +38,12 @@ class Test_Trashbin extends \Test\TestCase {
 	private $trashRoot1;
 	private $trashRoot2;
 
-	private static $encryptionStatus;
 	private static $rememberRetentionObligation;
-	private static $rememberAutoExpire;
+
+	/**
+	 * @var bool
+	 */
+	private static $trashBinStatus;
 
 	/**
 	 * @var \OC\Files\View
@@ -45,6 +53,9 @@ class Test_Trashbin extends \Test\TestCase {
 	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
+		$appManager = \OC::$server->getAppManager();
+		self::$trashBinStatus = $appManager->isEnabledForUser('files_trashbin');
+
 		// reset backend
 		\OC_User::clearBackends();
 		\OC_User::useBackend('database');
@@ -52,18 +63,16 @@ class Test_Trashbin extends \Test\TestCase {
 		// clear share hooks
 		\OC_Hook::clear('OCP\\Share');
 		\OC::registerShareHooks();
-		\OCP\Util::connectHook('OC_Filesystem', 'setup', '\OC\Files\Storage\Shared', 'setup');
+		$application = new \OCA\Files_Sharing\AppInfo\Application();
+		$application->registerMountProviders();
+		$application->setupPropagation();
 
 		//disable encryption
-		self::$encryptionStatus = \OC_App::isEnabled('files_encryption');
-		\OC_App::disable('files_encryption');
+		\OC_App::disable('encryption');
 
 		//configure trashbin
-		self::$rememberRetentionObligation = \OC_Config::getValue('trashbin_retention_obligation', Files_Trashbin\Trashbin::DEFAULT_RETENTION_OBLIGATION);
-		\OC_Config::setValue('trashbin_retention_obligation', 2);
-		self::$rememberAutoExpire = \OC_Config::getValue('trashbin_auto_expire', true);
-		\OC_Config::setValue('trashbin_auto_expire', true);
-
+		self::$rememberRetentionObligation = \OC_Config::getValue('trashbin_retention_obligation', Files_Trashbin\Expiration::DEFAULT_RETENTION_OBLIGATION);
+		\OC_Config::setValue('trashbin_retention_obligation', 'auto, 2');
 
 		// register hooks
 		Files_Trashbin\Trashbin::registerHooks();
@@ -79,22 +88,23 @@ class Test_Trashbin extends \Test\TestCase {
 		// cleanup test user
 		\OC_User::deleteUser(self::TEST_TRASHBIN_USER1);
 
-		if (self::$encryptionStatus === true) {
-			\OC_App::enable('files_encryption');
-		}
-
 		\OC_Config::setValue('trashbin_retention_obligation', self::$rememberRetentionObligation);
-		\OC_Config::setValue('trashbin_auto_expire', self::$rememberAutoExpire);
 
 		\OC_Hook::clear();
 
 		\OC\Files\Filesystem::getLoader()->removeStorageWrapper('oc_trashbin');
+
+		if (self::$trashBinStatus) {
+			\OC::$server->getAppManager()->enableApp('files_trashbin');
+		}
 
 		parent::tearDownAfterClass();
 	}
 
 	protected function setUp() {
 		parent::setUp();
+
+		\OC::$server->getAppManager()->enableApp('files_trashbin');
 
 		$this->trashRoot1 = '/' . self::TEST_TRASHBIN_USER1 . '/files_trashbin';
 		$this->trashRoot2 = '/' . self::TEST_TRASHBIN_USER2 . '/files_trashbin';
@@ -103,8 +113,17 @@ class Test_Trashbin extends \Test\TestCase {
 	}
 
 	protected function tearDown() {
+		// disable trashbin to be able to properly clean up
+		\OC::$server->getAppManager()->disableApp('files_trashbin');
+
+		$this->rootView->deleteAll('/' . self::TEST_TRASHBIN_USER1 . '/files');
+		$this->rootView->deleteAll('/' . self::TEST_TRASHBIN_USER2 . '/files');
 		$this->rootView->deleteAll($this->trashRoot1);
 		$this->rootView->deleteAll($this->trashRoot2);
+
+		// clear trash table
+		$connection = \OC::$server->getDatabaseConnection();
+		$connection->executeUpdate('DELETE FROM `*PREFIX*files_trash`');
 
 		parent::tearDown();
 	}
@@ -210,10 +229,14 @@ class Test_Trashbin extends \Test\TestCase {
 
 		\OC\Files\Filesystem::unlink($folder . 'user1-4.txt');
 
+		$this->runCommands();
+
 		$filesInTrashUser2AfterDelete = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER2);
 
 		// user2-1.txt should have been expired
 		$this->verifyArray($filesInTrashUser2AfterDelete, array('user2-2.txt', 'user1-4.txt'));
+
+		self::loginHelper(self::TEST_TRASHBIN_USER1);
 
 		// user1-1.txt and user1-3.txt should have been expired
 		$filesInTrashUser1AfterDelete = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1);
@@ -294,6 +317,312 @@ class Test_Trashbin extends \Test\TestCase {
 	}
 
 	/**
+	 * Test restoring a file
+	 */
+	public function testRestoreFileInRoot() {
+		$userFolder = \OC::$server->getUserFolder();
+		$file = $userFolder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('file1.txt'));
+
+		$file->delete();
+
+		$this->assertFalse($userFolder->nodeExists('file1.txt'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		$this->assertTrue(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'file1.txt.d' . $trashedFile->getMtime(),
+				$trashedFile->getName(),
+				$trashedFile->getMtime()
+			)
+		);
+
+		$file = $userFolder->get('file1.txt');
+		$this->assertEquals('foo', $file->getContent());
+	}
+
+	/**
+	 * Test restoring a file in subfolder
+	 */
+	public function testRestoreFileInSubfolder() {
+		$userFolder = \OC::$server->getUserFolder();
+		$folder = $userFolder->newFolder('folder');
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('folder/file1.txt'));
+
+		$file->delete();
+
+		$this->assertFalse($userFolder->nodeExists('folder/file1.txt'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		$this->assertTrue(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'file1.txt.d' . $trashedFile->getMtime(),
+				$trashedFile->getName(),
+				$trashedFile->getMtime()
+			)
+		);
+
+		$file = $userFolder->get('folder/file1.txt');
+		$this->assertEquals('foo', $file->getContent());
+	}
+
+	/**
+	 * Test restoring a folder
+	 */
+	public function testRestoreFolder() {
+		$userFolder = \OC::$server->getUserFolder();
+		$folder = $userFolder->newFolder('folder');
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('folder'));
+
+		$folder->delete();
+
+		$this->assertFalse($userFolder->nodeExists('folder'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFolder = $filesInTrash[0];
+
+		$this->assertTrue(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'folder.d' . $trashedFolder->getMtime(),
+				$trashedFolder->getName(),
+				$trashedFolder->getMtime()
+			)
+		);
+
+		$file = $userFolder->get('folder/file1.txt');
+		$this->assertEquals('foo', $file->getContent());
+	}
+
+	/**
+	 * Test restoring a file from inside a trashed folder
+	 */
+	public function testRestoreFileFromTrashedSubfolder() {
+		$userFolder = \OC::$server->getUserFolder();
+		$folder = $userFolder->newFolder('folder');
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('folder'));
+
+		$folder->delete();
+
+		$this->assertFalse($userFolder->nodeExists('folder'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		$this->assertTrue(
+				OCA\Files_Trashbin\Trashbin::restore(
+				'folder.d' . $trashedFile->getMtime() . '/file1.txt',
+				'file1.txt',
+				$trashedFile->getMtime()
+			)
+		);
+
+		$file = $userFolder->get('file1.txt');
+		$this->assertEquals('foo', $file->getContent());
+	}
+
+	/**
+	 * Test restoring a file whenever the source folder was removed.
+	 * The file should then land in the root.
+	 */
+	public function testRestoreFileWithMissingSourceFolder() {
+		$userFolder = \OC::$server->getUserFolder();
+		$folder = $userFolder->newFolder('folder');
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('folder/file1.txt'));
+
+		$file->delete();
+
+		$this->assertFalse($userFolder->nodeExists('folder/file1.txt'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		// delete source folder
+		$folder->delete();
+
+		$this->assertTrue(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'file1.txt.d' . $trashedFile->getMtime(),
+				$trashedFile->getName(),
+				$trashedFile->getMtime()
+			)
+		);
+
+		$file = $userFolder->get('file1.txt');
+		$this->assertEquals('foo', $file->getContent());
+	}
+
+	/**
+	 * Test restoring a file in the root folder whenever there is another file
+	 * with the same name in the root folder
+	 */
+	public function testRestoreFileDoesNotOverwriteExistingInRoot() {
+		$userFolder = \OC::$server->getUserFolder();
+		$file = $userFolder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('file1.txt'));
+
+		$file->delete();
+
+		$this->assertFalse($userFolder->nodeExists('file1.txt'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		// create another file
+		$file = $userFolder->newFile('file1.txt');
+		$file->putContent('bar');
+
+		$this->assertTrue(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'file1.txt.d' . $trashedFile->getMtime(),
+				$trashedFile->getName(),
+				$trashedFile->getMtime()
+			)
+		);
+
+		$anotherFile = $userFolder->get('file1.txt');
+		$this->assertEquals('bar', $anotherFile->getContent());
+
+		$restoredFile = $userFolder->get('file1 (restored).txt');
+		$this->assertEquals('foo', $restoredFile->getContent());
+	}
+
+	/**
+	 * Test restoring a file whenever there is another file
+	 * with the same name in the source folder
+	 */
+	public function testRestoreFileDoesNotOverwriteExistingInSubfolder() {
+		$userFolder = \OC::$server->getUserFolder();
+		$folder = $userFolder->newFolder('folder');
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('folder/file1.txt'));
+
+		$file->delete();
+
+		$this->assertFalse($userFolder->nodeExists('folder/file1.txt'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		// create another file
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('bar');
+
+		$this->assertTrue(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'file1.txt.d' . $trashedFile->getMtime(),
+				$trashedFile->getName(),
+				$trashedFile->getMtime()
+			)
+		);
+
+		$anotherFile = $userFolder->get('folder/file1.txt');
+		$this->assertEquals('bar', $anotherFile->getContent());
+
+		$restoredFile = $userFolder->get('folder/file1 (restored).txt');
+		$this->assertEquals('foo', $restoredFile->getContent());
+	}
+
+	/**
+	 * Test restoring a non-existing file from trashbin, returns false
+	 */
+	public function testRestoreUnexistingFile() {
+		$this->assertFalse(
+			OCA\Files_Trashbin\Trashbin::restore(
+				'unexist.txt.d123456',
+				'unexist.txt',
+				'123456'
+			)
+		);
+	}
+
+	/**
+	 * Test restoring a file into a read-only folder, will restore
+	 * the file to root instead
+	 */
+	public function testRestoreFileIntoReadOnlySourceFolder() {
+		$userFolder = \OC::$server->getUserFolder();
+		$folder = $userFolder->newFolder('folder');
+		$file = $folder->newFile('file1.txt');
+		$file->putContent('foo');
+
+		$this->assertTrue($userFolder->nodeExists('folder/file1.txt'));
+
+		$file->delete();
+
+		$this->assertFalse($userFolder->nodeExists('folder/file1.txt'));
+
+		$filesInTrash = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1, 'mtime');
+		$this->assertCount(1, $filesInTrash);
+
+		/** @var \OCP\Files\FileInfo */
+		$trashedFile = $filesInTrash[0];
+
+		// delete source folder
+		list($storage, $internalPath) = $this->rootView->resolvePath('/' . self::TEST_TRASHBIN_USER1 . '/files/folder');
+		if ($storage instanceof \OC\Files\Storage\Local) {
+			$folderAbsPath = $storage->getSourcePath($internalPath);
+			// make folder read-only
+			chmod($folderAbsPath, 0555);
+
+			$this->assertTrue(
+				OCA\Files_Trashbin\Trashbin::restore(
+					'file1.txt.d' . $trashedFile->getMtime(),
+					$trashedFile->getName(),
+					$trashedFile->getMtime()
+				)
+			);
+
+			$file = $userFolder->get('file1.txt');
+			$this->assertEquals('foo', $file->getContent());
+
+			chmod($folderAbsPath, 0755);
+		}
+	}
+
+	/**
 	 * @param string $user
 	 * @param bool $create
 	 * @param bool $password
@@ -312,6 +641,7 @@ class Test_Trashbin extends \Test\TestCase {
 		\OC\Files\Filesystem::tearDown();
 		\OC_User::setUserId($user);
 		\OC_Util::setupFS($user);
+		\OC::$server->getUserFolder($user);
 	}
 }
 

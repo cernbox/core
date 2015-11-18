@@ -1,14 +1,30 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCA\Files_Sharing\External;
 
-use OC\Files\Filesystem;
 use OC\Files\Storage\DAV;
 use OC\ForbiddenException;
 use OCA\Files_Sharing\ISharedStorage;
@@ -70,8 +86,10 @@ class Storage extends DAV implements ISharedStorage {
 			'host' => $host,
 			'root' => $root,
 			'user' => $options['token'],
-			'password' => $options['password']
+			'password' => (string)$options['password']
 		));
+
+		$this->getWatcher()->setPolicy(\OC\Files\Cache\Watcher::CHECK_ONCE);
 	}
 
 	public function getRemoteUser() {
@@ -175,13 +193,17 @@ class Storage extends DAV implements ISharedStorage {
 				throw new StorageInvalidException();
 			} else {
 				// ownCloud instance is gone, likely to be a temporary server configuration error
-				throw $e;
+				throw new StorageNotAvailableException();
 			}
 		} catch (ForbiddenException $e) {
 			// auth error, remove share for now (provide a dialog in the future)
 			$this->manager->removeShare($this->mountPoint);
 			$this->manager->getMountManager()->removeMount($this->mountPoint);
 			throw new StorageInvalidException();
+		} catch (\GuzzleHttp\Exception\ConnectException $e) {
+			throw new StorageNotAvailableException();
+		} catch (\GuzzleHttp\Exception\RequestException $e) {
+			throw new StorageNotAvailableException();
 		} catch (\Exception $e) {
 			throw $e;
 		}
@@ -210,46 +232,32 @@ class Storage extends DAV implements ISharedStorage {
 		}
 	}
 
+	/**
+	 * @return mixed
+	 * @throws ForbiddenException
+	 * @throws NotFoundException
+	 * @throws \Exception
+	 */
 	public function getShareInfo() {
 		$remote = $this->getRemote();
 		$token = $this->getToken();
 		$password = $this->getPassword();
 		$url = rtrim($remote, '/') . '/index.php/apps/files_sharing/shareinfo?t=' . $token;
 
-		$ch = curl_init();
-
-		curl_setopt($ch, CURLOPT_URL, $url);
-		curl_setopt($ch, CURLOPT_POST, 1);
-		curl_setopt($ch, CURLOPT_POSTFIELDS,
-			http_build_query(array('password' => $password)));
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-		$path = $this->certificateManager->getCertificateBundle();
-		if (is_readable($path)) {
-			curl_setopt($ch, CURLOPT_CAINFO, $path);
+		// TODO: DI
+		$client = \OC::$server->getHTTPClientService()->newClient();
+		try {
+			$response = $client->post($url, ['body' => ['password' => $password]]);
+		} catch (\GuzzleHttp\Exception\RequestException $e) {
+			if ($e->getCode() === 401 || $e->getCode() === 403) {
+					throw new ForbiddenException();
+			}
+			// throw this to be on the safe side: the share will still be visible
+			// in the UI in case the failure is intermittent, and the user will
+			// be able to decide whether to remove it if it's really gone
+			throw new StorageNotAvailableException();
 		}
 
-		$result = curl_exec($ch);
-
-		$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$errorMessage = curl_error($ch);
-		curl_close($ch);
-		if (!empty($errorMessage)) {
-			throw new \Exception($errorMessage);
-		}
-
-		switch ($status) {
-			case 401:
-			case 403:
-				throw new ForbiddenException();
-			case 404:
-				throw new NotFoundException();
-			case 500:
-				throw new \Exception();
-		}
-
-		return json_decode($result, true);
+		return json_decode($response->getBody(), true);
 	}
 }

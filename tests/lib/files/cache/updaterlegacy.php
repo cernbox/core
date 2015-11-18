@@ -22,25 +22,15 @@ class UpdaterLegacy extends \Test\TestCase {
 	 */
 	private $scanner;
 
-	private $stateFilesEncryption;
-
 	/**
 	 * @var \OC\Files\Cache\Cache $cache
 	 */
 	private $cache;
 
-	/** @var \OC\Files\Storage\Storage */
-	private $originalStorage;
-
 	private static $user;
 
 	protected function setUp() {
 		parent::setUp();
-
-		// remember files_encryption state
-		$this->stateFilesEncryption = \OC_App::isEnabled('files_encryption');
-		// we want to tests with the encryption app disabled
-		\OC_App::disable('files_encryption');
 
 		$this->storage = new \OC\Files\Storage\Temporary(array());
 		$textData = "dummy file data\n";
@@ -55,14 +45,12 @@ class UpdaterLegacy extends \Test\TestCase {
 		$this->scanner->scan('');
 		$this->cache = $this->storage->getCache();
 
-		$this->originalStorage = Filesystem::getStorage('/');
-		Filesystem::tearDown();
 		if (!self::$user) {
 			self::$user = $this->getUniqueID();
 		}
 
 		\OC_User::createUser(self::$user, 'password');
-		\OC_User::setUserId(self::$user);
+		$this->loginAsUser(self::$user);
 
 		Filesystem::init(self::$user, '/' . self::$user . '/files');
 
@@ -78,13 +66,8 @@ class UpdaterLegacy extends \Test\TestCase {
 		}
 		$result = \OC_User::deleteUser(self::$user);
 		$this->assertTrue($result);
-		Filesystem::tearDown();
-		Filesystem::mount($this->originalStorage, array(), '/');
-		// reset app files_encryption
-		if ($this->stateFilesEncryption) {
-			\OC_App::enable('files_encryption');
-		}
 
+		$this->logout();
 		parent::tearDown();
 	}
 
@@ -284,6 +267,7 @@ class UpdaterLegacy extends \Test\TestCase {
 		$time = 1371006070;
 		$barCachedData = $this->cache->get('folder/bar.txt');
 		$folderCachedData = $this->cache->get('folder');
+		$this->cache->put('', ['mtime' => $time - 100]);
 		Filesystem::touch('folder/bar.txt', $time);
 		$cachedData = $this->cache->get('folder/bar.txt');
 		$this->assertInternalType('string', $barCachedData['etag']);
@@ -314,6 +298,7 @@ class UpdaterLegacy extends \Test\TestCase {
 		$fooCachedData = $cache2->get('foo.txt');
 		$cachedData = $cache2->get('foo.txt');
 		$time = 1371006070;
+		$this->cache->put('folder', ['mtime' => $time - 100]);
 		Filesystem::touch('folder/substorage/foo.txt', $time);
 		$cachedData = $cache2->get('foo.txt');
 		$this->assertInternalType('string', $fooCachedData['etag']);

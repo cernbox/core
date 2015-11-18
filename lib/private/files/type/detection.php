@@ -1,12 +1,35 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Jens-Christian Fischer <jens-christian.fischer@switch.ch>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Tanghus <thomas@tanghus.net>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Type;
+
+use OCP\Files\IMimeTypeDetector;
+use OCP\IURLGenerator;
 
 /**
  * Class Detection
@@ -15,9 +38,35 @@ namespace OC\Files\Type;
  *
  * @package OC\Files\Type
  */
-class Detection {
-	protected $mimetypes = array();
-	protected $secureMimeTypes = array();
+class Detection implements IMimeTypeDetector {
+	protected $mimetypes = [];
+	protected $secureMimeTypes = [];
+
+	protected $mimetypeIcons = [];
+	/** @var string[] */
+	protected $mimeTypeAlias = [];
+
+	/** @var IURLGenerator */
+	private $urlGenerator;
+
+	/** @var string */
+	private $customConfigDir;
+
+	/** @var string */
+	private $defaultConfigDir;
+
+	/**
+	 * @param IURLGenerator $urlGenerator
+	 * @param string $customConfigDir
+	 * @param string $defaultConfigDir
+	 */
+	public function __construct(IURLGenerator $urlGenerator,
+								$customConfigDir,
+								$defaultConfigDir) {
+		$this->urlGenerator = $urlGenerator;
+		$this->customConfigDir = $customConfigDir;
+		$this->defaultConfigDir = $defaultConfigDir;
+	}
 
 	/**
 	 * Add an extension -> mimetype mapping
@@ -30,7 +79,9 @@ class Detection {
 	 * @param string $mimetype
 	 * @param string|null $secureMimeType
 	 */
-	public function registerType($extension, $mimetype, $secureMimeType = null) {
+	public function registerType($extension,
+								 $mimetype,
+								 $secureMimeType = null) {
 		$this->mimetypes[$extension] = array($mimetype, $secureMimeType);
 		$this->secureMimeTypes[$mimetype] = $secureMimeType ?: $mimetype;
 	}
@@ -49,8 +100,59 @@ class Detection {
 
 		// Update the alternative mimetypes to avoid having to look them up each time.
 		foreach ($this->mimetypes as $mimeType) {
-			$this->secureMimeTypes[$mimeType[0]] = $mimeType[1] ?: $mimeType[0];
+			$this->secureMimeTypes[$mimeType[0]] = isset($mimeType[1]) ? $mimeType[1]: $mimeType[0];
 		}
+	}
+
+	/**
+	 * Add the mimetype aliases if they are not yet present
+	 */
+	private function loadAliases() {
+		if (!empty($this->mimeTypeAlias)) {
+			return;
+		}
+
+		$this->mimeTypeAlias = json_decode(file_get_contents($this->defaultConfigDir . '/mimetypealiases.dist.json'), true);
+
+		if (file_exists($this->customConfigDir . '/mimetypealiases.json')) {
+			$custom = json_decode(file_get_contents($this->customConfigDir . '/mimetypealiases.json'), true);
+			$this->mimeTypeAlias = array_merge($this->mimeTypeAlias, $custom);
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getAllAliases() {
+		$this->loadAliases();
+		return $this->mimeTypeAlias;
+	}
+
+	/**
+	 * Add mimetype mappings if they are not yet present
+	 */
+	private function loadMappings() {
+		if (!empty($this->mimetypes)) {
+			return;
+		}
+
+		$mimetypeMapping = json_decode(file_get_contents($this->defaultConfigDir . '/mimetypemapping.dist.json'), true);
+
+		//Check if need to load custom mappings
+		if (file_exists($this->customConfigDir . '/mimetypemapping.json')) {
+			$custom = json_decode(file_get_contents($this->customConfigDir . '/mimetypemapping.json'), true);
+			$mimetypeMapping = array_merge($mimetypeMapping, $custom);
+		}
+
+		$this->registerTypeArray($mimetypeMapping);
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getAllMappings() {
+		$this->loadMappings();
+		return $this->mimetypes;
 	}
 
 	/**
@@ -60,6 +162,8 @@ class Detection {
 	 * @return string
 	 */
 	public function detectPath($path) {
+		$this->loadMappings();
+
 		if (strpos($path, '.')) {
 			//try to guess the type by the file extension
 			$extension = strtolower(strrchr(basename($path), "."));
@@ -79,6 +183,8 @@ class Detection {
 	 * @return string
 	 */
 	public function detect($path) {
+		$this->loadMappings();
+
 		if (@is_dir($path)) {
 			// directories are easy
 			return "httpd/unix-directory";
@@ -149,8 +255,64 @@ class Detection {
 	 * @return string
 	 */
 	public function getSecureMimeType($mimeType) {
+		$this->loadMappings();
+
 		return isset($this->secureMimeTypes[$mimeType])
 			? $this->secureMimeTypes[$mimeType]
 			: 'application/octet-stream';
+	}
+
+	/**
+	 * Get path to the icon of a file type
+	 * @param string $mimeType the MIME type
+	 * @return string the url
+	 */
+	public function mimeTypeIcon($mimetype) {
+		$this->loadAliases();
+
+		while (isset($this->mimeTypeAlias[$mimetype])) {
+			$mimetype = $this->mimeTypeAlias[$mimetype];
+		}
+		if (isset($this->mimetypeIcons[$mimetype])) {
+			return $this->mimetypeIcons[$mimetype];
+		}
+
+		// Replace slash and backslash with a minus
+		$icon = str_replace('/', '-', $mimetype);
+		$icon = str_replace('\\', '-', $icon);
+
+		// Is it a dir?
+		if ($mimetype === 'dir') {
+			$this->mimetypeIcons[$mimetype] = $this->urlGenerator->imagePath('core', 'filetypes/folder.png');
+			return $this->mimetypeIcons[$mimetype];
+		}
+		if ($mimetype === 'dir-shared') {
+			$this->mimetypeIcons[$mimetype] = $this->urlGenerator->imagePath('core', 'filetypes/folder-shared.png');
+			return $this->mimetypeIcons[$mimetype];
+		}
+		if ($mimetype === 'dir-external') {
+			$this->mimetypeIcons[$mimetype] = $this->urlGenerator->imagePath('core', 'filetypes/folder-external.png');
+			return $this->mimetypeIcons[$mimetype];
+		}
+
+		// Icon exists?
+		try {
+			$this->mimetypeIcons[$mimetype] = $this->urlGenerator->imagePath('core', 'filetypes/' . $icon . '.png');
+			return $this->mimetypeIcons[$mimetype];
+		} catch (\RuntimeException $e) {
+			// Specified image not found
+		}
+
+		// Try only the first part of the filetype
+		$mimePart = substr($icon, 0, strpos($icon, '-'));
+		try {
+			$this->mimetypeIcons[$mimetype] = $this->urlGenerator->imagePath('core', 'filetypes/' . $mimePart . '.png');
+			return $this->mimetypeIcons[$mimetype];
+		} catch (\RuntimeException $e) {
+			// Image for the first part of the mimetype not found
+		}
+
+		$this->mimetypeIcons[$mimetype] = $this->urlGenerator->imagePath('core', 'filetypes/file.png');
+		return $this->mimetypeIcons[$mimetype];
 	}
 }

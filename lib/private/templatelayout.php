@@ -1,12 +1,45 @@
 <?php
+/**
+ * @author Adam Williamson <awilliam@redhat.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Clark Tomlinson <fallen013@gmail.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Remco Brenninkmeijer <requist1@starmail.nl>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 use Assetic\Asset\AssetCollection;
 use Assetic\Asset\FileAsset;
 use Assetic\AssetWriter;
 use Assetic\Filter\CssImportFilter;
 use Assetic\Filter\CssMinFilter;
 use Assetic\Filter\CssRewriteFilter;
-use Assetic\Filter\JSMinFilter;
-use OC\Assetic\SeparatorFilter; // waiting on upstream
+use Assetic\Filter\JSqueezeFilter;
+use Assetic\Filter\SeparatorFilter;
 
 /**
  * Copyright (c) 2012 Bart Visscher <bartv@thisnet.nl>
@@ -34,9 +67,9 @@ class OC_TemplateLayout extends OC_Template {
 		$this->config = \OC::$server->getConfig();
 
 		// Decide which page we show
-		if( $renderAs == 'user' ) {
+		if($renderAs == 'user') {
 			parent::__construct( 'core', 'layout.user' );
-			if(in_array(OC_APP::getCurrentApp(), array('settings','admin', 'help'))!==false) {
+			if(in_array(OC_App::getCurrentApp(), ['settings','admin', 'help']) !== false) {
 				$this->assign('bodyid', 'body-settings');
 			}else{
 				$this->assign('bodyid', 'body-user');
@@ -46,13 +79,14 @@ class OC_TemplateLayout extends OC_Template {
 			if($this->config->getSystemValue('updatechecker', true) === true &&
 				OC_User::isAdminUser(OC_User::getUser())) {
 				$updater = new \OC\Updater(\OC::$server->getHTTPHelper(),
-					\OC::$server->getConfig());
+					\OC::$server->getConfig(), \OC::$server->getLogger());
 				$data = $updater->check();
 
 				if(isset($data['version']) && $data['version'] != '' and $data['version'] !== Array()) {
 					$this->assign('updateAvailable', true);
 					$this->assign('updateVersion', $data['versionstring']);
 					$this->assign('updateLink', $data['web']);
+					\OCP\Util::addScript('core', 'update-notification');
 				} else {
 					$this->assign('updateAvailable', false); // No update available or not an admin user
 				}
@@ -61,21 +95,34 @@ class OC_TemplateLayout extends OC_Template {
 			}
 
 			// Add navigation entry
-			$this->assign( 'application', '', false );
+			$this->assign( 'application', '');
 			$this->assign( 'appid', $appId );
 			$navigation = OC_App::getNavigation();
 			$this->assign( 'navigation', $navigation);
-			$this->assign( 'settingsnavigation', OC_App::getSettingsNavigation());
+			$settingsNavigation = OC_App::getSettingsNavigation();
+			$this->assign( 'settingsnavigation', $settingsNavigation);
 			foreach($navigation as $entry) {
 				if ($entry['active']) {
 					$this->assign( 'application', $entry['name'] );
 					break;
 				}
 			}
+			
+			foreach($settingsNavigation as $entry) {
+				if ($entry['active']) {
+					$this->assign( 'application', $entry['name'] );
+					break;
+				}
+			}
 			$userDisplayName = OC_User::getDisplayName();
-			$this->assign( 'user_displayname', $userDisplayName );
-			$this->assign( 'user_uid', OC_User::getUser() );
-			$this->assign( 'appsmanagement_active', strpos(OC_Request::requestUri(), OC_Helper::linkToRoute('settings_apps')) === 0 );
+			$appsMgmtActive = strpos(\OC::$server->getRequest()->getRequestUri(), \OC::$server->getURLGenerator()->linkToRoute('settings.AppSettings.viewApps')) === 0;
+			if ($appsMgmtActive) {
+				$l = \OC::$server->getL10N('lib');
+				$this->assign('application', $l->t('Apps'));
+			}
+			$this->assign('user_displayname', $userDisplayName);
+			$this->assign('user_uid', OC_User::getUser());
+			$this->assign('appsmanagement_active', $appsMgmtActive);
 			$this->assign('enableAvatars', $this->config->getSystemValue('enable_avatars', true));
 			$this->assign('userAvatarSet', \OC_Helper::userAvatarSet(OC_User::getUser()));
 		} else if ($renderAs == 'error') {
@@ -105,7 +152,7 @@ class OC_TemplateLayout extends OC_Template {
 		} else {
 			// Add the js files
 			$jsFiles = self::findJavascriptFiles(OC_Util::$scripts);
-			$this->assign('jsfiles', array(), false);
+			$this->assign('jsfiles', array());
 			if ($this->config->getSystemValue('installed', false) && $renderAs != 'error') {
 				$this->append( 'jsfiles', OC_Helper::linkToRoute('js_config', array('v' => self::$versionHash)));
 			}
@@ -135,7 +182,9 @@ class OC_TemplateLayout extends OC_Template {
 		// Read the selected theme from the config file
 		$theme = OC_Util::getTheme();
 
-		$locator = new \OC\Template\CSSResourceLocator( $theme,
+		$locator = new \OC\Template\CSSResourceLocator(
+			OC::$server->getLogger(),
+			$theme,
 			array( OC::$SERVERROOT => OC::$WEBROOT ),
 			array( OC::$THIRDPARTYROOT => OC::$THIRDPARTYWEBROOT ));
 		$locator->find($styles);
@@ -150,7 +199,9 @@ class OC_TemplateLayout extends OC_Template {
 		// Read the selected theme from the config file
 		$theme = OC_Util::getTheme();
 
-		$locator = new \OC\Template\JSResourceLocator( $theme,
+		$locator = new \OC\Template\JSResourceLocator(
+			OC::$server->getLogger(),
+			$theme,
 			array( OC::$SERVERROOT => OC::$WEBROOT ),
 			array( OC::$THIRDPARTYROOT => OC::$THIRDPARTYWEBROOT ));
 		$locator->find($scripts);
@@ -173,7 +224,7 @@ class OC_TemplateLayout extends OC_Template {
 					), $root, $file);
 				}
 				return new FileAsset($root . '/' . $file, array(
-					new JSMinFilter(),
+					new JSqueezeFilter(),
 					new SeparatorFilter(';')
 				), $root, $file);
 			}, $jsFiles);
@@ -238,7 +289,11 @@ class OC_TemplateLayout extends OC_Template {
 
 	private static function hashFileNames($files) {
 		foreach($files as $i => $file) {
-			$files[$i] = self::convertToRelativePath($file[0]).'/'.$file[2];
+			try {
+				$files[$i] = self::convertToRelativePath($file[0]).'/'.$file[2];
+			} catch (\Exception $e) {
+				$files[$i] = $file[0].'/'.$file[2];
+			}
 		}
 
 		sort($files);

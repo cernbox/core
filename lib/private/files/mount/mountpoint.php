@@ -1,9 +1,28 @@
 <?php
 /**
- * Copyright (c) 2012 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Mount;
@@ -71,9 +90,10 @@ class MountPoint implements IMountPoint {
 		}
 
 		$mountpoint = $this->formatPath($mountpoint);
+		$this->mountPoint = $mountpoint;
 		if ($storage instanceof Storage) {
 			$this->class = get_class($storage);
-			$this->storage = $this->loader->wrap($mountpoint, $storage);
+			$this->storage = $this->loader->wrap($this, $storage);
 		} else {
 			// Update old classes to new namespace
 			if (strpos($storage, 'OC_Filestorage_') !== false) {
@@ -82,7 +102,6 @@ class MountPoint implements IMountPoint {
 			$this->class = $storage;
 			$this->arguments = $arguments;
 		}
-		$this->mountPoint = $mountpoint;
 	}
 
 	/**
@@ -95,10 +114,12 @@ class MountPoint implements IMountPoint {
 	}
 
 	/**
+	 * Sets the mount point path, relative to data/
+	 *
 	 * @param string $mountPoint new mount point
 	 */
 	public function setMountPoint($mountPoint) {
-		$this->mountPoint = $mountPoint;
+		$this->mountPoint = $this->formatPath($mountPoint);
 	}
 
 	/**
@@ -113,19 +134,19 @@ class MountPoint implements IMountPoint {
 
 		if (class_exists($this->class)) {
 			try {
-				return $this->loader->getInstance($this->mountPoint, $this->class, $this->arguments);
+				return $this->loader->getInstance($this, $this->class, $this->arguments);
 			} catch (\Exception $exception) {
 				$this->invalidStorage = true;
 				if ($this->mountPoint === '/') {
 					// the root storage could not be initialized, show the user!
 					throw new \Exception('The root storage could not be initialized. Please contact your local administrator.', $exception->getCode(), $exception);
 				} else {
-					\OC_Log::write('core', $exception->getMessage(), \OC_Log::ERROR);
+					\OCP\Util::writeLog('core', $exception->getMessage(), \OCP\Util::ERROR);
 				}
 				return null;
 			}
 		} else {
-			\OC_Log::write('core', 'storage backend ' . $this->class . ' not found', \OC_Log::ERROR);
+			\OCP\Util::writeLog('core', 'storage backend ' . $this->class . ' not found', \OCP\Util::ERROR);
 			$this->invalidStorage = true;
 			return null;
 		}
@@ -195,7 +216,7 @@ class MountPoint implements IMountPoint {
 		$storage = $this->getStorage();
 		// storage can be null if it couldn't be initialized
 		if ($storage != null) {
-			$this->storage = $wrapper($this->mountPoint, $storage);
+			$this->storage = $wrapper($this->mountPoint, $storage, $this);
 		}
 	}
 
@@ -208,5 +229,14 @@ class MountPoint implements IMountPoint {
 	 */
 	public function getOption($name, $default) {
 		return isset($this->mountOptions[$name]) ? $this->mountOptions[$name] : $default;
+	}
+
+	/**
+	 * Get all options for the mount
+	 *
+	 * @return array
+	 */
+	public function getOptions() {
+		return $this->mountOptions;
 	}
 }

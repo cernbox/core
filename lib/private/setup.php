@@ -1,46 +1,95 @@
 <?php
 /**
- * Copyright (c) 2014 Lukas Reschke <lukas@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Administrator <Administrator@WINDOWS-2012>
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Brice Maron <brice@bmaron.net>
+ * @author François Kubler <francois@kubler.org>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Sean Comeau <sean@ftlnetworks.ca>
+ * @author Serge Martin <edb@sigluy.net>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
-use OCP\IConfig;
+namespace OC;
 
-class OC_Setup {
-	/** @var IConfig */
+use bantu\IniGetWrapper\IniGetWrapper;
+use Exception;
+use OCP\IConfig;
+use OCP\IL10N;
+use OCP\ILogger;
+use OCP\Security\ISecureRandom;
+
+class Setup {
+	/** @var \OCP\IConfig */
 	protected $config;
+	/** @var IniGetWrapper */
+	protected $iniWrapper;
+	/** @var IL10N */
+	protected $l10n;
+	/** @var \OC_Defaults */
+	protected $defaults;
+	/** @var ILogger */
+	protected $logger;
+	/** @var ISecureRandom */
+	protected $random;
 
 	/**
 	 * @param IConfig $config
+	 * @param IniGetWrapper $iniWrapper
+	 * @param \OC_Defaults $defaults
 	 */
-	function __construct(IConfig $config) {
+	function __construct(IConfig $config,
+						 IniGetWrapper $iniWrapper,
+						 IL10N $l10n,
+						 \OC_Defaults $defaults,
+						 ILogger $logger,
+						 ISecureRandom $random
+		) {
 		$this->config = $config;
+		$this->iniWrapper = $iniWrapper;
+		$this->l10n = $l10n;
+		$this->defaults = $defaults;
+		$this->logger = $logger;
+		$this->random = $random;
 	}
 
 	static $dbSetupClasses = array(
 		'mysql' => '\OC\Setup\MySQL',
 		'pgsql' => '\OC\Setup\PostgreSQL',
 		'oci'   => '\OC\Setup\OCI',
-		'mssql' => '\OC\Setup\MSSQL',
 		'sqlite' => '\OC\Setup\Sqlite',
 		'sqlite3' => '\OC\Setup\Sqlite',
 	);
-
-	/**
-	 * @return OC_L10N
-	 */
-	public static function getTrans(){
-		return \OC::$server->getL10N('lib');
-	}
 
 	/**
 	 * Wrapper around the "class_exists" PHP function to be able to mock it
 	 * @param string $name
 	 * @return bool
 	 */
-	public function class_exists($name) {
+	protected function class_exists($name) {
 		return class_exists($name);
 	}
 
@@ -49,17 +98,27 @@ class OC_Setup {
 	 * @param string $name
 	 * @return bool
 	 */
-	public function is_callable($name) {
+	protected function is_callable($name) {
 		return is_callable($name);
+	}
+
+	/**
+	 * Wrapper around \PDO::getAvailableDrivers
+	 *
+	 * @return array
+	 */
+	protected function getAvailableDbDriversForPdo() {
+		return \PDO::getAvailableDrivers();
 	}
 
 	/**
 	 * Get the available and supported databases of this instance
 	 *
-	 * @throws Exception
+	 * @param bool $allowAllDatabases
 	 * @return array
+	 * @throws Exception
 	 */
-	public function getSupportedDatabases() {
+	public function getSupportedDatabases($allowAllDatabases = false) {
 		$availableDatabases = array(
 			'sqlite' =>  array(
 				'type' => 'class',
@@ -67,8 +126,8 @@ class OC_Setup {
 				'name' => 'SQLite'
 			),
 			'mysql' => array(
-				'type' => 'function',
-				'call' => 'mysql_connect',
+				'type' => 'pdo',
+				'call' => 'mysql',
 				'name' => 'MySQL/MariaDB'
 			),
 			'pgsql' => array(
@@ -80,15 +139,14 @@ class OC_Setup {
 				'type' => 'function',
 				'call' => 'oci_connect',
 				'name' => 'Oracle'
-			),
-			'mssql' => array(
-				'type' => 'function',
-				'call' => 'sqlsrv_connect',
-				'name' => 'MS SQL'
 			)
 		);
-		$configuredDatabases = $this->config->getSystemValue('supportedDatabases',
-			array('sqlite', 'mysql', 'pgsql'));
+		if ($allowAllDatabases) {
+			$configuredDatabases = array_keys($availableDatabases);
+		} else {
+			$configuredDatabases = $this->config->getSystemValue('supportedDatabases',
+				array('sqlite', 'mysql', 'pgsql'));
+		}
 		if(!is_array($configuredDatabases)) {
 			throw new Exception('Supported databases are not properly configured.');
 		}
@@ -98,10 +156,15 @@ class OC_Setup {
 		foreach($configuredDatabases as $database) {
 			if(array_key_exists($database, $availableDatabases)) {
 				$working = false;
-				if($availableDatabases[$database]['type'] === 'class') {
-					$working = $this->class_exists($availableDatabases[$database]['call']);
-				} elseif ($availableDatabases[$database]['type'] === 'function') {
-					$working = $this->is_callable($availableDatabases[$database]['call']);
+				$type = $availableDatabases[$database]['type'];
+				$call = $availableDatabases[$database]['call'];
+
+				if($type === 'class') {
+					$working = $this->class_exists($call);
+				} elseif ($type === 'function') {
+					$working = $this->is_callable($call);
+				} elseif($type === 'pdo') {
+					$working = in_array($call, $this->getAvailableDbDriversForPdo(), TRUE);
 				}
 				if($working) {
 					$supportedDatabases[$database] = $availableDatabases[$database]['name'];
@@ -113,11 +176,80 @@ class OC_Setup {
 	}
 
 	/**
+	 * Gathers system information like database type and does
+	 * a few system checks.
+	 *
+	 * @return array of system info, including an "errors" value
+	 * in case of errors/warnings
+	 */
+	public function getSystemInfo($allowAllDatabases = false) {
+		$databases = $this->getSupportedDatabases($allowAllDatabases);
+
+		$dataDir = $this->config->getSystemValue('datadirectory', \OC::$SERVERROOT.'/data');
+
+		$errors = array();
+
+		// Create data directory to test whether the .htaccess works
+		// Notice that this is not necessarily the same data directory as the one
+		// that will effectively be used.
+		@mkdir($dataDir);
+		$htAccessWorking = true;
+		if (is_dir($dataDir) && is_writable($dataDir)) {
+			// Protect data directory here, so we can test if the protection is working
+			\OC\Setup::protectDataDirectory();
+
+			try {
+				$util = new \OC_Util();
+				$htAccessWorking = $util->isHtaccessWorking(\OC::$server->getConfig());
+			} catch (\OC\HintException $e) {
+				$errors[] = array(
+					'error' => $e->getMessage(),
+					'hint' => $e->getHint()
+				);
+				$htAccessWorking = false;
+			}
+		}
+
+		if (\OC_Util::runningOnMac()) {
+			$errors[] = array(
+				'error' => $this->l10n->t(
+					'Mac OS X is not supported and %s will not work properly on this platform. ' .
+					'Use it at your own risk! ',
+					$this->defaults->getName()
+				),
+				'hint' => $this->l10n->t('For the best results, please consider using a GNU/Linux server instead.')
+			);
+		}
+
+		if($this->iniWrapper->getString('open_basedir') !== '' && PHP_INT_SIZE === 4) {
+			$errors[] = array(
+				'error' => $this->l10n->t(
+					'It seems that this %s instance is running on a 32-bit PHP environment and the open_basedir has been configured in php.ini. ' .
+					'This will lead to problems with files over 4 GB and is highly discouraged.',
+					$this->defaults->getName()
+				),
+				'hint' => $this->l10n->t('Please remove the open_basedir setting within your php.ini or switch to 64-bit PHP.')
+			);
+		}
+
+		return array(
+			'hasSQLite' => isset($databases['sqlite']),
+			'hasMySQL' => isset($databases['mysql']),
+			'hasPostgreSQL' => isset($databases['pgsql']),
+			'hasOracle' => isset($databases['oci']),
+			'databases' => $databases,
+			'directory' => $dataDir,
+			'htaccessWorking' => $htAccessWorking,
+			'errors' => $errors,
+		);
+	}
+
+	/**
 	 * @param $options
 	 * @return array
 	 */
-	public static function install($options) {
-		$l = self::getTrans();
+	public function install($options) {
+		$l = $this->l10n;
 
 		$error = array();
 		$dbType = $options['dbtype'];
@@ -129,7 +261,7 @@ class OC_Setup {
 			$error[] = $l->t('Set an admin password.');
 		}
 		if(empty($options['directory'])) {
-			$options['directory'] = OC::$SERVERROOT."/data";
+			$options['directory'] = \OC::$SERVERROOT."/data";
 		}
 
 		if (!isset(self::$dbSetupClasses[$dbType])) {
@@ -142,7 +274,8 @@ class OC_Setup {
 
 		$class = self::$dbSetupClasses[$dbType];
 		/** @var \OC\Setup\AbstractDatabase $dbSetup */
-		$dbSetup = new $class(self::getTrans(), 'db_structure.xml');
+		$dbSetup = new $class($l, 'db_structure.xml', $this->config,
+			$this->logger, $this->random);
 		$error = array_merge($error, $dbSetup->validate($options));
 
 		// validate the data directory
@@ -157,15 +290,17 @@ class OC_Setup {
 			return $error;
 		}
 
+		$request = \OC::$server->getRequest();
+
 		//no errors, good
 		if(isset($options['trusted_domains'])
 		    && is_array($options['trusted_domains'])) {
 			$trustedDomains = $options['trusted_domains'];
 		} else {
-			$trustedDomains = array(\OC_Request::getDomainWithoutPort(\OC_Request::serverHost()));
+			$trustedDomains = [$request->getInsecureServerHost()];
 		}
 
-		if (OC_Util::runningOnWindows()) {
+		if (\OC_Util::runningOnWindows()) {
 			$dataDir = rtrim(realpath($dataDir), '\\');
 		}
 
@@ -175,19 +310,19 @@ class OC_Setup {
 		}
 
 		//generate a random salt that is used to salt the local user passwords
-		$salt = \OC::$server->getSecureRandom()->getLowStrengthGenerator()->generate(30);
+		$salt = $this->random->getLowStrengthGenerator()->generate(30);
 		// generate a secret
-		$secret = \OC::$server->getSecureRandom()->getMediumStrengthGenerator()->generate(48);
+		$secret = $this->random->getMediumStrengthGenerator()->generate(48);
 
 		//write the config file
-		\OC::$server->getConfig()->setSystemValues([
+		$this->config->setSystemValues([
 			'passwordsalt'		=> $salt,
 			'secret'			=> $secret,
 			'trusted_domains'	=> $trustedDomains,
 			'datadirectory'		=> $dataDir,
-			'overwrite.cli.url'	=> \OC_Request::serverProtocol() . '://' . \OC_Request::serverHost() . OC::$WEBROOT,
+			'overwrite.cli.url'	=> $request->getServerProtocol() . '://' . $request->getInsecureServerHost() . \OC::$WEBROOT,
 			'dbtype'			=> $dbType,
-			'version'			=> implode('.', OC_Util::getVersion()),
+			'version'			=> implode('.', \OC_Util::getVersion()),
 		]);
 
 		try {
@@ -208,27 +343,31 @@ class OC_Setup {
 		}
 
 		//create the user and group
+		$user =  null;
 		try {
-			OC_User::createUser($username, $password);
+			$user = \OC::$server->getUserManager()->createUser($username, $password);
+			if (!$user) {
+				$error[] = "User <$username> could not be created.";
+			}
 		} catch(Exception $exception) {
 			$error[] = $exception->getMessage();
 		}
 
 		if(count($error) == 0) {
-			$appConfig = \OC::$server->getAppConfig();
-			$appConfig->setValue('core', 'installedat', microtime(true));
-			$appConfig->setValue('core', 'lastupdatedat', microtime(true));
+			$config = \OC::$server->getConfig();
+			$config->setAppValue('core', 'installedat', microtime(true));
+			$config->setAppValue('core', 'lastupdatedat', microtime(true));
 
-			OC_Group::createGroup('admin');
-			OC_Group::addToGroup($username, 'admin');
-			OC_User::login($username, $password);
+			$group =\OC::$server->getGroupManager()->createGroup('admin');
+			$group->addUser($user);
+			\OC_User::login($username, $password);
 
 			//guess what this does
-			OC_Installer::installShippedApps();
+			\OC_Installer::installShippedApps();
 
 			// create empty file in data dir, so we can later find
 			// out that this is indeed an ownCloud data directory
-			file_put_contents(OC_Config::getValue('datadirectory', OC::$SERVERROOT.'/data').'/.ocdata', '');
+			file_put_contents($config->getSystemValue('datadirectory', \OC::$SERVERROOT.'/data').'/.ocdata', '');
 
 			// Update htaccess files for apache hosts
 			if (isset($_SERVER['SERVER_SOFTWARE']) && strstr($_SERVER['SERVER_SOFTWARE'], 'Apache')) {
@@ -236,8 +375,13 @@ class OC_Setup {
 				self::protectDataDirectory();
 			}
 
+			//try to write logtimezone
+			if (date_default_timezone_get()) {
+				$config->setSystemValue('logtimezone', date_default_timezone_get());
+			}
+
 			//and we are done
-			OC_Config::setValue('installed', true);
+			$config->setSystemValue('installed', true);
 		}
 
 		return $error;
@@ -247,7 +391,7 @@ class OC_Setup {
 	 * @return string Absolute path to htaccess
 	 */
 	private function pathToHtaccess() {
-		return OC::$SERVERROOT.'/.htaccess';
+		return \OC::$SERVERROOT.'/.htaccess';
 	}
 
 	/**
@@ -271,15 +415,27 @@ class OC_Setup {
 	 * @throws \OC\HintException If .htaccess does not include the current version
 	 */
 	public static function updateHtaccess() {
-		$setupHelper = new OC_Setup(\OC::$server->getConfig());
+		$setupHelper = new \OC\Setup(\OC::$server->getConfig(), \OC::$server->getIniWrapper(),
+			\OC::$server->getL10N('lib'), new \OC_Defaults(), \OC::$server->getLogger(),
+			\OC::$server->getSecureRandom());
 		if(!$setupHelper->isCurrentHtaccess()) {
 			throw new \OC\HintException('.htaccess file has the wrong version. Please upload the correct version. Maybe you forgot to replace it after updating?');
 		}
 
-		$content = "\n";
-		$content.= "ErrorDocument 403 ".OC::$WEBROOT."/core/templates/403.php\n";//custom 403 error page
-		$content.= "ErrorDocument 404 ".OC::$WEBROOT."/core/templates/404.php";//custom 404 error page
-		@file_put_contents($setupHelper->pathToHtaccess(), $content, FILE_APPEND); //suppress errors in case we don't have permissions for it
+		$htaccessContent = file_get_contents($setupHelper->pathToHtaccess());
+		$content = '';
+		if (strpos($htaccessContent, 'ErrorDocument 403') === false) {
+			//custom 403 error page
+			$content.= "\nErrorDocument 403 ".\OC::$WEBROOT."/core/templates/403.php";
+		}
+		if (strpos($htaccessContent, 'ErrorDocument 404') === false) {
+			//custom 404 error page
+			$content.= "\nErrorDocument 404 ".\OC::$WEBROOT."/core/templates/404.php";
+		}
+		if ($content !== '') {
+			//suppress errors in case we don't have permissions for it
+			@file_put_contents($setupHelper->pathToHtaccess(), $content . "\n", FILE_APPEND);
+		}
 	}
 
 	public static function protectDataDirectory() {
@@ -293,10 +449,11 @@ class OC_Setup {
 		$content.= "# line below if for Apache 2.2\n";
 		$content.= "<ifModule !mod_authz_core.c>\n";
 		$content.= "deny from all\n";
+		$content.= "Satisfy All\n";
 		$content.= "</ifModule>\n\n";
 		$content.= "# section for Apache 2.2 and 2.4\n";
 		$content.= "IndexIgnore *\n";
-		file_put_contents(OC_Config::getValue('datadirectory', OC::$SERVERROOT.'/data').'/.htaccess', $content);
-		file_put_contents(OC_Config::getValue('datadirectory', OC::$SERVERROOT.'/data').'/index.html', '');
+		file_put_contents(\OC_Config::getValue('datadirectory', \OC::$SERVERROOT.'/data').'/.htaccess', $content);
+		file_put_contents(\OC_Config::getValue('datadirectory', \OC::$SERVERROOT.'/data').'/index.html', '');
 	}
 }

@@ -3,16 +3,13 @@ OC.L10N.register(
     {
     "Unknown error" : "ਅਣਜਾਣ ਗਲਤੀ",
     "Files" : "ਫਾਇਲਾਂ",
+    "Download" : "ਡਾਊਨਲੋਡ",
     "Rename" : "ਨਾਂ ਬਦਲੋ",
     "Delete" : "ਹਟਾਓ",
-    "Download" : "ਡਾਊਨਲੋਡ",
+    "Details" : "ਵੇਰਵ",
     "Error" : "ਗਲਤੀ",
-    "_%n folder_::_%n folders_" : ["",""],
-    "_%n file_::_%n files_" : ["",""],
-    "_Uploading %n file_::_Uploading %n files_" : ["",""],
-    "_matches '{filter}'_::_match '{filter}'_" : ["",""],
-    "Settings" : "ਸੈਟਿੰਗ",
     "Upload" : "ਅੱਪਲੋਡ",
+    "Settings" : "ਸੈਟਿੰਗ",
     "Cancel upload" : "ਅੱਪਲੋਡ ਰੱਦ ਕਰੋ"
 },
 "nplurals=2; plural=(n != 1);");

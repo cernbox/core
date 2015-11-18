@@ -1,22 +1,41 @@
 <?php
 /**
- * ownCloud
+ * @author Aldo "xoen" Giambelluca <xoen@xoen.org>
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bartek Przybylski <bart.p.pl@gmail.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Dominik Schmidt <dev@dominik-schmidt.de>
+ * @author Florian Preinstorfer <nblock@archlinux.us>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ * @author shkdee <louis.traynard@m4x.org>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -24,6 +43,8 @@
  * This class provides wrapper methods for user management. Multiple backends are
  * supported. User management operations are delegated to the configured backend for
  * execution.
+ * 
+ * Note that &run is deprecated and won't work anymore.
  *
  * Hooks provided:
  *   pre_createUser(&run, uid, password)
@@ -64,6 +85,7 @@ class OC_User {
 
 	/**
 	 * registers backend
+	 * 
 	 * @param string $backend name of the backend
 	 * @deprecated Add classes by calling OC_User::useBackend() with a class instance instead
 	 * @return bool
@@ -77,6 +99,7 @@ class OC_User {
 
 	/**
 	 * gets available backends
+	 * 
 	 * @deprecated
 	 * @return array an array of backends
 	 *
@@ -88,6 +111,7 @@ class OC_User {
 
 	/**
 	 * gets used backends
+	 * 
 	 * @deprecated
 	 * @return array an array of backends
 	 *
@@ -99,6 +123,7 @@ class OC_User {
 
 	/**
 	 * Adds the backend to the list of used backends
+	 * 
 	 * @param string|OC_User_Interface $backend default: database The backend to use for user management
 	 * @return bool
 	 *
@@ -119,12 +144,16 @@ class OC_User {
 				case 'database':
 				case 'mysql':
 				case 'sqlite':
-					OC_Log::write('core', 'Adding user backend ' . $backend . '.', OC_Log::DEBUG);
+					\OCP\Util::writeLog('core', 'Adding user backend ' . $backend . '.', \OCP\Util::DEBUG);
 					self::$_usedBackends[$backend] = new OC_User_Database();
 					self::getManager()->registerBackend(self::$_usedBackends[$backend]);
 					break;
+				case 'dummy':
+					self::$_usedBackends[$backend] = new \Test\Util\User\Dummy();
+					self::getManager()->registerBackend(self::$_usedBackends[$backend]);
+					break;
 				default:
-					OC_Log::write('core', 'Adding default user backend ' . $backend . '.', OC_Log::DEBUG);
+					\OCP\Util::writeLog('core', 'Adding default user backend ' . $backend . '.', \OCP\Util::DEBUG);
 					$className = 'OC_USER_' . strToUpper($backend);
 					self::$_usedBackends[$backend] = new $className();
 					self::getManager()->registerBackend(self::$_usedBackends[$backend]);
@@ -161,10 +190,10 @@ class OC_User {
 					self::useBackend($backend);
 					self::$_setupedBackends[] = $i;
 				} else {
-					OC_Log::write('core', 'User backend ' . $class . ' already initialized.', OC_Log::DEBUG);
+					\OCP\Util::writeLog('core', 'User backend ' . $class . ' already initialized.', \OCP\Util::DEBUG);
 				}
 			} else {
-				OC_Log::write('core', 'User backend ' . $class . ' not found.', OC_Log::ERROR);
+				\OCP\Util::writeLog('core', 'User backend ' . $class . ' not found.', \OCP\Util::ERROR);
 			}
 		}
 	}
@@ -180,7 +209,7 @@ class OC_User {
 	 * itself, not in its subclasses.
 	 *
 	 * Allowed characters in the username are: "a-z", "A-Z", "0-9" and "_.@-"
-	 * @deprecated Use \OC::$server->getUserManager->createUser($uid, $password)
+	 * @deprecated Use \OC::$server->getUserManager()->createUser($uid, $password)
 	 */
 	public static function createUser($uid, $password) {
 		return self::getManager()->createUser($uid, $password);
@@ -192,7 +221,7 @@ class OC_User {
 	 * @return bool
 	 *
 	 * Deletes a user
-	 * @deprecated Use \OC::$server->getUserManager->delete()
+	 * @deprecated Use \OC::$server->getUserManager()->get() and then run delete() on the return
 	 */
 	public static function deleteUser($uid) {
 		$user = self::getManager()->get($uid);
@@ -205,6 +234,7 @@ class OC_User {
 
 	/**
 	 * Try to login a user
+	 * 
 	 * @param string $loginname The login name of the user to log in
 	 * @param string $password The password of the user
 	 * @return boolean|null
@@ -216,7 +246,10 @@ class OC_User {
 		$result = self::getUserSession()->login($loginname, $password);
 		if ($result) {
 			//we need to pass the user name, which may differ from login name
-			OC_Util::setupFS(self::getUserSession()->getUser()->getUID());
+			$user = self::getUserSession()->getUser()->getUID();
+			OC_Util::setupFS($user);
+			//trigger creation of user home and /files folder
+			\OC::$server->getUserFolder($user);
 		}
 		return $result;
 	}
@@ -245,14 +278,16 @@ class OC_User {
 
 		$uid = $backend->getCurrentUserId();
 		$run = true;
-		OC_Hook::emit( "OC_User", "pre_login", array( "run" => &$run, "uid" => $uid ));
+		OC_Hook::emit("OC_User", "pre_login", array("run" => &$run, "uid" => $uid));
 
-		if($uid) {
-			self::setUserId($uid);
-			self::setDisplayName($uid);
-			self::getUserSession()->setLoginName($uid);
-
-			OC_Hook::emit( "OC_User", "post_login", array( "uid" => $uid, 'password'=>'' ));
+		if ($uid) {
+			if (self::getUser() !== $uid) {
+				self::setUserId($uid);
+				self::setDisplayName($uid);
+				self::getUserSession()->setLoginName($uid);
+		
+				OC_Hook::emit("OC_User", "post_login", array("uid" => $uid, 'password' => ''));
+			}
 			return true;
 		}
 		return false;
@@ -286,11 +321,18 @@ class OC_User {
 	 * Sets user id for session and triggers emit
 	 */
 	public static function setUserId($uid) {
-		\OC::$server->getSession()->set('user_id', $uid);
+		$userSession = \OC::$server->getUserSession();
+		$userManager = \OC::$server->getUserManager();
+		if ($user = $userManager->get($uid)) {
+			$userSession->setUser($user);
+		} else {
+			\OC::$server->getSession()->set('user_id', $uid);
+		}
 	}
 
 	/**
 	 * Sets user display name for session
+	 * 
 	 * @param string $uid
 	 * @param null $displayName
 	 * @return bool Whether the display name could get set
@@ -320,13 +362,14 @@ class OC_User {
 	 * Tries to login the user with HTTP Basic Authentication
 	 */
 	public static function tryBasicAuthLogin() {
-		if(!empty($_SERVER['PHP_AUTH_USER']) && !empty($_SERVER['PHP_AUTH_PW'])) {
+		if (!empty($_SERVER['PHP_AUTH_USER']) && !empty($_SERVER['PHP_AUTH_PW'])) {
 			\OC_User::login($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW']);
 		}
 	}
 
 	/**
 	 * Check if the user is logged in, considers also the HTTP basic credentials
+	 * 
 	 * @return bool
 	 */
 	public static function isLoggedIn() {
@@ -339,6 +382,7 @@ class OC_User {
 
 	/**
 	 * set incognito mode, e.g. if a user wants to open a public link
+	 * 
 	 * @param bool $status
 	 */
 	public static function setIncognitoMode($status) {
@@ -347,6 +391,7 @@ class OC_User {
 
 	/**
 	 * get incognito mode status
+	 * 
 	 * @return bool
 	 */
 	public static function isIncognitoMode() {
@@ -366,11 +411,12 @@ class OC_User {
 			return $backend->getLogoutAttribute();
 		}
 
-		return 'href="' . link_to('', 'index.php') . '?logout=true&requesttoken=' . urlencode(OC_Util::callRegister()) . '"';
+		return 'href="' . link_to('', 'index.php') . '?logout=true&amp;requesttoken=' . urlencode(OC_Util::callRegister()) . '"';
 	}
 
 	/**
 	 * Check if the user is an admin user
+	 * 
 	 * @param string $uid uid of the admin
 	 * @return bool
 	 */
@@ -384,7 +430,8 @@ class OC_User {
 
 	/**
 	 * get the user id of the user currently logged in.
-	 * @return string uid or false
+	 * 
+	 * @return string|bool uid or false
 	 */
 	public static function getUser() {
 		$uid = \OC::$server->getSession() ? \OC::$server->getSession()->get('user_id') : null;
@@ -397,6 +444,7 @@ class OC_User {
 
 	/**
 	 * get the display name of the user currently logged in.
+	 * 
 	 * @param string $uid
 	 * @return string uid or false
 	 */
@@ -420,6 +468,7 @@ class OC_User {
 
 	/**
 	 * Autogenerate a password
+	 * 
 	 * @return string
 	 *
 	 * generates a password
@@ -430,6 +479,7 @@ class OC_User {
 
 	/**
 	 * Set password
+	 * 
 	 * @param string $uid The username
 	 * @param string $password The new password
 	 * @param string $recoveryPassword for the encryption app to reset encryption keys
@@ -448,6 +498,7 @@ class OC_User {
 
 	/**
 	 * Check whether user can change his avatar
+	 * 
 	 * @param string $uid The username
 	 * @return bool
 	 *
@@ -464,6 +515,7 @@ class OC_User {
 
 	/**
 	 * Check whether user can change his password
+	 * 
 	 * @param string $uid The username
 	 * @return bool
 	 *
@@ -480,6 +532,7 @@ class OC_User {
 
 	/**
 	 * Check whether user can change his display name
+	 * 
 	 * @param string $uid The username
 	 * @return bool
 	 *
@@ -496,6 +549,7 @@ class OC_User {
 
 	/**
 	 * Check if the password is correct
+	 * 
 	 * @param string $uid The username
 	 * @param string $password The password
 	 * @return string|false user id a string on success, false otherwise
@@ -530,6 +584,7 @@ class OC_User {
 
 	/**
 	 * Get a list of all users
+	 * 
 	 * @return array an array of all uids
 	 *
 	 * Get a list of all users.
@@ -548,6 +603,7 @@ class OC_User {
 
 	/**
 	 * Get a list of all users display name
+	 * 
 	 * @param string $search
 	 * @param int $limit
 	 * @param int $offset
@@ -567,6 +623,7 @@ class OC_User {
 
 	/**
 	 * check if a user exists
+	 * 
 	 * @param string $uid the username
 	 * @return boolean
 	 */
@@ -615,6 +672,7 @@ class OC_User {
 
 	/**
 	 * Set cookie value to use in next page load
+	 * 
 	 * @param string $username username to be set
 	 * @param string $token
 	 */
@@ -631,6 +689,7 @@ class OC_User {
 
 	/**
 	 * Returns the first active backend from self::$_usedBackends.
+	 * 
 	 * @return OCP\Authentication\IApacheBackend|null if no backend active, otherwise OCP\Authentication\IApacheBackend
 	 */
 	private static function findFirstActiveUsedBackend() {

@@ -1,22 +1,22 @@
 <?php
 /**
- * ownCloud - Apache backend
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Karl Beecher
- * @copyright 2013 Karl Beecher - karl@endocode.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -29,12 +29,19 @@
 // This means that they should be used by apps instead of the internal ownCloud classes
 namespace OCP\Authentication;
 
+/**
+ * Interface IApacheBackend
+ *
+ * @package OCP\Authentication
+ * @since 6.0.0
+ */
 interface IApacheBackend {
 
 	/**
 	 * In case the user has been authenticated by Apache true is returned.
 	 *
 	 * @return boolean whether Apache reports a user as currently logged in.
+	 * @since 6.0.0
 	 */
 	public function isSessionActive();
 
@@ -43,12 +50,14 @@ interface IApacheBackend {
 	 * supply any attribute(s) which are valid for <a>.
 	 *
 	 * @return string with one or more HTML attributes.
+	 * @since 6.0.0
 	 */
 	public function getLogoutAttribute();
 
 	/**
 	 * Return the id of the current user
 	 * @return string
+	 * @since 6.0.0
 	 */
 	public function getCurrentUserId();
 

@@ -1,15 +1,33 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Security;
 
 use OC\Files\Filesystem;
 use OCP\ICertificateManager;
+use OCP\IConfig;
 
 /**
  * Manage trusted certificates for users
@@ -26,12 +44,19 @@ class CertificateManager implements ICertificateManager {
 	protected $view;
 
 	/**
+	 * @var IConfig
+	 */
+	protected $config;
+
+	/**
 	 * @param string $uid
 	 * @param \OC\Files\View $view relative zu data/
+	 * @param IConfig $config
 	 */
-	public function __construct($uid, \OC\Files\View $view) {
+	public function __construct($uid, \OC\Files\View $view, IConfig $config) {
 		$this->uid = $uid;
 		$this->view = $view;
+		$this->config = $config;
 	}
 
 	/**
@@ -40,6 +65,11 @@ class CertificateManager implements ICertificateManager {
 	 * @return \OCP\ICertificate[]
 	 */
 	public function listCertificates() {
+
+		if (!$this->config->getSystemValue('installed', false)) {
+			return array();
+		}
+
 		$path = $this->getPathToCertificates() . 'uploads/';
 		if (!$this->view->is_dir($path)) {
 			return array();
@@ -63,11 +93,13 @@ class CertificateManager implements ICertificateManager {
 	/**
 	 * create the certificate bundle of all trusted certificated
 	 */
-	protected function createCertificateBundle() {
+	public function createCertificateBundle() {
 		$path = $this->getPathToCertificates();
 		$certs = $this->listCertificates();
 
 		$fh_certs = $this->view->fopen($path . '/rootcerts.crt', 'w');
+
+		// Write user certificates
 		foreach ($certs as $cert) {
 			$file = $path . '/uploads/' . $cert->getName();
 			$data = $this->view->file_get_contents($file);
@@ -77,6 +109,9 @@ class CertificateManager implements ICertificateManager {
 			}
 		}
 
+		// Append the default certificates
+		$defaultCertificates = file_get_contents(\OC::$SERVERROOT . '/resources/config/ca-bundle.crt');
+		fwrite($fh_certs, $defaultCertificates);
 		fclose($fh_certs);
 	}
 
@@ -85,12 +120,12 @@ class CertificateManager implements ICertificateManager {
 	 *
 	 * @param string $certificate the certificate data
 	 * @param string $name the filename for the certificate
-	 * @return \OCP\ICertificate|void|bool
+	 * @return \OCP\ICertificate
 	 * @throws \Exception If the certificate could not get added
 	 */
 	public function addCertificate($certificate, $name) {
 		if (!Filesystem::isValidPath($name) or Filesystem::isFileBlacklisted($name)) {
-			return false;
+			throw new \Exception('Filename is not valid');
 		}
 
 		$dir = $this->getPathToCertificates() . 'uploads/';
@@ -137,6 +172,9 @@ class CertificateManager implements ICertificateManager {
 		return $this->getPathToCertificates() . 'rootcerts.crt';
 	}
 
+	/**
+	 * @return string
+	 */
 	private function getPathToCertificates() {
 		$path = is_null($this->uid) ? '/files_external/' : '/' . $this->uid . '/files_external/';
 

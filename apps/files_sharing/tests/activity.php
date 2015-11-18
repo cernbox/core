@@ -1,24 +1,24 @@
 <?php
-
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright (C) 2015 ownCloud, Inc.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @author Bjoern Schiessle <schiessle@owncloud.com>
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCA\Files_sharing\Tests;
@@ -34,7 +34,15 @@ class Activity extends \OCA\Files_Sharing\Tests\TestCase{
 
 	protected function setUp() {
 		parent::setUp();
-		$this->activity = new \OCA\Files_Sharing\Activity();
+		$this->activity = new \OCA\Files_Sharing\Activity(
+			$this->getMock('\OC\L10N\Factory'),
+			$this->getMockBuilder('\OCP\IURLGenerator')
+				->disableOriginalConstructor()
+				->getMock(),
+			$this->getMockBuilder('\OCP\Activity\IManager')
+				->disableOriginalConstructor()
+				->getMock()
+		);
 	}
 
 	/**
@@ -56,9 +64,8 @@ class Activity extends \OCA\Files_Sharing\Tests\TestCase{
 
 	public function dataTestGetDefaultType() {
 		return array(
-			array('email', array(\OCA\Files_Sharing\Activity::TYPE_REMOTE_SHARE)),
-			array('stream', array(\OCA\Files_Sharing\Activity::TYPE_REMOTE_SHARE, \OCA\Files_Sharing\Activity::TYPE_PUBLIC_LINKS)),
-			array('foo', false)
+			array('email', array(\OCA\Files_Sharing\Activity::TYPE_SHARED, \OCA\Files_Sharing\Activity::TYPE_REMOTE_SHARE)),
+			array('stream', array(\OCA\Files_Sharing\Activity::TYPE_SHARED, \OCA\Files_Sharing\Activity::TYPE_REMOTE_SHARE, \OCA\Files_Sharing\Activity::TYPE_PUBLIC_LINKS)),
 		);
 	}
 

@@ -1,23 +1,57 @@
 <?php
-
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Thomas Müller
- * @copyright 2013 Thomas Müller <thomas.mueller@tmit.eu>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @license AGPL3
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
-class OC_Connector_Sabre_MaintenancePlugin extends \Sabre\DAV\ServerPlugin
-{
+namespace OC\Connector\Sabre;
+
+use OCP\IConfig;
+use Sabre\DAV\Exception\ServiceUnavailable;
+use Sabre\DAV\ServerPlugin;
+
+class MaintenancePlugin extends ServerPlugin {
+
+	/** @var IConfig */
+	private $config;
 
 	/**
 	 * Reference to main server object
 	 *
-	 * @var \Sabre\DAV\Server
+	 * @var Server
 	 */
 	private $server;
+
+	/**
+	 * @param IConfig $config
+	 */
+	public function __construct(IConfig $config = null) {
+		$this->config = $config;
+		if (is_null($config)) {
+			$this->config = \OC::$server->getConfig();
+		}
+	}
+
 
 	/**
 	 * This initializes the plugin.
@@ -31,25 +65,26 @@ class OC_Connector_Sabre_MaintenancePlugin extends \Sabre\DAV\ServerPlugin
 	 * @return void
 	 */
 	public function initialize(\Sabre\DAV\Server $server) {
-
 		$this->server = $server;
-		$this->server->subscribeEvent('beforeMethod', array($this, 'checkMaintenanceMode'), 10);
+		$this->server->on('beforeMethod', array($this, 'checkMaintenanceMode'), 1);
 	}
 
 	/**
 	 * This method is called before any HTTP method and returns http status code 503
 	 * in case the system is in maintenance mode.
 	 *
-	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
-	 * @internal param string $method
+	 * @throws ServiceUnavailable
 	 * @return bool
 	 */
 	public function checkMaintenanceMode() {
-		if (OC_Config::getValue('maintenance', false)) {
-			throw new \Sabre\DAV\Exception\ServiceUnavailable();
+		if ($this->config->getSystemValue('singleuser', false)) {
+			throw new ServiceUnavailable('System in single user mode.');
 		}
-		if (OC::checkUpgrade(false)) {
-			throw new \Sabre\DAV\Exception\ServiceUnavailable('Upgrade needed');
+		if ($this->config->getSystemValue('maintenance', false)) {
+			throw new ServiceUnavailable('System in maintenance mode.');
+		}
+		if (\OC::checkUpgrade(false)) {
+			throw new ServiceUnavailable('Upgrade needed');
 		}
 
 		return true;

@@ -6,8 +6,13 @@
  * later.
  * See the COPYING-README file.
  */
-class Test_Avatar extends \Test\TestCase {
 
+use OC\Avatar;
+
+class Test_Avatar extends \Test\TestCase {
+	private static $trashBinStatus;
+
+	/** @var  @var string */
 	private $user;
 
 	protected function setUp() {
@@ -18,9 +23,43 @@ class Test_Avatar extends \Test\TestCase {
 		\OC\Files\Filesystem::mount($storage, array(), '/' . $this->user . '/');
 	}
 
+	public static function setUpBeforeClass() {
+		self::$trashBinStatus = \OC_App::isEnabled('files_trashbin');
+		\OC_App::disable('files_trashbin');
+	}
+
+	public static function tearDownAfterClass() {
+		if (self::$trashBinStatus) {
+			\OC_App::enable('files_trashbin');
+		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function traversalProvider() {
+		return [
+			['Pot\..\entiallyDangerousUsername'],
+			['Pot/..\entiallyDangerousUsername'],
+			['PotentiallyDangerousUsername/..'],
+			['PotentiallyDangerousUsername\../'],
+			['/../PotentiallyDangerousUsername'],
+		];
+	}
+
+	/**
+	 * @dataProvider traversalProvider
+	 * @expectedException \Exception
+	 * @expectedExceptionMessage Username may not contain slashes
+	 * @param string $dangerousUsername
+	 */
+	public function testAvatarTraversal($dangerousUsername) {
+		new Avatar($dangerousUsername);
+	}
+
 	public function testAvatar() {
 
-		$avatar = new \OC_Avatar($this->user);
+		$avatar = new Avatar($this->user);
 
 		$this->assertEquals(false, $avatar->get());
 

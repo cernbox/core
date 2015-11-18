@@ -8,13 +8,14 @@
 
 var $userList;
 var $userListBody;
-var filter;
 
+var UserDeleteHandler;
 var UserList = {
 	availableGroups: [],
 	offset: 0,
 	usersToLoad: 10, //So many users will be loaded when user scrolls down
 	currentGid: '',
+	filter: '',
 
 	/**
 	 * Initializes the user list
@@ -48,6 +49,10 @@ var UserList = {
 	 * @returns table row created for this user
 	 */
 	add: function (user, sort) {
+		if (this.currentGid && this.currentGid !== '_everyone' && _.indexOf(user.groups, this.currentGid) < 0) {
+			return;
+		}
+
 		var $tr = $userListBody.find('tr:first-child').clone();
 		// this removes just the `display:none` of the template row
 		$tr.removeAttr('style');
@@ -70,9 +75,12 @@ var UserList = {
 		$tr.data('displayname', user.displayname);
 		$tr.data('mailAddress', user.email);
 		$tr.data('restoreDisabled', user.isRestoreDisabled);
-		$tr.find('td.name').text(user.name);
+		$tr.find('.name').text(user.name);
 		$tr.find('td.displayName > span').text(user.displayname);
 		$tr.find('td.mailAddress > span').text(user.email);
+		$tr.find('td.displayName > .action').tooltip({placement: 'top'});
+		$tr.find('td.mailAddress > .action').tooltip({placement: 'top'});
+		$tr.find('td.password > .action').tooltip({placement: 'top'});
 
 		/**
 		 * groups and subadmins
@@ -154,12 +162,9 @@ var UserList = {
 		}
 		var $tdLastLogin = $tr.find('td.lastLogin');
 		$tdLastLogin.text(lastLoginRel);
-		//tooltip makes it complicated … to not insert new HTML, we adjust the
-		//original title. We use a temporary div to get back the html that we
-		//can pass later. It is also required to initialise tipsy.
-		var tooltip = $('<div>').html($($tdLastLogin.attr('original-title')).text(lastLoginAbs)).html();
-		$tdLastLogin.tipsy({gravity:'s', fade:true, html:true});
-		$tdLastLogin.attr('title', tooltip);
+		$tdLastLogin.attr('title', lastLoginAbs);
+		// setup tooltip with #app-content as container to prevent the td to resize on hover
+		$tdLastLogin.tooltip({placement: 'top', container: '#app-content'});
 
 		/**
 		 * append generated row to user list
@@ -225,7 +230,7 @@ var UserList = {
 		return aa.length - bb.length;
 	},
 	preSortSearchString: function(a, b) {
-		var pattern = filter.getPattern();
+		var pattern = this.filter;
 		if(typeof pattern === 'undefined') {
 			return undefined;
 		}
@@ -255,8 +260,8 @@ var UserList = {
 		rows.sort(function(a, b) {
 			// FIXME: inefficient way of getting the names,
 			// better use a data attribute
-			a = $(a).find('td.name').text();
-			b = $(b).find('td.name').text();
+			a = $(a).find('.name').text();
+			b = $(b).find('.name').text();
 			var firstSort = UserList.preSortSearchString(a, b);
 			if(typeof firstSort !== 'undefined') {
 				return firstSort;
@@ -394,7 +399,7 @@ var UserList = {
 			gid = '';
 		}
 		UserList.currentGid = gid;
-		var pattern = filter.getPattern();
+		var pattern = this.filter;
 		$.get(
 			OC.generateUrl('/settings/users/users'),
 			{ offset: UserList.offset, limit: limit, gid: gid, pattern: pattern },
@@ -466,17 +471,11 @@ var UserList = {
 								UserList.availableGroups.push(groupName);
 							}
 
-							// in case this was the last user in that group the group has to be removed
-							var groupElement = GroupList.getGroupLI(groupName);
-							var userCount = GroupList.getUserCount(groupElement);
-							if (response.data.action === 'remove' && userCount === 1) {
-								_.without(UserList.availableGroups, groupName);
-								GroupList.remove(groupName);
-								$('.groupsselect option').filterAttr('value', groupName).remove();
-								$('.subadminsselect option').filterAttr('value', groupName).remove();
+							if (response.data.action === 'add') {
+								GroupList.incGroupCount(groupName);
+							} else {
+								GroupList.decGroupCount(groupName);
 							}
-
-
 						}
 						if (response.data.message) {
 							OC.Notification.show(response.data.message);
@@ -608,7 +607,7 @@ $(document).ready(function () {
 	UserList.initDeleteHandling();
 
 	// Implements User Search
-	filter = new UserManagementFilter($('#usersearchform input'), UserList, GroupList);
+	OCA.Search.users= new UserManagementFilter(UserList, GroupList);
 
 	UserList.doSort();
 	UserList.availableGroups = $userList.data('groups');
@@ -639,7 +638,7 @@ $(document).ready(function () {
 		if(isRestoreDisabled) {
 			$tr.addClass('row-warning');
 			// add tipsy if the password change could cause data loss - no recovery enabled
-			$input.tipsy({gravity:'s', fade:false});
+			$input.tipsy({gravity:'s'});
 			$input.attr('title', t('settings', 'Changing the password will result in data loss, because data recovery is not available for this user'));
 		}
 		$td.find('img').hide();
@@ -787,77 +786,116 @@ $(document).ready(function () {
 				t('settings', 'Error creating user'));
 			return false;
 		}
-		var groups = $('#newusergroups').val() || [];
-		$.post(
-			OC.generateUrl('/settings/users/users'),
-			{
-				username: username,
-				password: password,
-				groups: groups,
-				email: email
-			},
-			function (result) {
-				if (result.groups) {
-					for (var i in result.groups) {
-						var gid = result.groups[i];
-						if(UserList.availableGroups.indexOf(gid) === -1) {
-							UserList.availableGroups.push(gid);
+
+		var promise;
+		if (UserDeleteHandler) {
+			promise = UserDeleteHandler.deleteEntry();
+		} else {
+			promise = $.Deferred().resolve().promise();
+		}
+
+		promise.then(function() {
+			var groups = $('#newusergroups').val() || [];
+			$.post(
+				OC.generateUrl('/settings/users/users'),
+				{
+					username: username,
+					password: password,
+					groups: groups,
+					email: email
+				},
+				function (result) {
+					if (result.groups) {
+						for (var i in result.groups) {
+							var gid = result.groups[i];
+							if(UserList.availableGroups.indexOf(gid) === -1) {
+								UserList.availableGroups.push(gid);
+							}
+							$li = GroupList.getGroupLI(gid);
+							userCount = GroupList.getUserCount($li);
+							GroupList.setUserCount($li, userCount + 1);
 						}
-						$li = GroupList.getGroupLI(gid);
-						userCount = GroupList.getUserCount($li);
-						GroupList.setUserCount($li, userCount + 1);
 					}
-				}
-				if(!UserList.has(username)) {
-					UserList.add(result, true);
-				}
-				$('#newusername').focus();
-				GroupList.incEveryoneCount();
-			}).fail(function(result, textStatus, errorThrown) {
-				OC.dialogs.alert(result.responseJSON.message, t('settings', 'Error creating user'));
-			}).success(function(){
-				$('#newuser').get(0).reset();
-			});
+					if(!UserList.has(username)) {
+						UserList.add(result, true);
+					}
+					$('#newusername').focus();
+					GroupList.incEveryoneCount();
+				}).fail(function(result, textStatus, errorThrown) {
+					OC.dialogs.alert(result.responseJSON.message, t('settings', 'Error creating user'));
+				}).success(function(){
+					$('#newuser').get(0).reset();
+				});
+		});
 	});
 
+	if ($('#CheckboxStorageLocation').is(':checked')) {
+		$("#userlist .storageLocation").show();
+	}
 	// Option to display/hide the "Storage location" column
 	$('#CheckboxStorageLocation').click(function() {
 		if ($('#CheckboxStorageLocation').is(':checked')) {
 			$("#userlist .storageLocation").show();
+			OC.AppConfig.setValue('core', 'umgmt_show_storage_location', 'true');
 		} else {
 			$("#userlist .storageLocation").hide();
+			OC.AppConfig.setValue('core', 'umgmt_show_storage_location', 'false');
 		}
 	});
+
+	if ($('#CheckboxLastLogin').is(':checked')) {
+		$("#userlist .lastLogin").show();
+	}
 	// Option to display/hide the "Last Login" column
 	$('#CheckboxLastLogin').click(function() {
 		if ($('#CheckboxLastLogin').is(':checked')) {
 			$("#userlist .lastLogin").show();
+			OC.AppConfig.setValue('core', 'umgmt_show_last_login', 'true');
 		} else {
 			$("#userlist .lastLogin").hide();
+			OC.AppConfig.setValue('core', 'umgmt_show_last_login', 'false');
 		}
 	});
+
+	if ($('#CheckboxEmailAddress').is(':checked')) {
+		$("#userlist .mailAddress").show();
+	}
 	// Option to display/hide the "Mail Address" column
 	$('#CheckboxEmailAddress').click(function() {
 		if ($('#CheckboxEmailAddress').is(':checked')) {
 			$("#userlist .mailAddress").show();
+			OC.AppConfig.setValue('core', 'umgmt_show_email', 'true');
 		} else {
 			$("#userlist .mailAddress").hide();
+			OC.AppConfig.setValue('core', 'umgmt_show_email', 'false');
 		}
 	});
+
+	if ($('#CheckboxUserBackend').is(':checked')) {
+		$("#userlist .userBackend").show();
+	}
 	// Option to display/hide the "User Backend" column
 	$('#CheckboxUserBackend').click(function() {
 		if ($('#CheckboxUserBackend').is(':checked')) {
 			$("#userlist .userBackend").show();
+			OC.AppConfig.setValue('core', 'umgmt_show_backend', 'true');
 		} else {
 			$("#userlist .userBackend").hide();
+			OC.AppConfig.setValue('core', 'umgmt_show_backend', 'false');
 		}
 	});
+
+	if ($('#CheckboxMailOnUserCreate').is(':checked')) {
+		$("#newemail").show();
+	}
 	// Option to display/hide the "E-Mail" input field
 	$('#CheckboxMailOnUserCreate').click(function() {
 		if ($('#CheckboxMailOnUserCreate').is(':checked')) {
 			$("#newemail").show();
+			OC.AppConfig.setValue('core', 'umgmt_send_email', 'true');
 		} else {
 			$("#newemail").hide();
+			OC.AppConfig.setValue('core', 'umgmt_send_email', 'false');
 		}
 	});
 
@@ -875,5 +913,9 @@ $(document).ready(function () {
 
 	// trigger loading of users on startup
 	UserList.update(UserList.currentGid, initialUserCountLimit);
+
+	_.defer(function() {
+		$('#app-content').trigger($.Event('apprendered'));
+	});
 
 });

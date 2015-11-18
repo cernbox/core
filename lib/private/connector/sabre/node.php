@@ -1,32 +1,39 @@
 <?php
-
-use Sabre\DAV\URLUtil;
-use OC\Connector\Sabre\TagList;
-
 /**
- * ownCloud
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Klaas Freitag <freitag@owncloud.com>
+ * @author Markus Goetz <markus@woboq.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Jakob Sack
- * @copyright 2011 Jakob Sack kde@jakobsack.de
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\IProperties {
-	const GETETAG_PROPERTYNAME = '{DAV:}getetag';
-	const LASTMODIFIED_PROPERTYNAME = '{DAV:}lastmodified';
 
+namespace OC\Connector\Sabre;
+
+use OC\Connector\Sabre\Exception\InvalidPath;
+
+
+abstract class Node implements \Sabre\DAV\INode {
 	/**
 	 * Allow configuring the method used to generate Etags
 	 *
@@ -60,6 +67,7 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 
 	/**
 	 * Sets up the node, expects a full path name
+	 *
 	 * @param \OC\Files\View $view
 	 * @param \OCP\Files\FileInfo $info
 	 */
@@ -75,6 +83,7 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 
 	/**
 	 *  Returns the name of the node
+	 *
 	 * @return string
 	 */
 	public function getName() {
@@ -82,7 +91,17 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 	}
 
 	/**
+	 * Returns the full path
+	 *
+	 * @return string
+	 */
+	public function getPath() {
+		return $this->path;
+	}
+
+	/**
 	 * Renames the node
+	 *
 	 * @param string $name The new name
 	 * @throws \Sabre\DAV\Exception\BadRequest
 	 * @throws \Sabre\DAV\Exception\Forbidden
@@ -94,23 +113,18 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 			throw new \Sabre\DAV\Exception\Forbidden();
 		}
 
-		list($parentPath,) = URLUtil::splitPath($this->path);
-		list(, $newName) = URLUtil::splitPath($name);
+		list($parentPath,) = \Sabre\HTTP\URLUtil::splitPath($this->path);
+		list(, $newName) = \Sabre\HTTP\URLUtil::splitPath($name);
 
-		if (!\OCP\Util::isValidFileName($newName)) {
-			throw new \Sabre\DAV\Exception\BadRequest();
-		}
+		// verify path of the target
+		$this->verifyPath();
 
 		$newPath = $parentPath . '/' . $newName;
-		$oldPath = $this->path;
 
 		$this->fileView->rename($this->path, $newPath);
 
 		$this->path = $newPath;
 
-		$query = OC_DB::prepare('UPDATE `*PREFIX*properties` SET `propertypath` = ?'
-			. ' WHERE `userid` = ? AND `propertypath` = ?');
-		$query->execute(array($newPath, OC_User::getUser(), $oldPath));
 		$this->refreshInfo();
 	}
 
@@ -120,6 +134,7 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 
 	/**
 	 * Returns the last modification time, as a unix timestamp
+	 *
 	 * @return int timestamp as integer
 	 */
 	public function getLastModified() {
@@ -141,91 +156,38 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 	}
 
 	/**
-	 * Updates properties on this node,
-	 * @see \Sabre\DAV\IProperties::updateProperties
-	 * @param array $properties
-	 * @return boolean
+	 * Returns the ETag for a file
+	 *
+	 * An ETag is a unique identifier representing the current version of the
+	 * file. If the file changes, the ETag MUST change.  The ETag is an
+	 * arbitrary string, but MUST be surrounded by double-quotes.
+	 *
+	 * Return null if the ETag can not effectively be determined
+	 *
+	 * @return string
 	 */
-	public function updateProperties($properties) {
-		$existing = $this->getProperties(array());
-		foreach ($properties as $propertyName => $propertyValue) {
-			// If it was null, we need to delete the property
-			if (is_null($propertyValue)) {
-				if (array_key_exists($propertyName, $existing)) {
-					$query = OC_DB::prepare('DELETE FROM `*PREFIX*properties`'
-						. ' WHERE `userid` = ? AND `propertypath` = ? AND `propertyname` = ?');
-					$query->execute(array(OC_User::getUser(), $this->path, $propertyName));
-				}
-			} else {
-				if (strcmp($propertyName, self::GETETAG_PROPERTYNAME) === 0) {
-					\OC\Files\Filesystem::putFileInfo($this->path, array('etag' => $propertyValue));
-				} elseif (strcmp($propertyName, self::LASTMODIFIED_PROPERTYNAME) === 0) {
-					$this->touch($propertyValue);
-				} else {
-					if (!array_key_exists($propertyName, $existing)) {
-						$query = OC_DB::prepare('INSERT INTO `*PREFIX*properties`'
-							. ' (`userid`,`propertypath`,`propertyname`,`propertyvalue`) VALUES(?,?,?,?)');
-						$query->execute(array(OC_User::getUser(), $this->path, $propertyName, $propertyValue));
-					} else {
-						$query = OC_DB::prepare('UPDATE `*PREFIX*properties` SET `propertyvalue` = ?'
-							. ' WHERE `userid` = ? AND `propertypath` = ? AND `propertyname` = ?');
-						$query->execute(array($propertyValue, OC_User::getUser(), $this->path, $propertyName));
-					}
-				}
-			}
-
-		}
-		$this->setPropertyCache(null);
-		return true;
+	public function getETag() {
+		return '"' . $this->info->getEtag() . '"';
 	}
 
 	/**
-	 * removes all properties for this node and user
+	 * Sets the ETag
+	 *
+	 * @param string $etag
+	 *
+	 * @return int file id of updated file or -1 on failure
 	 */
-	public function removeProperties() {
-		$query = OC_DB::prepare('DELETE FROM `*PREFIX*properties`'
-			. ' WHERE `userid` = ? AND `propertypath` = ?');
-		$query->execute(array(OC_User::getUser(), $this->path));
-
-		$this->setPropertyCache(null);
+	public function setETag($etag) {
+		return $this->fileView->putFileInfo($this->path, array('etag' => $etag));
 	}
 
 	/**
-	 * Returns a list of properties for this nodes.;
-	 * @param array $properties
-	 * @return array
-	 * @note The properties list is a list of propertynames the client
-	 * requested, encoded as xmlnamespace#tagName, for example:
-	 * http://www.example.org/namespace#author If the array is empty, all
-	 * properties should be returned
+	 * Returns the size of the node, in bytes
+	 *
+	 * @return int|float
 	 */
-	public function getProperties($properties) {
-
-		if (is_null($this->property_cache)) {
-			$sql = 'SELECT * FROM `*PREFIX*properties` WHERE `userid` = ? AND `propertypath` = ?';
-			$result = OC_DB::executeAudited($sql, array(OC_User::getUser(), $this->path));
-
-			$this->property_cache = array();
-			while ($row = $result->fetchRow()) {
-				$this->property_cache[$row['propertyname']] = $row['propertyvalue'];
-			}
-
-			$this->property_cache[self::GETETAG_PROPERTYNAME] = '"' . $this->info->getEtag() . '"';
-		}
-
-		// if the array was empty, we need to return everything
-		if (count($properties) == 0) {
-			return $this->property_cache;
-		}
-
-		$props = array();
-		foreach ($properties as $property) {
-			if (isset($this->property_cache[$property])) {
-				$props[$property] = $this->property_cache[$property];
-			}
-		}
-
-		return $props;
+	public function getSize() {
+		return $this->info->getSize();
 	}
 
 	/**
@@ -242,7 +204,7 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 	 */
 	public function getFileId() {
 		if ($this->info->getId()) {
-			$instanceId = OC_Util::getInstanceId();
+			$instanceId = \OC_Util::getInstanceId();
 			$id = sprintf('%08d', $this->info->getId());
 			return $id . $instanceId;
 		}
@@ -254,7 +216,7 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 	 * @return string|null
 	 */
 	public function getDavPermissions() {
-		$p ='';
+		$p = '';
 		if ($this->info->isShared()) {
 			$p .= 'S';
 		}
@@ -280,5 +242,35 @@ abstract class OC_Connector_Sabre_Node implements \Sabre\DAV\INode, \Sabre\DAV\I
 			}
 		}
 		return $p;
+	}
+
+	protected function verifyPath() {
+		try {
+			$fileName = basename($this->info->getPath());
+			$this->fileView->verifyPath($this->path, $fileName);
+		} catch (\OCP\Files\InvalidPathException $ex) {
+			throw new InvalidPath($ex->getMessage());
+		}
+	}
+
+	/**
+	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
+	 */
+	public function acquireLock($type) {
+		$this->fileView->lockFile($this->path, $type);
+	}
+
+	/**
+	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
+	 */
+	public function releaseLock($type) {
+		$this->fileView->unlockFile($this->path, $type);
+	}
+
+	/**
+	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
+	 */
+	public function changeLock($type) {
+		$this->fileView->changeLock($this->path, $type);
 	}
 }

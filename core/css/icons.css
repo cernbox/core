@@ -23,6 +23,10 @@
 .icon-loading-small {
 	background-image: url('../img/loading-small.gif');
 }
+.icon-32 {
+	-webkit-background-size: 32px !important;
+	background-size: 32px !important;
+}
 
 
 
@@ -56,7 +60,9 @@
 	background-image: url('../img/actions/confirm.svg');
 }
 
-.icon-delete {
+.icon-delete,
+.icon-delete.no-permission:hover,
+.icon-delete.no-permission:focus {
 	background-image: url('../img/actions/delete.svg');
 }
 .icon-delete:hover,
@@ -64,8 +70,16 @@
 	background-image: url('../img/actions/delete-hover.svg');
 }
 
+.icon-details {
+	background-image: url('../img/actions/details.svg');
+}
+
 .icon-download {
 	background-image: url('../img/actions/download.svg');
+}
+
+.icon-edit {
+	background-image: url('../img/actions/edit.svg');
 }
 
 .icon-external {
@@ -78,6 +92,9 @@
 
 .icon-info {
 	background-image: url('../img/actions/info.svg');
+}
+.icon-info-white {
+	background-image: url('../img/actions/info-white.svg');
 }
 
 .icon-logout {
@@ -222,18 +239,14 @@
 	background-image: url('../img/places/contacts-dark.svg');
 }
 
-.icon-file {
-	background-image: url('../img/places/file.svg');
-}
 .icon-files {
 	background-image: url('../img/places/files.svg');
 }
-.icon-folder {
-	background-image: url('../img/places/folder.svg');
-}
+.icon-file,
 .icon-filetype-text {
 	background-image: url('../img/filetypes/text.svg');
 }
+.icon-folder,
 .icon-filetype-folder {
 	background-image: url('../img/filetypes/folder.svg');
 }

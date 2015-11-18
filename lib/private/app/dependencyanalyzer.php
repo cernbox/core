@@ -1,11 +1,25 @@
 <?php
 /**
- * @author Thomas Müller
- * @copyright 2014 Thomas Müller deepdiver@owncloud.com
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas MÃŒller <thomas.mueller@tmit.eu>
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
 namespace OC\App;
@@ -19,6 +33,8 @@ class DependencyAnalyzer {
 
 	/** @var \OCP\IL10N */
 	private $l;
+	/** @var array */
+	private $appInfo;
 
 	/**
 	 * @param Platform $platform
@@ -33,7 +49,7 @@ class DependencyAnalyzer {
 	 * @param array $app
 	 * @returns array of missing dependencies
 	 */
-	public function analyze($app) {
+	public function analyze(array $app) {
 		$this->appInfo = $app;
 		if (isset($app['dependencies'])) {
 			$dependencies = $app['dependencies'];
@@ -47,7 +63,8 @@ class DependencyAnalyzer {
 			$this->analyzeCommands($dependencies),
 			$this->analyzeLibraries($dependencies),
 			$this->analyzeOS($dependencies),
-			$this->analyzeOC($dependencies, $app));
+			$this->analyzeOC($dependencies, $app)
+		);
 	}
 
 	/**
@@ -110,7 +127,71 @@ class DependencyAnalyzer {
 		return $this->compare($first, $second, '<');
 	}
 
-	private function analyzePhpVersion($dependencies) {
+		/**
+	 * Truncates both versions to the lowest common version, e.g.
+	 * 5.1.2.3 and 5.1 will be turned into 5.1 and 5.1,
+	 * 5.2.6.5 and 5.1 will be turned into 5.2 and 5.1
+	 * @param string $first
+	 * @param string $second
+	 * @return array first element is the first version, second element is the
+	 * second version
+	 */
+	private function normalizeVersions($first, $second) {
+		$first = explode('.', $first);
+		$second = explode('.', $second);
+
+		// get both arrays to the same minimum size
+		$length = min(count($second), count($first));
+		$first = array_slice($first, 0, $length);
+		$second = array_slice($second, 0, $length);
+
+		return [implode('.', $first), implode('.', $second)];
+	}
+
+	/**
+	 * Parameters will be normalized and then passed into version_compare
+	 * in the same order they are specified in the method header
+	 * @param string $first
+	 * @param string $second
+	 * @param string $operator
+	 * @return bool result similar to version_compare
+	 */
+	private function compare($first, $second, $operator) {
+		// we cant normalize versions if one of the given parameters is not a
+		// version string but null. In case one parameter is null normalization
+		// will therefore be skipped
+		if ($first !== null && $second !== null) {
+			list($first, $second) = $this->normalizeVersions($first, $second);
+		}
+
+		return version_compare($first, $second, $operator);
+	}
+
+	/**
+	 * Checks if a version is bigger than another version
+	 * @param string $first
+	 * @param string $second
+	 * @return bool true if the first version is bigger than the second
+	 */
+	private function compareBigger($first, $second) {
+		return $this->compare($first, $second, '>');
+	}
+
+	/**
+	 * Checks if a version is smaller than another version
+	 * @param string $first
+	 * @param string $second
+	 * @return bool true if the first version is smaller than the second
+	 */
+	private function compareSmaller($first, $second) {
+		return $this->compare($first, $second, '<');
+	}
+
+	/**
+	 * @param array $dependencies
+	 * @return array
+	 */
+	private function analyzePhpVersion(array $dependencies) {
 		$missing = [];
 		if (isset($dependencies['php']['@attributes']['min-version'])) {
 			$minVersion = $dependencies['php']['@attributes']['min-version'];
@@ -127,7 +208,11 @@ class DependencyAnalyzer {
 		return $missing;
 	}
 
-	private function analyzeDatabases($dependencies) {
+	/**
+	 * @param array $dependencies
+	 * @return array
+	 */
+	private function analyzeDatabases(array $dependencies) {
 		$missing = [];
 		if (!isset($dependencies['database'])) {
 			return $missing;
@@ -173,7 +258,11 @@ class DependencyAnalyzer {
 		return $missing;
 	}
 
-	private function analyzeLibraries($dependencies) {
+	/**
+	 * @param array $dependencies
+	 * @return array
+	 */
+	private function analyzeLibraries(array $dependencies) {
 		$missing = [];
 		if (!isset($dependencies['lib'])) {
 			return $missing;
@@ -211,7 +300,11 @@ class DependencyAnalyzer {
 		return $missing;
 	}
 
-	private function analyzeOS($dependencies) {
+	/**
+	 * @param array $dependencies
+	 * @return array
+	 */
+	private function analyzeOS(array $dependencies) {
 		$missing = [];
 		if (!isset($dependencies['os'])) {
 			return $missing;
@@ -235,7 +328,12 @@ class DependencyAnalyzer {
 		return $missing;
 	}
 
-	private function analyzeOC($dependencies, $appInfo) {
+	/**
+	 * @param array $dependencies
+	 * @param array $appInfo
+	 * @return array
+	 */
+	private function analyzeOC(array $dependencies, array $appInfo) {
 		$missing = [];
 		$minVersion = null;
 		if (isset($dependencies['owncloud']['@attributes']['min-version'])) {

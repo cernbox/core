@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Copyright (c) 2012 Bernhard Posselt <dev@bernhard-posselt.com>
  * Copyright (c) 2014 Vincent Petry <pvince81@owncloud.com>
@@ -6,10 +7,7 @@
  * later.
  * See the COPYING-README file.
  */
-
 class Test_App extends \Test\TestCase {
-
-	private $oldAppConfigService;
 
 	const TEST_USER1 = 'user1';
 	const TEST_USER2 = 'user2';
@@ -398,10 +396,9 @@ class Test_App extends \Test\TestCase {
 					'appforgroup12' => '["group2","group1"]',
 				)
 			)
-		);
+			);
 
 		$apps = \OC_App::getEnabledApps(true, $forceAll);
-		$this->assertEquals($expectedApps, $apps);
 
 		$this->restoreAppConfig();
 		\OC_User::setUserId(null);
@@ -412,6 +409,8 @@ class Test_App extends \Test\TestCase {
 
 		$group1->delete();
 		$group2->delete();
+
+		$this->assertEquals($expectedApps, $apps);
 	}
 
 	/**
@@ -432,7 +431,7 @@ class Test_App extends \Test\TestCase {
 					'app2' => 'no',
 				)
 			)
-		);
+			);
 
 		$apps = \OC_App::getEnabledApps(true);
 		$this->assertEquals(array('files', 'app3'), $apps);
@@ -447,30 +446,6 @@ class Test_App extends \Test\TestCase {
 		$user1->delete();
 	}
 
-	/**
-	 * Tests that the apps list is re-requested (not cached) when
-	 * no user is set.
-	 */
-	public function testEnabledAppsNoCache() {
-		$this->setupAppConfigMock()->expects($this->exactly(2))
-			->method('getValues')
-			->will($this->returnValue(
-				array(
-					'app3' => 'yes',
-					'app2' => 'no',
-				)
-			)
-		);
-
-		$apps = \OC_App::getEnabledApps(true);
-		$this->assertEquals(array('files', 'app3'), $apps);
-
-		// mock should be called again here
-		$apps = \OC_App::getEnabledApps(false);
-		$this->assertEquals(array('files', 'app3'), $apps);
-
-		$this->restoreAppConfig();
-	}
 
 	private function setupAppConfigMock() {
 		$appConfig = $this->getMock(
@@ -487,12 +462,15 @@ class Test_App extends \Test\TestCase {
 
 	/**
 	 * Register an app config mock for testing purposes.
+	 *
 	 * @param $appConfig app config mock
 	 */
 	private function registerAppConfig($appConfig) {
-		$this->oldAppConfigService = \OC::$server->query('AppConfig');
 		\OC::$server->registerService('AppConfig', function ($c) use ($appConfig) {
 			return $appConfig;
+		});
+		\OC::$server->registerService('AppManager', function (\OC\Server $c) use ($appConfig) {
+			return new \OC\App\AppManager($c->getUserSession(), $appConfig, $c->getGroupManager(), $c->getMemCacheFactory());
 		});
 	}
 
@@ -500,9 +478,11 @@ class Test_App extends \Test\TestCase {
 	 * Restore the original app config service.
 	 */
 	private function restoreAppConfig() {
-		$oldService = $this->oldAppConfigService;
-		\OC::$server->registerService('AppConfig', function ($c) use ($oldService){
-			return $oldService;
+		\OC::$server->registerService('AppConfig', function ($c) {
+			return new \OC\AppConfig(\OC_DB::getConnection());
+		});
+		\OC::$server->registerService('AppManager', function (\OC\Server $c) {
+			return new \OC\App\AppManager($c->getUserSession(), $c->getAppConfig(), $c->getGroupManager(), $c->getMemCacheFactory());
 		});
 
 		// Remove the cache of the mocked apps list with a forceRefresh
@@ -523,8 +503,16 @@ class Test_App extends \Test\TestCase {
 				['description' => "This is a multiline test with some new lines"]
 			],
 			[
+				['description' => hex2bin('5065726d657420646520732761757468656e7469666965722064616e732070697769676f20646972656374656d656e74206176656320736573206964656e74696669616e7473206f776e636c6f75642073616e73206c65732072657461706572206574206d657420c3a0206a6f757273206365757820636920656e20636173206465206368616e67656d656e74206465206d6f742064652070617373652e0d0a0d')],
+				['description' => "Permet de s'authentifier dans piwigo directement avec ses identifiants owncloud sans les retaper et met à jours ceux ci en cas de changement de mot de passe."]
+			],
+			[
 				['not-a-description' => " \t  This is a multiline \n test with \n \t   some new lines   "],
 				['not-a-description' => " \t  This is a multiline \n test with \n \t   some new lines   "]
+			],
+			[
+				['description' => [100, 'bla']],
+				['description' => ""]
 			],
 		];
 	}
@@ -533,9 +521,11 @@ class Test_App extends \Test\TestCase {
 	 * Test app info parser
 	 *
 	 * @dataProvider appDataProvider
+	 * @param array $data
+	 * @param array $expected
 	 */
-	public function testParseAppInfo($data, $expected) {
-		$this->assertEquals($expected, \OC_App::parseAppInfo($data));
+	public function testParseAppInfo(array $data, array $expected) {
+		$this->assertSame($expected, \OC_App::parseAppInfo($data));
 	}
 }
 

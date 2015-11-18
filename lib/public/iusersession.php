@@ -1,24 +1,26 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
  *
- * @author Bart Visscher
- * @author Bernhard Posselt
- * @copyright 2013 Bart Visscher bartv@thisnet.nl
- * @copyright 2014 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -34,6 +36,7 @@ namespace OCP;
 
 /**
  * User session
+ * @since 6.0.0
  */
 interface IUserSession {
 	/**
@@ -41,6 +44,7 @@ interface IUserSession {
 	 * @param string $user the username
 	 * @param string $password the password
 	 * @return bool true if successful
+	 * @since 6.0.0
 	 */
 	public function login($user, $password);
 
@@ -48,6 +52,7 @@ interface IUserSession {
 	 * Logs the user out including all the session data
 	 * Logout, destroys session
 	 * @return void
+	 * @since 6.0.0
 	 */
 	public function logout();
 
@@ -55,6 +60,7 @@ interface IUserSession {
 	 * set the currently active user
 	 *
 	 * @param \OCP\IUser|null $user
+	 * @since 8.0.0
 	 */
 	public function setUser($user);
 
@@ -62,6 +68,7 @@ interface IUserSession {
 	 * get the current active user
 	 *
 	 * @return \OCP\IUser|null Current user, otherwise null
+	 * @since 8.0.0
 	 */
 	public function getUser();
 
@@ -69,6 +76,7 @@ interface IUserSession {
 	 * Checks whether the user is logged in
 	 *
 	 * @return bool if logged in
+	 * @since 8.0.0
 	 */
 	public function isLoggedIn();
 }

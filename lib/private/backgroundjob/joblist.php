@@ -1,14 +1,31 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\BackgroundJob;
 
 use OCP\BackgroundJob\IJobList;
+use OCP\AutoloadNotAllowedException;
 
 class JobList implements IJobList {
 	/**
@@ -42,6 +59,9 @@ class JobList implements IJobList {
 				$class = $job;
 			}
 			$argument = json_encode($argument);
+			if (strlen($argument) > 4000) {
+				throw new \InvalidArgumentException('Background job arguments can\'t exceed 4000 characters (json encoded)');
+			}
 			$query = $this->conn->prepare('INSERT INTO `*PREFIX*jobs`(`class`, `argument`, `last_run`) VALUES(?, ?, 0)');
 			$query->execute(array($class, $argument));
 		}
@@ -65,6 +85,11 @@ class JobList implements IJobList {
 			$query = $this->conn->prepare('DELETE FROM `*PREFIX*jobs` WHERE `class` = ?');
 			$query->execute(array($class));
 		}
+	}
+
+	protected function removeById($id) {
+		$query = $this->conn->prepare('DELETE FROM `*PREFIX*jobs` WHERE `id` = ?');
+		$query->execute([$id]);
 	}
 
 	/**
@@ -114,16 +139,24 @@ class JobList implements IJobList {
 		$query = $this->conn->prepare('SELECT `id`, `class`, `last_run`, `argument` FROM `*PREFIX*jobs` WHERE `id` > ? ORDER BY `id` ASC', 1);
 		$query->execute(array($lastId));
 		if ($row = $query->fetch()) {
-			return $this->buildJob($row);
+			$jobId = $row['id'];
+			$job = $this->buildJob($row);
 		} else {
 			//begin at the start of the queue
 			$query = $this->conn->prepare('SELECT `id`, `class`, `last_run`, `argument` FROM `*PREFIX*jobs` ORDER BY `id` ASC', 1);
 			$query->execute();
 			if ($row = $query->fetch()) {
-				return $this->buildJob($row);
+				$jobId = $row['id'];
+				$job = $this->buildJob($row);
 			} else {
 				return null; //empty job list
 			}
+		}
+		if (is_null($job)) {
+			$this->removeById($jobId);
+			return $this->getNext();
+		} else {
+			return $job;
 		}
 	}
 
@@ -152,18 +185,20 @@ class JobList implements IJobList {
 		/**
 		 * @var Job $job
 		 */
-		if ($class === 'OC_Cache_FileGlobalGC') {
-			$class = '\OC\Cache\FileGlobalGC';
+		try {
+			if (!class_exists($class)) {
+				// job from disabled app or old version of an app, no need to do anything
+				return null;
+			}
+			$job = new $class();
+			$job->setId($row['id']);
+			$job->setLastRun($row['last_run']);
+			$job->setArgument(json_decode($row['argument'], true));
+			return $job;
+		} catch (AutoloadNotAllowedException $e) {
+			// job is from a disabled app, ignore
 		}
-		if (!class_exists($class)) {
-			// job from disabled app or old version of an app, no need to do anything
-			return null;
-		}
-		$job = new $class();
-		$job->setId($row['id']);
-		$job->setLastRun($row['last_run']);
-		$job->setArgument(json_decode($row['argument'], true));
-		return $job;
+		return null;
 	}
 
 	/**

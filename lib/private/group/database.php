@@ -1,23 +1,31 @@
 <?php
-
 /**
- * ownCloud
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author michag86 <micha_g@arcor.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 /*
@@ -172,8 +180,15 @@ class OC_Group_Database extends OC_Group_Backend {
 	 * Returns a list with all groups
 	 */
 	public function getGroups($search = '', $limit = null, $offset = null) {
-		$stmt = OC_DB::prepare('SELECT `gid` FROM `*PREFIX*groups` WHERE LOWER(`gid`) LIKE LOWER(?) ORDER BY `gid` ASC', $limit, $offset);
-		$result = $stmt->execute(array('%' . $search . '%'));
+		$parameters = [];
+		$searchLike = '';
+		if ($search !== '') {
+			$parameters[] = '%' . $search . '%';
+			$searchLike = ' WHERE LOWER(`gid`) LIKE LOWER(?)';
+		}
+
+		$stmt = OC_DB::prepare('SELECT `gid` FROM `*PREFIX*groups`' . $searchLike . ' ORDER BY `gid` ASC', $limit, $offset);
+		$result = $stmt->execute($parameters);
 		$groups = array();
 		while ($row = $result->fetchRow()) {
 			$groups[] = $row['gid'];
@@ -204,10 +219,17 @@ class OC_Group_Database extends OC_Group_Backend {
 	 * @return array an array of user ids
 	 */
 	public function usersInGroup($gid, $search = '', $limit = null, $offset = null) {
-		$stmt = OC_DB::prepare('SELECT `uid` FROM `*PREFIX*group_user` WHERE `gid` = ? AND `uid` LIKE ? ORDER BY `uid` ASC',
+		$parameters = [$gid];
+		$searchLike = '';
+		if ($search !== '') {
+			$parameters[] = '%' . $search . '%';
+			$searchLike = ' AND `uid` LIKE ?';
+		}
+
+		$stmt = OC_DB::prepare('SELECT `uid` FROM `*PREFIX*group_user` WHERE `gid` = ?' . $searchLike . ' ORDER BY `uid` ASC',
 			$limit,
 			$offset);
-		$result = $stmt->execute(array($gid, '%'.$search.'%'));
+		$result = $stmt->execute($parameters);
 		$users = array();
 		while ($row = $result->fetchRow()) {
 			$users[] = $row['uid'];
@@ -223,8 +245,15 @@ class OC_Group_Database extends OC_Group_Backend {
 	 * @throws \OC\DatabaseException
 	 */
 	public function countUsersInGroup($gid, $search = '') {
-		$stmt = OC_DB::prepare('SELECT COUNT(`uid`) AS `count` FROM `*PREFIX*group_user` WHERE `gid` = ? AND `uid` LIKE ?');
-		$result = $stmt->execute(array($gid, '%' . $search . '%'));
+		$parameters = [$gid];
+		$searchLike = '';
+		if ($search !== '') {
+			$parameters[] = '%' . $search . '%';
+			$searchLike = ' AND `uid` LIKE ?';
+		}
+
+		$stmt = OC_DB::prepare('SELECT COUNT(`uid`) AS `count` FROM `*PREFIX*group_user` WHERE `gid` = ?' . $searchLike);
+		$result = $stmt->execute($parameters);
 		$count = $result->fetchOne();
 		if($count !== false) {
 			$count = intval($count);

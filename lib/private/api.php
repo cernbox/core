@@ -1,45 +1,100 @@
 <?php
 /**
-* ownCloud
-*
-* @author Tom Needham
-* @author Michael Gapczynski
-* @author Bart Visscher
-* @copyright 2012 Tom Needham tom@owncloud.com
-* @copyright 2012 Michael Gapczynski mtgap@owncloud.com
-* @copyright 2012 Bart Visscher bartv@thisnet.nl
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
+use OCP\API;
+use OCP\AppFramework\Http;
+
+/**
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 class OC_API {
 
 	/**
 	 * API authentication levels
 	 */
+
+	/** @deprecated Use \OCP\API::GUEST_AUTH instead */
 	const GUEST_AUTH = 0;
+
+	/** @deprecated Use \OCP\API::USER_AUTH instead */
 	const USER_AUTH = 1;
+
+	/** @deprecated Use \OCP\API::SUBADMIN_AUTH instead */
 	const SUBADMIN_AUTH = 2;
+
+	/** @deprecated Use \OCP\API::ADMIN_AUTH instead */
 	const ADMIN_AUTH = 3;
 
 	/**
 	 * API Response Codes
 	 */
+
+	/** @deprecated Use \OCP\API::RESPOND_UNAUTHORISED instead */
 	const RESPOND_UNAUTHORISED = 997;
+
+	/** @deprecated Use \OCP\API::RESPOND_SERVER_ERROR instead */
 	const RESPOND_SERVER_ERROR = 996;
+
+	/** @deprecated Use \OCP\API::RESPOND_NOT_FOUND instead */
 	const RESPOND_NOT_FOUND = 998;
+
+	/** @deprecated Use \OCP\API::RESPOND_UNKNOWN_ERROR instead */
 	const RESPOND_UNKNOWN_ERROR = 999;
 
 	/**
@@ -60,7 +115,7 @@ class OC_API {
 	 * @param array $requirements
 	 */
 	public static function register($method, $url, $action, $app,
-				$authLevel = OC_API::USER_AUTH,
+				$authLevel = API::USER_AUTH,
 				$defaults = array(),
 				$requirements = array()) {
 		$name = strtolower($method).$url;
@@ -84,11 +139,14 @@ class OC_API {
 	 * @param array $parameters
 	 */
 	public static function call($parameters) {
+		$request = \OC::$server->getRequest();
+		$method = $request->getMethod();
+
 		// Prepare the request variables
-		if($_SERVER['REQUEST_METHOD'] == 'PUT') {
-			parse_str(file_get_contents("php://input"), $parameters['_put']);
-		} else if($_SERVER['REQUEST_METHOD'] == 'DELETE') {
-			parse_str(file_get_contents("php://input"), $parameters['_delete']);
+		if($method === 'PUT') {
+			$parameters['_put'] = $request->getParams();
+		} else if($method === 'DELETE') {
+			$parameters['_delete'] = $request->getParams();
 		}
 		$name = $parameters['_route'];
 		// Foreach registered action
@@ -98,7 +156,7 @@ class OC_API {
 			if(!self::isAuthorised($action)) {
 				$responses[] = array(
 					'app' => $action['app'],
-					'response' => new OC_OCS_Result(null, OC_API::RESPOND_UNAUTHORISED, 'Unauthorised'),
+					'response' => new OC_OCS_Result(null, API::RESPOND_UNAUTHORISED, 'Unauthorised'),
 					'shipped' => OC_App::isShipped($action['app']),
 					);
 				continue;
@@ -106,7 +164,7 @@ class OC_API {
 			if(!is_callable($action['action'])) {
 				$responses[] = array(
 					'app' => $action['app'],
-					'response' => new OC_OCS_Result(null, OC_API::RESPOND_NOT_FOUND, 'Api method not found'),
+					'response' => new OC_OCS_Result(null, API::RESPOND_NOT_FOUND, 'Api method not found'),
 					'shipped' => OC_App::isShipped($action['app']),
 					);
 				continue;
@@ -164,7 +222,7 @@ class OC_API {
 			// Which shipped response do we use if they all failed?
 			// They may have failed for different reasons (different status codes)
 			// Which response code should we return?
-			// Maybe any that are not OC_API::RESPOND_SERVER_ERROR
+			// Maybe any that are not \OCP\API::RESPOND_SERVER_ERROR
 			// Merge failed responses if more than one
 			$data = array();
 			foreach($shipped['failed'] as $failure) {
@@ -227,15 +285,15 @@ class OC_API {
 	private static function isAuthorised($action) {
 		$level = $action['authlevel'];
 		switch($level) {
-			case OC_API::GUEST_AUTH:
+			case API::GUEST_AUTH:
 				// Anyone can access
 				return true;
 				break;
-			case OC_API::USER_AUTH:
+			case API::USER_AUTH:
 				// User required
 				return self::loginUser();
 				break;
-			case OC_API::SUBADMIN_AUTH:
+			case API::SUBADMIN_AUTH:
 				// Check for subadmin
 				$user = self::loginUser();
 				if(!$user) {
@@ -250,7 +308,7 @@ class OC_API {
 					}
 				}
 				break;
-			case OC_API::ADMIN_AUTH:
+			case API::ADMIN_AUTH:
 				// Check for admin
 				$user = self::loginUser();
 				if(!$user) {
@@ -317,28 +375,28 @@ class OC_API {
 	 */
 	public static function respond($result, $format='xml') {
 		// Send 401 headers if unauthorised
-		if($result->getStatusCode() === self::RESPOND_UNAUTHORISED) {
+		if($result->getStatusCode() === API::RESPOND_UNAUTHORISED) {
 			header('WWW-Authenticate: Basic realm="Authorisation Required"');
 			header('HTTP/1.0 401 Unauthorized');
 		}
-		$response = array(
-			'ocs' => array(
-				'meta' => $result->getMeta(),
-				'data' => $result->getData(),
-				),
-			);
-		if ($format == 'json') {
-			OC_JSON::encodedPrint($response);
-		} else if ($format == 'xml') {
-			header('Content-type: text/xml; charset=UTF-8');
-			$writer = new XMLWriter();
-			$writer->openMemory();
-			$writer->setIndent( true );
-			$writer->startDocument();
-			self::toXML($response, $writer);
-			$writer->endDocument();
-			echo $writer->outputMemory(true);
+
+		foreach($result->getHeaders() as $name => $value) {
+			header($name . ': ' . $value);
 		}
+
+		$meta = $result->getMeta();
+		$data = $result->getData();
+		if (self::isV2(\OC::$server->getRequest())) {
+			$statusCode = self::mapStatusCodes($result->getStatusCode());
+			if (!is_null($statusCode)) {
+				$meta['statuscode'] = $statusCode;
+				OC_Response::setStatus($statusCode);
+			}
+		}
+
+		self::setContentType($format);
+		$body = self::renderResult($format, $meta, $data);
+		echo $body;
 	}
 
 	/**
@@ -375,8 +433,8 @@ class OC_API {
 	/**
 	 * Based on the requested format the response content type is set
 	 */
-	public static function setContentType() {
-		$format = \OC_API::requestedFormat();
+	public static function setContentType($format = null) {
+		$format = is_null($format) ? self::requestedFormat() : $format;
 		if ($format === 'xml') {
 			header('Content-type: text/xml; charset=UTF-8');
 			return;
@@ -390,5 +448,63 @@ class OC_API {
 		header('Content-Type: application/octet-stream; charset=utf-8');
 	}
 
+	/**
+	 * @param \OCP\IRequest $request
+	 * @return bool
+	 */
+	protected static function isV2(\OCP\IRequest $request) {
+		$script = $request->getScriptName();
 
+		return substr($script, -11) === '/ocs/v2.php';
+	}
+
+	/**
+	 * @param integer $sc
+	 * @return int
+	 */
+	public static function mapStatusCodes($sc) {
+		switch ($sc) {
+			case API::RESPOND_NOT_FOUND:
+				return Http::STATUS_NOT_FOUND;
+			case API::RESPOND_SERVER_ERROR:
+				return Http::STATUS_INTERNAL_SERVER_ERROR;
+			case API::RESPOND_UNKNOWN_ERROR:
+				return Http::STATUS_INTERNAL_SERVER_ERROR;
+			case API::RESPOND_UNAUTHORISED:
+				// already handled for v1
+				return null;
+			case 100:
+				return Http::STATUS_OK;
+		}
+		// any 2xx, 4xx and 5xx will be used as is
+		if ($sc >= 200 && $sc < 600) {
+			return $sc;
+		}
+
+		return Http::STATUS_BAD_REQUEST;
+	}
+
+	/**
+	 * @param string $format
+	 * @return string
+	 */
+	public static function renderResult($format, $meta, $data) {
+		$response = array(
+			'ocs' => array(
+				'meta' => $meta,
+				'data' => $data,
+			),
+		);
+		if ($format == 'json') {
+			return OC_JSON::encode($response);
+		}
+
+		$writer = new XMLWriter();
+		$writer->openMemory();
+		$writer->setIndent(true);
+		$writer->startDocument();
+		self::toXML($response, $writer);
+		$writer->endDocument();
+		return $writer->outputMemory(true);
+	}
 }

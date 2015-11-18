@@ -6,7 +6,6 @@
     "Sample configuration detected" : "নমুনা কনফিগারেশন পাওয়া গেছে",
     "Help" : "সহায়িকা",
     "Personal" : "ব্যক্তিগত",
-    "Settings" : "নিয়ামকসমূহ",
     "Users" : "ব্যবহারকারী",
     "Admin" : "প্রশাসন",
     "No app name specified" : "কোন অ্যাপ নাম সুনির্দিষ্ট নয়",
@@ -14,13 +13,8 @@
     "Invalid image" : "অবৈধ চিত্র",
     "today" : "আজ",
     "yesterday" : "গতকাল",
-    "_%n day ago_::_%n days ago_" : ["",""],
     "last month" : "গত মাস",
-    "_%n month ago_::_%n months ago_" : ["",""],
     "last year" : "গত বছর",
-    "_%n year ago_::_%n years ago_" : ["",""],
-    "_%n hour ago_::_%n hours ago_" : ["",""],
-    "_%n minute ago_::_%n minutes ago_" : ["",""],
     "seconds ago" : "সেকেন্ড পূর্বে",
     "web services under your control" : "ওয়েব সার্ভিস আপনার হাতের মুঠোয়",
     "App directory already exists" : "এই অ্যাপ ডিরেক্টরিটি পূর্ব থেকেই বিদ্যমান",
@@ -37,6 +31,7 @@
     "Unknown user" : "অপরিচিত ব্যবহারকারী",
     "%s shared »%s« with you" : "%s আপনার সাথে »%s« ভাগাভাগি করেছে",
     "Sharing %s failed, because the file does not exist" : "%s ভাগাভাগি ব্যার্থ, কারণ ফাইলটি নেই",
-    "You are not allowed to share %s" : "আপনি %s ভাগাভাগি করতে পারবেননা"
+    "You are not allowed to share %s" : "আপনি %s ভাগাভাগি করতে পারবেননা",
+    "Apps" : "অ্যাপ"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

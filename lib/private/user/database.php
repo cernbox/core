@@ -1,23 +1,38 @@
 <?php
-
 /**
- * ownCloud
+ * @author adrien <adrien.waksberg@believedigital.com>
+ * @author Aldo "xoen" Giambelluca <xoen@xoen.org>
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author fabian <fabian@web2.0-apps.de>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author nishiki <nishiki@yaegashi.fr>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 /*
@@ -128,16 +143,27 @@ class OC_User_Database extends OC_User_Backend implements \OCP\IUserBackend {
 	}
 
 	/**
-	 * Get a list of all display names
-	 * @return array an array of  all displayNames (value) and the correspondig uids (key)
-	 *
 	 * Get a list of all display names and user ids.
+	 *
+	 * @param string $search
+	 * @param string|null $limit
+	 * @param string|null $offset
+	 * @return array an array of all displayNames (value) and the corresponding uids (key)
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null, $searchParams = null) {
+		$parameters = [];
+		$searchLike = '';
+		if ($search !== '') {
+			$parameters[] = '%' . $search . '%';
+			$parameters[] = '%' . $search . '%';
+			$searchLike = ' WHERE LOWER(`displayname`) LIKE LOWER(?) OR '
+					. 'LOWER(`uid`) LIKE LOWER(?)';
+		}
+		
 		$displayNames = array();
 		$query = OC_DB::prepare('SELECT `uid`, `displayname` FROM `*PREFIX*users`'
-			. ' WHERE LOWER(`displayname`) LIKE LOWER(?) OR '
-			. 'LOWER(`uid`) LIKE LOWER(?) ORDER BY `uid` ASC', $limit, $offset);
+					. $searchLike .' ORDER BY `uid` ASC', $limit, $offset);
+		$result = $query->execute($parameters);
 		$result = $query->execute(array('%' . $search . '%', '%' . $search . '%'));
 		while ($row = $result->fetchRow()) {
 			$displayNames[$row['uid']] = $row['displayname'];
@@ -186,7 +212,7 @@ class OC_User_Database extends OC_User_Backend implements \OCP\IUserBackend {
 			$result = $query->execute(array($uid));
 
 			if (OC_DB::isError($result)) {
-				OC_Log::write('core', OC_DB::getErrorMessage($result), OC_Log::ERROR);
+				\OCP\Util::writeLog('core', OC_DB::getErrorMessage(), \OCP\Util::ERROR);
 				return false;
 			}
 
@@ -201,13 +227,22 @@ class OC_User_Database extends OC_User_Backend implements \OCP\IUserBackend {
 
 	/**
 	 * Get a list of all users
-	 * @return array an array of all uids
-	 *
-	 * Get a list of all users.
+	 * 
+	 * @param string $search
+	 * @param null|int $limit
+	 * @param null|int $offset
+	 * @return string[] an array of all uids
 	 */
 	public function getUsers($search = '', $limit = null, $offset = null, $searchParams = null) {
-		$query = OC_DB::prepare('SELECT `uid` FROM `*PREFIX*users` WHERE LOWER(`uid`) LIKE LOWER(?) ORDER BY `uid` ASC', $limit, $offset);
-		$result = $query->execute(array('%' . $search . '%'));
+		$parameters = [];
+		$searchLike = '';
+		if ($search !== '') {
+			$parameters[] = '%' . $search . '%';
+			$searchLike = ' WHERE LOWER(`uid`) LIKE LOWER(?)';
+		}
+
+		$query = OC_DB::prepare('SELECT `uid` FROM `*PREFIX*users`' . $searchLike . ' ORDER BY `uid` ASC', $limit, $offset);
+		$result = $query->execute($parameters);
 		$users = array();
 		while ($row = $result->fetchRow()) {
 			$users[] = $row['uid'];
@@ -254,10 +289,24 @@ class OC_User_Database extends OC_User_Backend implements \OCP\IUserBackend {
 		$query = OC_DB::prepare('SELECT COUNT(*) FROM `*PREFIX*users`');
 		$result = $query->execute();
 		if (OC_DB::isError($result)) {
-			OC_Log::write('core', OC_DB::getErrorMessage($result), OC_Log::ERROR);
+			\OCP\Util::writeLog('core', OC_DB::getErrorMessage(), \OCP\Util::ERROR);
 			return false;
 		}
 		return $result->fetchOne();
+	}
+	
+	/**
+	 * returns the username for the given login name in the correct casing
+	 *
+	 * @param string $loginName
+	 * @return string|false
+	 */
+	public function loginName2UserName($loginName) {
+		if ($this->userExists($loginName)) {
+			return $this->cache[$loginName]['uid'];
+		}
+	
+		return false;
 	}
 
 	/**

@@ -21,6 +21,8 @@
 			if (this._started) {
 				return;
 			}
+			
+			var hasWarnings = false;
 
 			this.$el = $el;
 
@@ -37,6 +39,10 @@
 			var updateEventSource = new OC.EventSource(OC.webroot+'/core/ajax/update.php');
 			updateEventSource.listen('success', function(message) {
 				$('<span>').append(message).append('<br />').appendTo($el);
+			});
+			updateEventSource.listen('notice', function(message) {
+				$('<span>').addClass('error').append(message).append('<br />').appendTo($el);
+				hasWarnings = true;
 			});
 			updateEventSource.listen('notice', function(message) {
 				$('<span>').addClass('error').append(message).append('<br />').appendTo($el);
@@ -57,14 +63,23 @@
 				.appendTo($el);
 			});
 			updateEventSource.listen('done', function() {
-				// FIXME: use product name
-				$('<span>').addClass('bold')
-					.append('<br />')
-					.append(t('core', 'The update was successful. Redirecting you to ownCloud now.'))
-					.appendTo($el);
-				setTimeout(function () {
-					OC.redirect(OC.webroot);
-				}, 3000);
+				if (hasWarnings) {
+					$('<span>').addClass('bold')
+						.append('<br />')
+						.append(t('core', 'The update was successful. There were warnings.'))
+						.appendTo($el);
+					var message = t('core', 'Please reload the page.');
+					$('<span>').append('<br />').append(message).append('<br />').appendTo($el);
+				} else {
+					// FIXME: use product name
+					$('<span>').addClass('bold')
+						.append('<br />')
+						.append(t('core', 'The update was successful. Redirecting you to ownCloud now.'))
+						.appendTo($el);
+					setTimeout(function () {
+						OC.redirect(OC.webroot);
+					}, 3000);
+				}
 			});
 		},
 

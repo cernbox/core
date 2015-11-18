@@ -1,22 +1,22 @@
 <?php
 /**
- * ownCloud - App Framework
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @author Bernhard Posselt
- * @copyright 2014 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -32,6 +32,7 @@ use OCP\AppFramework\Http;
 /**
  * A generic DataResponse class that is used to return generic data responses
  * for responders to transform
+ * @since 8.0.0
  */
 class DataResponse extends Response {
 
@@ -46,6 +47,7 @@ class DataResponse extends Response {
 	 * @param array|object $data the object or array that should be transformed
 	 * @param int $statusCode the Http status code, defaults to 200
 	 * @param array $headers additional key value based headers
+	 * @since 8.0.0
 	 */
 	public function __construct($data=array(), $statusCode=Http::STATUS_OK,
 	                            array $headers=array()) {
@@ -59,6 +61,7 @@ class DataResponse extends Response {
 	 * Sets values in the data json array
 	 * @param array|object $data an array or object which will be transformed
 	 * @return DataResponse Reference to this object
+	 * @since 8.0.0
 	 */
 	public function setData($data){
 		$this->data = $data;
@@ -70,6 +73,7 @@ class DataResponse extends Response {
 	/**
 	 * Used to get the set parameters
 	 * @return array the data
+	 * @since 8.0.0
 	 */
 	public function getData(){
 		return $this->data;

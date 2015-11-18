@@ -1,22 +1,25 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Bart Visscher
- * @copyright 2013 Bart Visscher bartv@thisnet.nl
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -32,19 +35,25 @@ namespace OCP;
 
 /**
  * Manages the ownCloud navigation
+ * @since 6.0.0
  */
 interface INavigationManager {
 	/**
 	 * Creates a new navigation entry
-	 * @param array $entry containing: id, name, order, icon and href key
+	 *
+	 * @param array|\Closure $entry Array containing: id, name, order, icon and href key
+	 *					The use of a closure is preferred, because it will avoid
+	 * 					loading the routing of your app, unless required.
 	 * @return void
+	 * @since 6.0.0
 	 */
-	public function add(array $entry);
+	public function add($entry);
 
 	/**
 	 * Sets the current navigation entry of the currently running app
 	 * @param string $appId id of the app entry to activate (from added $entry)
 	 * @return void
+	 * @since 6.0.0
 	 */
 	public function setActiveEntry($appId);
 }

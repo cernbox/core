@@ -1,33 +1,41 @@
 <?php
-
 /**
- * ownCloud
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright (C) 2014 ownCloud, Inc.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @author Tom <tom@owncloud.com>
- * @author Thomas Müller <deepdiver@owncloud.com>
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OCA\Provisioning_API\Tests;
 
 class AppsTest extends TestCase {
+	
+	public function setup() {
+		parent::setup();
+		$this->appManager = \OC::$server->getAppManager();
+		$this->groupManager = \OC::$server->getGroupManager();
+		$this->userSession = \OC::$server->getUserSession();
+		$this->api = new \OCA\Provisioning_API\Apps($this->appManager);
+	}
+
 	public function testGetAppInfo() {
-		$result = \OCA\provisioning_API\Apps::getAppInfo(array('appid' => 'provisioning_api'));
+		$result = $this->api->getAppInfo(['appid' => 'provisioning_api']);
 		$this->assertInstanceOf('OC_OCS_Result', $result);
 		$this->assertTrue($result->succeeded());
 
@@ -35,20 +43,20 @@ class AppsTest extends TestCase {
 
 	public function testGetAppInfoOnBadAppID() {
 
-		$result = \OCA\provisioning_API\Apps::getAppInfo(array('appid' => 'not_provisioning_api'));
+		$result = $this->api->getAppInfo(['appid' => 'not_provisioning_api']);
 		$this->assertInstanceOf('OC_OCS_Result', $result);
 		$this->assertFalse($result->succeeded());
-		$this->assertEquals(\OC_API::RESPOND_NOT_FOUND, $result->getStatusCode());
+		$this->assertEquals(\OCP\API::RESPOND_NOT_FOUND, $result->getStatusCode());
 
 	}
 
 	public function testGetApps() {
 
 		$user = $this->generateUsers();
-		\OC_Group::addToGroup($user, 'admin');
-		\OC_User::setUserId($user);
+		$this->groupManager->get('admin')->addUser($user);
+		$this->userSession->setUser($user);
 
-		$result = \OCA\provisioning_API\Apps::getApps(array());
+		$result = $this->api->getApps([]);
 
 		$this->assertTrue($result->succeeded());
 		$data = $result->getData();
@@ -59,7 +67,7 @@ class AppsTest extends TestCase {
 	public function testGetAppsEnabled() {
 
 		$_GET['filter'] = 'enabled';
-		$result = \OCA\provisioning_API\Apps::getApps(array('filter' => 'enabled'));
+		$result = $this->api->getApps(['filter' => 'enabled']);
 		$this->assertTrue($result->succeeded());
 		$data = $result->getData();
 		$this->assertEquals(count(\OC_App::getEnabledApps()), count($data['apps']));
@@ -69,7 +77,7 @@ class AppsTest extends TestCase {
 	public function testGetAppsDisabled() {
 
 		$_GET['filter'] = 'disabled';
-		$result = \OCA\provisioning_API\Apps::getApps(array('filter' => 'disabled'));
+		$result = $this->api->getApps(['filter' => 'disabled']);
 		$this->assertTrue($result->succeeded());
 		$data = $result->getData();
 		$apps = \OC_App::listAllApps();
@@ -79,6 +87,12 @@ class AppsTest extends TestCase {
 		}
 		$disabled = array_diff($list, \OC_App::getEnabledApps());
 		$this->assertEquals(count($disabled), count($data['apps']));
+	}
 
+	public function testGetAppsInvalidFilter() {
+		$_GET['filter'] = 'foo';
+		$result = $this->api->getApps([]);
+		$this->assertFalse($result->succeeded());
+		$this->assertEquals(101, $result->getStatusCode());
 	}
 }

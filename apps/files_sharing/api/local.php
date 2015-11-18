@@ -1,26 +1,33 @@
 <?php
 /**
- * ownCloud - OCS API for local shares
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Bjoern Schiessle
- * @copyright 2013 Bjoern Schiessle schiessle@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OCA\Files_Sharing\API;
+
+use OC\HintException;
 
 class Local {
 
@@ -36,20 +43,20 @@ class Local {
 			}
 		// if a file is specified, get the share for this file
 		if (isset($_GET['path'])) {
-			$params['itemSource'] = self::getFileId($_GET['path']);
-			$params['path'] = $_GET['path'];
-			$params['itemType'] = self::getItemType($_GET['path']);
-
 			if ( isset($_GET['reshares']) && $_GET['reshares'] !== 'false' ) {
-				$params['reshares'] = true;
+				$reshares = true;
 			} else {
-				$params['reshares'] = false;
+				$reshares = false;
 			}
 
 			if (isset($_GET['subfiles']) && $_GET['subfiles'] !== 'false') {
-				return self::getSharesFromFolder($params);
+				return self::getSharesFromFolder($_GET['path']);
 			}
-			return self::collectShares($params);
+			return self::collectShares(self::getFileId($_GET['path']),
+			                           self::getItemType($_GET['path']),
+			                           false,
+			                           $_GET['path'],
+			                           $reshares);
 		}
 
 		$shares = \OCP\Share::getItemShared('file', null);
@@ -63,6 +70,10 @@ class Local {
 					if (\OC::$server->getPreviewManager()->isMimeSupported($share['mimetype'])) {
 						$share['isPreviewAvailable'] = true;
 					}
+				}
+
+				if (!is_null($share['token'])) {
+					$share['url'] = \OC::$server->getURLGenerator()->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $share['token']]);
 				}
 			}
 			return new \OC_OCS_Result($shares);
@@ -79,38 +90,36 @@ class Local {
 	public static function getShare($params) {
 
 		$s = self::getShareFromId($params['id']);
-		$params['itemSource'] = $s['file_source'];
-		$params['itemType'] = $s['item_type'];
-		$params['specificShare'] = true;
 
-		return self::collectShares($params);
+		return self::collectShares($s['file_source'], $s['item_type'], true, null, false, (int)$params['id']);
 	}
 
 	/**
 	 * collect all share information, either of a specific share or all
 	 *        shares for a given path
-	 * @param array $params
+	 *
+	 * @param string $itemSource
+	 * @param string $itemType
+	 * @param bool $getSpecificShare
+	 * @param string $path
+	 * @param bool $reshares
+	 * @param int $id
+	 *
 	 * @return \OC_OCS_Result
 	 */
-	private static function collectShares($params) {
-
-		$itemSource = $params['itemSource'];
-		$itemType = $params['itemType'];
-		$getSpecificShare = isset($params['specificShare']) ? $params['specificShare'] : false;
-
+	private static function collectShares($itemSource, $itemType, $getSpecificShare = false, $path = null, $reshares = false, $id = null) {
 		if ($itemSource !== null) {
 			$shares = \OCP\Share::getItemShared($itemType, $itemSource);
 			$receivedFrom = \OCP\Share::getItemSharedWithBySource($itemType, $itemSource);
 			// if a specific share was specified only return this one
 			if ($getSpecificShare === true) {
 				foreach ($shares as $share) {
-					if ($share['id'] === (int) $params['id']) {
+					if ($share['id'] === $id) {
 						$shares = array('element' => $share);
 						break;
 					}
 				}
 			} else {
-				$path = $params['path'];
 				foreach ($shares as $key => $share) {
 					$shares[$key]['path'] = $path;
 				}
@@ -119,7 +128,7 @@ class Local {
 
 			// include also reshares in the lists. This means that the result
 			// will contain every user with access to the file.
-			if (isset($params['reshares']) && $params['reshares'] === true) {
+			if ($reshares === true) {
 				$shares = self::addReshares($shares, $itemSource);
 			}
 
@@ -136,6 +145,12 @@ class Local {
 		if ($shares === null || empty($shares)) {
 			return new \OC_OCS_Result(null, 404, 'share doesn\'t exist');
 		} else {
+			foreach ($shares as &$share) {
+				if (!is_null($share['token'])) {
+					$share['url'] = \OC::$server->getURLGenerator()->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $share['token']]);
+				}
+			}
+
 			return new \OC_OCS_Result($shares);
 		}
 	}
@@ -157,7 +172,7 @@ class Local {
 		}
 
 		$select = '`*PREFIX*share`.`id`, `item_type`, `*PREFIX*share`.`parent`, `share_type`, `share_with`, `file_source`, `path` , `*PREFIX*share`.`permissions`, `stime`, `expiration`, `token`, `storage`, `mail_send`, `mail_send`';
-		$getReshares = \OC_DB::prepare('SELECT ' . $select . ' FROM `*PREFIX*share` INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid` WHERE `*PREFIX*share`.`file_source` = ? AND `*PREFIX*share`.`item_type` IN (\'file\', \'folder\') AND `uid_owner` != ?');
+		$getReshares = \OCP\DB::prepare('SELECT ' . $select . ' FROM `*PREFIX*share` INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid` WHERE `*PREFIX*share`.`file_source` = ? AND `*PREFIX*share`.`item_type` IN (\'file\', \'folder\') AND `uid_owner` != ?');
 		$reshares = $getReshares->execute(array($itemSource, \OCP\User::getUser()))->fetchAll();
 
 		foreach ($reshares as $key => $reshare) {
@@ -173,11 +188,10 @@ class Local {
 
 	/**
 	 * get share from all files in a given folder (non-recursive)
-	 * @param array $params contains 'path' to the folder
+	 * @param string $path
 	 * @return \OC_OCS_Result
 	 */
-	private static function getSharesFromFolder($params) {
-		$path = $params['path'];
+	private static function getSharesFromFolder($path) {
 		$view = new \OC\Files\View('/'.\OCP\User::getUser().'/files');
 
 		if(!$view->is_dir($path)) {
@@ -248,7 +262,9 @@ class Local {
 			return new \OC_OCS_Result(null, 400, "please specify a file or folder path");
 		}
 		$itemSource = self::getFileId($path);
+		$itemSourceName = $itemSource;
 		$itemType = self::getItemType($path);
+		$expirationDate = null;
 
 		if($itemSource === null) {
 			return new \OC_OCS_Result(null, 404, "wrong path, file/folder doesn't exist.");
@@ -258,9 +274,10 @@ class Local {
 		$shareType = isset($_POST['shareType']) ? (int)$_POST['shareType'] : null;
 
 		switch($shareType) {
+			case \OCP\Share::SHARE_TYPE_REMOTE:
+				$shareWith = rtrim($shareWith, '/');
+				$itemSourceName = basename($path);
 			case \OCP\Share::SHARE_TYPE_USER:
-				$permissions = isset($_POST['permissions']) ? (int)$_POST['permissions'] : 31;
-				break;
 			case \OCP\Share::SHARE_TYPE_GROUP:
 				$permissions = isset($_POST['permissions']) ? (int)$_POST['permissions'] : 31;
 				break;
@@ -276,9 +293,21 @@ class Local {
 				// read, create, update (7) if public upload is enabled or
 				// read (1) if public upload is disabled
 				$permissions = $publicUpload === 'true' ? 7 : 1;
+
+				// Get the expiration date
+				try {
+					$expirationDate = isset($_POST['expireDate']) ? self::parseDate($_POST['expireDate']) : null;
+				} catch (\Exception $e) {
+					return new \OC_OCS_Result(null, 404, 'Invalid Date. Format must be YYYY-MM-DD.');
+				}
+
 				break;
 			default:
 				return new \OC_OCS_Result(null, 400, "unknown share type");
+		}
+
+		if (($permissions & \OCP\Constants::PERMISSION_READ) === 0) {
+			return new \OC_OCS_Result(null, 400, 'invalid permissions');
 		}
 
 		try	{
@@ -287,8 +316,16 @@ class Local {
 					$itemSource,
 					$shareType,
 					$shareWith,
-					$permissions
-					);
+					$permissions,
+					$itemSourceName,
+					$expirationDate
+			);
+		} catch (HintException $e) {
+			if ($e->getCode() === 0) {
+				return new \OC_OCS_Result(null, 400, $e->getHint());
+			} else {
+				return new \OC_OCS_Result(null, $e->getCode(), $e->getHint());
+			}
 		} catch (\Exception $e) {
 			return new \OC_OCS_Result(null, 403, $e->getMessage());
 		}
@@ -304,8 +341,7 @@ class Local {
 						break;
 					}
 				}
-				$url = \OCP\Util::linkToPublic('files&t='.$token);
-				$data['url'] = $url; // '&' gets encoded to $amp;
+				$data['url'] = \OC::$server->getURLGenerator()->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]);
 				$data['token'] = $token;
 
 			} else {
@@ -316,6 +352,10 @@ class Local {
 					}
 				}
 			}
+
+			$data['permissions'] = $share['permissions'];
+			$data['expiration'] = $share['expiration'];
+
 			return new \OC_OCS_Result($data);
 		} else {
 			return new \OC_OCS_Result(null, 404, "couldn't share file");
@@ -340,7 +380,7 @@ class Local {
 			if(isset($params['_put']['permissions'])) {
 				return self::updatePermissions($share, $params);
 			} elseif (isset($params['_put']['password'])) {
-				return self::updatePassword($share, $params);
+				return self::updatePassword($params['id'], (int)$share['share_type'], $params['_put']['password']);
 			} elseif (isset($params['_put']['publicUpload'])) {
 				return self::updatePublicUpload($share, $params);
 			} elseif (isset($params['_put']['expireDate'])) {
@@ -352,7 +392,6 @@ class Local {
 		}
 
 		return new \OC_OCS_Result(null, 400, "Wrong or no update parameter given");
-
 	}
 
 	/**
@@ -379,6 +418,10 @@ class Local {
 			if ($publicUploadEnabled === false || ($permissions !== 7 && $permissions !== 1)) {
 				return new \OC_OCS_Result(null, 400, "can't change permission for public link share");
 			}
+		}
+
+		if (($permissions & \OCP\Constants::PERMISSION_READ) === 0) {
+			return new \OC_OCS_Result(null, 400, 'invalid permissions');
 		}
 
 		try {
@@ -451,47 +494,22 @@ class Local {
 
 	/**
 	 * update password for public link share
-	 * @param array $share information about the share
-	 * @param array $params 'password'
+	 * @param int $shareId
+	 * @param int $shareType 
+	 * @param string $password
 	 * @return \OC_OCS_Result
 	 */
-	private static function updatePassword($share, $params) {
-
-		$itemSource = $share['item_source'];
-		$itemType = $share['item_type'];
-
-		if( (int)$share['share_type'] !== \OCP\Share::SHARE_TYPE_LINK) {
+	private static function updatePassword($shareId, $shareType, $password) {
+		if($shareType !== \OCP\Share::SHARE_TYPE_LINK) {
 			return  new \OC_OCS_Result(null, 400, "password protection is only supported for public shares");
 		}
 
-		$shareWith = isset($params['_put']['password']) ? $params['_put']['password'] : null;
-
-		if($shareWith === '') {
-			$shareWith = null;
-		}
-
-		$items = \OCP\Share::getItemShared($itemType, $itemSource);
-
-		$checkExists = false;
-		foreach ($items as $item) {
-			if($item['share_type'] === \OCP\Share::SHARE_TYPE_LINK) {
-				$checkExists = true;
-				$permissions = $item['permissions'];
-			}
-		}
-
-		if (!$checkExists) {
-			return  new \OC_OCS_Result(null, 404, "share doesn't exists, can't change password");
+		if($password === '') {
+			$password = null;
 		}
 
 		try {
-			$result = \OCP\Share::shareItem(
-					$itemType,
-					$itemSource,
-					\OCP\Share::SHARE_TYPE_LINK,
-					$shareWith,
-					$permissions
-					);
+			$result = \OCP\Share::setPassword($shareId, $password);
 		} catch (\Exception $e) {
 			return new \OC_OCS_Result(null, 403, $e->getMessage());
 		}
@@ -544,6 +562,30 @@ class Local {
 	}
 
 	/**
+	 * Make sure that the passed date is valid ISO 8601
+	 * So YYYY-MM-DD
+	 * If not throw an exception
+	 *
+	 * @param string $expireDate
+	 *
+	 * @throws \Exception
+	 * @return \DateTime
+	 */
+	private static function parseDate($expireDate) {
+		if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $expireDate) === 0) {
+			throw new \Exception('Invalid date. Format must be YYYY-MM-DD');
+		}
+
+		$date = new \DateTime($expireDate);
+
+		if ($date === false) {
+			throw new \Exception('Invalid date. Format must be YYYY-MM-DD');
+		}
+
+		return $date;
+	}
+
+	/**
 	 * get file ID from a given path
 	 * @param string $path
 	 * @return string fileID or null
@@ -590,7 +632,7 @@ class Local {
 		$result = $query->execute($args);
 
 		if (\OCP\DB::isError($result)) {
-			\OCP\Util::writeLog('files_sharing', \OC_DB::getErrorMessage($result), \OCP\Util::ERROR);
+			\OCP\Util::writeLog('files_sharing', \OCP\DB::getErrorMessage(), \OCP\Util::ERROR);
 			return null;
 		}
 		if ($share = $result->fetchRow()) {

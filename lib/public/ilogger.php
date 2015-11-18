@@ -1,9 +1,23 @@
 <?php
 /**
- * Copyright (c) 2014 Bernhard Posselt <dev@bernhard-posselt.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCP;
@@ -11,6 +25,7 @@ namespace OCP;
 /**
  * Interface ILogger
  * @package OCP
+ * @since 7.0.0
  *
  * This logger interface follows the design guidelines of PSR-3
  * https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md#3-psrlogloggerinterface
@@ -22,8 +37,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function emergency($message, array $context = array());
+	public function emergency($message, array $context = array());
 
 	/**
 	 * Action must be taken immediately.
@@ -31,8 +47,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function alert($message, array $context = array());
+	public function alert($message, array $context = array());
 
 	/**
 	 * Critical conditions.
@@ -40,8 +57,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function critical($message, array $context = array());
+	public function critical($message, array $context = array());
 
 	/**
 	 * Runtime errors that do not require immediate action but should typically
@@ -50,8 +68,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function error($message, array $context = array());
+	public function error($message, array $context = array());
 
 	/**
 	 * Exceptional occurrences that are not errors.
@@ -59,8 +78,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function warning($message, array $context = array());
+	public function warning($message, array $context = array());
 
 	/**
 	 * Normal but significant events.
@@ -68,8 +88,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function notice($message, array $context = array());
+	public function notice($message, array $context = array());
 
 	/**
 	 * Interesting events.
@@ -77,8 +98,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function info($message, array $context = array());
+	public function info($message, array $context = array());
 
 	/**
 	 * Detailed debug information.
@@ -86,8 +108,9 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return null
+	 * @since 7.0.0
 	 */
-	function debug($message, array $context = array());
+	public function debug($message, array $context = array());
 
 	/**
 	 * Logs with an arbitrary level.
@@ -96,6 +119,17 @@ interface ILogger {
 	 * @param string $message
 	 * @param array $context
 	 * @return mixed
+	 * @since 7.0.0
 	 */
-	function log($level, $message, array $context = array());
+	public function log($level, $message, array $context = array());
+
+	/**
+	 * Logs an exception very detailed
+	 *
+	 * @param \Exception $exception
+	 * @param array $context
+	 * @return void
+	 * @since 8.2.0
+	 */
+	public function logException(\Exception $exception, array $context = array());
 }

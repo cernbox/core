@@ -1,22 +1,24 @@
 <?php
 /**
- * ownCloud - App Framework
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -30,6 +32,7 @@ namespace OCP\AppFramework\Http;
 
 /**
  * Response for a normal template
+ * @since 6.0.0
  */
 class TemplateResponse extends Response {
 
@@ -64,6 +67,7 @@ class TemplateResponse extends Response {
 	 * @param array $params an array of parameters which should be passed to the
 	 * template
 	 * @param string $renderAs how the page should be rendered, defaults to user
+	 * @since 6.0.0 - parameters $params and $renderAs were added in 7.0.0
 	 */
 	public function __construct($appName, $templateName, array $params=array(),
 	                            $renderAs='user') {
@@ -79,6 +83,7 @@ class TemplateResponse extends Response {
 	 * @param array $params an array with key => value structure which sets template
 	 *                      variables
 	 * @return TemplateResponse Reference to this object
+	 * @since 6.0.0 - return value was added in 7.0.0
 	 */
 	public function setParams(array $params){
 		$this->params = $params;
@@ -90,6 +95,7 @@ class TemplateResponse extends Response {
 	/**
 	 * Used for accessing the set parameters
 	 * @return array the params
+	 * @since 6.0.0
 	 */
 	public function getParams(){
 		return $this->params;
@@ -99,6 +105,7 @@ class TemplateResponse extends Response {
 	/**
 	 * Used for accessing the name of the set template
 	 * @return string the name of the used template
+	 * @since 6.0.0
 	 */
 	public function getTemplateName(){
 		return $this->templateName;
@@ -112,6 +119,7 @@ class TemplateResponse extends Response {
 	 *                         normal page including footer and header and blank
 	 *                         just renders the plain template
 	 * @return TemplateResponse Reference to this object
+	 * @since 6.0.0 - return value was added in 7.0.0
 	 */
 	public function renderAs($renderAs){
 		$this->renderAs = $renderAs;
@@ -123,6 +131,7 @@ class TemplateResponse extends Response {
 	/**
 	 * Returns the set renderAs
 	 * @return string the renderAs value
+	 * @since 6.0.0
 	 */
 	public function getRenderAs(){
 		return $this->renderAs;
@@ -132,6 +141,7 @@ class TemplateResponse extends Response {
 	/**
 	 * Returns the rendered html
 	 * @return string the rendered html
+	 * @since 6.0.0
 	 */
 	public function render(){
 		// \OCP\Template needs an empty string instead of 'blank' for an unwrapped response

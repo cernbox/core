@@ -1,24 +1,25 @@
 <?php
 /**
-* ownCloud
-*
-* @author Arthur Schiwon
-* @copyright 2014 Arthur Schiwon blizzz@owncloud.com
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace OCA\user_ldap\tests;
 
@@ -220,7 +221,7 @@ class Test_User_User extends \Test\TestCase {
 		$connection->expects($this->at(0))
 			->method('__get')
 			->with($this->equalTo('ldapQuotaDefault'))
-			->will($this->returnValue('23 GB'));
+			->will($this->returnValue('25 GB'));
 
 		$connection->expects($this->at(1))
 			->method('__get')
@@ -241,7 +242,7 @@ class Test_User_User extends \Test\TestCase {
 			->with($this->equalTo('alice'),
 				$this->equalTo('files'),
 				$this->equalTo('quota'),
-				$this->equalTo('23 GB'))
+				$this->equalTo('25 GB'))
 			->will($this->returnValue(true));
 
 		$uid = 'alice';
@@ -277,14 +278,14 @@ class Test_User_User extends \Test\TestCase {
 			->method('readAttribute')
 			->with($this->equalTo('uid=alice,dc=foo,dc=bar'),
 				$this->equalTo('myquota'))
-			->will($this->returnValue(array('23 GB')));
+			->will($this->returnValue(array('27 GB')));
 
 		$config->expects($this->once())
 			->method('setUserValue')
 			->with($this->equalTo('alice'),
 				$this->equalTo('files'),
 				$this->equalTo('quota'),
-				$this->equalTo('23 GB'))
+				$this->equalTo('27 GB'))
 			->will($this->returnValue(true));
 
 		$uid = 'alice';
@@ -367,6 +368,45 @@ class Test_User_User extends \Test\TestCase {
 			$uid, $dn, $access, $config, $filesys, $image, $log, $avaMgr);
 
 		$user->updateQuota();
+	}
+
+	public function testUpdateQuotaFromValue() {
+		list($access, $config, $filesys, $image, $log, $avaMgr, $dbc) =
+			$this->getTestInstances();
+
+		list($access, $connection) =
+			$this->getAdvancedMocks($config, $filesys, $log, $avaMgr, $dbc);
+
+		$readQuota = '19 GB';
+
+		$connection->expects($this->at(0))
+			->method('__get')
+			->with($this->equalTo('ldapQuotaDefault'))
+			->will($this->returnValue(''));
+
+		$connection->expects($this->once(1))
+			->method('__get')
+			->with($this->equalTo('ldapQuotaDefault'))
+			->will($this->returnValue(null));
+
+		$access->expects($this->never())
+			->method('readAttribute');
+
+		$config->expects($this->once())
+			->method('setUserValue')
+			->with($this->equalTo('alice'),
+				$this->equalTo('files'),
+				$this->equalTo('quota'),
+				$this->equalTo($readQuota))
+			->will($this->returnValue(true));
+
+		$uid = 'alice';
+		$dn  = 'uid=alice,dc=foo,dc=bar';
+
+		$user = new User(
+			$uid, $dn, $access, $config, $filesys, $image, $log, $avaMgr);
+
+		$user->updateQuota($readQuota);
 	}
 
 	//the testUpdateAvatar series also implicitely tests getAvatarImage
@@ -677,5 +717,165 @@ class Test_User_User extends \Test\TestCase {
 		//make sure readAttribute is not called again but the already fetched
 		//photo is returned
 		$photo = $user->getAvatarImage();
+	}
+
+	public function testProcessAttributes() {
+		list(, $config, $filesys, $image, $log, $avaMgr, $dbc) =
+			$this->getTestInstances();
+
+		list($access, $connection) =
+			$this->getAdvancedMocks($config, $filesys, $log, $avaMgr, $dbc);
+
+		$uid = 'alice';
+		$dn = 'uid=alice';
+
+		$requiredMethods = array(
+			'markRefreshTime',
+			'updateQuota',
+			'updateEmail',
+			'storeDisplayName',
+			'storeLDAPUserName',
+			'getHomePath',
+			'updateAvatar'
+		);
+
+		$userMock = $this->getMockBuilder('OCA\user_ldap\lib\user\User')
+			->setConstructorArgs(array($uid, $dn, $access, $config, $filesys, $image, $log, $avaMgr))
+			->setMethods($requiredMethods)
+			->getMock();
+
+		$connection->setConfiguration(array(
+			'homeFolderNamingRule' => 'homeDirectory'
+		));
+
+		$connection->expects($this->any())
+			->method('__get')
+			//->will($this->returnArgument(0));
+			->will($this->returnCallback(function($name) {
+				if($name === 'homeFolderNamingRule') {
+					return 'attr:homeDirectory';
+				}
+				return $name;
+			}));
+
+		$record = array(
+			strtolower($connection->ldapQuotaAttribute) => array('4096'),
+			strtolower($connection->ldapEmailAttribute) => array('alice@wonderland.org'),
+			strtolower($connection->ldapUserDisplayName) => array('Aaaaalice'),
+			'uid' => array($uid),
+			'homedirectory' => array('Alice\'s Folder'),
+			'memberof' => array('cn=groupOne', 'cn=groupTwo'),
+			'jpegphoto' => array('here be an image')
+		);
+
+		foreach($requiredMethods as $method) {
+			$userMock->expects($this->once())
+				->method($method);
+		}
+
+		$userMock->processAttributes($record);
+	}
+
+	public function emptyHomeFolderAttributeValueProvider() {
+		return array(
+			'empty' => array(''),
+			'prefixOnly' => array('attr:'),
+		);
+	}
+
+	/**
+	 * @dataProvider emptyHomeFolderAttributeValueProvider
+	 */
+	public function testGetHomePathNotConfigured($attributeValue) {
+		list($access, $config, $filesys, $image, $log, $avaMgr, $dbc) =
+			$this->getTestInstances();
+
+		list($access, $connection) =
+			$this->getAdvancedMocks($config, $filesys, $log, $avaMgr, $dbc);
+
+		$connection->expects($this->any())
+			->method('__get')
+			->with($this->equalTo('homeFolderNamingRule'))
+			->will($this->returnValue($attributeValue));
+
+		$access->expects($this->never())
+			->method('readAttribute');
+
+		$config->expects($this->never())
+			->method('getAppValue');
+
+		$uid = 'alice';
+		$dn  = 'uid=alice,dc=foo,dc=bar';
+
+		$user = new User(
+			$uid, $dn, $access, $config, $filesys, $image, $log, $avaMgr);
+
+		$path = $user->getHomePath();
+		$this->assertSame($path, false);
+	}
+
+	public function testGetHomePathConfiguredNotAvailableAllowed() {
+		list($access, $config, $filesys, $image, $log, $avaMgr, $dbc) =
+			$this->getTestInstances();
+
+		list($access, $connection) =
+			$this->getAdvancedMocks($config, $filesys, $log, $avaMgr, $dbc);
+
+		$connection->expects($this->any())
+			->method('__get')
+			->with($this->equalTo('homeFolderNamingRule'))
+			->will($this->returnValue('attr:foobar'));
+
+		$access->expects($this->once())
+			->method('readAttribute')
+			->will($this->returnValue(false));
+
+		// asks for "enforce_home_folder_naming_rule"
+		$config->expects($this->once())
+			->method('getAppValue')
+			->will($this->returnValue(false));
+
+		$uid = 'alice';
+		$dn  = 'uid=alice,dc=foo,dc=bar';
+
+		$user = new User(
+			$uid, $dn, $access, $config, $filesys, $image, $log, $avaMgr);
+
+		$path = $user->getHomePath();
+
+		$this->assertSame($path, false);
+	}
+
+	/**
+	 * @expectedException \Exception
+	 */
+	public function testGetHomePathConfiguredNotAvailableNotAllowed() {
+		list($access, $config, $filesys, $image, $log, $avaMgr, $dbc) =
+			$this->getTestInstances();
+
+		list($access, $connection) =
+			$this->getAdvancedMocks($config, $filesys, $log, $avaMgr, $dbc);
+
+		$connection->expects($this->any())
+			->method('__get')
+			->with($this->equalTo('homeFolderNamingRule'))
+			->will($this->returnValue('attr:foobar'));
+
+		$access->expects($this->once())
+			->method('readAttribute')
+			->will($this->returnValue(false));
+
+		// asks for "enforce_home_folder_naming_rule"
+		$config->expects($this->once())
+			->method('getAppValue')
+			->will($this->returnValue(true));
+
+		$uid = 'alice';
+		$dn  = 'uid=alice,dc=foo,dc=bar';
+
+		$user = new User(
+			$uid, $dn, $access, $config, $filesys, $image, $log, $avaMgr);
+
+		$user->getHomePath();
 	}
 }

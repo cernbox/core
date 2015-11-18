@@ -1,14 +1,36 @@
 <?php
 /**
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Olivier Paroz <github@oparoz.com>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC;
 
+use InterfaSys\LogNormalizer\Normalizer;
+
 use \OCP\ILogger;
+use OCP\Security\StringUtils;
 
 /**
  * logging utilities
@@ -22,18 +44,40 @@ use \OCP\ILogger;
 
 class Log implements ILogger {
 
+	/** @var string */
 	private $logger;
+	/** @var SystemConfig */
+	private $config;
+
+	/** @var boolean|null cache the result of the log condition check for the request */
+	private $logConditionSatisfied = null;
+	/** @var Normalizer */
+	private $normalizer;
 
 	/**
 	 * @param string $logger The logger that should be used
+	 * @param SystemConfig $config the system config object
+	 * @param null $normalizer
 	 */
-	public function __construct($logger=null) {
+	public function __construct($logger=null, SystemConfig $config=null, $normalizer = null) {
+		// FIXME: Add this for backwards compatibility, should be fixed at some point probably
+		if($config === null) {
+			$config = \OC::$server->getSystemConfig();
+		}
+
+		$this->config = $config;
+
 		// FIXME: Add this for backwards compatibility, should be fixed at some point probably
 		if($logger === null) {
-			$this->logger = 'OC_Log_'.ucfirst(\OC_Config::getValue('log_type', 'owncloud'));
+			$this->logger = 'OC_Log_'.ucfirst($this->config->getValue('log_type', 'owncloud'));
 			call_user_func(array($this->logger, 'init'));
 		} else {
 			$this->logger = $logger;
+		}
+		if ($normalizer === null) {
+			$this->normalizer = new Normalizer();
+		} else {
+			$this->normalizer = $normalizer;
 		}
 
 	}
@@ -46,7 +90,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function emergency($message, array $context = array()) {
-		$this->log(\OC_Log::FATAL, $message, $context);
+		$this->log(\OCP\Util::FATAL, $message, $context);
 	}
 
 	/**
@@ -59,7 +103,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function alert($message, array $context = array()) {
-		$this->log(\OC_Log::ERROR, $message, $context);
+		$this->log(\OCP\Util::ERROR, $message, $context);
 	}
 
 	/**
@@ -71,7 +115,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function critical($message, array $context = array()) {
-		$this->log(\OC_Log::ERROR, $message, $context);
+		$this->log(\OCP\Util::ERROR, $message, $context);
 	}
 
 	/**
@@ -82,7 +126,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function error($message, array $context = array()) {
-		$this->log(\OC_Log::ERROR, $message, $context);
+		$this->log(\OCP\Util::ERROR, $message, $context);
 	}
 
 	/**
@@ -95,7 +139,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function warning($message, array $context = array()) {
-		$this->log(\OC_Log::WARN, $message, $context);
+		$this->log(\OCP\Util::WARN, $message, $context);
 	}
 
 	/**
@@ -105,7 +149,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function notice($message, array $context = array()) {
-		$this->log(\OC_Log::INFO, $message, $context);
+		$this->log(\OCP\Util::INFO, $message, $context);
 	}
 
 	/**
@@ -117,7 +161,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function info($message, array $context = array()) {
-		$this->log(\OC_Log::INFO, $message, $context);
+		$this->log(\OCP\Util::INFO, $message, $context);
 	}
 
 	/**
@@ -127,7 +171,7 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function debug($message, array $context = array()) {
-		$this->log(\OC_Log::DEBUG, $message, $context);
+		$this->log(\OCP\Util::DEBUG, $message, $context);
 	}
 
 
@@ -139,8 +183,24 @@ class Log implements ILogger {
 	 * @param array $context
 	 */
 	public function log($level, $message, array $context = array()) {
+		$minLevel = min($this->config->getValue('loglevel', \OCP\Util::WARN), \OCP\Util::ERROR);
+		$logCondition = $this->config->getValue('log.condition', []);
+
+		array_walk($context, [$this->normalizer, 'format']);
+
 		if (isset($context['app'])) {
 			$app = $context['app'];
+
+			/**
+			 * check log condition based on the context of each log message
+			 * once this is met -> change the required log level to debug
+			 */
+			if(!empty($logCondition)
+				&& isset($logCondition['apps'])
+				&& in_array($app, $logCondition['apps'], true)) {
+				$minLevel = \OCP\Util::DEBUG;
+			}
+
 		} else {
 			$app = 'no app in context';
 		}
@@ -153,7 +213,66 @@ class Log implements ILogger {
 		// interpolate replacement values into the message and return
 		$message = strtr($message, $replace);
 
-		$logger = $this->logger;
-		call_user_func(array($logger, 'write'), $app, $message, $level);
+		/**
+		 * check for a special log condition - this enables an increased log on
+		 * a per request/user base
+		 */
+		if($this->logConditionSatisfied === null) {
+			// default to false to just process this once per request
+			$this->logConditionSatisfied = false;
+			if(!empty($logCondition)) {
+
+				// check for secret token in the request
+				if(isset($logCondition['shared_secret'])) {
+					$request = \OC::$server->getRequest();
+
+					// if token is found in the request change set the log condition to satisfied
+					if($request && StringUtils::equals($request->getParam('log_secret'), $logCondition['shared_secret'])) {
+						$this->logConditionSatisfied = true;
+					}
+				}
+
+				// check for user
+				if(isset($logCondition['users'])) {
+					$user = \OC::$server->getUserSession()->getUser();
+
+					// if the user matches set the log condition to satisfied
+					if($user !== null && in_array($user->getUID(), $logCondition['users'], true)) {
+						$this->logConditionSatisfied = true;
+					}
+				}
+			}
+		}
+
+		// if log condition is satisfied change the required log level to DEBUG
+		if($this->logConditionSatisfied) {
+			$minLevel = \OCP\Util::DEBUG;
+		}
+
+		if ($level >= $minLevel) {
+			$logger = $this->logger;
+			call_user_func(array($logger, 'write'), $app, $message, $level);
+		}
+	}
+
+	/**
+	 * Logs an exception very detailed
+	 *
+	 * @param \Exception $exception
+	 * @param array $context
+	 * @return void
+	 * @since 8.2.0
+	 */
+	public function logException(\Exception $exception, array $context = array()) {
+		$exception = array(
+			'Exception' => get_class($exception),
+			'Message' => $exception->getMessage(),
+			'Code' => $exception->getCode(),
+			'Trace' => $exception->getTraceAsString(),
+			'File' => $exception->getFile(),
+			'Line' => $exception->getLine(),
+		);
+		$exception['Trace'] = preg_replace('!(login|checkPassword)\(.*\)!', '$1(*** username and password replaced ***)', $exception['Trace']);
+		$this->error('Exception: ' . json_encode($exception), $context);
 	}
 }

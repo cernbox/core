@@ -1,10 +1,26 @@
 <?php
 /**
- * Copyright (c) 2013 Thomas Müller <thomas.mueller@tmit.eu>
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCA\Files\Command;
@@ -76,10 +92,10 @@ class Scan extends Command {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$path = $input->getOption('path');
-		if ($path) {
-			$path = '/'.trim($path, '/');
-			list (, $user, ) = explode('/', $path, 3);
+		$inputPath = $input->getOption('path');
+		if ($inputPath) {
+			$inputPath = '/' . trim($inputPath, '/');
+			list (, $user,) = explode('/', $inputPath, 3);
 			$users = array($user);
 		} else if ($input->getOption('all')) {
 			$users = $this->userManager->search('');
@@ -98,6 +114,7 @@ class Scan extends Command {
 			if (is_object($user)) {
 				$user = $user->getUID();
 			}
+			$path = $inputPath ? $inputPath : '/' . $user;
 			if ($this->userManager->userExists($user)) {
 				$this->scanFiles($user, $path, $quiet, $output);
 			} else {

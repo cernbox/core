@@ -1,9 +1,28 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Felix Moeller <mail@felixmoeller.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 /**
@@ -41,6 +60,17 @@ class OC_EventSource implements \OCP\IEventSource {
 		$this->fallback = isset($_GET['fallback']) and $_GET['fallback'] == 'true';
 		if ($this->fallback) {
 			$this->fallBackId = (int)$_GET['fallback_id'];
+			/**
+			 * FIXME: The default content-security-policy of ownCloud forbids inline
+			 * JavaScript for security reasons. IE starting on Windows 10 will
+			 * however also obey the CSP which will break the event source fallback.
+			 *
+			 * As a workaround thus we set a custom policy which allows the execution
+			 * of inline JavaScript.
+			 *
+			 * @link https://github.com/owncloud/core/issues/14286
+			 */
+			header("Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline'");
 			header("Content-Type: text/html");
 			echo str_repeat('<span></span>' . PHP_EOL, 10); //dummy data to keep IE happy
 		} else {

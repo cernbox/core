@@ -9,9 +9,6 @@
 
 namespace Test\Connector\Sabre;
 
-use OC\Files\FileInfo;
-use OC\Files\View;
-
 class Node extends \Test\TestCase {
 	public function davPermissionsProvider() {
 		return array(
@@ -49,7 +46,7 @@ class Node extends \Test\TestCase {
 			->will($this->returnValue($type));
 		$view = $this->getMock('\OC\Files\View');
 
-		$node = new \OC_Connector_Sabre_File($view, $info);
+		$node = new  \OC\Connector\Sabre\File($view, $info);
 		$this->assertEquals($expected, $node->getDavPermissions());
 	}
 }

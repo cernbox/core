@@ -1,9 +1,29 @@
 <?php
 /**
- * Copyright (c) 2012 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author tbelau666 <thomas.belau@gmx.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\DB;
@@ -12,7 +32,6 @@ use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
-use Doctrine\DBAL\Platforms\SQLServerPlatform;
 
 class MDB2SchemaManager {
 	/**
@@ -35,7 +54,7 @@ class MDB2SchemaManager {
 	 *
 	 * TODO: write more documentation
 	 */
-	public function getDbStructure($file, $mode = MDB2_SCHEMA_DUMP_STRUCTURE) {
+	public function getDbStructure($file) {
 		return \OC_DB_MDB2SchemaWriter::saveSchemaToFile($file, $this->conn);
 	}
 
@@ -65,8 +84,6 @@ class MDB2SchemaManager {
 			return new OracleMigrator($this->conn, $random, $config);
 		} else if ($platform instanceof MySqlPlatform) {
 			return new MySQLMigrator($this->conn, $random, $config);
-		} else if ($platform instanceof SQLServerPlatform) {
-			return new MsSqlMigrator($this->conn, $random, $config);
 		} else if ($platform instanceof PostgreSqlPlatform) {
 			return new Migrator($this->conn, $random, $config);
 		} else {

@@ -11,9 +11,9 @@ namespace Test\DB;
 
 use \Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\OraclePlatform;
-use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use \Doctrine\DBAL\Schema\Schema;
 use \Doctrine\DBAL\Schema\SchemaConfig;
+use OCP\IConfig;
 
 class Migrator extends \Test\TestCase {
 	/**
@@ -26,20 +26,24 @@ class Migrator extends \Test\TestCase {
 	 */
 	private $manager;
 
+	/**
+	 * @var IConfig
+	 **/
+	private $config;
+
+	/** @var string */
 	private $tableName;
 
 	protected function setUp() {
 		parent::setUp();
 
+		$this->config = \OC::$server->getConfig();
 		$this->connection = \OC_DB::getConnection();
 		if ($this->connection->getDatabasePlatform() instanceof OraclePlatform) {
 			$this->markTestSkipped('DB migration tests are not supported on OCI');
 		}
-		if ($this->connection->getDatabasePlatform() instanceof SQLServerPlatform) {
-			$this->markTestSkipped('DB migration tests are not supported on MSSQL');
-		}
 		$this->manager = new \OC\DB\MDB2SchemaManager($this->connection);
-		$this->tableName = strtolower($this->getUniqueID('oc_test_'));
+		$this->tableName = strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix', 'oc_') . 'test_'));
 	}
 
 	protected function tearDown() {
@@ -107,6 +111,27 @@ class Migrator extends \Test\TestCase {
 		$migrator->checkMigrate($endSchema);
 		$migrator->migrate($endSchema);
 		$this->assertTrue(true);
+	}
+
+	public function testUpgradeDifferentPrefix() {
+		$oldTablePrefix = $this->config->getSystemValue('dbtableprefix', 'oc_');
+
+		$this->config->setSystemValue('dbtableprefix', 'ownc_');
+		$this->tableName = strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix') . 'test_'));
+
+		list($startSchema, $endSchema) = $this->getDuplicateKeySchemas();
+		$migrator = $this->manager->getMigrator();
+		$migrator->migrate($startSchema);
+
+		$this->connection->insert($this->tableName, array('id' => 1, 'name' => 'foo'));
+		$this->connection->insert($this->tableName, array('id' => 2, 'name' => 'bar'));
+		$this->connection->insert($this->tableName, array('id' => 3, 'name' => 'qwerty'));
+
+		$migrator->checkMigrate($endSchema);
+		$migrator->migrate($endSchema);
+		$this->assertTrue(true);
+
+		$this->config->setSystemValue('dbtableprefix', $oldTablePrefix);
 	}
 
 	public function testInsertAfterUpgrade() {

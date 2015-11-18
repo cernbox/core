@@ -1,10 +1,33 @@
 <?php
-
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author macjohnny <estebanmarin@gmx.ch>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author voxsim <Simon Vocella>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Group;
@@ -78,6 +101,24 @@ class Manager extends PublicEmitter implements IGroupManager {
 	}
 
 	/**
+	 * Checks whether a given backend is used
+	 *
+	 * @param string $backendClass Full classname including complete namespace
+	 * @return bool
+	 */
+	public function isBackendUsed($backendClass) {
+		$backendClass = strtolower(ltrim($backendClass, '\\'));
+
+		foreach ($this->backends as $backend) {
+			if (strtolower(get_class($backend)) === $backendClass) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * @param \OC_Group_Backend $backend
 	 */
 	public function addBackend($backend) {
@@ -87,6 +128,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	public function clearBackends() {
 		$this->backends = array();
 		$this->cachedGroups = array();
+		$this->cachedUserGroups = array();
 	}
 
 	/**
@@ -184,8 +226,10 @@ class Manager extends PublicEmitter implements IGroupManager {
 		$groups = array();
 		foreach ($this->backends as $backend) {
 			$groupIds = $backend->getUserGroups($uid);
-			foreach ($groupIds as $groupId) {
-				$groups[$groupId] = $this->get($groupId);
+			if (is_array($groupIds)) {
+				foreach ($groupIds as $groupId) {
+					$groups[$groupId] = $this->get($groupId);
+				}
 			}
 		}
 		$this->cachedUserGroups[$uid] = $groups;
@@ -204,7 +248,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 	/**
 	 * Checks if a userId is in a group
 	 * @param string $userId
-	 * @param group $group
+	 * @param string $group
 	 * @return bool if in group
 	 */
 	public function isInGroup($userId, $group) {
@@ -217,16 +261,9 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return array with group ids
 	 */
 	public function getUserGroupIds($user) {
-		$groupIds = array();
-		$userId = $user->getUID();
-		if (isset($this->cachedUserGroups[$userId])) {
-			return array_keys($this->cachedUserGroups[$userId]);
-		} else {
-			foreach ($this->backends as $backend) {
-				$groupIds = array_merge($groupIds, $backend->getUserGroups($userId));
-			}
-		}
-		return $groupIds;
+		return array_map(function($value) {
+			return (string) $value;
+		}, array_keys($this->getUserGroups($user)));
 	}
 
 	/**
@@ -255,7 +292,7 @@ class Manager extends PublicEmitter implements IGroupManager {
 			}
 
 			do {
-				$filteredUsers = $this->userManager->search($search, $searchLimit, $searchOffset);
+				$filteredUsers = $this->userManager->searchDisplayName($search, $searchLimit, $searchOffset);
 				foreach($filteredUsers as $filteredUser) {
 					if($group->inGroup($filteredUser)) {
 						$groupUsers[]= $filteredUser;

@@ -30,6 +30,8 @@ class ApiControllerTest extends TestCase {
 	private $request;
 	/** @var TagService */
 	private $tagService;
+	/** @var IPreview */
+	private $preview;
 	/** @var ApiController */
 	private $apiController;
 
@@ -40,7 +42,10 @@ class ApiControllerTest extends TestCase {
 		$this->tagService = $this->getMockBuilder('\OCA\Files\Service\TagService')
 			->disableOriginalConstructor()
 			->getMock();
-
+		$this->preview = $this->getMockBuilder('\OCP\IPreview')
+			->disableOriginalConstructor()
+			->getMock();
+				
 		$this->apiController = new ApiController(
 			$this->appName,
 			$this->request,
@@ -87,7 +92,7 @@ class ApiControllerTest extends TestCase {
 				[
 					'id' => null,
 					'parentId' => null,
-					'date' => 'January 1, 1970 at 12:00:55 AM GMT+0',
+					'date' => \OCP\Util::formatDate(55),
 					'mtime' => 55000,
 					'icon' => \OCA\Files\Helper::determineIcon($fileInfo),
 					'name' => 'root.txt',
@@ -152,7 +157,7 @@ class ApiControllerTest extends TestCase {
 				[
 					'id' => null,
 					'parentId' => null,
-					'date' => 'January 1, 1970 at 12:00:55 AM GMT+0',
+					'date' => \OCP\Util::formatDate(55),
 					'mtime' => 55000,
 					'icon' => \OCA\Files\Helper::determineIcon($fileInfo1),
 					'name' => 'root.txt',
@@ -171,7 +176,7 @@ class ApiControllerTest extends TestCase {
 				[
 					'id' => null,
 					'parentId' => null,
-					'date' => 'January 1, 1970 at 12:16:39 AM GMT+0',
+					'date' => \OCP\Util::formatDate(999),
 					'mtime' => 999000,
 					'icon' => \OCA\Files\Helper::determineIcon($fileInfo2),
 					'name' => 'root.txt',
@@ -217,7 +222,7 @@ class ApiControllerTest extends TestCase {
 			->with('/path.txt', ['Tag1', 'Tag2'])
 			->will($this->throwException(new NotFoundException('My error message')));
 
-		$expected = new DataResponse('My error message', Http::STATUS_NOT_FOUND);
+		$expected = new DataResponse(['message' => 'My error message'], Http::STATUS_NOT_FOUND);
 		$this->assertEquals($expected, $this->apiController->updateFileTags('/path.txt', ['Tag1', 'Tag2']));
 	}
 
@@ -227,7 +232,7 @@ class ApiControllerTest extends TestCase {
 			->with('/path.txt', ['Tag1', 'Tag2'])
 			->will($this->throwException(new StorageNotAvailableException('My error message')));
 
-		$expected = new DataResponse('My error message', Http::STATUS_SERVICE_UNAVAILABLE);
+		$expected = new DataResponse(['message' => 'My error message'], Http::STATUS_SERVICE_UNAVAILABLE);
 		$this->assertEquals($expected, $this->apiController->updateFileTags('/path.txt', ['Tag1', 'Tag2']));
 	}
 
@@ -237,7 +242,32 @@ class ApiControllerTest extends TestCase {
 			->with('/path.txt', ['Tag1', 'Tag2'])
 			->will($this->throwException(new \Exception('My error message')));
 
-		$expected = new DataResponse('My error message', Http::STATUS_NOT_FOUND);
+		$expected = new DataResponse(['message' => 'My error message'], Http::STATUS_NOT_FOUND);
 		$this->assertEquals($expected, $this->apiController->updateFileTags('/path.txt', ['Tag1', 'Tag2']));
+	}
+	
+	public function testGetThumbnailInvalidSize() {
+		$expected = new DataResponse(['message' => 'Requested size must be numeric and a positive value.'], Http::STATUS_BAD_REQUEST);
+		$this->assertEquals($expected, $this->apiController->getThumbnail(0, 0, ''));
+	}
+	
+	public function testGetThumbnailInvaidImage() {
+		$this->preview->expects($this->once())
+		->method('createPreview')
+		->with('files/unknown.jpg', 10, 10, true)
+		->willReturn(new Image);
+		$expected = new DataResponse(['message' => 'File not found.'], Http::STATUS_NOT_FOUND);
+		$this->assertEquals($expected, $this->apiController->getThumbnail(10, 10, 'unknown.jpg'));
+	}
+	
+	public function testGetThumbnail() {
+		$this->preview->expects($this->once())
+		->method('createPreview')
+		->with('files/known.jpg', 10, 10, true)
+		->willReturn(new Image(\OC::$SERVERROOT.'/tests/data/testimage.jpg'));
+	
+		$ret = $this->apiController->getThumbnail(10, 10, 'known.jpg');
+	
+		$this->assertEquals(Http::STATUS_OK, $ret->getStatus());
 	}
 }

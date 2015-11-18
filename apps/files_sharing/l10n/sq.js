@@ -2,8 +2,14 @@ OC.L10N.register(
     "files_sharing",
     {
     "Cancel" : "Anullo",
-    "Share" : "Ndaj",
     "Shared by" : "Ndarë nga",
+    "Sharing" : "Ndarje",
+    "A file or folder has been <strong>shared</strong>" : "Një skedar ose dosje është <strong>ndarë</strong>",
+    "You shared %1$s with %2$s" : "Ju ndatë %1$s me %2$s",
+    "You shared %1$s with group %2$s" : "Ju ndatë %1$s me grupin %2$s",
+    "%2$s shared %1$s with you" : "%2$s ndau %1$s me ju",
+    "You shared %1$s via link" : "Ju ndatë %1$s me lidhje",
+    "Shares" : "ndarjet",
     "This share is password-protected" : "Kjo pjesë është e mbrojtur me fjalëkalim",
     "The password is wrong. Try again." : "Kodi është i gabuar. Provojeni përsëri.",
     "Password" : "Kodi",
@@ -15,6 +21,9 @@ OC.L10N.register(
     "sharing is disabled" : "ndarja është çaktivizuar",
     "For more info, please ask the person who sent this link." : "Për më shumë informacione, ju lutem pyesni personin që iu dërgoi këtë lidhje.",
     "Download" : "Shkarko",
-    "Direct link" : "Lidhje direkte"
+    "Direct link" : "Lidhje direkte",
+    "Shared with you" : "Të ndara me ju",
+    "Shared with others" : "Të ndara me të tjerët",
+    "Shared by link" : "Të ndara me lidhje"
 },
 "nplurals=2; plural=(n != 1);");

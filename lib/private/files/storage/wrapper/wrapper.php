@@ -1,12 +1,32 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Storage\Wrapper;
+
+use OCP\Files\InvalidPathException;
+use OCP\Lock\ILockingProvider;
 
 class Wrapper implements \OC\Files\Storage\Storage {
 	/**
@@ -476,5 +496,97 @@ class Wrapper implements \OC\Files\Storage\Storage {
 	 */
 	public function getDirectDownload($path) {
 		return $this->storage->getDirectDownload($path);
+	}
+
+	/**
+	 * Get availability of the storage
+	 *
+	 * @return array [ available, last_checked ]
+	 */
+	public function getAvailability() {
+		return $this->storage->getAvailability();
+	}
+
+	/**
+	 * Set availability of the storage
+	 *
+	 * @param bool $isAvailable
+	 */
+	public function setAvailability($isAvailable) {
+		$this->storage->setAvailability($isAvailable);
+	}
+
+	/**
+	 * @param string $path the path of the target folder
+	 * @param string $fileName the name of the file itself
+	 * @return void
+	 * @throws InvalidPathException
+	 */
+	public function verifyPath($path, $fileName) {
+		$this->storage->verifyPath($path, $fileName);
+	}
+
+	/**
+	 * @param \OCP\Files\Storage $sourceStorage
+	 * @param string $sourceInternalPath
+	 * @param string $targetInternalPath
+	 * @return bool
+	 */
+	public function copyFromStorage(\OCP\Files\Storage $sourceStorage, $sourceInternalPath, $targetInternalPath) {
+		if ($sourceStorage === $this) {
+			return $this->copy($sourceInternalPath, $targetInternalPath);
+		}
+
+		return $this->storage->copyFromStorage($sourceStorage, $sourceInternalPath, $targetInternalPath);
+	}
+
+	/**
+	 * @param \OCP\Files\Storage $sourceStorage
+	 * @param string $sourceInternalPath
+	 * @param string $targetInternalPath
+	 * @return bool
+	 */
+	public function moveFromStorage(\OCP\Files\Storage $sourceStorage, $sourceInternalPath, $targetInternalPath) {
+		if ($sourceStorage === $this) {
+			return $this->rename($sourceInternalPath, $targetInternalPath);
+		}
+
+		return $this->storage->moveFromStorage($sourceStorage, $sourceInternalPath, $targetInternalPath);
+	}
+
+	/**
+	 * @param string $path
+	 * @return array
+	 */
+	public function getMetaData($path) {
+		return $this->storage->getMetaData($path);
+	}
+
+	/**
+	 * @param string $path
+	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
+	 * @param \OCP\Lock\ILockingProvider $provider
+	 * @throws \OCP\Lock\LockedException
+	 */
+	public function acquireLock($path, $type, ILockingProvider $provider) {
+		$this->storage->acquireLock($path, $type, $provider);
+	}
+
+	/**
+	 * @param string $path
+	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
+	 * @param \OCP\Lock\ILockingProvider $provider
+	 */
+	public function releaseLock($path, $type, ILockingProvider $provider) {
+		$this->storage->releaseLock($path, $type, $provider);
+	}
+
+	/**
+	 * @param string $path
+	 * @param int $type \OCP\Lock\ILockingProvider::LOCK_SHARED or \OCP\Lock\ILockingProvider::LOCK_EXCLUSIVE
+	 * @param \OCP\Lock\ILockingProvider $provider
+	 */
+	public function changeLock($path, $type, ILockingProvider $provider) {
+		$this->storage->changeLock($path, $type, $provider);
 	}
 }

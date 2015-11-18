@@ -3,7 +3,8 @@
 vendor_script('jsTimezoneDetect/jstz');
 script('core', [
 	'visitortimezone',
-	'lostpassword'
+	'lostpassword',
+	'login'
 ]);
 ?>
 
@@ -11,7 +12,7 @@ script('core', [
 <form method="post" name="login">
 	<fieldset>
 	<?php if (!empty($_['redirect_url'])) {
-		print_unescaped('<input type="hidden" name="redirect_url" value="' . OC_Util::sanitizeHTML($_['redirect_url']) . '" />');
+		print_unescaped('<input type="hidden" name="redirect_url" value="' . OC_Util::sanitizeHTML($_['redirect_url']) . '">');
 	} ?>
 		<?php if (isset($_['apacheauthfailed']) && ($_['apacheauthfailed'])): ?>
 			<div class="warning">
@@ -77,4 +78,3 @@ script('core', [
 	</fieldset>
 </form>
 <?php }
-

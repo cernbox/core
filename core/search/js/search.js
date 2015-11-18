@@ -94,6 +94,9 @@
 			/**
 			 * Do a search query and display the results
 			 * @param {string} query the search query
+			 * @param inApps
+			 * @param page
+			 * @param size
 			 */
 			this.search = function(query, inApps, page, size) {
 				if (query) {
@@ -125,6 +128,7 @@
 
 						//show spinner
 						$searchResults.removeClass('hidden');
+						$status.addClass('status');
 						$status.html(t('core', 'Searching other places')+'<img class="spinner" alt="search in progress" src="'+OC.webroot+'/core/img/loading.gif" />');
 
 						// do the actual search query
@@ -159,7 +163,8 @@
 			var summaryAndStatusHeight = 118;
 
 			function isStatusOffScreen() {
-				return $searchResults.position() && ($searchResults.position().top + summaryAndStatusHeight > window.innerHeight);
+				return $searchResults.position() &&
+					($searchResults.position().top + summaryAndStatusHeight > window.innerHeight);
 			}
 
 			function placeStatus() {
@@ -209,9 +214,13 @@
 				var count = $searchResults.find('tr.result').length;
 				$status.data('count', count);
 				if (count === 0) {
-					$status.text(t('core', 'No search result in other places'));
+					$status.addClass('emptycontent').removeClass('status');
+					$status.html('');
+					$status.append('<div class="icon-search"></div>');
+					$status.append('<h2>' + t('core', 'No search results in other folders') + '</h2>');
 				} else {
-					$status.text(n('core', '{count} search result in other places', '{count} search results in other places', count, {count:count}));
+					$status.removeClass('emptycontent').addClass('status');
+					$status.text(n('core', '{count} search result in another folder', '{count} search results in other folders', count, {count:count}));
 				}
 			}
 			function renderCurrent() {
@@ -247,10 +256,11 @@
 			 * Event handler for when scrolling the list container.
 			 * This appends/renders the next page of entries when reaching the bottom.
 			 */
-			function onScroll(e) {
+			function onScroll() {
 				if ($searchResults && lastQuery !== false && lastResults.length > 0) {
 					var resultsBottom = $searchResults.offset().top + $searchResults.height();
-					var containerBottom = $searchResults.offsetParent().offset().top + $searchResults.offsetParent().height();
+					var containerBottom = $searchResults.offsetParent().offset().top +
+						$searchResults.offsetParent().height();
 					if ( resultsBottom < containerBottom * 1.2 ) {
 						self.search(lastQuery, lastInApps, lastPage + 1);
 					}
@@ -284,7 +294,7 @@
 				event.preventDefault();
 			});
 
-			$searchBox.on('search', function (event) {
+			$searchBox.on('search', function () {
 				if($searchBox.val() === '') {
 					if(self.hasFilter(getCurrentApp())) {
 						self.getFilter(getCurrentApp())('');
@@ -353,6 +363,14 @@
 			placeStatus();
 
 			OC.Plugins.attach('OCA.Search', this);
+			
+			// hide search file if search is not enabled
+			if(self.hasFilter(getCurrentApp())) {
+				return;
+			}
+			if ($searchResults.length === 0) {
+				$searchBox.hide();
+			}
 		}
 	};
 	OCA.Search = Search;

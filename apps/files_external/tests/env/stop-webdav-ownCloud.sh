@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # ownCloud
 #
@@ -17,16 +17,11 @@ fi
 echo "Docker executable found - stop and remove docker containers"
 
 # retrieve current folder to remove the config from the parent folder
-thisFolder=`echo $0 | replace "env/stop-webdav-ownCloud.sh" ""`
+thisFolder=`echo $0 | sed 's#env/stop-webdav-ownCloud\.sh##'`
 
-echo "DEBUG"
-
-netstat -tlpen
-
-echo "CONFIG:"
-
-cat $thisFolder/config.webdav.php
-cat $thisFolder/dockerContainerOwnCloud.$EXECUTOR_NUMBER.webdav
+if [ -z "$thisFolder" ]; then
+    thisFolder="."
+fi;
 
 # stopping and removing docker containers
 for container in `cat $thisFolder/dockerContainerOwnCloud.$EXECUTOR_NUMBER.webdav`; do

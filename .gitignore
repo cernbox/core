@@ -11,6 +11,8 @@
 /apps*/*
 !/apps/files
 !/apps/files_encryption
+!/apps/encryption
+!/apps/encryption_dummy
 !/apps/files_external
 !/apps/files_sharing
 !/apps/files_trashbin
@@ -27,8 +29,9 @@
 
 
 
-# ignore themes except the README
+# ignore themes except the example and the README
 /themes/*
+!/themes/example
 !/themes/README
 
 # just sane ignores
@@ -109,3 +112,5 @@ Vagrantfile
 /tests/autotest*
 /tests/data/lorem-copy.txt
 /tests/data/testimage-copy.png
+/config/config-autotest-backup.php
+/config/autoconfig.php

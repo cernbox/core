@@ -74,8 +74,8 @@ class Test_Share extends \Test\TestCase {
 		OCP\Share::registerBackend('test', 'Test_Share_Backend');
 		OC_Hook::clear('OCP\\Share');
 		OC::registerShareHooks();
-		$this->resharing = OC_Appconfig::getValue('core', 'shareapi_allow_resharing', 'yes');
-		OC_Appconfig::setValue('core', 'shareapi_allow_resharing', 'yes');
+		$this->resharing = \OC::$server->getAppConfig()->getValue('core', 'shareapi_allow_resharing', 'yes');
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_allow_resharing', 'yes');
 
 		// 20 Minutes in the past, 20 minutes in the future.
 		$now = time();
@@ -87,7 +87,7 @@ class Test_Share extends \Test\TestCase {
 	protected function tearDown() {
 		$query = OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `item_type` = ?');
 		$query->execute(array('test'));
-		OC_Appconfig::setValue('core', 'shareapi_allow_resharing', $this->resharing);
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_allow_resharing', $this->resharing);
 
 		OC_User::deleteUser($this->user1);
 		OC_User::deleteUser($this->user2);
@@ -101,7 +101,14 @@ class Test_Share extends \Test\TestCase {
 		OC_Group::deleteGroup($this->group2);
 		OC_Group::deleteGroup($this->groupAndUser);
 
+		$this->logout();
 		parent::tearDown();
+	}
+	
+	protected function setHttpHelper($httpHelper) {
+		\OC::$server->registerService('HTTPHelper', function () use ($httpHelper) {
+			return $httpHelper;
+		});
 	}
 
 	public function testShareInvalidShareType() {
@@ -211,7 +218,7 @@ class Test_Share extends \Test\TestCase {
 
 	public function testShareWithUser() {
 		// Invalid shares
-		$message = 'Sharing test.txt failed, because the user '.$this->user1.' is the item owner';
+		$message = 'Sharing test.txt failed, because you can not share with yourself';
 		try {
 			OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_READ);
 			$this->fail('Exception was expected: '.$message);
@@ -248,7 +255,7 @@ class Test_Share extends \Test\TestCase {
 
 		// Attempt to share back
 		OC_User::setUserId($this->user2);
-		$message = 'Sharing test.txt failed, because the user '.$this->user1.' is the original sharer';
+		$message = 'Sharing failed, because the user '.$this->user1.' is the original sharer';
 		try {
 			OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_READ);
 			$this->fail('Exception was expected: '.$message);
@@ -387,6 +394,46 @@ class Test_Share extends \Test\TestCase {
 		$share = reset($shares);
 		$this->assertSame(\OCP\Share::SHARE_TYPE_USER, $share['share_type']);
 	}
+	
+	public function testGetShareFromOutsideFilesFolder() {
+		OC_User::setUserId($this->user1);
+		$view = new \OC\Files\View('/' . $this->user1 . '/');
+		$view->mkdir('files/test');
+		$view->mkdir('files/test/sub');
+	
+		$view->mkdir('files_trashbin');
+		$view->mkdir('files_trashbin/files');
+	
+		$fileInfo = $view->getFileInfo('files/test/sub');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
+				'Failed asserting that user 1 successfully shared "test/sub" with user 2.'
+				);
+	
+		$result = OCP\Share::getItemShared('folder', $fileId, Test_Share_Backend::FORMAT_SOURCE);
+		$this->assertNotEmpty($result);
+	
+		$result = OCP\Share::getItemSharedWithUser('folder', $fileId, $this->user2);
+		$this->assertNotEmpty($result);
+	
+		$result = OCP\Share::getItemsSharedWithUser('folder', $this->user2);
+		$this->assertNotEmpty($result);
+	
+		// move to trash (keeps file id)
+		$view->rename('files/test', 'files_trashbin/files/test');
+	
+		$result = OCP\Share::getItemShared('folder', $fileId, Test_Share_Backend::FORMAT_SOURCE);
+		$this->assertEmpty($result, 'Share must not be returned for files outside of "files"');
+	
+		$result = OCP\Share::getItemSharedWithUser('folder', $fileId, $this->user2);
+		$this->assertEmpty($result, 'Share must not be returned for files outside of "files"');
+	
+		$result = OCP\Share::getItemsSharedWithUser('folder', $this->user2);
+		$this->assertEmpty($result, 'Share must not be returned for files outside of "files"');
+	}
 
 	public function testSetExpireDateInPast() {
 		OC_User::setUserId($this->user1);
@@ -440,8 +487,8 @@ class Test_Share extends \Test\TestCase {
 		);
 
 		// exclude group2 from sharing
-		\OC_Appconfig::setValue('core', 'shareapi_exclude_groups_list', $this->group2);
-		\OC_Appconfig::setValue('core', 'shareapi_exclude_groups', "yes");
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_exclude_groups_list', $this->group2);
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_exclude_groups', "yes");
 
 		OC_User::setUserId($this->user4);
 
@@ -450,9 +497,78 @@ class Test_Share extends \Test\TestCase {
 		$this->assertSame(\OCP\Constants::PERMISSION_ALL & ~\OCP\Constants::PERMISSION_SHARE, $share['permissions'],
 				'Failed asserting that user 4 is excluded from re-sharing');
 
-		\OC_Appconfig::deleteKey('core', 'shareapi_exclude_groups_list');
-		\OC_Appconfig::deleteKey('core', 'shareapi_exclude_groups');
+		\OC::$server->getAppConfig()->deleteKey('core', 'shareapi_exclude_groups_list');
+		\OC::$server->getAppConfig()->deleteKey('core', 'shareapi_exclude_groups');
 
+	}
+	
+	public function testSharingAFolderThatIsSharedWithAGroupOfTheOwner() {
+		OC_User::setUserId($this->user1);
+		$view = new \OC\Files\View('/' . $this->user1 . '/');
+		$view->mkdir('files/test');
+		$view->mkdir('files/test/sub1');
+		$view->mkdir('files/test/sub1/sub2');
+	
+		$fileInfo = $view->getFileInfo('files/test/sub1');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_GROUP, $this->group1, \OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_CREATE),
+				'Failed asserting that user 1 successfully shared "test/sub1" with group 1.'
+				);
+	
+		$result = OCP\Share::getItemShared('folder', $fileId, Test_Share_Backend::FORMAT_SOURCE);
+		$this->assertNotEmpty($result);
+		$this->assertEquals(\OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_CREATE, $result['permissions']);
+	
+		$fileInfo = $view->getFileInfo('files/test/sub1/sub2');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user4, \OCP\Constants::PERMISSION_READ),
+				'Failed asserting that user 1 successfully shared "test/sub1/sub2" with user 4.'
+				);
+	
+		$result = OCP\Share::getItemShared('folder', $fileId, Test_Share_Backend::FORMAT_SOURCE);
+		$this->assertNotEmpty($result);
+		$this->assertEquals(\OCP\Constants::PERMISSION_READ, $result['permissions']);
+	}
+	
+	public function testSharingAFileInsideAFolderThatIsAlreadyShared() {
+		OC_User::setUserId($this->user1);
+		$view = new \OC\Files\View('/' . $this->user1 . '/');
+		$view->mkdir('files/test');
+		$view->mkdir('files/test/sub1');
+		$view->file_put_contents('files/test/sub1/file.txt', 'abc');
+	
+		$folderInfo = $view->getFileInfo('files/test/sub1');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $folderInfo);
+		$folderId = $folderInfo->getId();
+	
+		$fileInfo = $view->getFileInfo('files/test/sub1/file.txt');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $folderId, OCP\Share::SHARE_TYPE_GROUP, $this->group2, \OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_UPDATE),
+				'Failed asserting that user 1 successfully shared "test/sub1" with group 2.'
+				);
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('file', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
+				'Failed asserting that user 1 successfully shared "test/sub1/file.txt" with user 2.'
+				);
+	
+		$result = \OCP\Share::getItemsSharedWithUser('file', $this->user2);
+		$this->assertCount(2, $result);
+	
+		foreach ($result as $share) {
+			$itemName = substr($share['path'], strrpos($share['path'], '/'));
+			$this->assertSame($itemName, $share['file_target'], 'Asserting that the file_target is the last segment of the path');
+			$this->assertSame($share['item_target'], '/' . $share['item_source'], 'Asserting that the item is the item that was shared');
+		}
 	}
 
 	protected function shareUserOneTestFileWithGroupOne() {
@@ -491,8 +607,8 @@ class Test_Share extends \Test\TestCase {
 		} catch (Exception $exception) {
 			$this->assertEquals($message, $exception->getMessage());
 		}
-		$policy = OC_Appconfig::getValue('core', 'shareapi_only_share_with_group_members', 'no');
-		OC_Appconfig::setValue('core', 'shareapi_only_share_with_group_members', 'yes');
+		$policy = \OC::$server->getAppConfig()->getValue('core', 'shareapi_only_share_with_group_members', 'no');
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_only_share_with_group_members', 'yes');
 		$message = 'Sharing test.txt failed, because '.$this->user1.' is not a member of the group '.$this->group2;
 		try {
 			OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_GROUP, $this->group2, \OCP\Constants::PERMISSION_READ);
@@ -500,10 +616,16 @@ class Test_Share extends \Test\TestCase {
 		} catch (Exception $exception) {
 			$this->assertEquals($message, $exception->getMessage());
 		}
-		OC_Appconfig::setValue('core', 'shareapi_only_share_with_group_members', $policy);
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_only_share_with_group_members', $policy);
 
 		// Valid share
 		$this->shareUserOneTestFileWithGroupOne();
+		
+		// check if only the group share was created and not a single db-entry for each user
+		$statement = \OCP\DB::prepare('select `id` from `*PREFIX*share`');
+		$query = $statement->execute();
+		$result = $query->fetchAll();
+		$this->assertSame(1, count($result));
 
 		// Attempt to share again
 		OC_User::setUserId($this->user1);
@@ -517,7 +639,7 @@ class Test_Share extends \Test\TestCase {
 
 		// Attempt to share back to owner of group share
 		OC_User::setUserId($this->user2);
-		$message = 'Sharing test.txt failed, because the user '.$this->user1.' is the original sharer';
+		$message = 'Sharing failed, because the user '.$this->user1.' is the original sharer';
 		try {
 			OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_READ);
 			$this->fail('Exception was expected: '.$message);
@@ -713,6 +835,7 @@ class Test_Share extends \Test\TestCase {
 
 	/**
 	 * @param boolean|string $token
+	 * @return array
 	 */
 	protected function getShareByValidToken($token) {
 		$row = OCP\Share::getShareByToken($token);
@@ -811,6 +934,43 @@ class Test_Share extends \Test\TestCase {
 		}
 		$this->assertEmpty($expected, 'did not found all expected values');
 	}
+	
+	public function testGetShareSubItemsWhenUserNotInGroup() {
+		OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_GROUP, $this->group1, \OCP\Constants::PERMISSION_READ);
+	
+		$result = \OCP\Share::getItemsSharedWithUser('test', $this->user2);
+		$this->assertCount(1, $result);
+	
+		$groupShareId = array_keys($result)[0];
+	
+		// remove user from group
+		$userObject = \OC::$server->getUserManager()->get($this->user2);
+		\OC::$server->getGroupManager()->get($this->group1)->removeUser($userObject);
+	
+		$result = \OCP\Share::getItemsSharedWithUser('test', $this->user2);
+		$this->assertCount(0, $result);
+	
+		// test with buggy data
+		$qb = \OC::$server->getDatabaseConnection()->getQueryBuilder();
+		$qb->insert('share')
+		->values([
+				'share_type' => $qb->expr()->literal(2), // group sub-share
+				'share_with' => $qb->expr()->literal($this->user2),
+				'parent' => $qb->expr()->literal($groupShareId),
+				'uid_owner' => $qb->expr()->literal($this->user1),
+				'item_type' => $qb->expr()->literal('test'),
+				'item_source' => $qb->expr()->literal('test.txt'),
+				'item_target' => $qb->expr()->literal('test.txt'),
+				'file_target' => $qb->expr()->literal('test2.txt'),
+				'permissions' => $qb->expr()->literal(1),
+				'stime' => $qb->expr()->literal(time()),
+		])->execute();
+	
+		$result = \OCP\Share::getItemsSharedWithUser('test', $this->user2);
+		$this->assertCount(0, $result);
+	
+		$qb->delete('share')->execute();
+	}
 
 	public function testShareItemWithLink() {
 		OC_User::setUserId($this->user1);
@@ -857,8 +1017,10 @@ class Test_Share extends \Test\TestCase {
 	public function testShareItemWithLinkAndDefaultExpireDate() {
 		OC_User::setUserId($this->user1);
 
-		\OC_Appconfig::setValue('core', 'shareapi_default_expire_date', 'yes');
-		\OC_Appconfig::setValue('core', 'shareapi_expire_after_n_days', '2');
+		$config = \OC::$server->getConfig();
+
+		$config->setAppValue('core', 'shareapi_default_expire_date', 'yes');
+		$config->setAppValue('core', 'shareapi_expire_after_n_days', '2');
 
 		$token = OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_LINK, null, \OCP\Constants::PERMISSION_READ);
 		$this->assertInternalType(
@@ -875,9 +1037,38 @@ class Test_Share extends \Test\TestCase {
 			'Failed asserting that the returned row has an default expiration date.'
 		);
 
-		\OC_Appconfig::deleteKey('core', 'shareapi_default_expire_date');
-		\OC_Appconfig::deleteKey('core', 'shareapi_expire_after_n_days');
+		$config->deleteAppValue('core', 'shareapi_default_expire_date');
+		$config->deleteAppValue('core', 'shareapi_expire_after_n_days');
 
+	}
+	
+	public function dataShareWithRemoteUserAndRemoteIsInvalid() {
+		return [
+				// Invalid path
+				array('user@'),
+	
+				// Invalid user
+				array('@server'),
+				array('us/er@server'),
+				array('us:er@server'),
+	
+				// Invalid splitting
+				array('user'),
+				array(''),
+				array('us/erserver'),
+				array('us:erserver'),
+		];
+	}
+	
+	/**
+	 * @dataProvider dataShareWithRemoteUserAndRemoteIsInvalid
+	 *
+	 * @param string $remoteId
+	 * @expectedException \OC\HintException
+	 */
+	public function testShareWithRemoteUserAndRemoteIsInvalid($remoteId) {
+		OC_User::setUserId($this->user1);
+		OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_REMOTE, $remoteId, \OCP\Constants::PERMISSION_ALL);
 	}
 
 	public function testUnshareAll() {
@@ -963,7 +1154,7 @@ class Test_Share extends \Test\TestCase {
 	 */
 	function testRemoveProtocolFromUrl($url, $expectedResult) {
 		$share = new \OC\Share\Share();
-		$result = \Test_Helper::invokePrivate($share, 'removeProtocolFromUrl', array($url));
+		$result = self::invokePrivate($share, 'removeProtocolFromUrl', array($url));
 		$this->assertSame($expectedResult, $result);
 	}
 
@@ -974,11 +1165,59 @@ class Test_Share extends \Test\TestCase {
 			array('owncloud.org', 'owncloud.org'),
 		);
 	}
+	
+	public function dataRemoteShareUrlCalls() {
+		return [
+				['admin@localhost', 'localhost'],
+				['admin@https://localhost', 'localhost'],
+				['admin@http://localhost', 'localhost'],
+				['admin@localhost/subFolder', 'localhost/subFolder'],
+		];
+	}
+	
+	/**
+	 * @dataProvider dataRemoteShareUrlCalls
+	 *
+	 * @param string $shareWith
+	 * @param string $urlHost
+	 */
+	public function testRemoteShareUrlCalls($shareWith, $urlHost) {
+		$oldHttpHelper = \OC::$server->query('HTTPHelper');
+		$httpHelperMock = $this->getMockBuilder('OC\HttpHelper')
+		->disableOriginalConstructor()
+		->getMock();
+		$this->setHttpHelper($httpHelperMock);
+	
+		$httpHelperMock->expects($this->at(0))
+		->method('post')
+		->with($this->stringStartsWith('https://' . $urlHost . '/ocs/v1.php/cloud/shares'), $this->anything())
+		->willReturn(['success' => false, 'result' => 'Exception']);
+		$httpHelperMock->expects($this->at(1))
+		->method('post')
+		->with($this->stringStartsWith('http://' . $urlHost . '/ocs/v1.php/cloud/shares'), $this->anything())
+		->willReturn(['success' => true, 'result' => json_encode(['ocs' => ['meta' => ['statuscode' => 100]]])]);
+	
+		\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_REMOTE, $shareWith, \OCP\Constants::PERMISSION_READ);
+		$shares = \OCP\Share::getItemShared('test', 'test.txt');
+		$share = array_shift($shares);
+	
+		$httpHelperMock->expects($this->at(0))
+		->method('post')
+		->with($this->stringStartsWith('https://' . $urlHost . '/ocs/v1.php/cloud/shares/' . $share['id'] . '/unshare'), $this->anything())
+		->willReturn(['success' => false, 'result' => 'Exception']);
+		$httpHelperMock->expects($this->at(1))
+		->method('post')
+		->with($this->stringStartsWith('http://' . $urlHost . '/ocs/v1.php/cloud/shares/' . $share['id'] . '/unshare'), $this->anything())
+		->willReturn(['success' => true, 'result' => json_encode(['ocs' => ['meta' => ['statuscode' => 100]]])]);
+	
+		\OCP\Share::unshare('test', 'test.txt', \OCP\Share::SHARE_TYPE_REMOTE, $shareWith);
+		$this->setHttpHelper($oldHttpHelper);
+	}
 
 	/**
 	 * @dataProvider dataProviderTestGroupItems
-	 * @param type $ungrouped
-	 * @param type $grouped
+	 * @param array $ungrouped
+	 * @param array $grouped
 	 */
 	function testGroupItems($ungrouped, $grouped) {
 
@@ -1050,6 +1289,487 @@ class Test_Share extends \Test\TestCase {
 					)
 				),
 		);
+	}
+	function dataProviderTestGroupItems() {
+		return array(
+				// one array with one share
+				array(
+						array( // input
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_ALL, 'item_target' => 't1')),
+						array( // expected result
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_ALL, 'item_target' => 't1'))),
+				// two shares both point to the same source
+				array(
+						array( // input
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
+						),
+						array( // expected result
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1',
+										'grouped' => array(
+												array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
+												array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
+										)
+								),
+						)
+				),
+				// two shares both point to the same source but with different targets
+				array(
+						array( // input
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't2'),
+						),
+						array( // expected result
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't2'),
+						)
+				),
+				// three shares two point to the same source
+				array(
+						array( // input
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
+								array('item_source' => 2, 'permissions' => \OCP\Constants::PERMISSION_CREATE, 'item_target' => 't2'),
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
+						),
+						array( // expected result
+								array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1',
+										'grouped' => array(
+												array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
+												array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
+										)
+								),
+								array('item_source' => 2, 'permissions' => \OCP\Constants::PERMISSION_CREATE, 'item_target' => 't2'),
+						)
+				),
+		);
+	}
+	
+	/**
+	 * Ensure that we do not allow removing a an expiration date from a link share if this
+	 * is enforced by the settings.
+	 */
+	public function testClearExpireDateWhileEnforced() {
+		OC_User::setUserId($this->user1);
+	
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_default_expire_date', 'yes');
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_expire_after_n_days', '2');
+		\OC::$server->getAppConfig()->setValue('core', 'shareapi_enforce_expire_date', 'yes');
+	
+		$token = OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_LINK, null, \OCP\Constants::PERMISSION_READ);
+		$this->assertInternalType(
+				'string',
+				$token,
+				'Failed asserting that user 1 successfully shared text.txt as link with token.'
+				);
+	
+		$setExpireDateFailed = false;
+		try {
+			$this->assertTrue(
+					OCP\Share::setExpirationDate('test', 'test.txt', '', ''),
+					'Failed asserting that user 1 successfully set an expiration date for the test.txt share.'
+					);
+		} catch (\Exception $e) {
+			$setExpireDateFailed = true;
+		}
+	
+		$this->assertTrue($setExpireDateFailed);
+	
+		\OC::$server->getAppConfig()->deleteKey('core', 'shareapi_default_expire_date');
+		\OC::$server->getAppConfig()->deleteKey('core', 'shareapi_expire_after_n_days');
+		\OC::$server->getAppConfig()->deleteKey('core', 'shareapi_enforce_expire_date');
+	}
+	
+	/**
+	 * Cannot set password is there is no user
+	 *
+	 * @expectedException Exception
+	 * @expectedExceptionMessage User not logged in
+	 */
+	public function testSetPasswordNoUser() {
+		$userSession = $this->getMockBuilder('\OCP\IUserSession')
+		->disableOriginalConstructor()
+		->getMock();
+	
+		$connection  = $this->getMockBuilder('\OC\DB\Connection')
+		->disableOriginalConstructor()
+		->getMock();
+	
+		$config = $this->getMockBuilder('\OCP\IConfig')
+		->disableOriginalConstructor()
+		->getMock();
+	
+		\OC\Share\Share::setPassword($userSession, $connection, $config, 1, 'pass');
+	}
+	
+	public function testPasswords() {
+		$pass = 'secret';
+	
+		$this->shareUserTestFileAsLink();
+	
+		$userSession = \OC::$server->getUserSession();
+		$connection = \OC::$server->getDatabaseConnection();
+		$config = $this->getMockBuilder('\OCP\IConfig')
+		->disableOriginalConstructor()
+		->getMock();
+	
+		// Find the share ID in the db
+		$qb = $connection->getQueryBuilder();
+		$qb->select('id')
+		->from('share')
+		->where($qb->expr()->eq('item_type', $qb->createParameter('type')))
+		->andWhere($qb->expr()->eq('item_source', $qb->createParameter('source')))
+		->andWhere($qb->expr()->eq('uid_owner', $qb->createParameter('owner')))
+		->andWhere($qb->expr()->eq('share_type', $qb->createParameter('share_type')))
+		->setParameter('type', 'test')
+		->setParameter('source', 'test.txt')
+		->setParameter('owner', $this->user1)
+		->setParameter('share_type', \OCP\Share::SHARE_TYPE_LINK);
+	
+		$res = $qb->execute()->fetchAll();
+		$this->assertCount(1, $res);
+		$id = $res[0]['id'];
+	
+		// Set password on share
+		$res = \OC\Share\Share::setPassword($userSession, $connection, $config, $id, $pass);
+		$this->assertTrue($res);
+	
+		// Fetch the hash from the database
+		$qb = $connection->getQueryBuilder();
+		$qb->select('share_with')
+		->from('share')
+		->where($qb->expr()->eq('id', $qb->createParameter('id')))
+		->setParameter('id', $id);
+		$hash = $qb->execute()->fetch()['share_with'];
+	
+		$hasher = \OC::$server->getHasher();
+	
+		// Verify hash
+		$this->assertTrue($hasher->verify($pass, $hash));
+	}
+	
+	/**
+	 * Test setting a password when everything is fine
+	 */
+	public function testSetPassword() {
+		$user = $this->getMockBuilder('\OCP\IUser')
+		->disableOriginalConstructor()
+		->getMock();
+		$user->method('getUID')->willReturn('user');
+	
+		$userSession = $this->getMockBuilder('\OCP\IUserSession')
+		->disableOriginalConstructor()
+		->getMock();
+		$userSession->method('getUser')->willReturn($user);
+	
+	
+		$ex = $this->getMockBuilder('\OC\DB\QueryBuilder\ExpressionBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb = $this->getMockBuilder('\OC\DB\QueryBuilder\QueryBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb->method('update')->will($this->returnSelf());
+		$qb->method('set')->will($this->returnSelf());
+		$qb->method('where')->will($this->returnSelf());
+		$qb->method('andWhere')->will($this->returnSelf());
+		$qb->method('select')->will($this->returnSelf());
+		$qb->method('from')->will($this->returnSelf());
+		$qb->method('setParameter')->will($this->returnSelf());
+		$qb->method('expr')->willReturn($ex);
+	
+		$ret = $this->getMockBuilder('\Doctrine\DBAL\Driver\ResultStatement')
+		->disableOriginalConstructor()
+		->getMock();
+		$ret->method('fetch')->willReturn(['uid_owner' => 'user']);
+		$qb->method('execute')->willReturn($ret);
+	
+	
+		$connection  = $this->getMockBuilder('\OC\DB\Connection')
+		->disableOriginalConstructor()
+		->getMock();
+		$connection->method('getQueryBuilder')->willReturn($qb);
+	
+		$config = $this->getMockBuilder('\OCP\IConfig')
+		->disableOriginalConstructor()
+		->getMock();
+	
+	
+		$res = \OC\Share\Share::setPassword($userSession, $connection, $config, 1, 'pass');
+	
+		$this->assertTrue($res);
+	}
+	
+	/**
+	 * @expectedException Exception
+	 * @expectedExceptionMessage Cannot remove password
+	 *
+	 * Test removing a password when password is enforced
+	 */
+	public function testSetPasswordRemove() {
+		$user = $this->getMockBuilder('\OCP\IUser')
+		->disableOriginalConstructor()
+		->getMock();
+		$user->method('getUID')->willReturn('user');
+	
+		$userSession = $this->getMockBuilder('\OCP\IUserSession')
+		->disableOriginalConstructor()
+		->getMock();
+		$userSession->method('getUser')->willReturn($user);
+	
+	
+		$ex = $this->getMockBuilder('\OC\DB\QueryBuilder\ExpressionBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb = $this->getMockBuilder('\OC\DB\QueryBuilder\QueryBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb->method('update')->will($this->returnSelf());
+		$qb->method('select')->will($this->returnSelf());
+		$qb->method('from')->will($this->returnSelf());
+		$qb->method('set')->will($this->returnSelf());
+		$qb->method('where')->will($this->returnSelf());
+		$qb->method('andWhere')->will($this->returnSelf());
+		$qb->method('setParameter')->will($this->returnSelf());
+		$qb->method('expr')->willReturn($ex);
+	
+		$ret = $this->getMockBuilder('\Doctrine\DBAL\Driver\ResultStatement')
+		->disableOriginalConstructor()
+		->getMock();
+		$ret->method('fetch')->willReturn(['uid_owner' => 'user']);
+		$qb->method('execute')->willReturn($ret);
+	
+	
+		$connection  = $this->getMockBuilder('\OC\DB\Connection')
+		->disableOriginalConstructor()
+		->getMock();
+		$connection->method('getQueryBuilder')->willReturn($qb);
+	
+		$config = $this->getMockBuilder('\OCP\IConfig')
+		->disableOriginalConstructor()
+		->getMock();
+		$config->method('getAppValue')->willReturn('yes');
+	
+		\OC\Share\Share::setPassword($userSession, $connection, $config, 1, '');
+	}
+	
+	/**
+	 * @expectedException Exception
+	 * @expectedExceptionMessage Share not found
+	 *
+	 * Test modification of invaid share
+	 */
+	public function testSetPasswordInvalidShare() {
+		$user = $this->getMockBuilder('\OCP\IUser')
+		->disableOriginalConstructor()
+		->getMock();
+		$user->method('getUID')->willReturn('user');
+	
+		$userSession = $this->getMockBuilder('\OCP\IUserSession')
+		->disableOriginalConstructor()
+		->getMock();
+		$userSession->method('getUser')->willReturn($user);
+	
+	
+		$ex = $this->getMockBuilder('\OC\DB\QueryBuilder\ExpressionBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb = $this->getMockBuilder('\OC\DB\QueryBuilder\QueryBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb->method('update')->will($this->returnSelf());
+		$qb->method('set')->will($this->returnSelf());
+		$qb->method('where')->will($this->returnSelf());
+		$qb->method('andWhere')->will($this->returnSelf());
+		$qb->method('select')->will($this->returnSelf());
+		$qb->method('from')->will($this->returnSelf());
+		$qb->method('setParameter')->will($this->returnSelf());
+		$qb->method('expr')->willReturn($ex);
+	
+		$ret = $this->getMockBuilder('\Doctrine\DBAL\Driver\ResultStatement')
+		->disableOriginalConstructor()
+		->getMock();
+		$ret->method('fetch')->willReturn([]);
+		$qb->method('execute')->willReturn($ret);
+	
+	
+		$connection  = $this->getMockBuilder('\OC\DB\Connection')
+		->disableOriginalConstructor()
+		->getMock();
+		$connection->method('getQueryBuilder')->willReturn($qb);
+	
+		$config = $this->getMockBuilder('\OCP\IConfig')
+		->disableOriginalConstructor()
+		->getMock();
+	
+	
+		\OC\Share\Share::setPassword($userSession, $connection, $config, 1, 'pass');
+	}
+	
+	/**
+	 * @expectedException Exception
+	 * @expectedExceptionMessage Cannot update share of a different user
+	 *
+	 * Test modification of share of another user
+	 */
+	public function testSetPasswordShareOtherUser() {
+		$user = $this->getMockBuilder('\OCP\IUser')
+		->disableOriginalConstructor()
+		->getMock();
+		$user->method('getUID')->willReturn('user');
+	
+		$userSession = $this->getMockBuilder('\OCP\IUserSession')
+		->disableOriginalConstructor()
+		->getMock();
+		$userSession->method('getUser')->willReturn($user);
+	
+	
+		$ex = $this->getMockBuilder('\OC\DB\QueryBuilder\ExpressionBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb = $this->getMockBuilder('\OC\DB\QueryBuilder\QueryBuilder')
+		->disableOriginalConstructor()
+		->getMock();
+		$qb->method('update')->will($this->returnSelf());
+		$qb->method('set')->will($this->returnSelf());
+		$qb->method('where')->will($this->returnSelf());
+		$qb->method('andWhere')->will($this->returnSelf());
+		$qb->method('select')->will($this->returnSelf());
+		$qb->method('from')->will($this->returnSelf());
+		$qb->method('setParameter')->will($this->returnSelf());
+		$qb->method('expr')->willReturn($ex);
+	
+		$ret = $this->getMockBuilder('\Doctrine\DBAL\Driver\ResultStatement')
+		->disableOriginalConstructor()
+		->getMock();
+		$ret->method('fetch')->willReturn(['uid_owner' => 'user2']);
+		$qb->method('execute')->willReturn($ret);
+	
+	
+		$connection  = $this->getMockBuilder('\OC\DB\Connection')
+		->disableOriginalConstructor()
+		->getMock();
+		$connection->method('getQueryBuilder')->willReturn($qb);
+	
+		$config = $this->getMockBuilder('\OCP\IConfig')
+		->disableOriginalConstructor()
+		->getMock();
+	
+	
+		\OC\Share\Share::setPassword($userSession, $connection, $config, 1, 'pass');
+	}
+	
+	/**
+	 * Make sure that a user cannot have multiple identical shares to remote users
+	 */
+	public function testOnlyOneRemoteShare() {
+		$oldHttpHelper = \OC::$server->query('HTTPHelper');
+		$httpHelperMock = $this->getMockBuilder('OC\HttpHelper')
+		->disableOriginalConstructor()
+		->getMock();
+		$this->setHttpHelper($httpHelperMock);
+	
+		$httpHelperMock->expects($this->at(0))
+		->method('post')
+		->with($this->stringStartsWith('https://localhost/ocs/v1.php/cloud/shares'), $this->anything())
+		->willReturn(['success' => true, 'result' => json_encode(['ocs' => ['meta' => ['statuscode' => 100]]])]);
+	
+		\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_REMOTE, 'foo@localhost', \OCP\Constants::PERMISSION_READ);
+		$shares = \OCP\Share::getItemShared('test', 'test.txt');
+		$share = array_shift($shares);
+	
+		//Try share again
+		try {
+			\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_REMOTE, 'foo@localhost', \OCP\Constants::PERMISSION_READ);
+			$this->fail('Identical remote shares are not allowed');
+		} catch (\Exception $e) {
+			$this->assertEquals('Sharing test.txt failed, because this item is already shared with foo@localhost', $e->getMessage());
+		}
+	
+		$httpHelperMock->expects($this->at(0))
+		->method('post')
+		->with($this->stringStartsWith('https://localhost/ocs/v1.php/cloud/shares/' . $share['id'] . '/unshare'), $this->anything())
+		->willReturn(['success' => true, 'result' => json_encode(['ocs' => ['meta' => ['statuscode' => 100]]])]);
+	
+		\OCP\Share::unshare('test', 'test.txt', \OCP\Share::SHARE_TYPE_REMOTE, 'foo@localhost');
+		$this->setHttpHelper($oldHttpHelper);
+	}
+	
+	/**
+	 * Test case for #19119
+	 */
+	public function testReshareWithLinkDefaultExpirationDate() {
+		$config = \OC::$server->getConfig();
+		$config->setAppValue('core', 'shareapi_default_expire_date', 'yes');
+		$config->setAppValue('core', 'shareapi_expire_after_n_days', '2');
+	
+		// Expiration date
+		$expireAt = time() + 2 * 24*60*60;
+		$date = new DateTime();
+		$date->setTimestamp($expireAt);
+		$date->setTime(0, 0, 0);
+	
+		//Share a file from user 1 to user 2
+		$this->shareUserTestFileWithUser($this->user1, $this->user2);
+	
+		//User 2 shares as link
+		OC_User::setUserId($this->user2);
+		$result = OCP\Share::shareItem('test', 'test.txt', OCP\Share::SHARE_TYPE_LINK, null, \OCP\Constants::PERMISSION_READ);
+		$this->assertTrue(is_string($result));
+	
+		//Check if expire date is correct
+		$result = OCP\Share::getItemShared('test', 'test.txt');
+		$this->assertCount(1, $result);
+		$result = reset($result);
+		$this->assertNotEmpty($result['expiration']);
+		$expireDate = new DateTime($result['expiration']);
+		$this->assertEquals($date, $expireDate);
+	
+		//Unshare
+		$this->assertTrue(OCP\Share::unshareAll('test', 'test.txt'));
+	
+		//Reset config
+		$config->deleteAppValue('core', 'shareapi_default_expire_date');
+		$config->deleteAppValue('core', 'shareapi_expire_after_n_days');
+	}
+	
+	public function testShareWithSelfError() {
+		OC_User::setUserId($this->user1);
+		$view = new \OC\Files\View('/' . $this->user1 . '/');
+		$view->mkdir('files/folder1');
+	
+		$fileInfo = $view->getFileInfo('files/folder1');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		try {
+			OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_ALL);
+			$this->fail();
+		} catch (\Exception $e) {
+			$this->assertEquals('Sharing /folder1 failed, because you can not share with yourself', $e->getMessage());
+		}
+	}
+	
+	public function testShareWithOwnerError() {
+		OC_User::setUserId($this->user1);
+		$view = new \OC\Files\View('/' . $this->user1 . '/');
+		$view->mkdir('files/folder1');
+	
+		$fileInfo = $view->getFileInfo('files/folder1');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_ALL),
+				'Failed asserting that user 1 successfully shared "test" with user 2.'
+				);
+	
+		OC_User::setUserId($this->user2);
+		try {
+			OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_ALL);
+			$this->fail();
+		} catch (\Exception $e) {
+			$this->assertEquals('Sharing failed, because the user ' . $this->user1 . ' is the original sharer', $e->getMessage());
+		}
 	}
 }
 

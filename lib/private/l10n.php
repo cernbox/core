@@ -1,15 +1,39 @@
 <?php
 /**
- * ownCloud
+ * @author Andreas Ergenzinger <andreas.ergenzinger@gmx.de>
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Felix Moeller <mail@felixmoeller.de>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lennart Rosam <lennart.rosam@medien-systempartner.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Frank Karlitschek
- * @author Jakob Sack
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
- * @copyright 2013 Jakob Sack
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 /**
@@ -56,14 +80,11 @@ class OC_L10N implements \OCP\IL10N {
 	 * get an L10N instance
 	 * @param string $app
 	 * @param string|null $lang
-	 * @return \OC_L10N
+	 * @return \OCP\IL10N
+	 * @deprecated Use \OC::$server->getL10NFactory()->get() instead
 	 */
 	public static function get($app, $lang=null) {
-		if (is_null($lang)) {
-			return OC::$server->getL10N($app);
-		} else {
-			return new \OC_L10N($app, $lang);
-		}
+		return \OC::$server->getL10NFactory()->get($app, $lang);
 	}
 
 	/**
@@ -77,6 +98,40 @@ class OC_L10N implements \OCP\IL10N {
 	public function __construct($app, $lang = null) {
 		$this->app = $app;
 		$this->lang = $lang;
+	}
+
+	/**
+	 * @return string
+	 */
+	public static function setLanguageFromRequest() {
+		if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+			$available = self::findAvailableLanguages();
+
+			// E.g. make sure that 'de' is before 'de_DE'.
+			sort($available);
+
+			$preferences = preg_split('/,\s*/', strtolower($_SERVER['HTTP_ACCEPT_LANGUAGE']));
+			foreach ($preferences as $preference) {
+				list($preferred_language) = explode(';', $preference);
+				$preferred_language = str_replace('-', '_', $preferred_language);
+				foreach ($available as $available_language) {
+					if ($preferred_language === strtolower($available_language)) {
+						self::$language = $available_language;
+						return $available_language;
+					}
+				}
+				foreach ($available as $available_language) {
+					if (substr($preferred_language, 0, 2) === $available_language) {
+						self::$language = $available_language;
+						return $available_language;
+					}
+				}
+			}
+		}
+
+		self::$language = 'en';
+		// Last try: English
+		return 'en';
 	}
 
 	/**
@@ -238,7 +293,7 @@ class OC_L10N implements \OCP\IL10N {
 		$this->init();
 		$identifier = "_${text_singular}_::_${text_plural}_";
 		if( array_key_exists($identifier, $this->translations)) {
-			return new OC_L10N_String($this, $identifier, $parameters, $count, array($text_singular, $text_plural));
+			return new OC_L10N_String( $this, $identifier, $parameters, $count );
 		}else{
 			if($count === 1) {
 				return new OC_L10N_String($this, $text_singular, $parameters, $count);
@@ -317,136 +372,66 @@ class OC_L10N implements \OCP\IL10N {
 		if ($locale === null) {
 			$locale = self::findLanguage();
 		}
+		$locale = $this->transformToCLDRLocale($locale);
 
 		$options = array_merge(array('width' => 'long'), $options);
 		$width = $options['width'];
 		switch($type) {
 			case 'date':
 				return Punic\Calendar::formatDate($value, $width, $locale);
-				break;
 			case 'datetime':
 				return Punic\Calendar::formatDatetime($value, $width, $locale);
-				break;
 			case 'time':
 				return Punic\Calendar::formatTime($value, $width, $locale);
-				break;
 			default:
 				return false;
 		}
 	}
 
 	/**
-	 * Choose a language
-	 * @param array $text Associative Array with possible strings
-	 * @return String
+	 * The code (en, de, ...) of the language that is used for this OC_L10N object
 	 *
-	 * $text is an array 'de' => 'hallo welt', 'en' => 'hello world', ...
-	 *
-	 * This function is useful to avoid loading thousands of files if only one
-	 * simple string is needed, for example in appinfo.php
+	 * @return string language
 	 */
-	public static function selectLanguage($text) {
-		$lang = self::findLanguage(array_keys($text));
-		return $text[$lang];
+	public function getLanguageCode() {
+		return $this->lang ? $this->lang : self::findLanguage();
 	}
-
-	/**
-	 * The given language is forced to be used while executing the current request
-	 * @param string $lang
-	 */
-	public static function forceLanguage($lang) {
-		self::$language = $lang;
-	}
-
 
 	/**
 	 * find the best language
-	 *
-	 * @param array|string $app details below
-	 *
-	 * If $app is an array, ownCloud assumes that these are the available
-	 * languages. Otherwise ownCloud tries to find the files in the l10n
-	 * folder.
-	 *
-	 * If nothing works it returns 'en'
+	 * @param string $app
 	 * @return string language
-	 */
-	public function getLanguageCode($app=null) {
-		return self::findLanguage($app);
-	}
-
-
-	/**
-	 * find the best language
-	 * @param array|string $app details below
-	 * @return string language
-	 *
-	 * If $app is an array, ownCloud assumes that these are the available
-	 * languages. Otherwise ownCloud tries to find the files in the l10n
-	 * folder.
 	 *
 	 * If nothing works it returns 'en'
 	 */
 	public static function findLanguage($app = null) {
-		if(!is_array($app) && self::$language != '') {
+		if(self::$language != '') {
 			return self::$language;
 		}
 
-		if(OC_User::getUser() && \OC::$server->getConfig()->getUserValue(OC_User::getUser(), 'core', 'lang')) {
-			$lang = \OC::$server->getConfig()->getUserValue(OC_User::getUser(), 'core', 'lang');
+		$config = \OC::$server->getConfig();
+		$userId = \OC_User::getUser();
+
+		if($userId && $config->getUserValue($userId, 'core', 'lang')) {
+			$lang = $config->getUserValue($userId, 'core', 'lang');
 			self::$language = $lang;
-			if(is_array($app)) {
-				$available = $app;
-				$lang_exists = array_search($lang, $available) !== false;
-			} else {
-				$lang_exists = self::languageExists($app, $lang);
-			}
-			if($lang_exists) {
+			if(self::languageExists($app, $lang)) {
 				return $lang;
 			}
 		}
 
-		$default_language = \OC::$server->getConfig()->getSystemValue('default_language', false);
+		$default_language = $config->getSystemValue('default_language', false);
 
 		if($default_language !== false) {
 			return $default_language;
 		}
 
-		if(isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-			if(is_array($app)) {
-				$available = $app;
-			} else {
-				$available = self::findAvailableLanguages($app);
-			}
-
-			// E.g. make sure that 'de' is before 'de_DE'.
-			sort($available);
-
-			$preferences = preg_split('/,\s*/', strtolower($_SERVER['HTTP_ACCEPT_LANGUAGE']));
-			foreach($preferences as $preference) {
-				list($preferred_language) = explode(';', $preference);
-				$preferred_language = str_replace('-', '_', $preferred_language);
-				foreach($available as $available_language) {
-					if ($preferred_language === strtolower($available_language)) {
-						if (is_null($app)) {
-							self::$language = $available_language;
-						}
-						return $available_language;
-					}
-				}
-				foreach($available as $available_language) {
-					if (substr($preferred_language, 0, 2) === $available_language) {
-						if (is_null($app)) {
-							self::$language = $available_language;
-						}
-						return $available_language;
-					}
-				}
-			}
+		$lang = self::setLanguageFromRequest();
+		if($userId && !$config->getUserValue($userId, 'core', 'lang')) {
+			$config->setUserValue($userId, 'core', 'lang', $lang);
 		}
 
-		// Last try: English
-		return 'en';
+		return $lang;
 	}
 
 	/**
@@ -475,8 +460,9 @@ class OC_L10N implements \OCP\IL10N {
 	 * @return array an array of available languages
 	 */
 	public static function findAvailableLanguages($app=null) {
-		if(!empty(self::$availableLanguages)) {
-			return self::$availableLanguages;
+		// also works with null as key
+		if(isset(self::$availableLanguages[$app]) && !empty(self::$availableLanguages[$app])) {
+			return self::$availableLanguages[$app];
 		}
 		$available=array('en');//english is always available
 		$dir = self::findI18nDir($app);
@@ -490,7 +476,7 @@ class OC_L10N implements \OCP\IL10N {
 			}
 		}
 
-		self::$availableLanguages = $available;
+		self::$availableLanguages[$app] = $available;
 		return $available;
 	}
 
@@ -515,7 +501,8 @@ class OC_L10N implements \OCP\IL10N {
 	 * @throws \Punic\Exception\ValueNotInList
 	 */
 	public function getDateFormat() {
-		$locale = self::findLanguage();
+		$locale = $this->getLanguageCode();
+		$locale = $this->transformToCLDRLocale($locale);
 		return Punic\Calendar::getDateFormat('short', $locale);
 	}
 
@@ -523,7 +510,16 @@ class OC_L10N implements \OCP\IL10N {
 	 * @return int
 	 */
 	public function getFirstWeekDay() {
-		$locale = self::findLanguage();
+		$locale = $this->getLanguageCode();
+		$locale = $this->transformToCLDRLocale($locale);
 		return Punic\Calendar::getFirstWeekday($locale);
+	}
+
+	private function transformToCLDRLocale($locale) {
+		if ($locale === 'sr@latin') {
+			return 'sr_latn';
+		}
+
+		return $locale;
 	}
 }

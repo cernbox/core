@@ -1,22 +1,24 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Thomas Müller
- * @copyright 2012 Thomas Müller thomas.mueller@tmit.eu
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -28,16 +30,24 @@
 // use OCP namespace for all classes that are considered public.
 // This means that they should be used by apps instead of the internal ownCloud classes
 namespace OCP {
+	/**
+	 * Interface IAddressBook
+	 *
+	 * @package OCP
+	 * @since 5.0.0
+	 */
 	interface IAddressBook {
 
 		/**
 		 * @return string defining the technical unique key
+		 * @since 5.0.0
 		 */
 		public function getKey();
 
 		/**
 		 * In comparison to getKey() this function returns a human readable (maybe translated) name
 		 * @return mixed
+		 * @since 5.0.0
 		 */
 		public function getDisplayName();
 
@@ -46,6 +56,7 @@ namespace OCP {
 		 * @param array $searchProperties defines the properties within the query pattern should match
 		 * @param array $options - for future use. One should always have options!
 		 * @return array an array of contacts which are arrays of key-value-pairs
+		 * @since 5.0.0
 		 */
 		public function search($pattern, $searchProperties, $options);
 		//	// dummy results
@@ -57,6 +68,7 @@ namespace OCP {
 		/**
 		 * @param array $properties this array if key-value-pairs defines a contact
 		 * @return array an array representing the contact just created or updated
+		 * @since 5.0.0
 		 */
 		public function createOrUpdate($properties);
 		//	// dummy
@@ -67,12 +79,14 @@ namespace OCP {
 
 		/**
 		 * @return mixed
+		 * @since 5.0.0
 		 */
 		public function getPermissions();
 
 		/**
 		 * @param object $id the unique identifier to a contact
 		 * @return bool successful or not
+		 * @since 5.0.0
 		 */
 		public function delete($id);
 	}

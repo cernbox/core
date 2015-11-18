@@ -1,14 +1,31 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Node;
 
-use OC\Files\Cache\Cache;
+use OCP\Files\FileInfo;
 use OCP\Files\NotFoundException;
 use OCP\Files\NotPermittedException;
 
@@ -60,76 +77,15 @@ class Folder extends Node implements \OCP\Files\Folder {
 	 * @return Node[]
 	 */
 	public function getDirectoryListing() {
-		$result = array();
+		$folderContent = $this->view->getDirectoryContent($this->path);
 
-		/**
-		 * @var \OC\Files\Storage\Storage $storage
-		 */
-		list($storage, $internalPath) = $this->view->resolvePath($this->path);
-		if ($storage) {
-			$cache = $storage->getCache($internalPath);
-
-			//trigger cache update check
-			$this->view->getFileInfo($this->path);
-
-			$files = $cache->getFolderContents($internalPath);
-		} else {
-			$files = array();
-		}
-
-		//add a folder for any mountpoint in this directory and add the sizes of other mountpoints to the folders
-		$mounts = $this->root->getMountsIn($this->path);
-		$dirLength = strlen($this->path);
-		foreach ($mounts as $mount) {
-			$subStorage = $mount->getStorage();
-			if ($subStorage) {
-				$subCache = $subStorage->getCache('');
-
-				if ($subCache->getStatus('') === Cache::NOT_FOUND) {
-					$subScanner = $subStorage->getScanner('');
-					$subScanner->scanFile('');
-				}
-
-				$rootEntry = $subCache->get('');
-				if ($rootEntry) {
-					$relativePath = trim(substr($mount->getMountPoint(), $dirLength), '/');
-					if ($pos = strpos($relativePath, '/')) {
-						//mountpoint inside subfolder add size to the correct folder
-						$entryName = substr($relativePath, 0, $pos);
-						foreach ($files as &$entry) {
-							if ($entry['name'] === $entryName) {
-								if ($rootEntry['size'] >= 0) {
-									$entry['size'] += $rootEntry['size'];
-								} else {
-									$entry['size'] = -1;
-								}
-							}
-						}
-					} else { //mountpoint in this folder, add an entry for it
-						$rootEntry['name'] = $relativePath;
-						$rootEntry['storageObject'] = $subStorage;
-
-						//remove any existing entry with the same name
-						foreach ($files as $i => $file) {
-							if ($file['name'] === $rootEntry['name']) {
-								$files[$i] = null;
-								break;
-							}
-						}
-						$files[] = $rootEntry;
-					}
-				}
+		return array_map(function(FileInfo $info) {
+			if ($info->getMimetype() === 'httpd/unix-directory') {
+				return new Folder($this->root, $this->view, $info->getPath(), $info);
+			} else {
+				return new File($this->root, $this->view, $info->getPath(), $info);
 			}
-		}
-
-		foreach ($files as $file) {
-			if ($file) {
-				$node = $this->createNode($this->path . '/' . $file['name'], $file);
-				$result[] = $node;
-			}
-		}
-
-		return $result;
+		}, $folderContent);
 	}
 
 	/**
@@ -259,7 +215,10 @@ class Folder extends Node implements \OCP\Files\Folder {
 		 * @var \OC\Files\Storage\Storage $storage
 		 */
 		list($storage, $internalPath) = $this->view->resolvePath($this->path);
-		$internalPath = rtrim($internalPath, '/') . '/';
+		$internalPath = rtrim($internalPath, '/');
+		if ($internalPath !== '') {
+			$internalPath = $internalPath . '/';
+		}
 		$internalRootLength = strlen($internalPath);
 
 		$cache = $storage->getCache('');
@@ -388,5 +347,17 @@ class Folder extends Node implements \OCP\Files\Folder {
 		} else {
 			throw new NotPermittedException();
 		}
+	}
+
+	/**
+	 * Add a suffix to the name in case the file exists
+	 *
+	 * @param string $name
+	 * @return string
+	 * @throws NotPermittedException
+	 */
+	public function getNonExistingName($name) {
+		$uniqueName = \OC_Helper::buildNotExistingFileNameForView($this->getPath(), $name, $this->view);
+		return trim($this->getRelativePath($uniqueName), '/');
 	}
 }

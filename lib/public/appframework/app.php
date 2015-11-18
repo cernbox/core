@@ -1,22 +1,25 @@
 <?php
 /**
- * ownCloud
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @author Thomas Müller
- * @copyright 2013 Thomas Müller deepdiver@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -35,6 +38,7 @@ use OC\AppFramework\routing\RouteConfig;
  *
  * Any application must inherit this call - all controller instances to be used are
  * to be registered using IContainer::registerService
+ * @since 6.0.0
  */
 class App {
 
@@ -47,6 +51,7 @@ class App {
 	 * @param string $topNamespace the namespace which should be prepended to
 	 * the transformed app id, defaults to OCA\
 	 * @return string the starting namespace for the app
+	 * @since 8.0.0
 	 */
 	public static function buildAppNamespace($appId, $topNamespace='OCA\\') {
 		return \OC\AppFramework\App::buildAppNamespace($appId, $topNamespace);
@@ -55,6 +60,7 @@ class App {
 
 	/**
 	 * @param array $urlParams an array with variables extracted from the routes
+	 * @since 6.0.0
 	 */
 	public function __construct($appName, $urlParams = array()) {
 		$this->container = new \OC\AppFramework\DependencyInjection\DIContainer($appName, $urlParams);
@@ -64,6 +70,7 @@ class App {
 
 	/**
 	 * @return IAppContainer
+	 * @since 6.0.0
 	 */
 	public function getContainer() {
 		return $this->container;
@@ -85,6 +92,7 @@ class App {
 	 *
 	 * @param \OCP\Route\IRouter $router
 	 * @param array $routes
+	 * @since 6.0.0
 	 */
 	public function registerRoutes($router, $routes) {
 		$routeConfig = new RouteConfig($this->container, $router, $routes);
@@ -120,6 +128,7 @@ class App {
 	 * @param string $controllerName the name of the controller under which it is
 	 *                               stored in the DI container
 	 * @param string $methodName the method that you want to call
+	 * @since 6.0.0
 	 */
 	public function dispatch($controllerName, $methodName) {
 		\OC\AppFramework\App::main($controllerName, $methodName, $this->container);

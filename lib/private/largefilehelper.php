@@ -1,9 +1,26 @@
 <?php
 /**
- * Copyright (c) 2014 Andreas Fischer <bantu@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Roitzsch <reactorcontrol@icloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC;
@@ -94,15 +111,15 @@ class LargeFileHelper {
 	/**
 	* @brief Tries to get the size of a file via a CURL HEAD request.
 	*
-	* @param string $filename Path to the file.
+	* @param string $fileName Path to the file.
 	*
 	* @return null|int|float Number of bytes as number (float or int) or
 	*                        null on failure.
 	*/
-	public function getFileSizeViaCurl($filename) {
-		if (function_exists('curl_init') && \OC::$server->getIniWrapper()->getString('open_basedir') === '') {
-			$fencoded = rawurlencode($filename);
-			$ch = curl_init("file://$fencoded");
+	public function getFileSizeViaCurl($fileName) {
+		if (\OC::$server->getIniWrapper()->getString('open_basedir') === '') {
+			$encodedFileName = rawurlencode($fileName);
+			$ch = curl_init("file://$encodedFileName");
 			curl_setopt($ch, CURLOPT_NOBODY, true);
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($ch, CURLOPT_HEADER, true);
@@ -129,8 +146,8 @@ class LargeFileHelper {
 	*/
 	public function getFileSizeViaCOM($filename) {
 		if (class_exists('COM')) {
-			$fsobj = new \COM("Scripting.FileSystemObject");
-			$file = $fsobj->GetFile($filename);
+			$fsObj = new \COM("Scripting.FileSystemObject");
+			$file = $fsObj->GetFile($filename);
 			return 0 + $file->Size;
 		}
 		return null;

@@ -1,23 +1,33 @@
 <?php
 /**
- * ownCloud
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Michael Kuhn <suraia@ikkoku.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Sam Tuke <mail@samtuke.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Bjoern Schiessle, Michael Gapczynski
- * @copyright 2012 Michael Gapczynski <mtgap@owncloud.com>
- *            2014 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 /**
@@ -36,6 +46,7 @@ namespace OCP;
  *
  * It provides the following hooks:
  *  - post_shared
+ * @since 5.0.0
  */
 class Share extends \OC\Share\Constants {
 
@@ -46,6 +57,7 @@ class Share extends \OC\Share\Constants {
 	 * @param string $collectionOf (optional) Depends on item type
 	 * @param array $supportedFileExtensions (optional) List of supported file extensions if this item type depends on files
 	 * @return boolean true if backend is registered or false if error
+	 * @since 5.0.0
 	 */
 	public static function registerBackend($itemType, $class, $collectionOf = null, $supportedFileExtensions = null) {
 		return \OC\Share\Share::registerBackend($itemType, $class, $collectionOf, $supportedFileExtensions);
@@ -56,6 +68,7 @@ class Share extends \OC\Share\Constants {
 	 * @return boolean true if enabled or false
 	 *
 	 * The Share API is enabled by default if not configured
+	 * @since 5.0.0
 	 */
 	public static function isEnabled() {
 		return \OC\Share\Share::isEnabled();
@@ -70,6 +83,7 @@ class Share extends \OC\Share\Constants {
 	 * @return array
 	 * @note $path needs to be relative to user data dir, e.g. 'file.txt'
 	 *       not '/admin/data/file.txt'
+	 * @since 5.0.0
 	 */
 	public static function getUsersSharingFile($path, $ownerUser, $includeOwner = false, $returnUserPaths = false) {
 		return \OC\Share\Share::getUsersSharingFile($path, $ownerUser, $includeOwner, $returnUserPaths);
@@ -83,6 +97,7 @@ class Share extends \OC\Share\Constants {
 	 * @param int $limit Number of items to return (optional) Returns all by default
 	 * @param bool $includeCollections (optional)
 	 * @return mixed Return depends on format
+	 * @since 5.0.0
 	 */
 	public static function getItemsSharedWith($itemType, $format = self::FORMAT_NONE,
 		$parameters = null, $limit = -1, $includeCollections = false) {
@@ -99,6 +114,7 @@ class Share extends \OC\Share\Constants {
 	 * @param int $limit Number of items to return (optional) Returns all by default
 	 * @param bool $includeCollections (optional)
 	 * @return mixed Return depends on format
+	 * @since 7.0.0
 	 */
 	public static function getItemsSharedWithUser($itemType, $user, $format = self::FORMAT_NONE,
 		$parameters = null, $limit = -1, $includeCollections = false) {
@@ -114,6 +130,7 @@ class Share extends \OC\Share\Constants {
 	 * @param mixed $parameters (optional)
 	 * @param bool $includeCollections (optional)
 	 * @return mixed Return depends on format
+	 * @since 5.0.0
 	 */
 	public static function getItemSharedWith($itemType, $itemTarget, $format = self::FORMAT_NONE,
 		$parameters = null, $includeCollections = false) {
@@ -128,6 +145,7 @@ class Share extends \OC\Share\Constants {
 	 * @param string $user User to whom the item was shared
 	 * @param string $owner Owner of the share
 	 * @return array Return list of items with file_target, permissions and expiration
+	 * @since 6.0.0 - parameter $owner was added in 8.0.0
 	 */
 	public static function getItemSharedWithUser($itemType, $itemSource, $user, $owner = null) {
 		return \OC\Share\Share::getItemSharedWithUser($itemType, $itemSource, $user, $owner);
@@ -141,6 +159,7 @@ class Share extends \OC\Share\Constants {
 	 * @param mixed $parameters
 	 * @param bool $includeCollections
 	 * @return array
+	 * @since 5.0.0
 	 */
 	public static function getItemSharedWithBySource($itemType, $itemSource, $format = self::FORMAT_NONE,
 		$parameters = null, $includeCollections = false) {
@@ -152,7 +171,8 @@ class Share extends \OC\Share\Constants {
 	 * @param string $itemType
 	 * @param string $itemSource
 	 * @param string $uidOwner Owner of link
-	 * @return Item
+	 * @return array
+	 * @since 5.0.0
 	 */
 	public static function getItemSharedWithByLink($itemType, $itemSource, $uidOwner) {
 		return \OC\Share\Share::getItemSharedWithByLink($itemType, $itemSource, $uidOwner);
@@ -161,7 +181,9 @@ class Share extends \OC\Share\Constants {
 	/**
 	 * Based on the given token the share information will be returned - password protected shares will be verified
 	 * @param string $token
+	 * @param bool $checkPasswordProtection
 	 * @return array|bool false will be returned in case the token is unknown or unauthorized
+	 * @since 5.0.0 - parameter $checkPasswordProtection was added in 7.0.0
 	 */
 	public static function getShareByToken($token, $checkPasswordProtection = true) {
 		return \OC\Share\Share::getShareByToken($token, $checkPasswordProtection);
@@ -171,6 +193,7 @@ class Share extends \OC\Share\Constants {
 	 * resolves reshares down to the last real share
 	 * @param array $linkItem
 	 * @return array file owner
+	 * @since 6.0.0
 	 */
 	public static function resolveReShare($linkItem) {
 		return \OC\Share\Share::resolveReShare($linkItem);
@@ -185,6 +208,7 @@ class Share extends \OC\Share\Constants {
 	 * @param int $limit Number of items to return (optional) Returns all by default
 	 * @param bool $includeCollections
 	 * @return mixed Return depends on format
+	 * @since 5.0.0
 	 */
 	public static function getItemsShared($itemType, $format = self::FORMAT_NONE, $parameters = null,
 		$limit = -1, $includeCollections = false) {
@@ -200,6 +224,7 @@ class Share extends \OC\Share\Constants {
 	 * @param mixed $parameters
 	 * @param bool $includeCollections
 	 * @return mixed Return depends on format
+	 * @since 5.0.0
 	 */
 	public static function getItemShared($itemType, $itemSource, $format = self::FORMAT_NONE,
 	                                     $parameters = null, $includeCollections = false) {
@@ -215,6 +240,7 @@ class Share extends \OC\Share\Constants {
 	 * @param bool $includeCollections
 	 * @param bool $checkExpireDate
 	 * @return array Return array of users
+	 * @since 5.0.0 - parameter $checkExpireDate was added in 7.0.0
 	 */
 	public static function getUsersItemShared($itemType, $itemSource, $uidOwner, $includeCollections = false, $checkExpireDate = true) {
 		return \OC\Share\Share::getUsersItemShared($itemType, $itemSource, $uidOwner, $includeCollections, $checkExpireDate);
@@ -229,11 +255,14 @@ class Share extends \OC\Share\Constants {
 	 * @param int $permissions CRUDS
 	 * @param string $itemSourceName
 	 * @param \DateTime $expirationDate
+	 * @param bool $passwordChanged
 	 * @return bool|string Returns true on success or false on failure, Returns token on success for links
+	 * @throws \OC\HintException when the share type is remote and the shareWith is invalid
 	 * @throws \Exception
+	 * @since 5.0.0 - parameter $itemSourceName was added in 6.0.0, parameter $expirationDate was added in 7.0.0, paramter $passwordChanged added in 9.0.0
 	 */
-	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null) {
-		return \OC\Share\Share::shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName, $expirationDate);
+	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null, $passwordChanged = null) {
+		return \OC\Share\Share::shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName, $expirationDate, $passwordChanged);
 	}
 
 	/**
@@ -244,6 +273,7 @@ class Share extends \OC\Share\Constants {
 	 * @param string $shareWith User or group the item is being shared with
 	 * @param string $owner owner of the share, if null the current user is used
 	 * @return boolean true on success or false on failure
+	 * @since 5.0.0 - parameter $owner was added in 8.0.0
 	 */
 	public static function unshare($itemType, $itemSource, $shareType, $shareWith, $owner = null) {
 		return \OC\Share\Share::unshare($itemType, $itemSource, $shareType, $shareWith, $owner);
@@ -254,6 +284,7 @@ class Share extends \OC\Share\Constants {
 	 * @param string $itemType
 	 * @param string $itemSource
 	 * @return boolean true on success or false on failure
+	 * @since 5.0.0
 	 */
 	public static function unshareAll($itemType, $itemSource) {
 		return \OC\Share\Share::unshareAll($itemType, $itemSource);
@@ -262,10 +293,12 @@ class Share extends \OC\Share\Constants {
 	/**
 	 * Unshare an item shared with the current user
 	 * @param string $itemType
-	 * @param string $itemTarget
+	 * @param string $itemOrigin Item target or source
+	 * @param boolean $originIsSource true if $itemOrigin is the source, false if $itemOrigin is the target (optional)
 	 * @return boolean true on success or false on failure
 	 *
 	 * Unsharing from self is not allowed for items inside collections
+	 * @since 5.0.0 - parameter $originIsSource was added in 8.0.0
 	 */
 	public static function unshareFromSelf($itemType, $itemOrigin, $originIsSource = false) {
 		return \OC\Share\Share::unshareFromSelf($itemType, $itemOrigin, $originIsSource);
@@ -278,6 +311,7 @@ class Share extends \OC\Share\Constants {
 	 * @param int $shareType SHARE_TYPE_USER, SHARE_TYPE_GROUP, or SHARE_TYPE_LINK
 	 * @param string $recipient with whom was the item shared
 	 * @param bool $status
+	 * @since 6.0.0 - parameter $originIsSource was added in 8.0.0
 	 */
 	public static function setSendMailStatus($itemType, $itemSource, $shareType, $recipient, $status) {
 		return \OC\Share\Share::setSendMailStatus($itemType, $itemSource, $shareType, $recipient, $status);
@@ -291,6 +325,7 @@ class Share extends \OC\Share\Constants {
 	 * @param string $shareWith User or group the item is being shared with
 	 * @param int $permissions CRUDS permissions
 	 * @return boolean true on success or false on failure
+	 * @since 5.0.0
 	 */
 	public static function setPermissions($itemType, $itemSource, $shareType, $shareWith, $permissions) {
 		return \OC\Share\Share::setPermissions($itemType, $itemSource, $shareType, $shareWith, $permissions);
@@ -303,15 +338,32 @@ class Share extends \OC\Share\Constants {
 	 * @param string $date expiration date
 	 * @param int $shareTime timestamp from when the file was shared
 	 * @return boolean
+	 * @since 5.0.0 - parameter $shareTime was added in 8.0.0
 	 */
 	public static function setExpirationDate($itemType, $itemSource, $date, $shareTime = null) {
 		return \OC\Share\Share::setExpirationDate($itemType, $itemSource, $date, $shareTime);
 	}
 
 	/**
+	 * Set password for a public link share
+	 * @param int $shareId
+	 * @param string $password
+	 * @return boolean
+	 * @since 8.1.0
+	 */
+	public static function setPassword($shareId, $password) {
+		$userSession = \OC::$server->getUserSession();
+		$connection = \OC::$server->getDatabaseConnection();
+		$config = \OC::$server->getConfig();
+		return \OC\Share\Share::setPassword($userSession, $connection, $config, $shareId, $password);
+	}
+
+
+	/**
 	 * Get the backend class for the specified item type
 	 * @param string $itemType
 	 * @return Share_Backend
+	 * @since 5.0.0
 	 */
 	public static function getBackend($itemType) {
 		return \OC\Share\Share::getBackend($itemType);
@@ -319,6 +371,7 @@ class Share extends \OC\Share\Constants {
 
 	/**
 	 * Delete all shares with type SHARE_TYPE_LINK
+	 * @since 6.0.0
 	 */
 	public static function removeAllLinkShares() {
 		return \OC\Share\Share::removeAllLinkShares();
@@ -329,6 +382,7 @@ class Share extends \OC\Share\Constants {
 	 *
 	 * @param array $linkItem
 	 * @return bool
+	 * @since 7.0.0
 	 */
 	public static function checkPasswordProtectedShare(array $linkItem) {
 		return \OC\Share\Share::checkPasswordProtectedShare($linkItem);
@@ -338,6 +392,7 @@ class Share extends \OC\Share\Constants {
 	 * Check if resharing is allowed
 	 *
 	 * @return boolean true if allowed or false
+	 * @since 5.0.0
 	 */
 	public static function isResharingAllowed() {
 		return \OC\Share\Share::isResharingAllowed();

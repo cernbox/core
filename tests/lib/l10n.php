@@ -42,24 +42,6 @@ class Test_L10n extends \Test\TestCase {
 		*/
 	}
 
-	public function russianMissingPluralTranslationsData() {
-		return array(
-			array(1, '1 missing plural'),
-			array(2, '2 missing plurals'),
-			array(6, '6 missing plurals'),
-		);
-	}
-
-	/**
-	 * @dataProvider russianMissingPluralTranslationsData
-	 */
-	public function testRussianMissingPluralTranslations($count, $expected) {
-		$l = new OC_L10N('test');
-		$l->load(OC::$SERVERROOT.'/tests/data/l10n/ru.json');
-
-		$this->assertEquals($expected, (string)$l->n('%n missing plural', '%n missing plurals', $count));
-	}
-
 	public function testCzechPluralTranslations() {
 		$l = new OC_L10N('test');
 		$transFile = OC::$SERVERROOT.'/tests/data/l10n/cs.json';
@@ -110,8 +92,7 @@ class Test_L10n extends \Test\TestCase {
 	 * @dataProvider localizationDataProvider
 	 */
 	public function testNumericStringLocalization($expectedDate, $lang, $type, $value) {
-		$l = new OC_L10N('test');
-		$l->forceLanguage($lang);
+		$l = new OC_L10N('test', $lang);
 		$this->assertSame($expectedDate, $l->l($type, $value));
 	}
 
@@ -128,8 +109,7 @@ class Test_L10n extends \Test\TestCase {
 	 * @param $lang
 	 */
 	public function testFirstWeekDay($expected, $lang) {
-		$l = new OC_L10N('test');
-		$l->forceLanguage($lang);
+		$l = new OC_L10N('test', $lang);
 		$this->assertSame($expected, $l->l('firstday', 'firstday'));
 	}
 
@@ -172,5 +152,21 @@ class Test_L10n extends \Test\TestCase {
 			array(null, '', 'en'),
 			array(null, null, 'en'),
 		);
+	}
+
+	public function testGetLanguageCode() {
+		$l = OC_L10N::get('lib', 'de');
+		$this->assertEquals('de', $l->getLanguageCode());
+	}
+
+	public function testFactoryGetLanguageCode() {
+		$factory = new \OC\L10N\Factory();
+		$l = $factory->get('lib', 'de');
+		$this->assertEquals('de', $l->getLanguageCode());
+	}
+
+	public function testServiceGetLanguageCode() {
+		$l = \OC::$server->getL10N('lib', 'de');
+		$this->assertEquals('de', $l->getLanguageCode());
 	}
 }

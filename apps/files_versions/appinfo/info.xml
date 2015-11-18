@@ -9,12 +9,15 @@
 	<description>
 	This app allows the use of the EOS built-in automatic versions feature.
 	</description>
+	<version>1.1.0</version>
 	<types>
 		<filesystem/>
 	</types>
+	<dependencies>
+		<owncloud min-version="8.2" />
+	</dependencies>
 	<documentation>
 		<user>user-versions</user>
 	</documentation>
 	<default_enable/>
-	<ocsid>166053</ocsid>
 </info>

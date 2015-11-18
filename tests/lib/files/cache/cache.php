@@ -183,8 +183,8 @@ class Cache extends \Test\TestCase {
 		$file3 = 'folder/foo';
 		$data1 = array('size' => 100, 'mtime' => 50, 'mimetype' => 'httpd/unix-directory');
 		$fileData = array();
-		$fileData['bar'] = array('size' => 1000, 'unencrypted_size' => 900, 'encrypted' => 1, 'mtime' => 20, 'mimetype' => 'foo/file');
-		$fileData['foo'] = array('size' => 20, 'unencrypted_size' => 16, 'encrypted' => 1, 'mtime' => 25, 'mimetype' => 'foo/file');
+		$fileData['bar'] = array('size' => 1000, 'encrypted' => 1, 'mtime' => 20, 'mimetype' => 'foo/file');
+		$fileData['foo'] = array('size' => 20, 'encrypted' => 1, 'mtime' => 25, 'mimetype' => 'foo/file');
 
 		$this->cache->put($file1, $data1);
 		$this->cache->put($file2, $fileData['bar']);
@@ -194,8 +194,6 @@ class Cache extends \Test\TestCase {
 		$this->assertEquals(count($content), 2);
 		foreach ($content as $cachedData) {
 			$data = $fileData[$cachedData['name']];
-			// indirect retrieval swaps  unencrypted_size and size
-			$this->assertEquals($data['unencrypted_size'], $cachedData['size']);
 		}
 
 		$file4 = 'folder/unkownSize';
@@ -207,11 +205,10 @@ class Cache extends \Test\TestCase {
 		$fileData['unkownSize'] = array('size' => 5, 'mtime' => 25, 'mimetype' => 'foo/file');
 		$this->cache->put($file4, $fileData['unkownSize']);
 
-		$this->assertEquals(916, $this->cache->calculateFolderSize($file1));
+		$this->assertEquals(1025, $this->cache->calculateFolderSize($file1));
 		// direct cache entry retrieval returns the original values
 		$entry = $this->cache->get($file1);
 		$this->assertEquals(1025, $entry['size']);
-		$this->assertEquals(916, $entry['unencrypted_size']);
 
 		$this->cache->remove($file2);
 		$this->cache->remove($file3);
@@ -258,6 +255,28 @@ class Cache extends \Test\TestCase {
 		$this->assertEquals(\OC\Files\Cache\Cache::SHALLOW, $this->cache->getStatus('foo'));
 		$this->cache->put('foo', array('size' => 10));
 		$this->assertEquals(\OC\Files\Cache\Cache::COMPLETE, $this->cache->getStatus('foo'));
+	}
+
+	public function putWithAllKindOfQuotesData() {
+		return [
+			['`backtick`'],
+			['´forward´'],
+			['\'single\''],
+		];
+	}
+
+	/**
+	 * @dataProvider putWithAllKindOfQuotesData
+	 * @param $fileName
+	 */
+	public function testPutWithAllKindOfQuotes($fileName) {
+
+		$this->assertEquals(\OC\Files\Cache\Cache::NOT_FOUND, $this->cache->get($fileName));
+		$this->cache->put($fileName, array('size' => 20, 'mtime' => 25, 'mimetype' => 'foo/file', 'etag' => $fileName));
+
+		$cacheEntry = $this->cache->get($fileName);
+		$this->assertEquals($fileName, $cacheEntry['etag']);
+		$this->assertEquals($fileName, $cacheEntry['path']);
 	}
 
 	function testSearch() {
@@ -570,6 +589,67 @@ class Cache extends \Test\TestCase {
 		$newDataFromBogus = $this->cache->get($bogusPath);
 		// same entry
 		$this->assertEquals($newData, $newDataFromBogus);
+	}
+
+	public function testNoReuseOfFileId() {
+		$data1 = array('size' => 100, 'mtime' => 50, 'mimetype' => 'text/plain');
+		$this->cache->put('somefile.txt', $data1);
+		$info = $this->cache->get('somefile.txt');
+		$fileId = $info['fileid'];
+		$this->cache->remove('somefile.txt');
+		$data2 = array('size' => 200, 'mtime' => 100, 'mimetype' => 'text/plain');
+		$this->cache->put('anotherfile.txt', $data2);
+		$info2 = $this->cache->get('anotherfile.txt');
+		$fileId2 = $info2['fileid'];
+		$this->assertNotEquals($fileId, $fileId2);
+	}
+
+	public function escapingProvider() {
+		return [
+				['foo'],
+				['o%'],
+				['oth_r'],
+		];
+	}
+
+	/**
+	 * @param string $name
+	 * @dataProvider escapingProvider
+	 */
+	public function testEscaping($name) {
+		$data = array('size' => 100, 'mtime' => 50, 'mimetype' => 'text/plain');
+		$this->cache->put($name, $data);
+		$this->assertTrue($this->cache->inCache($name));
+		$retrievedData = $this->cache->get($name);
+		foreach ($data as $key => $value) {
+			$this->assertEquals($value, $retrievedData[$key]);
+		}
+		$this->cache->move($name, $name . 'asd');
+		$this->assertFalse($this->cache->inCache($name));
+		$this->assertTrue($this->cache->inCache($name . 'asd'));
+		$this->cache->remove($name . 'asd');
+		$this->assertFalse($this->cache->inCache($name . 'asd'));
+		$folderData = array('size' => 100, 'mtime' => 50, 'mimetype' => 'httpd/unix-directory');
+		$this->cache->put($name, $folderData);
+		$this->cache->put('other', $folderData);
+		$childs = ['asd', 'bar', 'foo', 'sub/folder'];
+		$this->cache->put($name . '/sub/folder', $folderData);
+		$this->cache->put('other/sub/folder', $folderData);
+		foreach ($childs as $child) {
+			$this->cache->put($name . '/' . $child, $data);
+			$this->cache->put('other/' . $child, $data);
+			$this->assertTrue($this->cache->inCache($name . '/' . $child));
+		}
+		$this->cache->move($name, $name . 'asd');
+		foreach ($childs as $child) {
+			$this->assertTrue($this->cache->inCache($name . 'asd/' . $child));
+			$this->assertTrue($this->cache->inCache('other/' . $child));
+		}
+		foreach ($childs as $child) {
+			$this->cache->remove($name . 'asd/' . $child);
+			$this->assertFalse($this->cache->inCache($name . 'asd/' . $child));
+			$this->assertTrue($this->cache->inCache('other/' . $child));
+		}
 	}
 
 	protected function tearDown() {

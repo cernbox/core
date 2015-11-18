@@ -1,22 +1,28 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Felix Moeller <mail@felixmoeller.de>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
  *
- * @author Jakob Sack
- * @copyright 2012 Jakob Sack owncloud@jakobsack.de
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -41,6 +47,7 @@ use \OC\BackgroundJob\JobList;
  * A regular Job will be executed every time cron.php is run, a QueuedJob will only run once and a TimedJob
  * will only run at a specific interval which is to be specified in the constructor of the job by calling
  * $this->setInterval($interval) with $interval in seconds.
+ * @since 4.5.0
  */
 class BackgroundJob {
 	/**
@@ -50,9 +57,10 @@ class BackgroundJob {
 	 *
 	 * This method returns the type how background jobs are executed. If the user
 	 * did not select something, the type is ajax.
+	 * @since 5.0.0
 	 */
 	public static function getExecutionType() {
-		return \OC_BackgroundJob::getExecutionType();
+		return \OC::$server->getConfig()->getAppValue('core', 'backgroundjobs_mode', 'ajax');
 	}
 
 	/**
@@ -63,14 +71,20 @@ class BackgroundJob {
 	 *
 	 * This method sets the execution type of the background jobs. Possible types
 	 * are "none", "ajax", "webcron", "cron"
+	 * @since 5.0.0
 	 */
 	public static function setExecutionType($type) {
-		return \OC_BackgroundJob::setExecutionType($type);
+		if( !in_array( $type, array('none', 'ajax', 'webcron', 'cron'))) {
+			return false;
+		}
+		\OC::$server->getConfig()->setAppValue('core', 'backgroundjobs_mode', $type);
 	}
 
 	/**
 	 * @param string $job
 	 * @param mixed $argument
+	 * @deprecated 8.1.0 Use \OC::$server->getJobList()->add() instead
+	 * @since 6.0.0
 	 */
 	public static function registerJob($job, $argument = null) {
 		$jobList = \OC::$server->getJobList();
@@ -78,11 +92,12 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * creates a regular task
 	 * @param string $klass class name
 	 * @param string $method method name
 	 * @return boolean|null
+	 * @since 4.5.0
 	 */
 	public static function addRegularTask($klass, $method) {
 		if (!\OC::needUpgrade()) {
@@ -92,11 +107,12 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * gets all regular tasks
 	 * @return array
 	 *
 	 * key is string "$klass-$method", value is array( $klass, $method )
+	 * @since 4.5.0
 	 */
 	static public function allRegularTasks() {
 		$jobList = \OC::$server->getJobList();
@@ -112,10 +128,11 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * Gets one queued task
 	 * @param int $id ID of the task
 	 * @return BackgroundJob\IJob|null
+	 * @since 4.5.0
 	 */
 	public static function findQueuedTask($id) {
 		$jobList = \OC::$server->getJobList();
@@ -123,9 +140,10 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * Gets all queued tasks
 	 * @return array an array of associative arrays
+	 * @since 4.5.0
 	 */
 	public static function allQueuedTasks() {
 		$jobList = \OC::$server->getJobList();
@@ -142,10 +160,11 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * Gets all queued tasks of a specific app
 	 * @param string $app app name
 	 * @return array an array of associative arrays
+	 * @since 4.5.0
 	 */
 	public static function queuedTaskWhereAppIs($app) {
 		$jobList = \OC::$server->getJobList();
@@ -164,13 +183,14 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * queues a task
 	 * @param string $app app name
 	 * @param string $class class name
 	 * @param string $method method name
 	 * @param string $parameters all useful data as text
 	 * @return boolean id of task
+	 * @since 4.5.0
 	 */
 	public static function addQueuedTask($app, $class, $method, $parameters) {
 		self::registerJob('OC\BackgroundJob\Legacy\QueuedJob', array('app' => $app, 'klass' => $class, 'method' => $method, 'parameters' => $parameters));
@@ -178,12 +198,13 @@ class BackgroundJob {
 	}
 
 	/**
-	 * @deprecated
+	 * @deprecated 6.0.0
 	 * deletes a queued task
 	 * @param int $id id of task
 	 * @return boolean|null
 	 *
 	 * Deletes a report
+	 * @since 4.5.0
 	 */
 	public static function deleteQueuedTask($id) {
 		$jobList = \OC::$server->getJobList();

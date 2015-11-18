@@ -1,22 +1,25 @@
 <?php
 /**
- * ownCloud
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Thomas Müller
- * @copyright 2013 Thomas Müller deepdiver@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -30,52 +33,65 @@ use OCP\IContainer;
  * @package OCP\AppFramework
  *
  * This container interface provides short cuts for app developers to access predefined app service.
+ * @since 6.0.0
  */
 interface IAppContainer extends IContainer {
 
 	/**
 	 * used to return the appname of the set application
 	 * @return string the name of your application
+	 * @since 6.0.0
 	 */
 	function getAppName();
 
 	/**
-	 * @deprecated implements only deprecated methods
+	 * @deprecated 8.0.0 implements only deprecated methods
 	 * @return IApi
+	 * @since 6.0.0
 	 */
 	function getCoreApi();
 
 	/**
 	 * @return \OCP\IServerContainer
+	 * @since 6.0.0
 	 */
 	function getServer();
 
 	/**
 	 * @param string $middleWare
 	 * @return boolean
+	 * @since 6.0.0
 	 */
 	function registerMiddleWare($middleWare);
 
 	/**
-	 * @deprecated use IUserSession->isLoggedIn()
+	 * @deprecated 8.0.0 use IUserSession->isLoggedIn()
 	 * @return boolean
+	 * @since 6.0.0
 	 */
 	function isLoggedIn();
 
 	/**
-	 * @deprecated use IGroupManager->isAdmin($userId)
+	 * @deprecated 8.0.0 use IGroupManager->isAdmin($userId)
 	 * @return boolean
-	 * @deprecated use the groupmanager instead to find out if the user is in
-	 * the admin group
+	 * @since 6.0.0
 	 */
 	function isAdminUser();
 
 	/**
-	 * @deprecated use the ILogger instead
+	 * @deprecated 8.0.0 use the ILogger instead
 	 * @param string $message
 	 * @param string $level
 	 * @return mixed
+	 * @since 6.0.0
 	 */
 	function log($message, $level);
 
+	/**
+	 * Register a capability
+	 *
+	 * @param string $serviceName e.g. 'OCA\Files\Capabilities'
+	 * @since 8.2.0
+	 */
+	 public function registerCapability($serviceName);
 }

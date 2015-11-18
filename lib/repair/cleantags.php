@@ -1,16 +1,30 @@
 <?php
 /**
- * Copyright (c) 2015 Joas Schilling <nickvergessen@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Repair;
 
-use OC\DB\Connection;
 use OC\Hooks\BasicEmitter;
 use OC\RepairStep;
+use OCP\IDBConnection;
 
 /**
  * Class RepairConfig
@@ -19,13 +33,13 @@ use OC\RepairStep;
  */
 class CleanTags extends BasicEmitter implements RepairStep {
 
-	/** @var Connection */
+	/** @var IDBConnection */
 	protected $connection;
 
 	/**
-	 * @param Connection $connection
+	 * @param IDBConnection $connection
 	 */
-	public function __construct(Connection $connection) {
+	public function __construct(IDBConnection $connection) {
 		$this->connection = $connection;
 	}
 
@@ -51,8 +65,8 @@ class CleanTags extends BasicEmitter implements RepairStep {
 	protected function deleteOrphanFileEntries() {
 		$this->deleteOrphanEntries(
 			'%d tags for delete files have been removed.',
-			'*PREFIX*vcategory_to_object', 'objid',
-			'*PREFIX*filecache', 'fileid', 'path_hash'
+			'vcategory_to_object', 'objid',
+			'filecache', 'fileid', 'path_hash'
 		);
 	}
 
@@ -62,8 +76,8 @@ class CleanTags extends BasicEmitter implements RepairStep {
 	protected function deleteOrphanTagEntries() {
 		$this->deleteOrphanEntries(
 			'%d tag entries for deleted tags have been removed.',
-			'*PREFIX*vcategory_to_object', 'categoryid',
-			'*PREFIX*vcategory', 'id', 'uid'
+			'vcategory_to_object', 'categoryid',
+			'vcategory', 'id', 'uid'
 		);
 	}
 
@@ -73,8 +87,8 @@ class CleanTags extends BasicEmitter implements RepairStep {
 	protected function deleteOrphanCategoryEntries() {
 		$this->deleteOrphanEntries(
 			'%d tags with no entries have been removed.',
-			'*PREFIX*vcategory', 'id',
-			'*PREFIX*vcategory_to_object', 'categoryid', 'type'
+			'vcategory', 'id',
+			'vcategory_to_object', 'categoryid', 'type'
 		);
 	}
 
@@ -94,16 +108,16 @@ class CleanTags extends BasicEmitter implements RepairStep {
 	 * 								the entry is deleted in the $deleteTable
 	 */
 	protected function deleteOrphanEntries($repairInfo, $deleteTable, $deleteId, $sourceTable, $sourceId, $sourceNullColumn) {
-		$qb = $this->connection->createQueryBuilder();
+		$qb = $this->connection->getQueryBuilder();
 
-		$qb->select('d.`' . $deleteId . '`')
-			->from('`' . $deleteTable . '`', 'd')
-			->leftJoin('d', '`' . $sourceTable . '`', 's', 'd.`' . $deleteId . '` = s.`' . $sourceId . '`')
+		$qb->select('d.' . $deleteId)
+			->from($deleteTable, 'd')
+			->leftJoin('d', $sourceTable, 's', $qb->expr()->eq('d.' . $deleteId, ' s.' . $sourceId))
 			->where(
-				'd.`type` = ' . $qb->expr()->literal('files')
+				$qb->expr()->eq('d.type', $qb->expr()->literal('files'))
 			)
 			->andWhere(
-				$qb->expr()->isNull('s.`' . $sourceNullColumn . '`')
+				$qb->expr()->isNull('s.' . $sourceNullColumn)
 			);
 		$result = $qb->execute();
 
@@ -115,11 +129,11 @@ class CleanTags extends BasicEmitter implements RepairStep {
 		if (!empty($orphanItems)) {
 			$orphanItemsBatch = array_chunk($orphanItems, 200);
 			foreach ($orphanItemsBatch as $items) {
-				$qb->delete('`' . $deleteTable . '`')
+				$qb->delete($deleteTable)
 					->where(
-						'`type` = ' . $qb->expr()->literal('files')
+						$qb->expr()->eq('type', $qb->expr()->literal('files'))
 					)
-					->andWhere($qb->expr()->in('`' . $deleteId . '`', ':ids'));
+					->andWhere($qb->expr()->in($deleteId, $qb->createParameter('ids')));
 				$qb->setParameter('ids', $items, \Doctrine\DBAL\Connection::PARAM_INT_ARRAY);
 				$qb->execute();
 			}

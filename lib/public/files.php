@@ -1,22 +1,29 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -33,11 +40,13 @@ namespace OCP;
 /**
  * This class provides access to the internal filesystem abstraction layer. Use
  * this class exlusively if you want to access files
+ * @since 5.0.0
  */
 class Files {
 	/**
 	 * Recusive deletion of folders
 	 * @return bool
+	 * @since 5.0.0
 	 */
 	static function rmdirr( $dir ) {
 		return \OC_Helper::rmdirr( $dir );
@@ -48,6 +57,7 @@ class Files {
 	 * @param string $path
 	 * @return string
 	 * does NOT work for ownClouds filesystem, use OC_FileSystem::getMimeType instead
+	 * @since 5.0.0
 	 */
 	static function getMimeType( $path ) {
 		return(\OC_Helper::getMimeType( $path ));
@@ -57,6 +67,7 @@ class Files {
 	 * Search for files by mimetype
 	 * @param string $mimetype
 	 * @return array
+	 * @since 6.0.0
 	 */
 	static public function searchByMime( $mimetype ) {
 		return(\OC\Files\Filesystem::searchByMime( $mimetype ));
@@ -67,9 +78,10 @@ class Files {
 	 * @param resource $source
 	 * @param resource $target
 	 * @return int the number of bytes copied
+	 * @since 5.0.0
 	 */
 	public static function streamCopy( $source, $target ) {
-		list($count, $result) = \OC_Helper::streamCopy( $source, $target );
+		list($count, ) = \OC_Helper::streamCopy( $source, $target );
 		return $count;
 	}
 
@@ -79,9 +91,11 @@ class Files {
 	 * @return string
 	 *
 	 * temporary files are automatically cleaned up after the script is finished
+	 * @deprecated 8.1.0 use getTemporaryFile() of \OCP\ITempManager - \OC::$server->getTempManager()
+	 * @since 5.0.0
 	 */
 	public static function tmpFile( $postfix='' ) {
-		return(\OC_Helper::tmpFile( $postfix ));
+		return \OC::$server->getTempManager()->getTemporaryFile($postfix);
 	}
 
 	/**
@@ -89,9 +103,11 @@ class Files {
 	 * @return string
 	 *
 	 * temporary files are automatically cleaned up after the script is finished
+	 * @deprecated 8.1.0 use getTemporaryFolder() of \OCP\ITempManager - \OC::$server->getTempManager()
+	 * @since 5.0.0
 	 */
 	public static function tmpFolder() {
-		return(\OC_Helper::tmpFolder());
+		return \OC::$server->getTempManager()->getTemporaryFolder();
 	}
 
 	/**
@@ -99,6 +115,7 @@ class Files {
 	 * @param string $path
 	 * @param string $filename
 	 * @return string
+	 * @since 5.0.0
 	 */
 	public static function buildNotExistingFileName( $path, $filename ) {
 		return(\OC_Helper::buildNotExistingFileName( $path, $filename ));
@@ -109,6 +126,7 @@ class Files {
 	 * existant
 	 * @param string $app
 	 * @return \OC\Files\View
+	 * @since 5.0.0
 	 */
 	public static function getStorage( $app ) {
 		return \OC_App::getStorage( $app );

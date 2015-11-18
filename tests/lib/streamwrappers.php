@@ -21,6 +21,20 @@
  */
 
 class Test_StreamWrappers extends \Test\TestCase {
+
+	private static $trashBinStatus;
+
+	public static function setUpBeforeClass() {
+		self::$trashBinStatus = \OC_App::isEnabled('files_trashbin');
+		\OC_App::disable('files_trashbin');
+	}
+
+	public static function tearDownAfterClass() {
+		if (self::$trashBinStatus) {
+			\OC_App::enable('files_trashbin');
+		}
+	}
+
 	public function testFakeDir() {
 		$items = array('foo', 'bar');
 		\OC\Files\Stream\Dir::register('test', $items);
@@ -58,6 +72,8 @@ class Test_StreamWrappers extends \Test\TestCase {
 	}
 
 	public function testOC() {
+		// FIXME: use proper tearDown with $this->loginAsUser() and $this->logout()
+		// (would currently break the tests for some reason)
 		$originalStorage = \OC\Files\Filesystem::getStorage('/');
 		\OC\Files\Filesystem::clearMounts();
 

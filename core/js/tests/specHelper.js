@@ -35,6 +35,24 @@ window.dayNames = [
 	'Friday',
 	'Saturday'
 ];
+window.dayNamesShort = [
+	'Sun.',
+	'Mon.',
+	'Tue.',
+	'Wed.',
+	'Thu.',
+	'Fri.',
+	'Sat.'
+];
+window.dayNamesMin = [
+	'Su',
+	'Mo',
+	'Tu',
+	'We',
+	'Th',
+	'Fr',
+	'Sa'
+];
 window.monthNames = [
 	'January',
 	'February',
@@ -48,6 +66,20 @@ window.monthNames = [
 	'October',
 	'November',
 	'December'
+];
+window.monthNamesShort = [
+	'Jan.',
+	'Feb.',
+	'Mar.',
+	'Apr.',
+	'May.',
+	'Jun.',
+	'Jul.',
+	'Aug.',
+	'Sep.',
+	'Oct.',
+	'Nov.',
+	'Dec.'
 ];
 window.firstDay = 0;
 
@@ -121,8 +153,13 @@ window.isPhantom = /phantom/i.test(navigator.userAgent);
 			OC.TestUtil = TestUtil;
 		}
 
+		moment.locale('en');
+
 		// reset plugins
 		OC.Plugins._plugins = [];
+
+		// dummy select2 (which isn't loaded during the tests)
+		$.fn.select2 = function() {};
 	});
 
 	afterEach(function() {
@@ -131,6 +168,8 @@ window.isPhantom = /phantom/i.test(navigator.userAgent);
 		fakeServer.restore();
 
 		$testArea.remove();
+
+		delete($.fn.select2);
 	});
 })();
 

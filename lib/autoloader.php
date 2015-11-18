@@ -1,12 +1,34 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Markus Goetz <markus@woboq.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC;
+
+use \OCP\AutoloadNotAllowedException;
 
 class Autoloader {
 	private $useGlobalClassPath = true;
@@ -15,11 +37,35 @@ class Autoloader {
 
 	private $classPaths = array();
 
+	private $validRoots = [];
+
 	/**
 	 * Optional low-latency memory cache for class to path mapping.
+	 *
 	 * @var \OC\Memcache\Cache
 	 */
 	protected $memoryCache;
+
+	/**
+	 * Autoloader constructor.
+	 *
+	 * @param string[] $validRoots
+	 */
+	public function __construct(array $validRoots) {
+		foreach ($validRoots as $root) {
+			$this->validRoots[$root] = true;
+		}
+	}
+
+	/**
+	 * Add a path to the list of valid php roots for auto loading
+	 *
+	 * @param string $root
+	 */
+	public function addValidRoot($root) {
+		$root = stream_resolve_include_path($root);
+		$this->validRoots[$root] = true;
+	}
 
 	/**
 	 * disable the usage of the global classpath \OC::$CLASSPATH
@@ -54,7 +100,7 @@ class Autoloader {
 			 * Remove "apps/" from inclusion path for smooth migration to mutli app dir
 			 */
 			if (strpos(\OC::$CLASSPATH[$class], 'apps/') === 0) {
-				\OC_Log::write('core', 'include path for class "' . $class . '" starts with "apps/"', \OC_Log::DEBUG);
+				\OCP\Util::writeLog('core', 'include path for class "' . $class . '" starts with "apps/"', \OCP\Util::DEBUG);
 				$paths[] = str_replace('apps/', '', \OC::$CLASSPATH[$class]);
 			}
 		} elseif (strpos($class, 'OC_') === 0) {
@@ -83,6 +129,15 @@ class Autoloader {
 		return $paths;
 	}
 
+	protected function isValidPath($fullPath) {
+		foreach ($this->validRoots as $root => $true) {
+			if (substr($fullPath, 0, strlen($root) + 1) === $root . '/') {
+				return true;
+			}
+		}
+		throw new AutoloadNotAllowedException($fullPath);
+	}
+
 	/**
 	 * Load the specified class
 	 *
@@ -100,7 +155,7 @@ class Autoloader {
 			$pathsToRequire = array();
 			foreach ($this->findClass($class) as $path) {
 				$fullPath = stream_resolve_include_path($path);
-				if ($fullPath) {
+				if ($fullPath && $this->isValidPath($fullPath)) {
 					$pathsToRequire[] = $fullPath;
 				}
 			}
@@ -119,6 +174,7 @@ class Autoloader {
 
 	/**
 	 * Sets the optional low-latency cache for class to path mapping.
+	 *
 	 * @param \OC\Memcache\Cache $memoryCache Instance of memory cache.
 	 */
 	public function setMemoryCache(\OC\Memcache\Cache $memoryCache = null) {

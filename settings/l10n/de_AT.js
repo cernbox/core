@@ -7,11 +7,12 @@ OC.L10N.register(
     "__language_name__" : "Deutsch (Österreich)",
     "Server address" : "Adresse des Servers",
     "Port" : "Port",
-    "More apps" : "Mehr Apps",
     "by" : "von",
     "Password" : "Passwort",
+    "Change password" : "Passwort ändern",
     "Email" : "E-Mail",
     "Cancel" : "Abbrechen",
+    "Username" : "Benutzername",
     "Other" : "Anderes"
 },
 "nplurals=2; plural=(n != 1);");

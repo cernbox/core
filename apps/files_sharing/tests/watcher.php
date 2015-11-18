@@ -1,22 +1,27 @@
 <?php
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Vincent Petry
- * @copyright 2013 Vincent Petry <pvince81@owncloud.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -72,7 +77,9 @@ class Test_Files_Sharing_Watcher extends OCA\Files_sharing\Tests\TestCase {
 	}
 
 	protected function tearDown() {
-		$this->sharedCache->clear();
+		if ($this->sharedCache) {
+			$this->sharedCache->clear();
+		}
 
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
 
@@ -101,9 +108,8 @@ class Test_Files_Sharing_Watcher extends OCA\Files_sharing\Tests\TestCase {
 		$this->sharedCache->put('', array('mtime' => 10, 'storage_mtime' => 10, 'size' => '-1', 'mimetype' => 'httpd/unix-directory'));
 
 		// run the propagation code
-		$result = $this->sharedStorage->getWatcher()->checkUpdate('');
-
-		$this->assertTrue($result);
+		$this->sharedStorage->getWatcher()->checkUpdate('');
+		$this->sharedStorage->getCache()->correctFolderSize('');
 
 		// the owner's parent dirs must have increase size
 		$newSizes = self::getOwnerDirSizes('files/container/shareddir');
@@ -132,9 +138,8 @@ class Test_Files_Sharing_Watcher extends OCA\Files_sharing\Tests\TestCase {
 		$this->sharedCache->put('subdir', array('mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain'));
 
 		// run the propagation code
-		$result = $this->sharedStorage->getWatcher()->checkUpdate('subdir');
-
-		$this->assertTrue($result);
+		$this->sharedStorage->getWatcher()->checkUpdate('subdir');
+		$this->sharedStorage->getCache()->correctFolderSize('subdir');
 
 		// the owner's parent dirs must have increase size
 		$newSizes = self::getOwnerDirSizes('files/container/shareddir/subdir');

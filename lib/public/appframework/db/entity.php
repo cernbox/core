@@ -1,25 +1,24 @@
 <?php
-
 /**
-* ownCloud - App Framework
-*
-* @author Bernhard Posselt
-* @copyright 2012 Bernhard Posselt dev@bernhard-posselt.com
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 namespace OCP\AppFramework\Db;
 
@@ -27,6 +26,7 @@ namespace OCP\AppFramework\Db;
 /**
  * @method integer getId()
  * @method void setId(integer $id)
+ * @since 7.0.0
  */
 abstract class Entity {
 
@@ -41,6 +41,7 @@ abstract class Entity {
 	 * @param array $params the array which was obtained via $this->params('key')
 	 * in the controller
 	 * @return Entity
+	 * @since 7.0.0
 	 */
 	public static function fromParams(array $params) {
 		$instance = new static();
@@ -57,6 +58,7 @@ abstract class Entity {
 	/**
 	 * Maps the keys of the row array to the attributes
 	 * @param array $row the row to map onto the entity
+	 * @since 7.0.0
 	 */
 	public static function fromRow(array $row){
 		$instance = new static();
@@ -74,7 +76,8 @@ abstract class Entity {
 
 
 	/**
-	 * @return an array with attribute and type
+	 * @return array with attribute and type
+	 * @since 7.0.0
 	 */
 	public function getFieldTypes() {
 		return $this->_fieldTypes;
@@ -83,12 +86,16 @@ abstract class Entity {
 	
 	/**
 	 * Marks the entity as clean needed for setting the id after the insertion
+	 * @since 7.0.0
 	 */
 	public function resetUpdatedFields(){
 		$this->_updatedFields = array();
 	}
 
-
+	/**
+	 * Generic setter for properties
+	 * @since 7.0.0
+	 */
 	protected function setter($name, $args) {
 		// setters should only work for existing attributes
 		if(property_exists($this, $name)){
@@ -109,7 +116,10 @@ abstract class Entity {
 		}
 	}
 
-
+	/**
+	 * Generic getter for properties
+	 * @since 7.0.0
+	 */
 	protected function getter($name) {
 		// getters should only work for existing attributes
 		if(property_exists($this, $name)){
@@ -126,6 +136,7 @@ abstract class Entity {
 	 * into an array: for instance setId will save Id in the 
 	 * updated fields array so it can be easily used to create the
 	 * getter method
+	 * @since 7.0.0
 	 */
 	public function __call($methodName, $args){
 		$attr = lcfirst( substr($methodName, 3) );
@@ -145,6 +156,7 @@ abstract class Entity {
 	/**
 	 * Mark am attribute as updated
 	 * @param string $attribute the name of the attribute
+	 * @since 7.0.0
 	 */
 	protected function markFieldUpdated($attribute){
 		$this->_updatedFields[$attribute] = true;
@@ -155,6 +167,7 @@ abstract class Entity {
 	 * Transform a database columnname to a property 
 	 * @param string $columnName the name of the column
 	 * @return string the property name
+	 * @since 7.0.0
 	 */
 	public function columnToProperty($columnName){
 		$parts = explode('_', $columnName);
@@ -176,6 +189,7 @@ abstract class Entity {
 	 * Transform a property to a database column name
 	 * @param string $property the name of the property
 	 * @return string the column name
+	 * @since 7.0.0
 	 */
 	public function propertyToColumn($property){
 		$parts = preg_split('/(?=[A-Z])/', $property);
@@ -195,6 +209,7 @@ abstract class Entity {
 
 	/**
 	 * @return array array of updated fields for update query
+	 * @since 7.0.0
 	 */
 	public function getUpdatedFields(){
 		return $this->_updatedFields;
@@ -206,6 +221,7 @@ abstract class Entity {
 	 * that value once its being returned from the database
 	 * @param string $fieldName the name of the attribute
 	 * @param string $type the type which will be used to call settype()
+	 * @since 7.0.0
 	 */
 	protected function addType($fieldName, $type){
 		$this->_fieldTypes[$fieldName] = $type;
@@ -217,6 +233,7 @@ abstract class Entity {
 	 * Warning: This doesn't result in a unique value
 	 * @param string $attributeName the name of the attribute, which value should be slugified
 	 * @return string slugified value
+	 * @since 7.0.0
 	 */
 	public function slugify($attributeName){
 		// toSlug should only work for existing attributes

@@ -1,9 +1,23 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Core\Command\Maintenance;
@@ -13,7 +27,20 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use OCP\IConfig;
+
 class SingleUser extends Command {
+
+	/** @var IConfig */
+	protected $config;
+
+	/**
+	 * @param IConfig $config
+	 */
+	public function __construct(IConfig $config) {
+		$this->config = $config;
+		parent::__construct();
+	}
 
 	protected function configure() {
 		$this
@@ -35,13 +62,13 @@ class SingleUser extends Command {
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		if ($input->getOption('on')) {
-			\OC_Config::setValue('singleuser', true);
+			$this->config->setSystemValue('singleuser', true);
 			$output->writeln('Single user mode enabled');
 		} elseif ($input->getOption('off')) {
-			\OC_Config::setValue('singleuser', false);
+			$this->config->setSystemValue('singleuser', false);
 			$output->writeln('Single user mode disabled');
 		} else {
-			if (\OC_Config::getValue('singleuser', false)) {
+			if ($this->config->getSystemValue('singleuser', false)) {
 				$output->writeln('Single user mode is currently enabled');
 			} else {
 				$output->writeln('Single user mode is currently disabled');

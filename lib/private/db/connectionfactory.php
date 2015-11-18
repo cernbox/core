@@ -1,9 +1,26 @@
 <?php
 /**
- * Copyright (c) 2014 Andreas Fischer <bantu@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\DB;
@@ -22,12 +39,6 @@ class ConnectionFactory {
 	* \Doctrine\DBAL\DriverManager::getConnection().
 	*/
 	protected $defaultConnectionParams = array(
-		'mssql' => array(
-			'adapter' => '\OC\DB\AdapterSQLSrv',
-			'charset' => 'UTF8',
-			'driver' => 'pdo_sqlsrv',
-			'wrapperClass' => 'OC\DB\Connection',
-		),
 		'mysql' => array(
 			'adapter' => '\OC\DB\AdapterMySQL',
 			'charset' => 'UTF8',
@@ -96,6 +107,7 @@ class ConnectionFactory {
 				break;
 			case 'sqlite3':
 				$journalMode = $additionalConnectionParams['sqlite.journal_mode'];
+				$additionalConnectionParams['platform'] = new OCSqlitePlatform();
 				$eventManager->addEventSubscriber(new SQLiteSessionInit(true, $journalMode));
 				break;
 		}

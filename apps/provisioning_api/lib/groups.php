@@ -1,89 +1,135 @@
 <?php
-
 /**
- * ownCloud
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright (C) 2014 ownCloud, Inc.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * @author Tom <tom@owncloud.com>
- * @author Bart Visscher
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OCA\Provisioning_API;
 
 use \OC_OCS_Result;
-use \OC_Group;
 use \OC_SubAdmin;
+use OCP\IGroup;
+use OCP\IUser;
 
 class Groups{
 
+	/** @var \OCP\IGroupManager */
+	private $groupManager;
+
+	/** @var \OCP\IUserSession */
+	private $userSession;
+
+	/**
+	 * @param \OCP\IGroupManager $groupManager
+	 * @param \OCP\IUserSession $userSession
+	 */
+	public function __construct(\OCP\IGroupManager $groupManager,
+								\OCP\IUserSession $userSession) {
+		$this->groupManager = $groupManager;
+		$this->userSession = $userSession;
+	}
+
 	/**
 	 * returns a list of groups
+	 *
+	 * @param array $parameters
+	 * @return OC_OCS_Result
 	 */
-	public static function getGroups($parameters){
+	public function getGroups($parameters) {
 		$search = !empty($_GET['search']) ? $_GET['search'] : '';
 		$limit = !empty($_GET['limit']) ? $_GET['limit'] : null;
 		$offset = !empty($_GET['offset']) ? $_GET['offset'] : null;
-		return new OC_OCS_Result(array('groups' => OC_Group::getGroups($search, $limit, $offset)));
+
+		$groups = $this->groupManager->search($search, $limit, $offset);
+		$groups = array_map(function($group) {
+			/** @var IGroup $group */
+			return $group->getGID();
+		}, $groups);
+
+		return new OC_OCS_Result(['groups' => $groups]);
 	}
 
 	/**
 	 * returns an array of users in the group specified
+	 *
+	 * @param array $parameters
+	 * @return OC_OCS_Result
 	 */
-	public static function getGroup($parameters){
+	public function getGroup($parameters) {
+		// Check if user is logged in
+		$user = $this->userSession->getUser();
+		if ($user === null) {
+			return new OC_OCS_Result(null, \OCP\API::RESPOND_UNAUTHORISED);
+		}
+
 		// Check the group exists
-		if(!OC_Group::groupExists($parameters['groupid'])){
-			return new OC_OCS_Result(null, \OC_API::RESPOND_NOT_FOUND, 'The requested group could not be found');
+		if(!$this->groupManager->groupExists($parameters['groupid'])) {
+			return new OC_OCS_Result(null, \OCP\API::RESPOND_NOT_FOUND, 'The requested group could not be found');
 		}
 		// Check subadmin has access to this group
-		if(\OC_User::isAdminUser(\OC_User::getUser())
-			|| in_array($parameters['groupid'], \OC_SubAdmin::getSubAdminsGroups(\OC_User::getUser()))){
-			return new OC_OCS_Result(array('users' => OC_Group::usersInGroup($parameters['groupid'])));
+		if($this->groupManager->isAdmin($user->getUID())
+		   || in_array($parameters['groupid'], \OC_SubAdmin::getSubAdminsGroups($user->getUID()))){
+			$users = $this->groupManager->get($parameters['groupid'])->getUsers();
+			$users =  array_map(function($user) {
+				/** @var IUser $user */
+				return $user->getUID();
+			}, $users);
+			$users = array_values($users);
+			return new OC_OCS_Result(['users' => $users]);
 		} else {
-			return new OC_OCS_Result(null, \OC_API::RESPOND_UNAUTHORISED, 'User does not have access to specified group');
+			return new OC_OCS_Result(null, \OCP\API::RESPOND_UNAUTHORISED, 'User does not have access to specified group');
 		}
 	}
 
 	/**
 	 * creates a new group
+	 *
+	 * @param array $parameters
+	 * @return OC_OCS_Result
 	 */
-	public static function addGroup($parameters){
+	public function addGroup($parameters) {
 		// Validate name
-		$groupid = isset($_POST['groupid']) ? $_POST['groupid'] : '';
-		if( preg_match( '/[^a-zA-Z0-9 _\.@\-]/', $groupid ) || empty($groupid)){
-			\OC_Log::write('provisioning_api', 'Attempt made to create group using invalid characters.', \OC_Log::ERROR);
+		$groupId = isset($_POST['groupid']) ? $_POST['groupid'] : '';
+		if( preg_match( '/[^a-zA-Z0-9 _\.@\-]/', $groupId ) || empty($groupId)){
+			\OCP\Util::writeLog('provisioning_api', 'Attempt made to create group using invalid characters.', \OCP\Util::ERROR);
 			return new OC_OCS_Result(null, 101, 'Invalid group name');
 		}
 		// Check if it exists
-		if(OC_Group::groupExists($groupid)){
+		if($this->groupManager->groupExists($groupId)){
 			return new OC_OCS_Result(null, 102);
 		}
-		if(OC_Group::createGroup($groupid)){
-			return new OC_OCS_Result(null, 100);
-		} else {
-			return new OC_OCS_Result(null, 103);
-		}
+		$this->groupManager->createGroup($groupId);
+		return new OC_OCS_Result(null, 100);
 	}
 
-	public static function deleteGroup($parameters){
+	/**
+	 * @param array $parameters
+	 * @return OC_OCS_Result
+	 */
+	public function deleteGroup($parameters) {
 		// Check it exists
-		if(!OC_Group::groupExists($parameters['groupid'])){
+		if(!$this->groupManager->groupExists($parameters['groupid'])){
 			return new OC_OCS_Result(null, 101);
-		} else if($parameters['groupid'] == 'admin' || !OC_Group::deleteGroup($parameters['groupid'])){
+		} else if($parameters['groupid'] === 'admin' || !$this->groupManager->get($parameters['groupid'])->delete()){
 			// Cannot delete admin group
 			return new OC_OCS_Result(null, 102);
 		} else {
@@ -91,10 +137,14 @@ class Groups{
 		}
 	}
 
-	public static function getSubAdminsOfGroup($parameters) {
+	/**
+	 * @param array $parameters
+	 * @return OC_OCS_Result
+	 */
+	public function getSubAdminsOfGroup($parameters) {
 		$group = $parameters['groupid'];
 		// Check group exists
-		if(!OC_Group::groupExists($group)) {
+		if(!$this->groupManager->groupExists($group)) {
 			return new OC_OCS_Result(null, 101, 'Group does not exist');
 		}
 		// Go

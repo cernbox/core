@@ -1,23 +1,28 @@
 <?php
-
 /**
- * ownCloud - App Framework
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -28,16 +33,14 @@ use OC;
 use OC\AppFramework\Http;
 use OC\AppFramework\Http\Request;
 use OC\AppFramework\Http\Dispatcher;
+use OC\AppFramework\Http\Output;
 use OC\AppFramework\Core\API;
 use OC\AppFramework\Middleware\MiddlewareDispatcher;
 use OC\AppFramework\Middleware\Security\SecurityMiddleware;
 use OC\AppFramework\Middleware\Security\CORSMiddleware;
 use OC\AppFramework\Middleware\SessionMiddleware;
 use OC\AppFramework\Utility\SimpleContainer;
-use OC\AppFramework\Utility\TimeFactory;
-use OC\AppFramework\Utility\ControllerMethodReflector;
 use OCP\AppFramework\IApi;
-use OCP\AppFramework\QueryException;
 use OCP\AppFramework\IAppContainer;
 use OCP\AppFramework\Middleware;
 use OCP\IServerContainer;
@@ -55,8 +58,14 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 	 * @param string $appName the name of the app
 	 */
 	public function __construct($appName, $urlParams = array()){
+		parent::__construct();
 		$this['AppName'] = $appName;
 		$this['urlParams'] = $urlParams;
+
+		// aliases
+		$this->registerAlias('appName', 'AppName');
+		$this->registerAlias('webRoot', 'WebRoot');
+		$this->registerAlias('userId', 'UserId');
 
 		/**
 		 * Core services
@@ -67,6 +76,10 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 
 		$this->registerService('OCP\\App\\IAppManager', function($c) {
 			return $this->getServer()->getAppManager();
+		});
+
+		$this->registerService('OCP\\AppFramework\\Http\\IOutput', function($c){
+			return new Output($this->getServer()->getWebRoot());
 		});
 
 		$this->registerService('OCP\\IAvatarManager', function($c) {
@@ -83,6 +96,10 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 
 		$this->registerService('OCP\\ICacheFactory', function($c) {
 			return $this->getServer()->getMemCacheFactory();
+		});
+
+		$this->registerService('OC\\CapabilitiesManager', function($c) {
+			return $this->getServer()->getCapabilitiesManager();
 		});
 
 		$this->registerService('OCP\\IConfig', function($c) {
@@ -137,9 +154,8 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 			return $this->getServer()->getJobList();
 		});
 
-		$this->registerService('OCP\\AppFramework\\Utility\\IControllerMethodReflector', function($c) {
-			return $c->query('ControllerMethodReflector');
-		});
+		$this->registerAlias('OCP\\AppFramework\\Utility\\IControllerMethodReflector', 'OC\AppFramework\Utility\ControllerMethodReflector');
+		$this->registerAlias('ControllerMethodReflector', 'OCP\\AppFramework\\Utility\\IControllerMethodReflector');
 
 		$this->registerService('OCP\\INavigationManager', function($c) {
 			return $this->getServer()->getNavigationManager();
@@ -149,9 +165,10 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 			return $this->getServer()->getPreviewManager();
 		});
 
-		$this->registerService('OCP\\IRequest', function($c) {
-			return $c->query('Request');
+		$this->registerService('OCP\\IRequest', function () {
+			return $this->getServer()->getRequest();
 		});
+		$this->registerAlias('Request', 'OCP\\IRequest');
 
 		$this->registerService('OCP\\ITagManager', function($c) {
 			return $this->getServer()->getTagManager();
@@ -161,9 +178,9 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 			return $this->getServer()->getTempManager();
 		});
 
-		$this->registerService('OCP\\AppFramework\\Utility\\ITimeFactory', function($c) {
-			return $c->query('TimeFactory');
-		});
+		$this->registerAlias('OCP\\AppFramework\\Utility\\ITimeFactory', 'OC\AppFramework\Utility\TimeFactory');
+		$this->registerAlias('TimeFactory', 'OCP\\AppFramework\\Utility\\ITimeFactory');
+
 
 		$this->registerService('OCP\\Route\\IRouter', function($c) {
 			return $this->getServer()->getRouter();
@@ -201,6 +218,10 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 			return $this->getServer()->getUserSession();
 		});
 
+		$this->registerService('OCP\\ISession', function($c) {
+			return $this->getServer()->getSession();
+		});
+
 		$this->registerService('ServerContainer', function ($c) {
 			return $this->getServer();
 		});
@@ -224,14 +245,6 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 				'services instead!'
 			);
 			return new API($c['AppName']);
-		});
-
-		$this->registerService('Request', function($c) {
-			/** @var $c SimpleContainer */
-			/** @var $server SimpleContainer */
-			$server = $c->query('ServerContainer');
-			/** @var $server IServerContainer */
-			return $server->getRequest();
 		});
 
 		$this->registerService('Protocol', function($c){
@@ -272,7 +285,8 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 		$this->registerService('CORSMiddleware', function($c) {
 			return new CORSMiddleware(
 				$c['Request'],
-				$c['ControllerMethodReflector']
+				$c['ControllerMethodReflector'],
+				$c['OCP\IUserSession']
 			);
 		});
 
@@ -287,8 +301,8 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 		$middleWares = &$this->middleWares;
 		$this->registerService('MiddlewareDispatcher', function($c) use (&$middleWares) {
 			$dispatcher = new MiddlewareDispatcher();
-			$dispatcher->registerMiddleware($c['SecurityMiddleware']);
 			$dispatcher->registerMiddleware($c['CORSMiddleware']);
+			$dispatcher->registerMiddleware($c['SecurityMiddleware']);
 
 			foreach($middleWares as $middleWare) {
 				$dispatcher->registerMiddleware($c[$middleWare]);
@@ -296,18 +310,6 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 
 			$dispatcher->registerMiddleware($c['SessionMiddleware']);
 			return $dispatcher;
-		});
-
-
-		/**
-		 * Utilities
-		 */
-		$this->registerService('TimeFactory', function($c){
-			return new TimeFactory();
-		});
-
-		$this->registerService('ControllerMethodReflector', function($c) {
-			return new ControllerMethodReflector();
 		});
 
 	}
@@ -394,5 +396,15 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 		\OCP\Util::writeLog($this->getAppName(), $message, $level);
 	}
 
+	/**
+	 * Register a capability
+	 *
+	 * @param string $serviceName e.g. 'OCA\Files\Capabilities'
+	 */
+	public function registerCapability($serviceName) {
+		$this->query('OC\CapabilitiesManager')->registerCapability(function() use ($serviceName) {
+			return $this->query($serviceName);
+		});
 
+	}
 }

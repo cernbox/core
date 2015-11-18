@@ -1,27 +1,34 @@
 <?php
-
 /**
- * ownCloud – LDAP Helper
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Brice Maron <brice@bmaron.net>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Arthur Schiwon
- * @copyright 2013 Arthur Schiwon blizzz@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 namespace OCA\user_ldap\lib;
+
+use OCA\user_ldap\lib\LDAP;
+use OCA\user_ldap\User_Proxy;
 
 class Helper {
 
@@ -176,5 +183,33 @@ class Helper {
 		}
 
 		return $domain;
+	}
+
+	/**
+	 * listens to a hook thrown by server2server sharing and replaces the given
+	 * login name by a username, if it matches an LDAP user.
+	 *
+	 * @param array $param
+	 * @throws \Exception
+	 */
+	public static function loginName2UserName($param) {
+		if(!isset($param['uid'])) {
+			throw new \Exception('key uid is expected to be set in $param');
+		}
+
+		//ain't it ironic?
+		$helper = new Helper();
+
+		$configPrefixes = $helper->getServerConfigurationPrefixes(true);
+		$ldapWrapper = new LDAP();
+		$ocConfig = \OC::$server->getConfig();
+
+		$userBackend  = new User_Proxy(
+			$configPrefixes, $ldapWrapper, $ocConfig
+		);
+		$uid = $userBackend->loginName2UserName($param['uid'] );
+		if($uid !== false) {
+			$param['uid'] = $uid;
+		}
 	}
 }

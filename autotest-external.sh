@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # ownCloud
 #
 # @author Thomas Müller
 # @author Morris Jobke
-# @copyright 2012, 2013 Thomas Müller thomas.mueller@tmit.eu
+# @copyright 2012-2015 Thomas Müller thomas.mueller@tmit.eu
 # @copyright 2014 Morris Jobke hey@morrisjobke.de
 #
 
@@ -17,6 +17,9 @@ BASEDIR=$PWD
 DBCONFIGS="sqlite mysql pgsql oci"
 PHPUNIT=$(which phpunit)
 
+_XDEBUG_CONFIG=$XDEBUG_CONFIG
+unset XDEBUG_CONFIG
+
 function print_syntax {
 	echo -e "Syntax: ./autotest-external.sh [dbconfigname] [startfile]\n" >&2
 	echo -e "\t\"dbconfigname\" can be one of: $DBCONFIGS" >&2
@@ -24,6 +27,7 @@ function print_syntax {
 	echo -e "\nExample: ./autotest.sh sqlite webdav-ownCloud" >&2
 	echo "will run the external suite from \"apps/files_external/tests/env/start-webdav-ownCloud.sh\"" >&2
 	echo -e "\nIf no arguments are specified, all available external backends will be run with all database configs" >&2
+	echo -e "\nIf you specify 'common-tests' as startfile it will just run the tests that are independent from the backends" >&2
 }
 
 if ! [ -x "$PHPUNIT" ]; then
@@ -60,20 +64,25 @@ if [ "$1" ]; then
 	fi
 fi
 
-# Back up existing (dev) config if one exists
-if [ -f config/config.php ]; then
+# Back up existing (dev) config if one exists and backup not already there
+if [ -f config/config.php ] && [ ! -f config/config-autotest-backup.php ]; then
 	mv config/config.php config/config-autotest-backup.php
 fi
 
-function restore_config {
+function cleanup_config {
+	cd "$BASEDIR"
 	# Restore existing config
 	if [ -f config/config-autotest-backup.php ]; then
 		mv config/config-autotest-backup.php config/config.php
 	fi
+	# Remove autotest config
+	if [ -f config/autoconfig.php ]; then
+		rm config/autoconfig.php
+	fi
 }
 
-# restore config on exit, even when killed
-trap restore_config SIGINT SIGTERM
+# restore config on exit
+trap cleanup_config EXIT
 
 # use tmpfs for datadir - should speedup unit test execution
 if [ -d /dev/shm ]; then
@@ -83,67 +92,6 @@ else
 fi
 
 echo "Using database $DATABASENAME"
-
-# create autoconfig for sqlite, mysql and postgresql
-cat > ./tests/autoconfig-sqlite.php <<DELIM
-<?php
-\$AUTOCONFIG = array (
-  'installed' => false,
-  'dbtype' => 'sqlite',
-  'dbtableprefix' => 'oc_',
-  'adminlogin' => '$ADMINLOGIN',
-  'adminpass' => 'admin',
-  'directory' => '$DATADIR',
-);
-DELIM
-
-cat > ./tests/autoconfig-mysql.php <<DELIM
-<?php
-\$AUTOCONFIG = array (
-  'installed' => false,
-  'dbtype' => 'mysql',
-  'dbtableprefix' => 'oc_',
-  'adminlogin' => '$ADMINLOGIN',
-  'adminpass' => 'admin',
-  'directory' => '$DATADIR',
-  'dbuser' => '$DATABASEUSER',
-  'dbname' => '$DATABASENAME',
-  'dbhost' => 'localhost',
-  'dbpass' => 'owncloud',
-);
-DELIM
-
-cat > ./tests/autoconfig-pgsql.php <<DELIM
-<?php
-\$AUTOCONFIG = array (
-  'installed' => false,
-  'dbtype' => 'pgsql',
-  'dbtableprefix' => 'oc_',
-  'adminlogin' => '$ADMINLOGIN',
-  'adminpass' => 'admin',
-  'directory' => '$DATADIR',
-  'dbuser' => '$DATABASEUSER',
-  'dbname' => '$DATABASENAME',
-  'dbhost' => 'localhost',
-  'dbpass' => 'owncloud',
-);
-DELIM
-
-cat > ./tests/autoconfig-oci.php <<DELIM
-<?php
-\$AUTOCONFIG = array (
-  'installed' => false,
-  'dbtype' => 'oci',
-  'dbtableprefix' => 'oc_',
-  'adminlogin' => '$ADMINLOGIN',
-  'adminpass' => 'admin',
-  'directory' => '$DATADIR',
-  'dbuser' => '$DATABASENAME',
-  'dbname' => 'XE',
-  'dbhost' => 'localhost',
-  'dbpass' => 'owncloud',
-);
-DELIM
 
 function execute_tests {
 	echo "Setup environment for $1 testing ..."
@@ -191,15 +139,16 @@ EOF
 			to $DATABASENAME;
 			exit;
 EOF
+		DATABASEUSER=$DATABASENAME
+		DATABASENAME='XE'
 	fi
 
 	# copy autoconfig
 	cp "$BASEDIR/tests/autoconfig-$1.php" "$BASEDIR/config/autoconfig.php"
 
 	# trigger installation
-	echo "INDEX"
-	php -f index.php | grep -i -C9999 error && echo "Error during setup" && exit 101
-	echo "END INDEX"
+	echo "Installing ...."
+	./occ maintenance:install --database=$1 --database-name=$DATABASENAME --database-host=localhost --database-user=$DATABASEUSER --database-pass=owncloud --database-table-prefix=oc_ --admin-user=$ADMINLOGIN --admin-pass=admin --data-dir=$DATADIR
 
 	#test execution
 	echo "Testing with $1 ..."
@@ -213,20 +162,27 @@ EOF
 	mkdir "coverage-external-html-$1"
 	# just enable files_external
 	php ../occ app:enable files_external
+	if [[ "$_XDEBUG_CONFIG" ]]; then
+		export XDEBUG_CONFIG=$_XDEBUG_CONFIG
+	fi
 	if [ -z "$NOCOVERAGE" ]; then
-		#"$PHPUNIT" --configuration phpunit-autotest-external.xml --log-junit "autotest-external-results-$1.xml" --coverage-clover "autotest-external-clover-$1.xml" --coverage-html "coverage-external-html-$1"
+		"$PHPUNIT" --configuration phpunit-autotest-external.xml --log-junit "autotest-external-results-$1.xml" --coverage-clover "autotest-external-clover-$1.xml" --coverage-html "coverage-external-html-$1"
 		RESULT=$?
 	else
 		echo "No coverage"
-		#"$PHPUNIT" --configuration phpunit-autotest-external.xml --log-junit "autotest-external-results-$1.xml"
+		"$PHPUNIT" --configuration phpunit-autotest-external.xml --log-junit "autotest-external-results-$1.xml"
 		RESULT=$?
+	fi
+
+	if [ -n "$2" -a "$2" == "common-tests" ]; then
+	    return;
 	fi
 
     FILES_EXTERNAL_BACKEND_PATH=../apps/files_external/tests/backends
     FILES_EXTERNAL_BACKEND_ENV_PATH=../apps/files_external/tests/env
 
 	for startFile in `ls -1 $FILES_EXTERNAL_BACKEND_ENV_PATH | grep start`; do
-	    name=`echo $startFile | replace "start-" "" | replace ".sh" ""`
+	    name=`echo $startFile | sed 's/start-//' | sed 's/\.sh//'`
 
 	    if [ -n "$2" -a "$2" != "$name" ]; then
 	        echo "skip: $startFile"
@@ -256,7 +212,7 @@ EOF
         fi
 
 	    # calculate stop file
-	    stopFile=`echo "$startFile" | replace start stop`
+	    stopFile=`echo "$startFile" | sed 's/start/stop/'`
 	    echo "stop: $stopFile"
 	    if [ -f $FILES_EXTERNAL_BACKEND_ENV_PATH/$stopFile ]; then
 	        # execute stop file if existant
@@ -278,9 +234,6 @@ else
 	execute_tests "$1" "$2"
 fi
 
-cd "$BASEDIR"
-
-restore_config
 #
 # NOTES on mysql:
 #  - CREATE DATABASE oc_autotest;

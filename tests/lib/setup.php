@@ -10,16 +10,33 @@ use OCP\IConfig;
 
 class Test_OC_Setup extends \Test\TestCase {
 
-	/** @var IConfig */
+	/** @var IConfig | PHPUnit_Framework_MockObject_MockObject */
 	protected $config;
-	/** @var \OC_Setup */
+	/** @var \bantu\IniGetWrapper\IniGetWrapper | PHPUnit_Framework_MockObject_MockObject */
+	private $iniWrapper;
+	/** @var \OCP\IL10N | PHPUnit_Framework_MockObject_MockObject */
+	private $l10n;
+	/** @var \OC_Defaults | PHPUnit_Framework_MockObject_MockObject */
+	private $defaults;
+	/** @var \OC\Setup | PHPUnit_Framework_MockObject_MockObject */
 	protected $setupClass;
+	/** @var \OCP\ILogger | PHPUnit_Framework_MockObject_MockObject */
+	protected $logger;
+	/** @var \OCP\Security\ISecureRandom | PHPUnit_Framework_MockObject_MockObject */
+	protected $random;
 
 	protected function setUp() {
 		parent::setUp();
 
 		$this->config = $this->getMock('\OCP\IConfig');
-		$this->setupClass = $this->getMock('\OC_Setup', ['class_exists', 'is_callable'], [$this->config]);
+		$this->iniWrapper = $this->getMock('\bantu\IniGetWrapper\IniGetWrapper');
+		$this->l10n = $this->getMock('\OCP\IL10N');
+		$this->defaults = $this->getMock('\OC_Defaults');
+		$this->logger = $this->getMock('\OCP\ILogger');
+		$this->random = $this->getMock('\OCP\Security\ISecureRandom');
+		$this->setupClass = $this->getMock('\OC\Setup',
+			['class_exists', 'is_callable', 'getAvailableDbDriversForPdo'],
+			[$this->config, $this->iniWrapper, $this->l10n, $this->defaults, $this->logger, $this->random]);
 	}
 
 	public function testGetSupportedDatabasesWithOneWorking() {
@@ -34,9 +51,13 @@ class Test_OC_Setup extends \Test\TestCase {
 			->method('class_exists')
 			->will($this->returnValue(true));
 		$this->setupClass
-			->expects($this->exactly(2))
+			->expects($this->once())
 			->method('is_callable')
 			->will($this->returnValue(false));
+		$this->setupClass
+			->expects($this->once())
+			->method('getAvailableDbDriversForPdo')
+			->will($this->returnValue([]));
 		$result = $this->setupClass->getSupportedDatabases();
 		$expectedResult = array(
 			'sqlite' => 'SQLite'
@@ -57,36 +78,43 @@ class Test_OC_Setup extends \Test\TestCase {
 			->method('class_exists')
 			->will($this->returnValue(false));
 		$this->setupClass
-			->expects($this->exactly(3))
+			->expects($this->exactly(2))
 			->method('is_callable')
 			->will($this->returnValue(false));
+		$this->setupClass
+			->expects($this->once())
+			->method('getAvailableDbDriversForPdo')
+			->will($this->returnValue([]));
 		$result = $this->setupClass->getSupportedDatabases();
 
 		$this->assertSame(array(), $result);
 	}
 
-	public function testGetSupportedDatabasesWitAllWorking() {
+	public function testGetSupportedDatabasesWithAllWorking() {
 		$this->config
 			->expects($this->once())
 			->method('getSystemValue')
 			->will($this->returnValue(
-				array('sqlite', 'mysql', 'pgsql', 'oci', 'mssql')
+				array('sqlite', 'mysql', 'pgsql', 'oci')
 			));
 		$this->setupClass
 			->expects($this->once())
 			->method('class_exists')
 			->will($this->returnValue(true));
 		$this->setupClass
-			->expects($this->exactly(4))
+			->expects($this->exactly(2))
 			->method('is_callable')
 			->will($this->returnValue(true));
+		$this->setupClass
+			->expects($this->once())
+			->method('getAvailableDbDriversForPdo')
+			->will($this->returnValue(['mysql']));
 		$result = $this->setupClass->getSupportedDatabases();
 		$expectedResult = array(
 			'sqlite' => 'SQLite',
 			'mysql' => 'MySQL/MariaDB',
 			'pgsql' => 'PostgreSQL',
-			'oci' => 'Oracle',
-			'mssql' => 'MS SQL'
+			'oci' => 'Oracle'
 		);
 		$this->assertSame($expectedResult, $result);
 	}
@@ -109,7 +137,7 @@ class Test_OC_Setup extends \Test\TestCase {
 	 * If it hasn't this test will fail.
 	 */
 	public function testHtaccessIsCurrent() {
-		$result = Test_Helper::invokePrivate(
+		$result = self::invokePrivate(
 			$this->setupClass,
 			'isCurrentHtaccess'
 		);

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # ownCloud
 #
@@ -26,7 +26,11 @@ echo "Fetch recent morrisjobke/owncloud docker image"
 docker pull morrisjobke/owncloud
 
 # retrieve current folder to place the config in the parent folder
-thisFolder=`echo $0 | replace "env/start-webdav-ownCloud.sh" ""`
+thisFolder=`echo $0 | sed 's#env/start-webdav-ownCloud\.sh##'`
+
+if [ -z "$thisFolder" ]; then
+    thisFolder="."
+fi;
 
 if [ -n "$RUN_DOCKER_MYSQL" ]; then
     echo "Fetch recent mysql docker image"
@@ -78,5 +82,6 @@ if [ -n "$databaseContainer" ]; then
 fi
 
 if [ -n "$DEBUG" ]; then
-    echo $thisFolder/config.webdav.php
+    cat $thisFolder/config.webdav.php
+    cat $thisFolder/dockerContainerOwnCloud.$EXECUTOR_NUMBER.webdav
 fi

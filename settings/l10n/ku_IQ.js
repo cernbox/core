@@ -2,10 +2,11 @@ OC.L10N.register(
     "settings",
     {
     "Invalid request" : "داواکارى نادروستە",
+    "All" : "هەمووی",
     "Enable" : "چالاککردن",
-    "Encryption" : "نهێنیکردن",
     "None" : "هیچ",
     "Login" : "چوونەژوورەوە",
+    "Encryption" : "نهێنیکردن",
     "Server address" : "ناونیشانی ڕاژه",
     "by" : "له‌لایه‌ن",
     "Password" : "وشەی تێپەربو",

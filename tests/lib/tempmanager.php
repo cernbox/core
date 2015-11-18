@@ -22,12 +22,13 @@ class NullLogger extends Log {
 }
 
 class TempManager extends \Test\TestCase {
-	protected $baseDir;
+
+	protected $baseDir = null;
 
 	protected function setUp() {
 		parent::setUp();
 
-		$this->baseDir = get_temp_dir() . $this->getUniqueID('/oc_tmp_test');
+		$this->baseDir = $this->getManager()->getTempBaseDir() . $this->getUniqueID('/oc_tmp_test');
 		if (!is_dir($this->baseDir)) {
 			mkdir($this->baseDir);
 		}
@@ -35,23 +36,35 @@ class TempManager extends \Test\TestCase {
 
 	protected function tearDown() {
 		\OC_Helper::rmdirr($this->baseDir);
+		$this->baseDir = null;
 		parent::tearDown();
 	}
 
 	/**
 	 * @param  \OCP\ILogger $logger
+	 * @param  \OCP\IConfig $config
 	 * @return \OC\TempManager
 	 */
-	protected function getManager($logger = null) {
+	protected function getManager($logger = null, $config = null) {
 		if (!$logger) {
 			$logger = new NullLogger();
 		}
-		return new \OC\TempManager($this->baseDir, $logger);
+		if (!$config) {
+			$config = $this->getMock('\OCP\IConfig');
+			$config->method('getSystemValue')
+				->with('tempdirectory', null)
+				->willReturn('/tmp');
+		}
+		$manager = new \OC\TempManager($logger, $config);
+		if ($this->baseDir) {
+			$manager->overrideTempBaseDir($this->baseDir);
+		}
+		return $manager;
 	}
 
 	public function testGetFile() {
 		$manager = $this->getManager();
-		$file = $manager->getTemporaryFile('.txt');
+		$file = $manager->getTemporaryFile('txt');
 		$this->assertStringEndsWith('.txt', $file);
 		$this->assertTrue(is_file($file));
 		$this->assertTrue(is_writable($file));
@@ -73,8 +86,8 @@ class TempManager extends \Test\TestCase {
 
 	public function testCleanFiles() {
 		$manager = $this->getManager();
-		$file1 = $manager->getTemporaryFile('.txt');
-		$file2 = $manager->getTemporaryFile('.txt');
+		$file1 = $manager->getTemporaryFile('txt');
+		$file2 = $manager->getTemporaryFile('txt');
 		$this->assertTrue(file_exists($file1));
 		$this->assertTrue(file_exists($file2));
 
@@ -105,8 +118,8 @@ class TempManager extends \Test\TestCase {
 
 	public function testCleanOld() {
 		$manager = $this->getManager();
-		$oldFile = $manager->getTemporaryFile('.txt');
-		$newFile = $manager->getTemporaryFile('.txt');
+		$oldFile = $manager->getTemporaryFile('txt');
+		$newFile = $manager->getTemporaryFile('txt');
 		$folder = $manager->getTemporaryFolder();
 		$nonOcFile = $this->baseDir . '/foo.txt';
 		file_put_contents($nonOcFile, 'bar');
@@ -135,7 +148,7 @@ class TempManager extends \Test\TestCase {
 		$logger->expects($this->once())
 			->method('warning')
 			->with($this->stringContains('Can not create a temporary file in directory'));
-		$this->assertFalse($manager->getTemporaryFile('.txt'));
+		$this->assertFalse($manager->getTemporaryFile('txt'));
 	}
 
 	public function testLogCantCreateFolder() {
@@ -150,5 +163,54 @@ class TempManager extends \Test\TestCase {
 			->method('warning')
 			->with($this->stringContains('Can not create a temporary folder in directory'));
 		$this->assertFalse($manager->getTemporaryFolder());
+	}
+
+	public function testBuildFileNameWithPostfix() {
+		$logger = $this->getMock('\Test\NullLogger');
+		$tmpManager = self::invokePrivate(
+			$this->getManager($logger),
+			'buildFileNameWithSuffix',
+			['/tmp/myTemporaryFile', 'postfix']
+		);
+
+		$this->assertEquals('/tmp/myTemporaryFile-.postfix', $tmpManager);
+	}
+
+	public function testBuildFileNameWithoutPostfix() {
+		$logger = $this->getMock('\Test\NullLogger');
+		$tmpManager = self::invokePrivate(
+			$this->getManager($logger),
+					'buildFileNameWithSuffix',
+			['/tmp/myTemporaryFile', '']
+		);
+
+		$this->assertEquals('/tmp/myTemporaryFile', $tmpManager);
+	}
+
+	public function testBuildFileNameWithSuffixPathTraversal() {
+		$logger = $this->getMock('\Test\NullLogger');
+		$tmpManager = self::invokePrivate(
+			$this->getManager($logger),
+			'buildFileNameWithSuffix',
+			['foo', '../Traversal\\../FileName']
+		);
+
+		$this->assertStringEndsNotWith('./Traversal\\../FileName', $tmpManager);
+		$this->assertStringEndsWith('.Traversal..FileName', $tmpManager);
+	}
+
+	public function testGetTempBaseDirFromConfig() {
+		$dir = $this->getManager()->getTemporaryFolder();
+
+		$config = $this->getMock('\OCP\IConfig');
+		$config->expects($this->once())
+			->method('getSystemValue')
+			->with('tempdirectory', null)
+			->willReturn($dir);
+
+		$this->baseDir = null; // prevent override
+		$tmpManager = $this->getManager(null, $config);
+
+		$this->assertEquals($dir, $tmpManager->getTempBaseDir());
 	}
 }

@@ -1,113 +1,64 @@
 <?php
 /**
- * ownCloud
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Fabian Henze <flyser42@gmx.de>
+ * @author Felix Moeller <mail@felixmoeller.de>
+ * @author François Kubler <francois@kubler.org>
+ * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Nicolas Grekas <nicolas.grekas@gmail.com>
+ * @author Olivier Paroz <github@oparoz.com>
+ * @author Owen Winkler <a_github@midnightcircus.com>
+ * @author Pellaeon Lin <nfsmwlin@gmail.com>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Simon Könnecke <simonkoennecke@gmail.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Valerio Ponte <valerio.ponte@gmail.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Frank Karlitschek
- * @author Jakob Sack
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
+use Symfony\Component\Process\ExecutableFinder;
 
 /**
  * Collection of useful functions
  */
 class OC_Helper {
-	private static $mimetypeIcons = array();
-	private static $mimetypeDetector;
 	private static $templateManager;
-	/** @var string[] */
-	private static $mimeTypeAlias = array(
-		'application/octet-stream' => 'file', // use file icon as fallback
-
-		'application/illustrator' => 'image/vector',
-		'application/postscript' => 'image/vector',
-		'image/svg+xml' => 'image/vector',
-
-		'application/coreldraw' => 'image',
-		'application/x-gimp' => 'image',
-		'application/x-photoshop' => 'image',
-
-		'application/x-font-ttf' => 'font',
-		'application/font-woff' => 'font',
-		'application/vnd.ms-fontobject' => 'font',
-
-		'application/json' => 'text/code',
-		'application/x-perl' => 'text/code',
-		'application/x-php' => 'text/code',
-		'text/x-shellscript' => 'text/code',
-		'application/xml' => 'text/html',
-		'text/css' => 'text/code',
-		'application/x-tex' => 'text',
-
-		'application/x-compressed' => 'package/x-generic',
-		'application/x-7z-compressed' => 'package/x-generic',
-		'application/x-deb' => 'package/x-generic',
-		'application/x-gzip' => 'package/x-generic',
-		'application/x-rar-compressed' => 'package/x-generic',
-		'application/x-tar' => 'package/x-generic',
-		'application/vnd.android.package-archive' => 'package/x-generic',
-		'application/zip' => 'package/x-generic',
-
-		'application/msword' => 'x-office/document',
-		'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'x-office/document',
-		'application/vnd.openxmlformats-officedocument.wordprocessingml.template' => 'x-office/document',
-		'application/vnd.ms-word.document.macroEnabled.12' => 'x-office/document',
-		'application/vnd.ms-word.template.macroEnabled.12' => 'x-office/document',
-		'application/vnd.oasis.opendocument.text' => 'x-office/document',
-		'application/vnd.oasis.opendocument.text-template' => 'x-office/document',
-		'application/vnd.oasis.opendocument.text-web' => 'x-office/document',
-		'application/vnd.oasis.opendocument.text-master' => 'x-office/document',
-
-		'application/mspowerpoint' => 'x-office/presentation',
-		'application/vnd.ms-powerpoint' => 'x-office/presentation',
-		'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'x-office/presentation',
-		'application/vnd.openxmlformats-officedocument.presentationml.template' => 'x-office/presentation',
-		'application/vnd.openxmlformats-officedocument.presentationml.slideshow' => 'x-office/presentation',
-		'application/vnd.ms-powerpoint.addin.macroEnabled.12' => 'x-office/presentation',
-		'application/vnd.ms-powerpoint.presentation.macroEnabled.12' => 'x-office/presentation',
-		'application/vnd.ms-powerpoint.template.macroEnabled.12' => 'x-office/presentation',
-		'application/vnd.ms-powerpoint.slideshow.macroEnabled.12' => 'x-office/presentation',
-		'application/vnd.oasis.opendocument.presentation' => 'x-office/presentation',
-		'application/vnd.oasis.opendocument.presentation-template' => 'x-office/presentation',
-
-		'application/msexcel' => 'x-office/spreadsheet',
-		'application/vnd.ms-excel' => 'x-office/spreadsheet',
-		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'x-office/spreadsheet',
-		'application/vnd.openxmlformats-officedocument.spreadsheetml.template' => 'x-office/spreadsheet',
-		'application/vnd.ms-excel.sheet.macroEnabled.12' => 'x-office/spreadsheet',
-		'application/vnd.ms-excel.template.macroEnabled.12' => 'x-office/spreadsheet',
-		'application/vnd.ms-excel.addin.macroEnabled.12' => 'x-office/spreadsheet',
-		'application/vnd.ms-excel.sheet.binary.macroEnabled.12' => 'x-office/spreadsheet',
-		'application/vnd.oasis.opendocument.spreadsheet' => 'x-office/spreadsheet',
-		'application/vnd.oasis.opendocument.spreadsheet-template' => 'x-office/spreadsheet',
-		'text/csv' => 'x-office/spreadsheet',
-
-		'application/msaccess' => 'database',
-		
-		/* CERN MimeTypes */
-		'application/x-root' => 'root',
-	);
 
 	/**
 	 * Creates an url using a defined route
 	 * @param string $route
-	 * @param array $parameters
-	 * @return
-	 * @internal param array $args with param=>value, will be appended to the returned url
+	 * @param array $parameters with param=>value, will be appended to the returned url
 	 * @return string the url
+	 * @deprecated Use \OC::$server->getURLGenerator()->linkToRoute($route, $parameters)
 	 *
 	 * Returns a url to the given app and file.
 	 */
@@ -122,6 +73,7 @@ class OC_Helper {
 	 * @param array $args array with param=>value, will be appended to the returned url
 	 *    The value of $args will be urlencoded
 	 * @return string the url
+	 * @deprecated Use \OC::$server->getURLGenerator()->linkTo($app, $file, $args)
 	 *
 	 * Returns a url to the given app and file.
 	 */
@@ -132,6 +84,7 @@ class OC_Helper {
 	/**
 	 * @param string $key
 	 * @return string url to the online documentation
+	 * @deprecated Use \OC::$server->getURLGenerator()->linkToDocs($key)
 	 */
 	public static function linkToDocs($key) {
 		return OC::$server->getURLGenerator()->linkToDocs($key);
@@ -157,6 +110,7 @@ class OC_Helper {
 	 * Makes an $url absolute
 	 * @param string $url the url
 	 * @return string the absolute url
+	 * @deprecated Use \OC::$server->getURLGenerator()->getAbsoluteURL($url)
 	 *
 	 * Returns a absolute url to the given app and file.
 	 */
@@ -221,6 +175,7 @@ class OC_Helper {
 	 * @param string $app app
 	 * @param string $image image name
 	 * @return string the url
+	 * @deprecated Use \OC::$server->getURLGenerator()->imagePath($app, $image)
 	 *
 	 * Returns the path to the image.
 	 */
@@ -232,50 +187,12 @@ class OC_Helper {
 	 * get path to icon of file type
 	 * @param string $mimetype mimetype
 	 * @return string the url
+	 * @deprecated 8.2.0 Use \OC::$server->getMimeTypeDetector()->mimeTypeIcon($mimetype)
 	 *
 	 * Returns the path to the image of this file type.
 	 */
 	public static function mimetypeIcon($mimetype) {
-
-		if (isset(self::$mimeTypeAlias[$mimetype])) {
-			$mimetype = self::$mimeTypeAlias[$mimetype];
-		}
-		if (isset(self::$mimetypeIcons[$mimetype])) {
-			return self::$mimetypeIcons[$mimetype];
-		}
-		// Replace slash and backslash with a minus
-		$icon = str_replace('/', '-', $mimetype);
-		$icon = str_replace('\\', '-', $icon);
-
-		// Is it a dir?
-		if ($mimetype === 'dir') {
-			self::$mimetypeIcons[$mimetype] = OC::$WEBROOT . '/core/img/filetypes/folder.png';
-			return OC::$WEBROOT . '/core/img/filetypes/folder.png';
-		}
-		if ($mimetype === 'dir-shared') {
-			self::$mimetypeIcons[$mimetype] = OC::$WEBROOT . '/core/img/filetypes/folder-shared.png';
-			return OC::$WEBROOT . '/core/img/filetypes/folder-shared.png';
-		}
-		if ($mimetype === 'dir-external') {
-			self::$mimetypeIcons[$mimetype] = OC::$WEBROOT . '/core/img/filetypes/folder-external.png';
-			return OC::$WEBROOT . '/core/img/filetypes/folder-external.png';
-		}
-
-		// Icon exists?
-		if (file_exists(OC::$SERVERROOT . '/core/img/filetypes/' . $icon . '.png')) {
-			self::$mimetypeIcons[$mimetype] = OC::$WEBROOT . '/core/img/filetypes/' . $icon . '.png';
-			return OC::$WEBROOT . '/core/img/filetypes/' . $icon . '.png';
-		}
-
-		// Try only the first part of the filetype
-		$mimePart = substr($icon, 0, strpos($icon, '-'));
-		if (file_exists(OC::$SERVERROOT . '/core/img/filetypes/' . $mimePart . '.png')) {
-			self::$mimetypeIcons[$mimetype] = OC::$WEBROOT . '/core/img/filetypes/' . $mimePart . '.png';
-			return OC::$WEBROOT . '/core/img/filetypes/' . $mimePart . '.png';
-		} else {
-			self::$mimetypeIcons[$mimetype] = OC::$WEBROOT . '/core/img/filetypes/file.png';
-			return OC::$WEBROOT . '/core/img/filetypes/file.png';
-		}
+		return \OC::$server->getMimeTypeDetector()->mimeTypeIcon($mimetype);
 	}
 
 	/**
@@ -286,11 +203,11 @@ class OC_Helper {
 	 * Returns the path to the preview of the file.
 	 */
 	public static function previewIcon($path) {
-		return self::linkToRoute( 'core_ajax_preview', array('x' => 36, 'y' => 36, 'file' => $path ));
+		return self::linkToRoute( 'core_ajax_preview', array('x' => 32, 'y' => 32, 'file' => $path ));
 	}
 
 	public static function publicPreviewIcon( $path, $token ) {
-		return self::linkToRoute( 'core_ajax_public_preview', array('x' => 36, 'y' => 36, 'file' => $path, 't' => $token));
+		return self::linkToRoute( 'core_ajax_public_preview', array('x' => 32, 'y' => 32, 'file' => $path, 't' => $token));
 	}
 
 	/**
@@ -299,19 +216,14 @@ class OC_Helper {
 	 * @return bool avatar set or not
 	**/
 	public static function userAvatarSet($user) {
-		$avatar = new \OC_Avatar($user);
-		$image = $avatar->get(1);
-		if ($image instanceof \OC_Image) {
-			return true;
-		} else {
-			return false;
-		}
+		$avatar = new \OC\Avatar($user);
+		return $avatar->exists();
 	}
 
 	/**
 	 * Make a human file size
 	 * @param int $bytes file size in bytes
-	 * @return string a human readable file size
+	 * @return float a file size in bytes
 	 *
 	 * Makes 2048 to 2 kB.
 	 */
@@ -380,7 +292,10 @@ class OC_Helper {
 	 */
 	public static function computerFileSize($str) {
 		$str = strtolower($str);
-
+		if (is_numeric($str)) {
+			return floatval($str);
+		}
+		
 		$bytes_array = array(
 			'b' => 1,
 			'k' => 1024,
@@ -399,6 +314,8 @@ class OC_Helper {
 
 		if (preg_match('#([kmgtp]?b?)$#si', $str, $matches) && !empty($bytes_array[$matches[1]])) {
 			$bytes *= $bytes_array[$matches[1]];
+		} else {
+			return false;
 		}
 
 		$bytes = round($bytes);
@@ -466,13 +383,10 @@ class OC_Helper {
 
 	/**
 	 * @return \OC\Files\Type\Detection
+	 * @deprecated 8.2.0 use \OC::$server->getMimeTypeDetector()
 	 */
 	static public function getMimetypeDetector() {
-		if (!self::$mimetypeDetector) {
-			self::$mimetypeDetector = new \OC\Files\Type\Detection();
-			self::$mimetypeDetector->registerTypeArray(include 'mimetypes.list.php');
-		}
-		return self::$mimetypeDetector;
+		return \OC::$server->getMimeTypeDetector();
 	}
 
 	/**
@@ -490,9 +404,10 @@ class OC_Helper {
 	 *
 	 * @param string $path
 	 * @return string
+	 * @deprecated 8.2.0 Use \OC::$server->getMimeTypeDetector()->detectPath($path)
 	 */
 	static public function getFileNameMimeType($path) {
-		return self::getMimetypeDetector()->detectPath($path);
+		return \OC::$server->getMimeTypeDetector()->detectPath($path);
 	}
 
 	/**
@@ -501,9 +416,10 @@ class OC_Helper {
 	 * @param string $path
 	 * @return string
 	 * does NOT work for ownClouds filesystem, use OC_FileSystem::getMimeType instead
+	 * @deprecated 8.2.0 Use \OC::$server->getMimeTypeDetector()->detect($path)
 	 */
 	static function getMimeType($path) {
-		return self::getMimetypeDetector()->detect($path);
+		return \OC::$server->getMimeTypeDetector()->detect($path);
 	}
 
 	/**
@@ -511,9 +427,10 @@ class OC_Helper {
 	 *
 	 * @param string $mimeType
 	 * @return string
+	 * @deprecated 8.2.0 Use \OC::$server->getMimeTypeDetector()->getSecureMimeType($mimeType)
 	 */
 	static function getSecureMimeType($mimeType) {
-		return self::getMimetypeDetector()->getSecureMimeType($mimeType);
+		return \OC::$server->getMimeTypeDetector()->getSecureMimeType($mimeType);
 	}
 
 	/**
@@ -521,18 +438,11 @@ class OC_Helper {
 	 *
 	 * @param string $data
 	 * @return string
+	 * @deprecated 8.2.0 Use \OC::$server->getMimeTypeDetector()->detectString($data)
 	 */
 	static function getStringMimeType($data) {
-		return self::getMimetypeDetector()->detectString($data);
+		return \OC::$server->getMimeTypeDetector()->detectString($data);
 	}
-
-	/**
-	 * Checks $_REQUEST contains a var for the $s key. If so, returns the html-escaped value of this var; otherwise returns the default value provided by $d.
-	 * @param string $s name of the var to escape, if set.
-	 * @param string $d default value.
-	 * @return string the print-safe value.
-	 *
-	 */
 
 	/**
 	 * detect if a given program is found in the search PATH
@@ -678,6 +588,7 @@ class OC_Helper {
 				$match_length = strlen($matches[0][$last_match][0]);
 			} else {
 				$counter = 2;
+				$match_length = 0;
 				$offset = false;
 			}
 			do {
@@ -752,15 +663,10 @@ class OC_Helper {
 	 * @param string $encoding The encoding parameter is the character encoding. Defaults to UTF-8
 	 * @internal param string $input The input string. .Opposite to the PHP build-in function does not accept an array.
 	 * @return string
+	 * @deprecated 8.2.0 Use substr_replace() instead.
 	 */
-	public static function mb_substr_replace($string, $replacement, $start, $length = null, $encoding = 'UTF-8') {
-		$start = intval($start);
-		$length = intval($length);
-		$string = mb_substr($string, 0, $start, $encoding) .
-			$replacement .
-			mb_substr($string, $start + $length, mb_strlen($string, 'UTF-8') - $start, $encoding);
-
-		return $string;
+	public static function mb_substr_replace($string, $replacement, $start, $length = 0, $encoding = 'UTF-8') {
+		return substr_replace($string, $replacement, $start, $length);
 	}
 
 	/**
@@ -772,17 +678,11 @@ class OC_Helper {
 	 * @param string $encoding The encoding parameter is the character encoding. Defaults to UTF-8
 	 * @param int $count If passed, this will be set to the number of replacements performed.
 	 * @return string
+	 * @deprecated 8.2.0 Use str_replace() instead.
 	 *
 	 */
 	public static function mb_str_replace($search, $replace, $subject, $encoding = 'UTF-8', &$count = null) {
-		$offset = -1;
-		$length = mb_strlen($search, $encoding);
-		while (($i = mb_strrpos($subject, $search, $offset, $encoding)) !== false) {
-			$subject = OC_Helper::mb_substr_replace($subject, $replace, $i, $length);
-			$offset = $i - mb_strlen($subject, $encoding);
-			$count++;
-		}
-		return $subject;
+		return str_replace($search, $replace, $subject, $count);
 	}
 
 	/**
@@ -853,7 +753,7 @@ class OC_Helper {
 			$freeSpace = max($freeSpace, 0);
 			return $freeSpace;
 		} else {
-			return INF;
+			return (INF > 0)? INF: PHP_INT_MAX; // work around https://bugs.php.net/bug.php?id=69188
 		}
 	}
 
@@ -911,9 +811,21 @@ class OC_Helper {
 		}
 		$result = null;
 		if (!\OC_Util::runningOnWindows() && self::is_function_enabled('exec')) {
-			exec('command -v ' . escapeshellarg($program) . ' 2> /dev/null', $output, $returnCode);
-			if ($returnCode === 0 && count($output) > 0) {
-				$result = escapeshellcmd($output[0]);
+			$exeSniffer = new ExecutableFinder();
+			// Returns null if nothing is found
+			$result = $exeSniffer->find($program);
+			if (empty($result)) {
+				$paths = getenv('PATH');
+				if (empty($paths)) {
+					$paths = '/usr/local/bin /usr/bin /opt/bin /bin';
+				} else {
+					$paths = str_replace(':',' ',getenv('PATH'));
+				}
+				$command = 'find ' . $paths . ' -name ' . escapeshellarg($program) . ' 2> /dev/null';
+				exec($command, $output, $returnCode);
+				if (count($output) > 0) {
+					$result = escapeshellcmd($output[0]);
+				}
 			}
 		}
 		$memcache->set($program, $result, 3600);
@@ -926,6 +838,7 @@ class OC_Helper {
 	 * @param string $path
 	 * @param \OCP\Files\FileInfo $rootInfo (optional)
 	 * @return array
+	 * @throws \OCP\Files\NotFoundException
 	 */
 	public static function getStorageInfo($path, $rootInfo = null) {
 		// return storage info without adding mount points
@@ -950,13 +863,13 @@ class OC_Helper {
 			$quota = OC_Util::getUserQuota(\OCP\User::getUser());
 			if ($quota !== \OCP\Files\FileInfo::SPACE_UNLIMITED) {
 				// always get free space / total space from root + mount points
-				$path = '';
 				return self::getGlobalStorageInfo();
 			}
 		}
 
 		// TODO: need a better way to get total space from storage
 		if ($storage->instanceOfStorage('\OC\Files\Storage\Wrapper\Quota')) {
+			/** @var \OC\Files\Storage\Wrapper\Quota $storage */
 			$quota = $storage->getQuota();
 		}
 		$free = $storage->free_space('');
@@ -975,7 +888,21 @@ class OC_Helper {
 			$relative = 0;
 		}
 
-		return array('free' => $free, 'used' => $used, 'total' => $total, 'relative' => $relative);
+		$ownerId = $storage->getOwner($path);
+		$ownerDisplayName = '';
+		$owner = \OC::$server->getUserManager()->get($ownerId);
+		if($owner) {
+			$ownerDisplayName = $owner->getDisplayName();
+		}
+
+		return [
+			'free' => $free,
+			'used' => $used,
+			'total' => $total,
+			'relative' => $relative,
+			'owner' => $ownerId,
+			'ownerDisplayName' => $ownerDisplayName,
+		];
 	}
 
 	/**

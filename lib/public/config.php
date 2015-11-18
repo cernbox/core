@@ -1,22 +1,28 @@
 <?php
 /**
- * ownCloud
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Frank Karlitschek
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -37,7 +43,7 @@ namespace OCP;
 /**
  * This class provides functions to read and write configuration data.
  * configuration can be on a system, application or user level
- * @deprecated use methods of \OCP\IConfig
+ * @deprecated 8.0.0 use methods of \OCP\IConfig
  */
 class Config {
 	/**
@@ -45,7 +51,7 @@ class Config {
 	 * @param string $key key
 	 * @param mixed $default = null default value
 	 * @return mixed the value or $default
-	 * @deprecated use method getSystemValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method getSystemValue of \OCP\IConfig
 	 *
 	 * This function gets the value from config.php. If it does not exist,
 	 * $default will be returned.
@@ -59,7 +65,7 @@ class Config {
 	 * @param string $key key
 	 * @param mixed $value value
 	 * @return bool
-	 * @deprecated use method setSystemValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method setSystemValue of \OCP\IConfig
 	 *
 	 * This function sets the value and writes the config.php. If the file can
 	 * not be written, false will be returned.
@@ -76,7 +82,7 @@ class Config {
 	/**
 	 * Deletes a value from config.php
 	 * @param string $key key
-	 * @deprecated use method deleteSystemValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method deleteSystemValue of \OCP\IConfig
 	 *
 	 * This function deletes the value from config.php.
 	 */
@@ -90,7 +96,7 @@ class Config {
 	 * @param string $key key
 	 * @param string $default = null, default value if the key does not exist
 	 * @return string the value or $default
-	 * @deprecated use method getAppValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method getAppValue of \OCP\IConfig
 	 *
 	 * This function gets a value from the appconfig table. If the key does
 	 * not exist the default value will be returned
@@ -105,7 +111,7 @@ class Config {
 	 * @param string $key key
 	 * @param string $value value
 	 * @return boolean true/false
-	 * @deprecated use method setAppValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method setAppValue of \OCP\IConfig
 	 *
 	 * Sets a value. If the key did not exist before it will be created.
 	 */
@@ -125,7 +131,7 @@ class Config {
 	 * @param string $key key
 	 * @param string $default = null, default value if the key does not exist
 	 * @return string the value or $default
-	 * @deprecated use method getUserValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method getUserValue of \OCP\IConfig
 	 *
 	 * This function gets a value from the preferences table. If the key does
 	 * not exist the default value will be returned
@@ -141,7 +147,7 @@ class Config {
 	 * @param string $key key
 	 * @param string $value value
 	 * @return bool
-	 * @deprecated use method setUserValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method setUserValue of \OCP\IConfig
 	 *
 	 * Adds a value to the preferences. If the key did not exist before, it
 	 * will be added automagically.

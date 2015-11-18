@@ -1,32 +1,48 @@
 <?php
 /**
- * Copyright (c) Lukas Reschke <lukas@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
  
 namespace OCA\Files_Trashbin;
 
+use OCP\Capabilities\ICapability;
 
 /**
  * Class Capabilities
  *
  * @package OCA\Files_Trashbin
  */
-class Capabilities {
+class Capabilities implements ICapability {
 
 	/**
-	 * @return \OC_OCS_Result
+	 * Return this classes capabilities
+	 *
+	 * @return array
 	 */
-	public static function getCapabilities() {
-		return new \OC_OCS_Result(array(
-			'capabilities' => array(
-				'files' => array(
-					'undelete' => true,
-					),
-				),
-			));
+	public function getCapabilities() {
+		return [
+			'files' => [
+				'undelete' => true
+			]
+		];
 	}
 	
 }

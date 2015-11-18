@@ -1,22 +1,23 @@
 <?php
 /**
- * ownCloud - App Framework
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -36,6 +37,7 @@ use OCP\AppFramework\Http\Response;
  * deal with possible exceptions raised in the controller methods.
  * They're modeled after Django's middleware system:
  * https://docs.djangoproject.com/en/dev/topics/http/middleware/
+ * @since 6.0.0
  */
 abstract class Middleware {
 
@@ -47,6 +49,7 @@ abstract class Middleware {
 	 * @param Controller $controller the controller that is being called
 	 * @param string $methodName the name of the method that will be called on
 	 *                           the controller
+	 * @since 6.0.0
 	 */
 	public function beforeController($controller, $methodName){
 
@@ -66,6 +69,7 @@ abstract class Middleware {
 	 * @param \Exception $exception the thrown exception
 	 * @throws \Exception the passed in exception if it cant handle it
 	 * @return Response a Response object in case that the exception was handled
+	 * @since 6.0.0
 	 */
 	public function afterException($controller, $methodName, \Exception $exception){
 		throw $exception;
@@ -81,6 +85,7 @@ abstract class Middleware {
 	 *                           the controller
 	 * @param Response $response the generated response from the controller
 	 * @return Response a Response object
+	 * @since 6.0.0
 	 */
 	public function afterController($controller, $methodName, Response $response){
 		return $response;
@@ -96,6 +101,7 @@ abstract class Middleware {
 	 *                           the controller
 	 * @param string $output the generated output from a response
 	 * @return string the output that should be printed
+	 * @since 6.0.0
 	 */
 	public function beforeOutput($controller, $methodName, $output){
 		return $output;

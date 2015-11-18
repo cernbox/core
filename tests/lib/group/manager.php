@@ -304,6 +304,32 @@ class Manager extends \Test\TestCase {
 		$this->assertEquals('group1', $group1->getGID());
 	}
 
+	public function testGetUserGroupIds() {
+		/** @var \PHPUnit_Framework_MockObject_MockObject|\OC\Group\Manager $manager */
+		$manager = $this->getMockBuilder('OC\Group\Manager')
+			->disableOriginalConstructor()
+			->setMethods(['getUserGroups'])
+			->getMock();
+		$manager->expects($this->once())
+			->method('getUserGroups')
+			->willReturn([
+				'123' => '123',
+				'abc' => 'abc',
+			]);
+
+		/** @var \OC\User\User $user */
+		$user = $this->getMockBuilder('OC\User\User')
+			->disableOriginalConstructor()
+			->getMock();
+
+		$groups = $manager->getUserGroupIds($user);
+		$this->assertEquals(2, count($groups));
+
+		foreach ($groups as $group) {
+			$this->assertInternalType('string', $group);
+		}
+	}
+
 	public function testInGroup() {
 		/**
 		 * @var \PHPUnit_Framework_MockObject_MockObject | \OC_Group_Backend $backend
@@ -448,7 +474,7 @@ class Manager extends \Test\TestCase {
 		$userBackend = $this->getMock('\OC_User_Backend');
 
 		$userManager->expects($this->any())
-			->method('search')
+			->method('searchDisplayName')
 			->with('user3')
 			->will($this->returnCallback(function($search, $limit, $offset) use ($userBackend) {
                                 switch($offset) {
@@ -513,7 +539,7 @@ class Manager extends \Test\TestCase {
 		$userBackend = $this->getMock('\OC_User_Backend');
 
 		$userManager->expects($this->any())
-			->method('search')
+			->method('searchDisplayName')
 			->with('user3')
 			->will($this->returnCallback(function($search, $limit, $offset) use ($userBackend) {
                                 switch($offset) {
@@ -580,7 +606,7 @@ class Manager extends \Test\TestCase {
 		$userBackend = $this->getMock('\OC_User_Backend');
 
 		$userManager->expects($this->any())
-			->method('search')
+			->method('searchDisplayName')
 			->with('user3')
 			->will($this->returnCallback(function($search, $limit, $offset) use ($userBackend) {
                                 switch($offset) {
@@ -846,4 +872,26 @@ class Manager extends \Test\TestCase {
 		$groups = $manager->getUserGroups($user1);
 		$this->assertEquals(array(), $groups);
 	}
+
+	public function testGetUserIdGroups() {
+		/**
+		 * @var \PHPUnit_Framework_MockObject_MockObject | \OC_Group_Backend $backend
+		 */
+		$backend = $this->getMock('\OC_Group_Database');
+		$backend->expects($this->any())
+			->method('getUserGroups')
+			->with('user1')
+			->will($this->returnValue(null));
+
+		/**
+		 * @var \OC\User\Manager $userManager
+		 */
+		$userManager = $this->getMock('\OC\User\Manager');
+		$manager = new \OC\Group\Manager($userManager);
+		$manager->addBackend($backend);
+
+		$groups = $manager->getUserIdGroups('user1');
+		$this->assertEquals([], $groups);
+	}
+
 }

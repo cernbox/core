@@ -1,15 +1,33 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 namespace OCP;
 
 /**
  * This class provides an easy way for apps to store config values in the
  * database.
+ * @since 7.0.0
  */
 interface IAppConfig {
 	/**
@@ -17,6 +35,7 @@ interface IAppConfig {
 	 * @param string $app
 	 * @param string $key
 	 * @return bool
+	 * @since 7.0.0
 	 */
 	public function hasKey($app, $key);
 
@@ -26,10 +45,11 @@ interface IAppConfig {
 	 * @param string $key key
 	 * @param string $default = null, default value if the key does not exist
 	 * @return string the value or $default
-	 * @deprecated use method getAppValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method getAppValue of \OCP\IConfig
 	 *
 	 * This function gets a value from the appconfig table. If the key does
 	 * not exist the default value will be returned
+	 * @since 7.0.0
 	 */
 	public function getValue($app, $key, $default = null);
 
@@ -38,7 +58,8 @@ interface IAppConfig {
 	 * @param string $app app
 	 * @param string $key key
 	 * @return bool
-	 * @deprecated use method deleteAppValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method deleteAppValue of \OCP\IConfig
+	 * @since 7.0.0
 	 */
 	public function deleteKey($app, $key);
 
@@ -46,10 +67,11 @@ interface IAppConfig {
 	 * Get the available keys for an app
 	 * @param string $app the app we are looking for
 	 * @return array an array of key names
-	 * @deprecated use method getAppKeys of \OCP\IConfig
+	 * @deprecated 8.0.0 use method getAppKeys of \OCP\IConfig
 	 *
 	 * This function gets all keys of an app. Please note that the values are
 	 * not returned.
+	 * @since 7.0.0
 	 */
 	public function getKeys($app);
 
@@ -58,7 +80,8 @@ interface IAppConfig {
 	 *
 	 * @param string|false $key
 	 * @param string|false $app
-	 * @return array
+	 * @return array|false
+	 * @since 7.0.0
 	 */
 	public function getValues($app, $key);
 
@@ -67,10 +90,11 @@ interface IAppConfig {
 	 * @param string $app app
 	 * @param string $key key
 	 * @param string $value value
-	 * @deprecated use method setAppValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method setAppValue of \OCP\IConfig
 	 *
 	 * Sets a value. If the key did not exist before it will be created.
 	 * @return void
+	 * @since 7.0.0
 	 */
 	public function setValue($app, $key, $value);
 
@@ -80,6 +104,7 @@ interface IAppConfig {
 	 *
 	 * This function returns a list of all apps that have at least one
 	 * entry in the appconfig table.
+	 * @since 7.0.0
 	 */
 	public function getApps();
 
@@ -87,9 +112,10 @@ interface IAppConfig {
 	 * Remove app from appconfig
 	 * @param string $app app
 	 * @return bool
-	 * @deprecated use method deleteAppValue of \OCP\IConfig
+	 * @deprecated 8.0.0 use method deleteAppValue of \OCP\IConfig
 	 *
 	 * Removes all keys in appconfig belonging to the app.
+	 * @since 7.0.0
 	 */
 	public function deleteApp($app);
 }

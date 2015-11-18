@@ -1,9 +1,25 @@
 <?php
 /**
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -14,13 +30,23 @@ namespace OC;
  */
 class NavigationManager implements \OCP\INavigationManager {
 	protected $entries = array();
+	protected $closureEntries = array();
 	protected $activeEntry;
 
 	/**
 	 * Creates a new navigation entry
-	 * @param array $entry containing: id, name, order, icon and href key
+	 *
+	 * @param array|\Closure $entry Array containing: id, name, order, icon and href key
+	 *					The use of a closure is preferred, because it will avoid
+	 * 					loading the routing of your app, unless required.
+	 * @return void
 	 */
-	public function add(array $entry) {
+	public function add($entry) {
+		if ($entry instanceof \Closure) {
+			$this->closureEntries[] = $entry;
+			return;
+		}
+
 		$entry['active'] = false;
 		if(!isset($entry['icon'])) {
 			$entry['icon'] = '';
@@ -33,6 +59,10 @@ class NavigationManager implements \OCP\INavigationManager {
 	 * @return array an array of the added entries
 	 */
 	public function getAll() {
+		foreach ($this->closureEntries as $c) {
+			$this->add($c());
+		}
+		$this->closureEntries = array();
 		return $this->entries;
 	}
 
@@ -41,6 +71,7 @@ class NavigationManager implements \OCP\INavigationManager {
 	 */
 	public function clear() {
 		$this->entries = array();
+		$this->closureEntries = array();
 	}
 
 	/**

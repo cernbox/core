@@ -1,25 +1,39 @@
 <?php
 /**
- * ownCloud
+ * @author Adam Williamson <awilliam@redhat.com>
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Philipp Kapfer <philipp.kapfer@gmx.at>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Michael Gapczynski
- * @copyright 2012 Michael Gapczynski mtgap@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Storage;
+
+use Icewind\Streams\IteratorDirectory;
 
 set_include_path(get_include_path().PATH_SEPARATOR.
 	\OC_App::getAppPath('files_external').'/3rdparty/google-api-php-client/src');
@@ -103,7 +117,7 @@ class Google extends \OC\Files\Storage\Common {
 				if (isset($this->driveFiles[$path])) {
 					$parentId = $this->driveFiles[$path]->getId();
 				} else {
-					$q = "title='".$name."' and '".$parentId."' in parents and trashed = false";
+					$q = "title='" . str_replace("'","\\'", $name) . "' and '" . str_replace("'","\\'", $parentId) . "' in parents and trashed = false";
 					$result = $this->service->files->listFiles(array('q' => $q))->getItems();
 					if (!empty($result)) {
 						// Google Drive allows files with the same name, ownCloud doesn't
@@ -235,8 +249,6 @@ class Google extends \OC\Files\Storage\Common {
 	}
 
 	public function opendir($path) {
-		// Remove leading and trailing slashes
-		$path = trim($path, '/');
 		$folder = $this->getDriveFile($path);
 		if ($folder) {
 			$files = array();
@@ -247,7 +259,7 @@ class Google extends \OC\Files\Storage\Common {
 				if ($pageToken !== true) {
 					$params['pageToken'] = $pageToken;
 				}
-				$params['q'] = "'".$folder->getId()."' in parents and trashed = false";
+				$params['q'] = "'" . str_replace("'","\\'", $folder->getId()) . "' in parents and trashed = false";
 				$children = $this->service->files->listFiles($params);
 				foreach ($children->getItems() as $child) {
 					$name = $child->getTitle();
@@ -280,8 +292,7 @@ class Google extends \OC\Files\Storage\Common {
 				}
 				$pageToken = $children->getNextPageToken();
 			}
-			\OC\Files\Stream\Dir::register('google'.$path, $files);
-			return opendir('fakedir://google'.$path);
+			return IteratorDirectory::wrap($files);
 		} else {
 			return false;
 		}
@@ -417,7 +428,7 @@ class Google extends \OC\Files\Storage\Common {
 						$request = new \Google_Http_Request($downloadUrl, 'GET', null, null);
 						$httpRequest = $this->client->getAuth()->authenticatedRequest($request);
 						if ($httpRequest->getResponseHttpCode() == 200) {
-							$tmpFile = \OC_Helper::tmpFile($ext);
+							$tmpFile = \OCP\Files::tmpFile($ext);
 							$data = $httpRequest->getResponseBody();
 							file_put_contents($tmpFile, $data);
 							return fopen($tmpFile, $mode);
@@ -437,7 +448,7 @@ class Google extends \OC\Files\Storage\Common {
 			case 'x+':
 			case 'c':
 			case 'c+':
-				$tmpFile = \OC_Helper::tmpFile($ext);
+				$tmpFile = \OCP\Files::tmpFile($ext);
 				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
 				if ($this->file_exists($path)) {
 					$source = $this->fopen($path, 'rb');
@@ -454,7 +465,7 @@ class Google extends \OC\Files\Storage\Common {
 			$parentFolder = $this->getDriveFile(dirname($path));
 			if ($parentFolder) {
 				// TODO Research resumable upload
-				$mimetype = \OC_Helper::getMimeType($tmpFile);
+				$mimetype = \OC::$server->getMimeTypeDetector()->detect($tmpFile);
 				$data = file_get_contents($tmpFile);
 				$params = array(
 					'data' => $data,
@@ -617,11 +628,7 @@ class Google extends \OC\Files\Storage\Common {
 	 * check if curl is installed
 	 */
 	public static function checkDependencies() {
-		if (function_exists('curl_init')) {
-			return true;
-		} else {
-			return array('curl');
-		}
+		return true;
 	}
 
 }

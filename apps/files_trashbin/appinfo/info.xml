@@ -8,11 +8,15 @@
 	<licence>AGPL</licence>
 	<author>Hugo Gonzalez Labrador CERN IT-DSS-FDO 2014</author>
 	<shipped>true</shipped>
-	<requiremin>7.0.4</requiremin>
+	<!-- <requiremin>7.0.4</requiremin> -->
 	<default_enable/>
+	<version>0.7.0</version>
 	<types>
 		<filesystem/>
 	</types>
+	<dependencies>
+		<owncloud min-version="8.2" />
+	</dependencies>
 	<documentation>
 		<user>user-trashbin</user>
 	</documentation>

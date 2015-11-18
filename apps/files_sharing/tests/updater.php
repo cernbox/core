@@ -1,22 +1,24 @@
 <?php
 /**
- * ownCloud
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @author Morris Jobke
- * @copyright 2014 Morris Jobke <morris.jobke@gmail.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -24,7 +26,7 @@
 /**
  * Class Test_Files_Sharing_Updater
  */
-class Test_Files_Sharing_Updater extends OCA\Files_sharing\Tests\TestCase {
+class Test_Files_Sharing_Updater extends OCA\Files_Sharing\Tests\TestCase {
 
 	const TEST_FOLDER_NAME = '/folder_share_updater_test';
 
@@ -63,7 +65,6 @@ class Test_Files_Sharing_Updater extends OCA\Files_sharing\Tests\TestCase {
 		\OC_App::enable('files_trashbin');
 
 		\OCA\Files_Trashbin\Trashbin::registerHooks();
-		OC_FileProxy::register(new OCA\Files\Share\Proxy());
 
 		$fileinfo = \OC\Files\Filesystem::getFileInfo($this->folder);
 		$this->assertTrue($fileinfo instanceof \OC\Files\FileInfo);
@@ -115,14 +116,34 @@ class Test_Files_Sharing_Updater extends OCA\Files_sharing\Tests\TestCase {
 		\OC\Files\Filesystem::getLoader()->removeStorageWrapper('oc_trashbin');
 	}
 
+	public function shareFolderProvider() {
+		return [
+			['/'],
+			['/my_shares'],
+		];
+	}
+
 	/**
 	 * if a file gets shared the etag for the recipients root should change
+	 *
+	 * @dataProvider shareFolderProvider
+	 *
+	 * @param string $shareFolder share folder to use
 	 */
-	function testShareFile() {
+	public function testShareFile($shareFolder) {
+		$config = \OC::$server->getConfig();
+		$oldShareFolder = $config->getSystemValue('share_folder');
+		$config->setSystemValue('share_folder', $shareFolder);
+
 		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
 
-		$beforeShare = \OC\Files\Filesystem::getFileInfo('');
-		$etagBeforeShare = $beforeShare->getEtag();
+		$beforeShareRoot = \OC\Files\Filesystem::getFileInfo('');
+		$etagBeforeShareRoot = $beforeShareRoot->getEtag();
+
+		\OC\Files\Filesystem::mkdir($shareFolder);
+
+		$beforeShareDir = \OC\Files\Filesystem::getFileInfo($shareFolder);
+		$etagBeforeShareDir = $beforeShareDir->getEtag();
 
 		$this->loginHelper(self::TEST_FILES_SHARING_API_USER1);
 		$fileinfo = \OC\Files\Filesystem::getFileInfo($this->folder);
@@ -131,90 +152,25 @@ class Test_Files_Sharing_Updater extends OCA\Files_sharing\Tests\TestCase {
 
 		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
 
-		$afterShare = \OC\Files\Filesystem::getFileInfo('');
-		$etagAfterShare = $afterShare->getEtag();
+		$afterShareRoot = \OC\Files\Filesystem::getFileInfo('');
+		$etagAfterShareRoot = $afterShareRoot->getEtag();
 
-		$this->assertTrue(is_string($etagBeforeShare));
-		$this->assertTrue(is_string($etagAfterShare));
-		$this->assertTrue($etagBeforeShare !== $etagAfterShare);
+		$afterShareDir = \OC\Files\Filesystem::getFileInfo($shareFolder);
+		$etagAfterShareDir = $afterShareDir->getEtag();
+
+		$this->assertTrue(is_string($etagBeforeShareRoot));
+		$this->assertTrue(is_string($etagBeforeShareDir));
+		$this->assertTrue(is_string($etagAfterShareRoot));
+		$this->assertTrue(is_string($etagAfterShareDir));
+		$this->assertTrue($etagBeforeShareRoot !== $etagAfterShareRoot);
+		$this->assertTrue($etagBeforeShareDir !== $etagAfterShareDir);
 
 		// cleanup
 		$this->loginHelper(self::TEST_FILES_SHARING_API_USER1);
 		$result = \OCP\Share::unshare('folder', $fileinfo->getId(), \OCP\Share::SHARE_TYPE_USER, self::TEST_FILES_SHARING_API_USER2);
 		$this->assertTrue($result);
-	}
 
-	/**
-	 * if a file gets unshared by the owner the etag for the recipients root should change
-	 */
-	function testUnshareFile() {
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER1);
-		$fileinfo = \OC\Files\Filesystem::getFileInfo($this->folder);
-		$result = \OCP\Share::shareItem('folder', $fileinfo->getId(), \OCP\Share::SHARE_TYPE_USER, self::TEST_FILES_SHARING_API_USER2, 31);
-		$this->assertTrue($result);
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
-
-		$beforeUnshare = \OC\Files\Filesystem::getFileInfo('');
-		$etagBeforeUnshare = $beforeUnshare->getEtag();
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER1);
-		$result = \OCP\Share::unshare('folder', $fileinfo->getId(), \OCP\Share::SHARE_TYPE_USER, self::TEST_FILES_SHARING_API_USER2);
-		$this->assertTrue($result);
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
-
-		$afterUnshare = \OC\Files\Filesystem::getFileInfo('');
-		$etagAfterUnshare = $afterUnshare->getEtag();
-
-		$this->assertTrue(is_string($etagBeforeUnshare));
-		$this->assertTrue(is_string($etagAfterUnshare));
-		$this->assertTrue($etagBeforeUnshare !== $etagAfterUnshare);
-
-	}
-
-	/**
-	 * if a file gets unshared from self the etag for the recipients root should change
-	 */
-	function testUnshareFromSelfFile() {
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER1);
-		$fileinfo = \OC\Files\Filesystem::getFileInfo($this->folder);
-		$result = \OCP\Share::shareItem('folder', $fileinfo->getId(), \OCP\Share::SHARE_TYPE_USER, self::TEST_FILES_SHARING_API_USER2, 31);
-		$this->assertTrue($result);
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
-
-		$result = \OCP\Share::shareItem('folder', $fileinfo->getId(), \OCP\Share::SHARE_TYPE_USER, self::TEST_FILES_SHARING_API_USER3, 31);
-
-		$beforeUnshareUser2 = \OC\Files\Filesystem::getFileInfo('');
-		$etagBeforeUnshareUser2 = $beforeUnshareUser2->getEtag();
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER3);
-
-		$beforeUnshareUser3 = \OC\Files\Filesystem::getFileInfo('');
-		$etagBeforeUnshareUser3 = $beforeUnshareUser3->getEtag();
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
-
-		$result = \OC\Files\Filesystem::unlink($this->folder);
-		$this->assertTrue($result);
-
-		$afterUnshareUser2 = \OC\Files\Filesystem::getFileInfo('');
-		$etagAfterUnshareUser2 = $afterUnshareUser2->getEtag();
-
-		$this->loginHelper(self::TEST_FILES_SHARING_API_USER3);
-
-		$afterUnshareUser3 = \OC\Files\Filesystem::getFileInfo('');
-		$etagAfterUnshareUser3 = $afterUnshareUser3->getEtag();
-
-		$this->assertTrue(is_string($etagBeforeUnshareUser2));
-		$this->assertTrue(is_string($etagBeforeUnshareUser3));
-		$this->assertTrue(is_string($etagAfterUnshareUser2));
-		$this->assertTrue(is_string($etagAfterUnshareUser3));
-		$this->assertTrue($etagBeforeUnshareUser2 !== $etagAfterUnshareUser2);
-		$this->assertTrue($etagBeforeUnshareUser3 !== $etagAfterUnshareUser3);
-
+		$config->setSystemValue('share_folder', $oldShareFolder);
 	}
 
 	/**

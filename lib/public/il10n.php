@@ -1,9 +1,26 @@
 <?php
 /**
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -18,7 +35,10 @@
 namespace OCP;
 
 /**
- * TODO: Description
+ * Interface IL10N
+ *
+ * @package OCP
+ * @since 6.0.0
  */
 interface IL10N {
 	/**
@@ -29,6 +49,7 @@ interface IL10N {
 	 *
 	 * Returns the translation. If no translation is found, $text will be
 	 * returned.
+	 * @since 6.0.0
 	 */
 	public function t($text, $parameters = array());
 
@@ -45,6 +66,7 @@ interface IL10N {
 	 *
 	 * The correct plural is determined by the plural_forms-function
 	 * provided by the po file.
+	 * @since 6.0.0
 	 *
 	 */
 	public function n($text_singular, $text_plural, $count, $parameters = array());
@@ -53,6 +75,8 @@ interface IL10N {
 	 * Localization
 	 * @param string $type Type of localization
 	 * @param array $data parameters for this localization
+	 * @param array $options currently supports following options:
+	 * 			- 'width': handed into \Punic\Calendar::formatDate as second parameter
 	 * @return string|false
 	 *
 	 * Returns the localized data.
@@ -70,20 +94,16 @@ interface IL10N {
 	 *    - Creates a time
 	 *    - l10n-field: time
 	 *    - params: timestamp (int/string)
+	 * @since 6.0.0 - parameter $options was added in 8.0.0
 	 */
-	public function l($type, $data);
+	public function l($type, $data, $options = array());
 
 
 	/**
-	 * find the best language
-	 * @param array|string $app details below
+	 * The code (en, de, ...) of the language that is used for this IL10N object
+	 *
 	 * @return string language
-	 *
-	 * If $app is an array, ownCloud assumes that these are the available
-	 * languages. Otherwise ownCloud tries to find the files in the l10n
-	 * folder.
-	 *
-	 * If nothing works it returns 'en'
+	 * @since 7.0.0
 	 */
-	public function getLanguageCode($app=null);
+	public function getLanguageCode();
 }

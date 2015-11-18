@@ -1,12 +1,28 @@
-# Version: 8.0.2
+# Version: 8.2.1
+<IfModule mod_headers.c>
 <IfModule mod_fcgid.c>
 <IfModule mod_setenvif.c>
-<IfModule mod_headers.c>
 SetEnvIfNoCase ^Authorization$ "(.+)" XAUTHORIZATION=$1
 RequestHeader set XAuthorization %{XAUTHORIZATION}e env=XAUTHORIZATION
 </IfModule>
 </IfModule>
+
+  <IfModule mod_env.c>
+    # Add security and privacy related headers
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Robots-Tag "none"
+    Header set X-Frame-Options "SAMEORIGIN"
+    SetEnv modHeadersAvailable true
+  </IfModule>
+
+  # Add cache control for CSS and JS files
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "max-age=7200, public"
+  </FilesMatch>
+
 </IfModule>
+
 <IfModule mod_php5.c>
 php_value upload_max_filesize 4G
 php_value post_max_size 4G
@@ -41,9 +57,4 @@ AddDefaultCharset utf-8
 Options -Indexes
 <IfModule pagespeed_module>
         ModPagespeed Off
-</IfModule>
-<IfModule mod_headers.c>
-  <FilesMatch "\.(css|js)$">
-    Header set Cache-Control "max-age=7200, public"
-  </FilesMatch>
 </IfModule>

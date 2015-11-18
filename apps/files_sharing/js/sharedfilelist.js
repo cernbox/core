@@ -137,7 +137,9 @@
 			if (this._reloadCall) {
 				this._reloadCall.abort();
 			}
-			this._reloadCall = $.ajax({
+			
+			var promises = [];
+			var shares = $.ajax({
 				url: OC.linkToOCS('apps/files_sharing/api/v1') + 'shares',
 				/* jshint camelcase: false */
 				data: {
@@ -150,23 +152,82 @@
 					xhr.setRequestHeader('OCS-APIREQUEST', 'true');
 				}
 			});
+			promises.push(shares);
+			
+			if (!!this._sharedWithUser) {
+				var remoteShares = $.ajax({
+					url: OC.linkToOCS('apps/files_sharing/api/v1') + 'remote_shares',
+					/* jshint camelcase: false */
+					data: {
+						format: 'json'
+					},
+					type: 'GET',
+					beforeSend: function(xhr) {
+						xhr.setRequestHeader('OCS-APIREQUEST', 'true');
+					},
+				});
+				promises.push(remoteShares);
+			} else {
+				//Push empty promise so callback gets called the same way
+				promises.push($.Deferred().resolve());
+			}
+
+			this._reloadCall = $.when.apply($, promises);		
 			var callBack = this.reloadCallback.bind(this);
 			return this._reloadCall.then(callBack, callBack);
 		},
 
-		reloadCallback: function(result) {
+		reloadCallback: function(shares, remoteShares) {
 			delete this._reloadCall;
 			this.hideMask();
 
 			this.$el.find('#headerSharedWith').text(
 				t('files_sharing', this._sharedWithUser ? 'Shared by' : 'Shared with')
 			);
-			if (result.ocs && result.ocs.data) {
-				this.setFiles(this._makeFilesFromShares(result.ocs.data));
-			}
-			else {
+
+			var files = [];
+
+			if (shares[0].ocs && shares[0].ocs.data) {
+				files = files.concat(this._makeFilesFromShares(shares[0].ocs.data));
+			} else {
 				// TODO: error handling
 			}
+
+			if (remoteShares && remoteShares[0].ocs && remoteShares[0].ocs.data) {
+				files = files.concat(this._makeFilesFromRemoteShares(remoteShares[0].ocs.data));
+			} else {
+				// TODO: error handling
+			}
+
+			this.setFiles(files);
+		},
+		
+		_makeFilesFromRemoteShares: function(data) {
+			var self = this;
+			var files = data;
+
+			files = _.chain(files)
+				// convert share data to file data
+				.map(function(share) {
+					var file = {
+						shareOwner: share.owner + '@' + share.remote.replace(/.*?:\/\//g, ""),
+						name: OC.basename(share.mountpoint),
+						mtime: share.mtime * 1000,
+						mimetype: share.mimetype,
+						type: share.type,
+						id: share.file_id,
+						path: OC.dirname(share.mountpoint),
+						permissions: share.permissions
+					};
+
+					file.shares = [{
+						id: share.id,
+						type: OC.Share.SHARE_TYPE_REMOTE
+					}];
+					return file;
+				})
+				.value();
+			return files;
 		},
 
 		/**
@@ -192,6 +253,7 @@
 				.map(function(share) {
 					var file = {
 						id: share.file_source,
+						icon: OC.MimeType.getIconUrl(share.mimetype),
 						mimetype: share.mimetype
 					};
 					

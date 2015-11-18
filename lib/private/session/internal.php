@@ -1,9 +1,27 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author cetra3 <peter@parashift.com.au>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Phil Davis <phil.davis@inf.org>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Session;
@@ -16,16 +34,18 @@ namespace OC\Session;
  * @package OC\Session
  */
 class Internal extends Session {
+	/**
+	 * @param string $name
+	 * @throws \Exception
+	 */
 	public function __construct($name) {
 		session_name($name);
+		set_error_handler(array($this, 'trapError'));
 		session_start();
+		restore_error_handler();
 		if (!isset($_SESSION)) {
 			throw new \Exception('Failed to start session');
 		}
-	}
-
-	public function __destruct() {
-		$this->close();
 	}
 
 	/**
@@ -82,9 +102,13 @@ class Internal extends Session {
         throw new \Exception('The session cannot be reopened - reopen() is ony to be used in unit testing.');
     }
 
-    private function validateSession() {
+	public function trapError($errorNumber, $errorString) {
+		throw new \ErrorException($errorString);
+	}
+
+	private function validateSession() {
 		if ($this->sessionClosed) {
-			throw new \Exception('Session has been closed - no further changes to the session as allowed');
+			throw new \Exception('Session has been closed - no further changes to the session are allowed');
 		}
 	}
 }

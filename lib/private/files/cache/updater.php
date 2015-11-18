@@ -1,17 +1,42 @@
 <?php
 /**
- * Copyright (c) 2014 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\Files\Cache;
 
 /**
  * Update the cache and propagate changes
+ * 
+ * Unlike most other classes an Updater is not related to a specific storage but handles updates for all storages in a users filesystem.
+ * This is needed because the propagation of mtime and etags need to cross storage boundaries
  */
 class Updater {
+	/**
+	 * @var bool
+	 */
+	protected $enabled = true;
+	
 	/**
 	 * @var \OC\Files\View
 	 */
@@ -23,20 +48,52 @@ class Updater {
 	protected $propagator;
 
 	/**
-	 * @param \OC\Files\View $view
+	* @param \OC\Files\View $view the view the updater works on, usually the view of the logged in user
 	 */
 	public function __construct($view) {
 		$this->view = $view;
 		$this->propagator = new ChangePropagator($view);
 	}
 
+	/**
+	 * Disable updating the cache trough this updater
+	 */
+	public function disable() {
+		$this->enabled = false;
+	}
+	
+	/**
+	 * Re-enable the updating of the cache trough this updater
+	 */
+	public function enable() {
+		$this->enabled = true;
+	}
+	
+	/**
+	 * Get the propagator for etags and mtime for the view the updater works on
+	 *
+	 * @return ChangePropagator
+	 */
+	public function getPropagator() {
+		return $this->propagator;
+	}
+	
+	/**
+	 * Propagate etag and mtime changes for the parent folders of $path up to the root of the filesystem
+	 *
+	 * @param string $path the path of the file to propagate the changes for
+	 * @param int|null $time the timestamp to set as mtime for the parent folders, if left out the current time is used
+	 */
 	public function propagate($path, $time = null) {
+		if (Scanner::isPartialFile($path)) {
+			return;
+		}
 		$this->propagator->addChange($path);
 		$this->propagator->propagateChanges($time);
 	}
 
 	/**
-	 * Update the cache for $path
+	 * Update the cache for $path and update the size, etag and mtime of the parent folders
 	 *
 	 * @param string $path
 	 * @param int $time
@@ -54,7 +111,7 @@ class Updater {
 			$this->propagator->addChange($path);
 			$cache = $storage->getCache($internalPath);
 			$scanner = $storage->getScanner($internalPath);
-			$data = $scanner->scan($internalPath, Scanner::SCAN_SHALLOW);
+			$data = $scanner->scan($internalPath, Scanner::SCAN_SHALLOW, -1, false);
 			$this->correctParentStorageMtime($storage, $internalPath);
 			$cache->correctFolderSize($internalPath, $data);
 			$this->propagator->propagateChanges($time);
@@ -62,11 +119,14 @@ class Updater {
 	}
 
 	/**
-	 * Remove $path from the cache
+	 * Remove $path from the cache and update the size, etag and mtime of the parent folders
 	 *
 	 * @param string $path
 	 */
 	public function remove($path) {
+		if (!$this->enabled or Scanner::isPartialFile($path)) {
+			return;
+		}
 		/**
 		 * @var \OC\Files\Storage\Storage $storage
 		 * @var string $internalPath
@@ -87,10 +147,15 @@ class Updater {
 	}
 
 	/**
+	 * Rename a file or folder in the cache and update the size, etag and mtime of the parent folders
+	 * 
 	 * @param string $source
 	 * @param string $target
 	 */
 	public function rename($source, $target) {
+		if (!$this->enabled or Scanner::isPartialFile($source) or Scanner::isPartialFile($target)) {
+			return;
+		}
 		/**
 		 * @var \OC\Files\Storage\Storage $sourceStorage
 		 * @var \OC\Files\Storage\Storage $targetStorage
@@ -105,36 +170,37 @@ class Updater {
 		list($targetStorage, $targetInternalPath) = $this->view->resolvePath($target);
 
 		if ($sourceStorage && $targetStorage) {
-			if ($sourceStorage === $targetStorage) {
-				$cache = $sourceStorage->getCache($sourceInternalPath);
-				if ($cache->inCache($targetInternalPath)) {
-					$cache->remove($targetInternalPath);
+			$targetCache = $targetStorage->getCache($sourceInternalPath);
+			if ($sourceStorage->getCache($sourceInternalPath)->inCache($sourceInternalPath)) {
+				if ($targetCache->inCache($targetInternalPath)) {
+					$targetCache->remove($targetInternalPath);
 				}
-				$cache->move($sourceInternalPath, $targetInternalPath);
-
-				if (pathinfo($sourceInternalPath, PATHINFO_EXTENSION) !== pathinfo($targetInternalPath, PATHINFO_EXTENSION)) {
-					// handle mime type change
-					$mimeType = $sourceStorage->getMimeType($targetInternalPath);
-					$fileId = $cache->getId($targetInternalPath);
-					$cache->update($fileId, array('mimetype' => $mimeType));
+				if ($sourceStorage === $targetStorage) {
+					$targetCache->move($sourceInternalPath, $targetInternalPath);
+				} else {
+					$targetCache->moveFromCache($sourceStorage->getCache(), $sourceInternalPath, $targetInternalPath);
 				}
-
-				$cache->correctFolderSize($sourceInternalPath);
-				$cache->correctFolderSize($targetInternalPath);
-				$this->correctParentStorageMtime($sourceStorage, $sourceInternalPath);
-				$this->correctParentStorageMtime($targetStorage, $targetInternalPath);
-				$this->propagator->addChange($source);
-				$this->propagator->addChange($target);
-			} else {
-				$this->remove($source);
-				$this->update($target);
 			}
+
+			if (pathinfo($sourceInternalPath, PATHINFO_EXTENSION) !== pathinfo($targetInternalPath, PATHINFO_EXTENSION)) {
+				// handle mime type change
+				$mimeType = $targetStorage->getMimeType($targetInternalPath);
+				$fileId = $targetCache->getId($targetInternalPath);
+				$targetCache->update($fileId, array('mimetype' => $mimeType));
+			}
+			
+			$targetCache->correctFolderSize($sourceInternalPath);
+			$targetCache->correctFolderSize($targetInternalPath);
+			$this->correctParentStorageMtime($sourceStorage, $sourceInternalPath);
+			$this->correctParentStorageMtime($targetStorage, $targetInternalPath);
+			$this->propagator->addChange($source);
+			$this->propagator->addChange($target);
 			$this->propagator->propagateChanges();
 		}
 	}
 
 	/**
-	 * update the storage_mtime of the parent
+	 * update the storage_mtime of the direct parent in the cache to the mtime from the storage
 	 *
 	 * @param \OC\Files\Storage\Storage $storage
 	 * @param string $internalPath

@@ -1,32 +1,35 @@
 <?php
-
 /**
- * ownCloud - App Framework
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
 
 namespace OC\AppFramework;
 
-use \OC_App;
-use \OC\AppFramework\DependencyInjection\DIContainer;
-use \OCP\AppFramework\QueryException;
+use OC_App;
+use OC\AppFramework\DependencyInjection\DIContainer;
+use OCP\AppFramework\QueryException;
+use OCP\AppFramework\Http\ICallbackResponse;
 
 /**
  * Entry point for every request in your app. You can consider this as your
@@ -47,19 +50,22 @@ class App {
 	 */
 	public static function buildAppNamespace($appId, $topNamespace='OCA\\') {
 		// first try to parse the app's appinfo/info.xml <namespace> tag
-		$filePath = OC_App::getAppPath($appId) . '/appinfo/info.xml';
-		$loadEntities = libxml_disable_entity_loader(false);
-		$xml = @simplexml_load_file($filePath);
-		libxml_disable_entity_loader($loadEntities);
-
-		if ($xml) {
-			$result = $xml->xpath('/info/namespace');
-			if ($result && count($result) > 0) {
-				// take first namespace result
-				return $topNamespace . trim((string) $result[0]);
+		$appPath = OC_App::getAppPath($appId);
+		if ($appPath !== false) {
+			$filePath = "$appPath/appinfo/info.xml";
+			if (is_file($filePath)) {
+				$loadEntities = libxml_disable_entity_loader(false);
+				$xml = @simplexml_load_file($filePath);
+				libxml_disable_entity_loader($loadEntities);
+				if ($xml) {
+					$result = $xml->xpath('/info/namespace');
+					if ($result && count($result) > 0) {
+						// take first namespace result
+						return $topNamespace . trim((string) $result[0]);
+					}
+				}
 			}
 		}
-
 		// if the tag is not found, fall back to uppercasing the first letter
 		return $topNamespace . ucfirst($appId);
 	}
@@ -93,15 +99,22 @@ class App {
 		// initialize the dispatcher and run all the middleware before the controller
 		$dispatcher = $container['Dispatcher'];
 
-		list($httpHeaders, $responseHeaders, $responseCookies, $output) =
-			$dispatcher->dispatch($controller, $methodName);
+		list(
+			$httpHeaders,
+			$responseHeaders,
+			$responseCookies,
+			$output,
+			$response
+		) = $dispatcher->dispatch($controller, $methodName);
+
+		$io = $container['OCP\\AppFramework\\Http\\IOutput'];
 
 		if(!is_null($httpHeaders)) {
-			header($httpHeaders);
+			$io->setHeader($httpHeaders);
 		}
 
 		foreach($responseHeaders as $name => $value) {
-			header($name . ': ' . $value);
+			$io->setHeader($name . ': ' . $value);
 		}
 
 		foreach($responseCookies as $name => $value) {
@@ -109,12 +122,22 @@ class App {
 			if($value['expireDate'] instanceof \DateTime) {
 				$expireDate = $value['expireDate']->getTimestamp();
 			}
-			setcookie($name, $value['value'], $expireDate, $container->getServer()->getWebRoot(), null, $container->getServer()->getConfig()->getSystemValue('forcessl', false), true);
+			$io->setCookie(
+				$name,
+				$value['value'],
+				$expireDate,
+				$container->getServer()->getWebRoot(),
+				null,
+				$container->getServer()->getRequest()->getServerProtocol() === 'https',
+				true
+			);
 		}
 
-		if(!is_null($output)) {
-			header('Content-Length: ' . strlen($output));
-			print($output);
+		if ($response instanceof ICallbackResponse) {
+			$response->callback($io);
+		} else if(!is_null($output)) {
+			$io->setHeader('Content-Length: ' . strlen($output));
+			$io->setOutput($output);
 		}
 
 	}

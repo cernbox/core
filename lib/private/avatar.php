@@ -1,31 +1,61 @@
 <?php
 /**
- * Copyright (c) 2013 Christopher Schäpers <christopher@schaepers.it>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
+
+namespace OC;
+
+use OC\Files\Filesystem;
+use OC_Image;
 
 /**
  * This class gets and sets users avatars.
  */
 
-class OC_Avatar implements \OCP\IAvatar {
-
+class Avatar implements \OCP\IAvatar {
+	/** @var Files\View  */
 	private $view;
 
 	/**
 	 * constructor
 	 * @param string $user user to do avatar-management with
-	*/
+	 * @throws \Exception In case the username is potentially dangerous
+	 */
 	public function __construct ($user) {
+		if(!Filesystem::isValidPath($user)) {
+			throw new \Exception('Username may not contain slashes');
+		}
 		$this->view = new \OC\Files\View('/'.$user);
 	}
 
 	/**
 	 * get the users avatar
 	 * @param int $size size in px of the avatar, avatars are square, defaults to 64
-	 * @return boolean|\OC_Image containing the avatar or false if there's no image
+	 * @return boolean|\OCP\IImage containing the avatar or false if there's no image
 	*/
 	public function get ($size = 64) {
 		if ($this->view->file_exists('avatar.jpg')) {
@@ -43,15 +73,25 @@ class OC_Avatar implements \OCP\IAvatar {
 	}
 
 	/**
+	 * Check if an avatar exists for the user
+	 *
+	 * @return bool
+	 */
+	public function exists() {
+		return $this->view->file_exists('avatar.jpg') || $this->view->file_exists('avatar.png');
+	}
+
+	/**
 	 * sets the users avatar
-	 * @param \OC_Image|resource|string $data OC_Image, imagedata or path to set a new avatar
-	 * @throws Exception if the provided file is not a jpg or png image
-	 * @throws Exception if the provided image is not valid
+	 * @param \OCP\IImage|resource|string $data An image object, imagedata or path to set a new avatar
+	 * @throws \Exception if the provided file is not a jpg or png image
+	 * @throws \Exception if the provided image is not valid
 	 * @throws \OC\NotSquareException if the image is not square
 	 * @return void
 	*/
 	public function set ($data) {
-		if($data instanceOf OC_Image) {
+
+		if($data instanceOf \OCP\IImage) {
 			$img = $data;
 			$data = $img->data();
 		} else {

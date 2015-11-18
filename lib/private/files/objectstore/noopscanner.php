@@ -1,20 +1,24 @@
 <?php
 /**
- * @author Jörn Friedrich Dreyer
- * @copyright (c) 2014 Jörn Friedrich Dreyer <jfd@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is distributed in the hope that it will be useful,
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -33,10 +37,11 @@ class NoopScanner extends Scanner {
 	 *
 	 * @param string $file
 	 * @param int $reuseExisting
-	 * @param bool $parentExistsInCache
-	 * @return array with metadata of the scanned file
+	 * @param int $parentId
+	 * @param array|null $cacheData existing data in the cache for the file to be scanned
+	 * @return array an array of metadata of the scanned file
 	 */
-	public function scanFile($file, $reuseExisting = 0, $parentExistsInCache = false) {
+	public function scanFile($file, $reuseExisting = 0, $parentId = -1, $cacheData = null, $lock = true) {
 		return array();
 	}
 
@@ -48,7 +53,7 @@ class NoopScanner extends Scanner {
 	 * @param int $reuse
 	 * @return array with the meta data of the scanned file or folder
 	 */
-	public function scan($path, $recursive = self::SCAN_RECURSIVE, $reuse = -1) {
+	public function scan($path, $recursive = self::SCAN_RECURSIVE, $reuse = -1, $lock = true) {
 		return array();
 	}
 
@@ -58,11 +63,11 @@ class NoopScanner extends Scanner {
 	 * @param string $path
 	 * @param bool $recursive
 	 * @param int $reuse
+	 * @param array $folderData existing cache data for the folder to be scanned
 	 * @return int the size of the scanned folder or -1 if the size is unknown at this stage
 	 */
-	public function scanChildren($path, $recursive = Storage::SCAN_RECURSIVE, $reuse = -1) {
-		$size = 0;
-		return $size;
+	protected function scanChildren($path, $recursive = self::SCAN_RECURSIVE, $reuse = -1, $folderData = null, $lock = true) {
+		return 0;
 	}
 
 	/**

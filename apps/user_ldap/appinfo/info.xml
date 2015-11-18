@@ -9,16 +9,16 @@ A user logs into ownCloud with their LDAP or AD credentials, and is granted acce
 	</description>
 	<licence>AGPL</licence>
 	<author>Dominik Schmidt and Arthur Schiwon</author>
-	<requiremin>4.93</requiremin>
 	<shipped>true</shipped>
+	<version>0.7.0</version>
 	<types>
 		<authentication/>
 	</types>
 	<documentation>
 		<admin>admin-ldap</admin>
 	</documentation>
-	<ocsid>166061</ocsid>
 	<dependencies>
 		<lib>ldap</lib>
+		<owncloud min-version="8.2" />
 	</dependencies>
 </info>

@@ -1,25 +1,32 @@
 <?php
 /**
-* ownCloud
-*
-* @author Thomas Tanghus
-* @copyright 2012-2013 Thomas Tanghus <thomas@tanghus.net>
-* @copyright 2012 Bart Visscher bartv@thisnet.nl
-*
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
-* License as published by the Free Software Foundation; either
-* version 3 of the License, or any later version.
-*
-* This library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU AFFERO GENERAL PUBLIC LICENSE for more details.
-*
-* You should have received a copy of the GNU Affero General Public
-* License along with this library.  If not, see <http://www.gnu.org/licenses/>.
-*
-*/
+ * @author Bernhard Reiter <ockham@raz.or.at>
+ * @author derkostka <sebastian.kostka@gmail.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 /**
  * Class for easily tagging objects by their id
@@ -34,8 +41,8 @@
 
 namespace OC;
 
-use \OC\Tagging\Tag,
-    \OC\Tagging\TagMapper;
+use \OC\Tagging\Tag;
+use \OC\Tagging\TagMapper;
 
 class Tags implements \OCP\ITags {
 
@@ -126,8 +133,6 @@ class Tags implements \OCP\ITags {
 		if(count($defaultTags) > 0 && count($this->tags) === 0) {
 			$this->addMultiple($defaultTags, true);
 		}
-		\OCP\Util::writeLog('core', __METHOD__.', tags: ' . print_r($this->tags, true),
-			\OCP\Util::DEBUG);
 	}
 
 	/**
@@ -223,12 +228,12 @@ class Tags implements \OCP\ITags {
 				while ($row = $result->fetch()) {
 					$objId = (int)$row['objid'];
 					if (!isset($entries[$objId])) {
-						$entry = $entries[$objId] = array();
+						$entries[$objId] = array();
 					}
-					$entry = $entries[$objId][] = $row['category'];
+					$entries[$objId][] = $row['category'];
 				}
 				if (\OCP\DB::isError($result)) {
-					\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
+					\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage(), \OCP\Util::ERROR);
 					return false;
 				}
 			}
@@ -247,10 +252,12 @@ class Tags implements \OCP\ITags {
 	* Throws an exception if the tag could not be found.
 	*
 	* @param string $tag Tag id or name.
-	* @return array An array of object ids or false on error.
+	* @return array|false An array of object ids or false on error.
+	* @throws \Exception
 	*/
 	public function getIdsForTag($tag) {
 		$result = null;
+		$tagId = false;
 		if(is_numeric($tag)) {
 			$tagId = $tag;
 		} elseif(is_string($tag)) {
@@ -277,7 +284,7 @@ class Tags implements \OCP\ITags {
 			$stmt = \OCP\DB::prepare($sql);
 			$result = $stmt->execute(array($tagId));
 			if (\OCP\DB::isError($result)) {
-				\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
+				\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage(), \OCP\Util::ERROR);
 				return false;
 			}
 		} catch(\Exception $e) {
@@ -337,7 +344,7 @@ class Tags implements \OCP\ITags {
 	* Add a new tag.
 	*
 	* @param string $name A string with a name of the tag
-	* @return false|string the id of the added tag or false on error.
+	* @return false|int the id of the added tag or false on error.
 	*/
 	public function add($name) {
 		$name = trim($name);
@@ -504,7 +511,7 @@ class Tags implements \OCP\ITags {
 				. 'WHERE `uid` = ?');
 			$result = $stmt->execute(array($arguments['uid']));
 			if (\OCP\DB::isError($result)) {
-				\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
+				\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage(), \OCP\Util::ERROR);
 			}
 		} catch(\Exception $e) {
 			\OCP\Util::writeLog('core', __METHOD__.', exception: '.$e->getMessage(),
@@ -533,7 +540,7 @@ class Tags implements \OCP\ITags {
 				. 'WHERE `uid` = ?');
 			$result = $stmt->execute(array($arguments['uid']));
 			if (\OCP\DB::isError($result)) {
-				\OCP\Util::writeLog('core', __METHOD__. ', DB error: ' . \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
+				\OCP\Util::writeLog('core', __METHOD__. ', DB error: ' . \OCP\DB::getErrorMessage(), \OCP\Util::ERROR);
 			}
 		} catch(\Exception $e) {
 			\OCP\Util::writeLog('core', __METHOD__ . ', exception: '
@@ -561,7 +568,7 @@ class Tags implements \OCP\ITags {
 			$stmt = \OCP\DB::prepare($query);
 			$result = $stmt->execute($updates);
 			if (\OCP\DB::isError($result)) {
-				\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage($result), \OCP\Util::ERROR);
+				\OCP\Util::writeLog('core', __METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage(), \OCP\Util::ERROR);
 				return false;
 			}
 		} catch(\Exception $e) {
@@ -575,7 +582,7 @@ class Tags implements \OCP\ITags {
 	/**
 	* Get favorites for an object type
 	*
-	* @return array An array of object ids.
+	* @return array|false An array of object ids.
 	*/
 	public function getFavorites() {
 		try {
@@ -719,7 +726,7 @@ class Tags implements \OCP\ITags {
 					$result = $stmt->execute(array($id));
 					if (\OCP\DB::isError($result)) {
 						\OCP\Util::writeLog('core',
-							__METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage($result),
+							__METHOD__. 'DB error: ' . \OCP\DB::getErrorMessage(),
 							\OCP\Util::ERROR);
 						return false;
 					}

@@ -1,12 +1,35 @@
 <?php
 /**
- * @author Frank Karlitschek
- * @author Jakob Sack
- * @copyright 2012 Frank Karlitschek frank@owncloud.org
+ * @author Adam Williamson <awilliam@redhat.com>
+ * @author Aldo "xoen" Giambelluca <xoen@xoen.org>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Brice Maron <brice@bmaron.net>
+ * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Michael Gapczynski <GapczynskiM@gmail.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Volkan Gezer <volkangezer@gmail.com>
  *
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC;
@@ -24,8 +47,6 @@ class Config {
 	protected $configFilePath;
 	/** @var string */
 	protected $configFileName;
-	/** @var bool */
-	protected $debugMode;
 
 	/**
 	 * @param string $configDir Path to the config dir, needs to end with '/'
@@ -36,7 +57,6 @@ class Config {
 		$this->configFilePath = $this->configDir.$fileName;
 		$this->configFileName = $fileName;
 		$this->readData();
-		$this->debugMode = (defined('DEBUG') && DEBUG);
 	}
 
 	/**
@@ -202,9 +222,6 @@ class Config {
 	private function writeData() {
 		// Create a php file ...
 		$content = "<?php\n";
-		if ($this->debugMode) {
-			$content .= "define('DEBUG',true);\n";
-		}
 		$content .= '$CONFIG = ';
 		$content .= var_export($this->cache, true);
 		$content .= ";\n";
@@ -236,8 +253,11 @@ class Config {
 		flock($filePointer, LOCK_UN);
 		fclose($filePointer);
 
-		// Clear the opcode cache
-		\OC_Util::clearOpcodeCache();
+		// Try invalidating the opcache just for the file we wrote...
+		if (!\OC_Util::deleteFromOpcodeCache($this->configFilePath)) {
+			// But if that doesn't work, clear the whole cache.
+			\OC_Util::clearOpcodeCache();
+		}
 	}
 }
 

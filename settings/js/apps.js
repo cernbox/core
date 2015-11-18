@@ -9,6 +9,17 @@ Handlebars.registerHelper('score', function() {
 	}
 	return new Handlebars.SafeString('');
 });
+Handlebars.registerHelper('level', function() {
+	if(typeof this.level !== 'undefined') {
+		if(this.level === 200) {
+			return new Handlebars.SafeString('<span class="official icon-checkmark">' + t('settings', 'Official') + '</span>');
+		} else if(this.level === 100) {
+			return new Handlebars.SafeString('<span class="approved">' + t('settings', 'Approved') + '</span>');
+		} else {
+			return new Handlebars.SafeString('<span class="experimental">' + t('settings', 'Experimental') + '</span>');
+		}
+	}
+});
 
 OC.Settings = OC.Settings || {};
 OC.Settings.Apps = OC.Settings.Apps || {
@@ -63,32 +74,75 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		}
 		$('#apps-list')
 			.addClass('icon-loading')
+			.removeClass('hidden')
 			.html('');
+		$('#apps-list-empty').addClass('hidden');
 		$('#app-category-' + OC.Settings.Apps.State.currentCategory).removeClass('active');
 		$('#app-category-' + categoryId).addClass('active');
 		OC.Settings.Apps.State.currentCategory = categoryId;
 
-		this._loadCategoryCall = $.ajax(OC.generateUrl('settings/apps/list?category={categoryId}', {
+		this._loadCategoryCall = $.ajax(OC.generateUrl('settings/apps/list?category={categoryId}&includeUpdateInfo=0', {
 			categoryId: categoryId
 		}), {
-			data:{},
 			type:'GET',
-			success:function (apps) {
-				OC.Settings.Apps.State.apps = _.indexBy(apps.apps, 'id');
+			success: function (apps) {
+				var appListWithIndex = _.indexBy(apps.apps, 'id');
+				OC.Settings.Apps.State.apps = appListWithIndex;
+				var appList = _.map(appListWithIndex, function(app) {
+					// default values for missing fields
+					return _.extend({level: 0}, app);
+				});
 				var source   = $("#app-template").html();
 				var template = Handlebars.compile(source);
 
-				_.each(apps.apps, function(app) {
-					OC.Settings.Apps.renderApp(app, template, null);
-				});
+				if (appList.length) {
+					appList.sort(function(a,b) {
+						var levelDiff = b.level - a.level;
+						if (levelDiff === 0) {
+							return OC.Util.naturalSortCompare(a.name, b.name);
+						}
+						return levelDiff;
+					});
+
+					var firstExperimental = false;
+					_.each(appList, function(app) {
+						if(app.level === 0 && firstExperimental === false) {
+							firstExperimental = true;
+							OC.Settings.Apps.renderApp(app, template, null, true);
+						} else {
+							OC.Settings.Apps.renderApp(app, template, null, false);
+						}
+					});
+				} else {
+					$('#apps-list').addClass('hidden');
+					$('#apps-list-empty').removeClass('hidden');
+				}
+
+				$('.app-level .official').tipsy({fallback: t('settings', 'Official apps are developed by and within the ownCloud community. They offer functionality central to ownCloud and are ready for production use.')});
+				$('.app-level .approved').tipsy({fallback: t('settings', 'Approved apps are developed by trusted developers and have passed a cursory security check. They are actively maintained in an open code repository and their maintainers deem them to be stable for casual to normal use.')});
+				$('.app-level .experimental').tipsy({fallback: t('settings', 'This app is not checked for security issues and is new or known to be unstable. Install at your own risk.')});
 			},
 			complete: function() {
 				$('#apps-list').removeClass('icon-loading');
+				$.ajax(OC.generateUrl('settings/apps/list?category={categoryId}&includeUpdateInfo=1', {
+					categoryId: categoryId
+				}), {
+					type: 'GET',
+					success: function (apps) {
+						_.each(apps.apps, function(app) {
+							if (app.update) {
+								var $update = $('#app-' + app.id + ' .update');
+								$update.removeClass('hidden');
+								$update.val(t('settings', 'Update to %s').replace(/%s/g, app.update));
+							}
+						})
+					}
+				});
 			}
 		});
 	},
 
-	renderApp: function(app, template, selector) {
+	renderApp: function(app, template, selector, firstExperimental) {
 		if (!template) {
 			var source   = $("#app-template").html();
 			template = Handlebars.compile(source);
@@ -96,6 +150,7 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		if (typeof app === 'string') {
 			app = OC.Settings.Apps.State.apps[app];
 		}
+		app.firstExperimental = firstExperimental;
 
 		var html = template(app);
 		if (selector) {
@@ -106,8 +161,8 @@ OC.Settings.Apps = OC.Settings.Apps || {
 
 		var page = $('#app-' + app.id);
 
-		// image loading kung-fu
-		if (app.preview) {
+		// image loading kung-fu (IE doesn't properly scale SVGs, so disable app icons)
+		if (app.preview && !OC.Util.isIE()) {
 			var currentImage = new Image();
 			currentImage.src = app.preview;
 
@@ -125,7 +180,7 @@ OC.Settings.Apps = OC.Settings.Apps || {
 			page.find("label[for='groups_enable-"+app.id+"']").hide();
 			page.find(".groups-enable").attr('checked', null);
 		} else {
-			page.find('#group_select').val((app.groups || []).join(','));
+			page.find('#group_select').val((app.groups || []).join('|'));
 			if (app.active) {
 				if (app.groups.length) {
 					OC.Settings.Apps.setupGroupsSelect(page.find('#group_select'));
@@ -164,10 +219,10 @@ OC.Settings.Apps = OC.Settings.Apps || {
 					element.val(t('settings','Disable'));
 					appItem.addClass('appwarning');
 				} else {
+					OC.Settings.Apps.rebuildNavigation();
 					appItem.data('active',false);
 					appItem.data('groups', '');
 					element.data('active',false);
-					OC.Settings.Apps.removeNavigation(appId);
 					appItem.removeClass('active');
 					element.val(t('settings','Enable'));
 					element.parent().find(".groups-enable").hide();
@@ -190,7 +245,15 @@ OC.Settings.Apps = OC.Settings.Apps || {
 					element.val(t('settings','Enable'));
 					appItem.addClass('appwarning');
 				} else {
-					OC.Settings.Apps.addNavigation(appId);
+					if (result.data.update_required) {
+						OC.Settings.Apps.showReloadMessage();
+
+						setTimeout(function() {
+							location.reload();
+						}, 5000);
+					}
+
+					OC.Settings.Apps.rebuildNavigation();
 					appItem.data('active',true);
 					element.data('active',true);
 					appItem.addClass('active');
@@ -223,7 +286,6 @@ OC.Settings.Apps = OC.Settings.Apps || {
 					appItem.data('errormsg', t('settings', 'Error while enabling app'));
 					appItem.data('active',false);
 					appItem.addClass('appwarning');
-					OC.Settings.Apps.removeNavigation(appId);
 					element.val(t('settings','Enable'));
 				});
 		}
@@ -235,7 +297,11 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		OC.Settings.Apps.hideErrorMessage(appId);
 		$.post(OC.filePath('settings','ajax','updateapp.php'),{appid:appId},function(result) {
 			if(!result || result.status !== 'success') {
-				OC.Settings.Apps.showErrorMessage(appId, t('settings','Error while updating app'));
+				if (result.data && result.data.message) {
+					OC.Settings.Apps.showErrorMessage(appId, result.data.message);
+				} else {
+					OC.Settings.Apps.showErrorMessage(appId, t('settings','Error while updating app'));
+				}
 				element.val(oldButtonText);
 			}
 			else {
@@ -253,7 +319,7 @@ OC.Settings.Apps = OC.Settings.Apps || {
 				OC.Settings.Apps.showErrorMessage(appId, t('settings','Error while uninstalling app'));
 				element.val(t('settings','Uninstall'));
 			} else {
-				OC.Settings.Apps.removeNavigation(appId);
+				OC.Settings.Apps.rebuildNavigation();
 				element.parent().fadeOut(function() {
 					element.remove();
 				});
@@ -261,23 +327,15 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		},'json');
 	},
 
-	removeNavigation: function(appId){
-		$.getJSON(OC.filePath('settings', 'ajax', 'navigationdetect.php'), {app: appId}).done(function(response){
+	rebuildNavigation: function() {
+		$.getJSON(OC.filePath('settings', 'ajax', 'navigationdetect.php')).done(function(response){
 			if(response.status === 'success'){
-				var navIds=response.nav_ids;
-				for(var i=0; i< navIds.length; i++){
-					$('#apps ul').children('li[data-id="'+navIds[i]+'"]').remove();
-				}
-			}
-		});
-	},
-	addNavigation: function(appid){
-		$.getJSON(OC.filePath('settings', 'ajax', 'navigationdetect.php'), {app: appid}).done(function(response){
-			if(response.status === 'success'){
+				var idsToKeep = {};
 				var navEntries=response.nav_entries;
+				var container = $('#apps ul');
 				for(var i=0; i< navEntries.length; i++){
 					var entry = navEntries[i];
-					var container = $('#apps ul');
+					idsToKeep[entry.id] = true;
 
 					if(container.children('li[data-id="'+entry.id+'"]').length === 0){
 						var li=$('<li></li>');
@@ -285,8 +343,10 @@ OC.Settings.Apps = OC.Settings.Apps || {
 						var img= $('<img class="app-icon"/>').attr({ src: entry.icon});
 						var a=$('<a></a>').attr('href', entry.href);
 						var filename=$('<span></span>');
+						var loading = $('<div class="icon-loading-dark"></div>').css('display', 'none');
 						filename.text(entry.name);
 						a.prepend(filename);
+						a.prepend(loading);
 						a.prepend(img);
 						li.append(a);
 
@@ -316,6 +376,12 @@ OC.Settings.Apps = OC.Settings.Apps || {
 						}
 					}
 				}
+
+				container.children('li[data-id]').each(function(index, el) {
+					if (!idsToKeep[$(el).data('id')]) {
+						$(el).remove();
+					}
+				});
 			}
 		});
 	},
@@ -330,67 +396,139 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		$('div#app-'+appId+' .warning')
 			.hide()
 			.text('');
-	}
+	},
 
+	showReloadMessage: function(appId) {
+		OC.dialogs.info(
+			t(
+				'settings',
+				'The app has been enabled but needs to be updated. You will be redirected to the update page in 5 seconds.'
+			),
+			t('settings','App update'),
+			function (result) {
+				window.location.reload();
+			},
+			true
+		);
+	},
+
+	filter: function(query) {
+		query = query.toLowerCase();
+		$('#apps-list').find('.section').addClass('hidden');
+
+		var apps = _.filter(OC.Settings.Apps.State.apps, function (app) {
+			return app.name.toLowerCase().indexOf(query) !== -1;
+		});
+
+		apps = apps.concat(_.filter(OC.Settings.Apps.State.apps, function (app) {
+			return app.description.toLowerCase().indexOf(query) !== -1;
+		}));
+
+		apps = _.uniq(apps, function(app){return app.id;});
+
+		_.each(apps, function (app) {
+			$('#app-' + app.id).removeClass('hidden');
+		});
+
+		$('#searchresults').hide();
+	},
+
+	/**
+	 * Initializes the apps list
+	 */
+	initialize: function($el) {
+		OC.Plugins.register('OCA.Search', OC.Settings.Apps.Search);
+		OC.Settings.Apps.loadCategories();
+
+		$(document).on('click', 'ul#apps-categories li', function () {
+			var categoryId = $(this).data('categoryId');
+			OC.Settings.Apps.loadCategory(categoryId);
+		});
+
+		$(document).on('click', '.app-description-toggle-show', function () {
+			$(this).addClass('hidden');
+			$(this).siblings('.app-description-toggle-hide').removeClass('hidden');
+			$(this).siblings('.app-description-container').slideDown();
+		});
+		$(document).on('click', '.app-description-toggle-hide', function () {
+			$(this).addClass('hidden');
+			$(this).siblings('.app-description-toggle-show').removeClass('hidden');
+			$(this).siblings('.app-description-container').slideUp();
+		});
+
+		$(document).on('click', '#apps-list input.enable', function () {
+			var appId = $(this).data('appid');
+			var element = $(this);
+			var active = $(this).data('active');
+
+			OC.Settings.Apps.enableApp(appId, active, element);
+		});
+
+		$(document).on('click', '#apps-list input.uninstall', function () {
+			var appId = $(this).data('appid');
+			var element = $(this);
+
+			OC.Settings.Apps.uninstallApp(appId, element);
+		});
+
+		$(document).on('click', '#apps-list input.update', function () {
+			var appId = $(this).data('appid');
+			var element = $(this);
+
+			OC.Settings.Apps.updateApp(appId, element);
+		});
+
+		$(document).on('change', '#group_select', function() {
+			var element = $(this).parent().find('input.enable');
+			var groups = $(this).val();
+			if (groups && groups !== '') {
+				groups = groups.split('|');
+			} else {
+				groups = [];
+			}
+
+			var appId = element.data('appid');
+			if (appId) {
+				OC.Settings.Apps.enableApp(appId, false, element, groups);
+				OC.Settings.Apps.State.apps[appId].groups = groups;
+			}
+		});
+
+		$(document).on('change', ".groups-enable", function() {
+			var $select = $(this).parent().find('#group_select');
+			$select.val('');
+
+			if (this.checked) {
+				OC.Settings.Apps.setupGroupsSelect($select);
+			} else {
+				$select.select2('destroy');
+			}
+
+			$select.change();
+		});
+
+		$(document).on('click', '#enable-experimental-apps', function () {
+			var state = $(this).prop('checked')
+			$.ajax(OC.generateUrl('settings/apps/experimental'), {
+				data: {state: state},
+				type: 'POST',
+				success:function () {
+					location.reload();
+				}
+			});
+		});
+	}
+};
+
+OC.Settings.Apps.Search = {
+	attach: function (search) {
+		search.setFilter('settings', OC.Settings.Apps.filter);
+	}
 };
 
 $(document).ready(function () {
-	OC.Settings.Apps.loadCategories();
-
-	$(document).on('click', 'ul#apps-categories li', function () {
-		var categoryId = $(this).data('categoryId');
-		OC.Settings.Apps.loadCategory(categoryId);
-	});
-
-	$(document).on('click', '#apps-list input.enable', function () {
-		var appId = $(this).data('appid');
-		var element = $(this);
-		var active = $(this).data('active');
-
-		OC.Settings.Apps.enableApp(appId, active, element);
-	});
-
-	$(document).on('click', '#apps-list input.uninstall', function () {
-		var appId = $(this).data('appid');
-		var element = $(this);
-
-		OC.Settings.Apps.uninstallApp(appId, element);
-	});
-
-	$(document).on('click', '#apps-list input.update', function () {
-		var appId = $(this).data('appid');
-		var element = $(this);
-
-		OC.Settings.Apps.updateApp(appId, element);
-	});
-
-	$(document).on('change', '#group_select', function() {
-		var element = $(this).parent().find('input.enable');
-		var groups = $(this).val();
-		if (groups && groups !== '') {
-			groups = groups.split(',');
-		} else {
-			groups = [];
-		}
-
-		var appId = element.data('appid');
-		if (appId) {
-			OC.Settings.Apps.enableApp(appId, false, element, groups);
-			OC.Settings.Apps.State.apps[appId].groups = groups;
-		}
-	});
-
-	$(document).on('change', ".groups-enable", function() {
-		var $select = $(this).parent().find('#group_select');
-		$select.val('');
-
-		if (this.checked) {
-			OC.Settings.Apps.setupGroupsSelect($select);
-		} else {
-			$select.select2('destroy');
-		}
-
-		$select.change();
-	});
-
+	// HACK: FIXME: use plugin approach
+	if (!window.TESTING) {
+		OC.Settings.Apps.initialize($('#apps-list'));
+	}
 });

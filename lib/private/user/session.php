@@ -1,10 +1,31 @@
 <?php
-
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bernhard Posselt <dev@bernhard-posselt.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC\User;
@@ -60,7 +81,7 @@ class Session implements IUserSession, Emitter {
 	 * @param string $method
 	 * @param callable $callback
 	 */
-	public function listen($scope, $method, $callback) {
+	public function listen($scope, $method, callable $callback) {
 		$this->manager->listen($scope, $method, $callback);
 	}
 
@@ -69,7 +90,7 @@ class Session implements IUserSession, Emitter {
 	 * @param string $method optional
 	 * @param callable $callback optional
 	 */
-	public function removeListener($scope = null, $method = null, $callback = null) {
+	public function removeListener($scope = null, $method = null, callable $callback = null) {
 		$this->manager->removeListener($scope, $method, $callback);
 	}
 
@@ -324,27 +345,30 @@ class Session implements IUserSession, Emitter {
 	 * @param string $token
 	 */
 	public function setMagicInCookie($username, $token) {
-		$secure_cookie = \OC_Config::getValue("forcessl", false); //TODO: DI for cookies and OC_Config
+		$secureCookie = \OC::$server->getRequest()->getServerProtocol() === 'https';
 		$expires = time() + \OC_Config::getValue('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
-		setcookie("oc_username", $username, $expires, \OC::$WEBROOT, '', $secure_cookie);
-		setcookie("oc_token", $token, $expires, \OC::$WEBROOT, '', $secure_cookie, true);
-		setcookie("oc_remember_login", "1", $expires, \OC::$WEBROOT, '', $secure_cookie);
+		setcookie("oc_username", $username, $expires, \OC::$WEBROOT, '', $secureCookie, true);
+		setcookie("oc_token", $token, $expires, \OC::$WEBROOT, '', $secureCookie, true);
+		setcookie("oc_remember_login", "1", $expires, \OC::$WEBROOT, '', $secureCookie, true);
 	}
 
 	/**
 	 * Remove cookie for "remember username"
 	 */
 	public function unsetMagicInCookie() {
+		//TODO: DI for cookies and IRequest
+		$secureCookie = \OC::$server->getRequest()->getServerProtocol() === 'https';
+
 		unset($_COOKIE["oc_username"]); //TODO: DI
 		unset($_COOKIE["oc_token"]);
 		unset($_COOKIE["oc_remember_login"]);
-		setcookie('oc_username', '', time() - 3600, \OC::$WEBROOT);
-		setcookie('oc_token', '', time() - 3600, \OC::$WEBROOT);
-		setcookie('oc_remember_login', '', time() - 3600, \OC::$WEBROOT);
+		setcookie('oc_username', '', time() - 3600, \OC::$WEBROOT, '',$secureCookie, true);
+		setcookie('oc_token', '', time() - 3600, \OC::$WEBROOT, '', $secureCookie, true);
+		setcookie('oc_remember_login', '', time() - 3600, \OC::$WEBROOT, '', $secureCookie, true);
 		// old cookies might be stored under /webroot/ instead of /webroot
 		// and Firefox doesn't like it!
-		setcookie('oc_username', '', time() - 3600, \OC::$WEBROOT . '/');
-		setcookie('oc_token', '', time() - 3600, \OC::$WEBROOT . '/');
-		setcookie('oc_remember_login', '', time() - 3600, \OC::$WEBROOT . '/');
+		setcookie('oc_username', '', time() - 3600, \OC::$WEBROOT . '/', '', $secureCookie, true);
+		setcookie('oc_token', '', time() - 3600, \OC::$WEBROOT . '/', '', $secureCookie, true);
+		setcookie('oc_remember_login', '', time() - 3600, \OC::$WEBROOT . '/', '', $secureCookie, true);
 	}
 }

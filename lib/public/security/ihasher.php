@@ -1,9 +1,23 @@
 <?php
 /**
- * Copyright (c) 2014 Lukas Reschke <lukas@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OCP\Security;
@@ -26,6 +40,7 @@ namespace OCP\Security;
  * var_dump($newHash);
  *
  * @package OCP\Security
+ * @since 8.0.0
  */
 interface IHasher {
 	/**
@@ -35,6 +50,7 @@ interface IHasher {
 	 *
 	 * @param string $message Message to generate hash from
 	 * @return string Hash of the message with appended version parameter
+	 * @since 8.0.0
 	 */
 	public function hash($message);
 
@@ -43,6 +59,7 @@ interface IHasher {
 	 * @param string $hash Assumed hash of the message
 	 * @param null|string &$newHash Reference will contain the updated hash if necessary. Update the existing hash with this one.
 	 * @return bool Whether $hash is a valid hash of $message
+	 * @since 8.0.0
 	 */
 	public function verify($message, $hash, &$newHash = null);
 }

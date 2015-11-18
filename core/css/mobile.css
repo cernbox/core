@@ -21,37 +21,14 @@
 	box-align: center;
 }
 
-/* on mobile, show logo-icon instead of logo-wide */
-#header .logo-wide {
-	background-image: url(../img/logo-icon.svg);
-	background-repeat: no-repeat;
-	width: 62px;
-	height: 34px;
-}
-
-/* compress search box on mobile, expand when focused */
-.searchbox input[type="search"] {
-	width: 0;
-	cursor: pointer;
-	background-color: transparent;
-	background-image: url('../img/actions/search-white.svg');
-	-webkit-transition: all 100ms;
-	-moz-transition: all 100ms;
-	-o-transition: all 100ms;
-	transition: all 100ms;
-}
-.searchbox input[type="search"]:focus,
-.searchbox input[type="search"]:active {
-	width: 155px;
-	max-width: 50%;
-	cursor: text;
-	background-color: #fff;
-	background-image: url('../img/actions/search.svg');
-}
-
-/* do not show display name on mobile when profile picture is present */
-#header .avatardiv.avatardiv-shown + #expandDisplayName {
+/* on mobile public share, show only the icon of the logo, hide the text */
+#body-public #header .header-appname-container {
 	display: none;
+}
+
+/* do not show update notification on mobile */
+#update-notification {
+	display: none !important;
 }
 
 /* position share dropdown */
@@ -60,6 +37,10 @@
 	width: 80% !important;
 }
 
+/* fix name autocomplete not showing on mobile */
+.ui-autocomplete {
+	z-index: 1000 !important;
+}
 
 /* fix error display on smaller screens */
 .error-wide {
@@ -93,6 +74,10 @@
 	z-index: 1000;
 }
 
+#app-sidebar{
+	width: 100% !important;
+}
+
 /* allow horizontal scrollbar in settings
 	otherwise user management is not usable on mobile */
 #body-settings #app-content {
@@ -109,14 +94,10 @@
 	z-index: 149;
 	background-color: rgba(255, 255, 255, .7);
 	cursor: pointer;
-	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
-	filter: alpha(opacity=60);
 	opacity: .6;
 }
 #app-navigation-toggle:hover,
 #app-navigation-toggle:focus {
-	-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)";
-	filter: alpha(opacity=100);
 	opacity: 1;
 }
 

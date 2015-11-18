@@ -1,18 +1,50 @@
 <?php
 /**
-* ownCloud
-*
-* @author Tom Needham
-* @copyright 2012 Tom Needham tom@owncloud.com
-*
-* This file is licensed under the Affero General Public License version 3 or
-* later.
-* See the COPYING-README file.
-*/
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
 
 class OC_OCS_Result{
 
-	protected $data, $message, $statusCode, $items, $perPage;
+	/** @var array  */
+	protected $data;
+
+	/** @var null|string */
+	protected $message;
+
+	/** @var int */
+	protected $statusCode;
+
+	/** @var integer */
+	protected $items;
+
+	/** @var integer */
+	protected $perPage;
+
+	/** @var array */
+	private $headers = [];
 
 	/**
 	 * create the OCS_Result object
@@ -62,7 +94,7 @@ class OC_OCS_Result{
 	 */
 	public function getMeta() {
 		$meta = array();
-		$meta['status'] = ($this->statusCode === 100) ? 'ok' : 'failure';
+		$meta['status'] = $this->succeeded() ? 'ok' : 'failure';
 		$meta['statuscode'] = $this->statusCode;
 		$meta['message'] = $this->message;
 		if(isset($this->items)) {
@@ -91,5 +123,32 @@ class OC_OCS_Result{
 		return ($this->statusCode == 100);
 	}
 
+	/**
+	 * Adds a new header to the response
+	 * @param string $name The name of the HTTP header
+	 * @param string $value The value, null will delete it
+	 * @return $this
+	 */
+	public function addHeader($name, $value) {
+		$name = trim($name);  // always remove leading and trailing whitespace
+		// to be able to reliably check for security
+		// headers
+
+		if(is_null($value)) {
+			unset($this->headers[$name]);
+		} else {
+			$this->headers[$name] = $value;
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Returns the set headers
+	 * @return array the headers
+	 */
+	public function getHeaders() {
+		return $this->headers;
+	}
 
 }

@@ -1,10 +1,27 @@
 <?php
 /**
- * Copyright (c) 2013 Bart Visscher <bartv@thisnet.nl>
- * Copyright (c) 2014 Andreas Fischer <bantu@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author tbelau666 <thomas.belau@gmx.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author unclejamal3000 <andreas.pramhaas@posteo.de>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -13,7 +30,6 @@ namespace OC\Core\Command\Db;
 use \OCP\IConfig;
 use OC\DB\Connection;
 use OC\DB\ConnectionFactory;
-
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -97,11 +113,6 @@ class ConvertType extends Command {
 		if ($type === 'sqlite3') {
 			throw new \InvalidArgumentException(
 				'Converting to SQLite (sqlite3) is currently not supported.'
-			);
-		}
-		if ($type === 'mssql') {
-			throw new \InvalidArgumentException(
-				'Converting to Microsoft SQL Server (mssql) is currently not supported.'
 			);
 		}
 		if ($type === $this->config->getSystemValue('dbtype', '')) {

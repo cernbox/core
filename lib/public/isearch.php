@@ -1,23 +1,25 @@
 <?php
-
 /**
- * ownCloud - App Framework
+ * @author Andrew Brown <andrew@casabrown.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Jakob Sack <mail@jakobsack.de>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @author Jörn Dreyer
- * @copyright 2014 Jörn Dreyer jfd@owncloud.com
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
  *
- * This library is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public
- * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
 
@@ -26,6 +28,7 @@ namespace OCP;
 
 /**
  * Small Interface for Search
+ * @since 7.0.0
  */
 interface ISearch {
 
@@ -34,7 +37,8 @@ interface ISearch {
 	 * @param string $query
 	 * @param string[] $inApps optionally limit results to the given apps
 	 * @return array An array of OCP\Search\Result's
-	 * @deprecated use searchPaged() with page and size
+	 * @deprecated 8.0.0 use searchPaged() with page and size
+	 * @since 7.0.0 - parameter $inApps was added in 8.0.0
 	 */
 	public function search($query, array $inApps = array());
 
@@ -45,6 +49,7 @@ interface ISearch {
 	 * @param int $page pages start at page 1
 	 * @param int $size
 	 * @return array An array of OCP\Search\Result's
+	 * @since 8.0.0
 	 */
 	public function searchPaged($query, array $inApps = array(), $page = 1, $size = 30);
 
@@ -52,17 +57,20 @@ interface ISearch {
 	 * Register a new search provider to search with
 	 * @param string $class class name of a OCP\Search\Provider
 	 * @param array $options optional
+	 * @since 7.0.0
 	 */
 	public function registerProvider($class, array $options = array());
 
 	/**
 	 * Remove one existing search provider
 	 * @param string $provider class name of a OCP\Search\Provider
+	 * @since 7.0.0
 	 */
 	public function removeProvider($provider);
 
 	/**
 	 * Remove all registered search providers
+	 * @since 7.0.0
 	 */
 	public function clearProviders();
 

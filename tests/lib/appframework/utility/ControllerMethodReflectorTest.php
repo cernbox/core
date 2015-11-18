@@ -25,6 +25,38 @@
 namespace OC\AppFramework\Utility;
 
 
+class BaseController {
+
+	/**
+	 * @Annotation
+	 */
+	public function test(){}
+
+	/**
+	 * @Annotation
+	 */
+	public function test2(){}
+
+	/**
+	 * @Annotation
+	 */
+	public function test3(){}
+
+}
+
+class MiddleController extends BaseController {
+
+	/**
+	 * @NoAnnotation
+	 */
+	public function test2() {}
+
+	public function test3() {}
+
+}
+
+class EndController extends MiddleController {}
+
 class ControllerMethodReflectorTest extends \Test\TestCase {
 
 
@@ -87,6 +119,20 @@ class ControllerMethodReflectorTest extends \Test\TestCase {
 		$this->assertEquals('double', $reader->getType('test'));
 	}
 
+	/**
+	 * @Annotation
+	 * @param 	string  $foo
+	 */
+	public function testReadTypeWhitespaceAnnotations(){
+		$reader = new ControllerMethodReflector();
+		$reader->reflect(
+			'\OC\AppFramework\Utility\ControllerMethodReflectorTest',
+			'testReadTypeWhitespaceAnnotations'
+		);
+
+		$this->assertEquals('string', $reader->getType('foo'));
+	}
+
 
 	public function arguments($arg, $arg2='hi') {}
 	public function testReflectParameters() {
@@ -96,7 +142,7 @@ class ControllerMethodReflectorTest extends \Test\TestCase {
 			'arguments'
 		);
 
-		$this->assertEquals(array('arg' => null, 'arg2' => 'hi'), $reader->getParameters());	
+		$this->assertEquals(array('arg' => null, 'arg2' => 'hi'), $reader->getParameters());
 	}
 
 
@@ -108,8 +154,32 @@ class ControllerMethodReflectorTest extends \Test\TestCase {
 			'arguments2'
 		);
 
-		$this->assertEquals(array('arg' => null), $reader->getParameters());	
+		$this->assertEquals(array('arg' => null), $reader->getParameters());
 	}
 
+
+	public function testInheritance() {
+		$reader = new ControllerMethodReflector();
+		$reader->reflect('OC\AppFramework\Utility\EndController', 'test');
+
+		$this->assertTrue($reader->hasAnnotation('Annotation'));
+	}
+
+
+	public function testInheritanceOverride() {
+		$reader = new ControllerMethodReflector();
+		$reader->reflect('OC\AppFramework\Utility\EndController', 'test2');
+
+		$this->assertTrue($reader->hasAnnotation('NoAnnotation'));
+		$this->assertFalse($reader->hasAnnotation('Annotation'));
+	}
+
+
+	public function testInheritanceOverrideNoDocblock() {
+		$reader = new ControllerMethodReflector();
+		$reader->reflect('OC\AppFramework\Utility\EndController', 'test3');
+
+		$this->assertFalse($reader->hasAnnotation('Annotation'));
+	}
 
 }

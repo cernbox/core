@@ -1,17 +1,44 @@
 <?php
 /**
- * Copyright (c) 2013 Robin Appelman <icewind@owncloud.com>
- * This file is licensed under the Affero General Public License version 3 or
- * later.
- * See the COPYING-README file.
+ * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Björn Schießle <schiessle@owncloud.com>
+ * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Lukas Reschke <lukas@owncloud.com>
+ * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Robin Appelman <icewind@owncloud.com>
+ * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Steffen Lindner <mail@steffen-lindner.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
+ *
+ * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
  */
 
 namespace OC;
 
 use OC\Hooks\BasicEmitter;
 use OC_App;
+use OC_Installer;
 use OC_Util;
 use OCP\IConfig;
+use OC\Setup;
+use OCP\ILogger;
 
 /**
  * Class that handles autoupdating of ownCloud
@@ -38,13 +65,24 @@ class Updater extends BasicEmitter {
 
 	/** @var bool */
 	private $updateStepEnabled;
+	
+	/** @var bool */
+	private $skip3rdPartyAppsDisable;
+	
+	private $logLevelNames = [
+			0 => 'Debug',
+			1 => 'Info',
+			2 => 'Warning',
+			3 => 'Error',
+			4 => 'Fatal',
+	];
 
 	/**
 	 * @param HTTPHelper $httpHelper
 	 * @param IConfig $config
 	 * @param \OC\Log $log
 	 */
-	public function __construct(HTTPHelper $httpHelper, IConfig $config, $log = null) {
+	public function __construct(HTTPHelper $httpHelper, IConfig $config, ILogger $log = null) {
 		$this->httpHelper = $httpHelper;
 		$this->log = $log;
 		$this->config = $config;
@@ -72,6 +110,16 @@ class Updater extends BasicEmitter {
 	public function setUpdateStepEnabled($flag) {
 		$this->updateStepEnabled = $flag;
 	}
+	
+	/**
+	 * Sets whether the update disables 3rd party apps.
+	 * This can be set to true to skip the disable.
+	 *
+	 * @param bool $flag false to not disable, true otherwise
+	 */
+	public function setSkip3rdPartyAppsDisable($flag) {
+		$this->skip3rdPartyAppsDisable = $flag;
+	}
 
 	/**
 	 * Check if a new version is available
@@ -87,12 +135,12 @@ class Updater extends BasicEmitter {
 		}
 
 		if (is_null($updaterUrl)) {
-			$updaterUrl = 'https://apps.owncloud.com/updater.php';
+			$updaterUrl = 'https://updates.owncloud.com/server/';
 		}
 
 		$this->config->setAppValue('core', 'lastupdatedat', time());
 
-		if ($this->config->getAppValue('core', 'installedat', '') == '') {
+		if ($this->config->getAppValue('core', 'installedat', '') === '') {
 			$this->config->setAppValue('core', 'installedat', microtime(true));
 		}
 
@@ -116,13 +164,13 @@ class Updater extends BasicEmitter {
 			$data = @simplexml_load_string($xml);
 			libxml_disable_entity_loader($loadEntities);
 			if ($data !== false) {
-				$tmp['version'] = $data->version;
-				$tmp['versionstring'] = $data->versionstring;
-				$tmp['url'] = $data->url;
-				$tmp['web'] = $data->web;
+				$tmp['version'] = (string)$data->version;
+				$tmp['versionstring'] = (string)$data->versionstring;
+				$tmp['url'] = (string)$data->url;
+				$tmp['web'] = (string)$data->web;
 			}
 		} else {
-			$data = array();
+			$data = [];
 		}
 
 		// Cache the result
@@ -137,39 +185,87 @@ class Updater extends BasicEmitter {
 	 * @return bool true if the operation succeeded, false otherwise
 	 */
 	public function upgrade() {
-		$this->config->setSystemValue('maintenance', true);
+		$logLevel = $this->config->getSystemValue('loglevel', \OCP\Util::WARN);
+		$this->emit('\OC\Updater', 'setDebugLogLevel', [ $logLevel, $this->logLevelNames[$logLevel] ]);
+		$this->config->setSystemValue('loglevel', \OCP\Util::DEBUG);
 
+		$wasMaintenanceModeEnabled = $this->config->getSystemValue('maintenance', false);
+
+		if(!$wasMaintenanceModeEnabled) {
+			$this->config->setSystemValue('maintenance', true);
+			$this->emit('\OC\Updater', 'maintenanceEnabled');
+		}
+		
 		$installedVersion = $this->config->getSystemValue('version', '0.0.0');
 		$currentVersion = implode('.', \OC_Util::getVersion());
-		if ($this->log) {
-			$this->log->debug('starting upgrade from ' . $installedVersion . ' to ' . $currentVersion, array('app' => 'core'));
-		}
-		$this->emit('\OC\Updater', 'maintenanceStart');
-
+		$this->log->debug('starting upgrade from ' . $installedVersion . ' to ' . $currentVersion, array('app' => 'core'));
+		
+		$success = true;
 		try {
 			$this->doUpgrade($currentVersion, $installedVersion);
 		} catch (\Exception $exception) {
-			$this->emit('\OC\Updater', 'failure', array($exception->getMessage()));
+			$this->log->logException($exception, ['app' => 'core']);
+			$this->emit('\OC\Updater', 'failure', array(get_class($exception) . ': ' .$exception->getMessage()));
+			$success = false;
 		}
 
-		$this->config->setSystemValue('maintenance', false);
-		$this->emit('\OC\Updater', 'maintenanceEnd');
+		$this->emit('\OC\Updater', 'updateEnd', array($success));
+
+		if(!$wasMaintenanceModeEnabled && $success) {
+			$this->config->setSystemValue('maintenance', false);
+			$this->emit('\OC\Updater', 'maintenanceDisabled');
+		} else {
+			$this->emit('\OC\Updater', 'maintenanceActive');
+		}
+
+		$this->emit('\OC\Updater', 'resetLogLevel', [ $logLevel, $this->logLevelNames[$logLevel] ]);
+		$this->config->setSystemValue('loglevel', $logLevel);
+
+		return $success;
+	}
+
+	/**
+	 * Return version from which this version is allowed to upgrade from
+	 *
+	 * @return string allowed previous version
+	 */
+	private function getAllowedPreviousVersion() {
+		// this should really be a JSON file
+		require \OC::$SERVERROOT . '/version.php';
+		/** @var array $OC_VersionCanBeUpgradedFrom */
+		return implode('.', $OC_VersionCanBeUpgradedFrom);
 	}
 
 	/**
 	 * Whether an upgrade to a specified version is possible
 	 * @param string $oldVersion
 	 * @param string $newVersion
+	 * @param string $allowedPreviousVersion
 	 * @return bool
 	 */
-	public function isUpgradePossible($oldVersion, $newVersion) {
-		$oldVersion = explode('.', $oldVersion);
-		$newVersion = explode('.', $newVersion);
-
-		if($newVersion[0] > ($oldVersion[0] + 1) || $oldVersion[0] > $newVersion[0]) {
-			return false;
-		}
-		return true;
+	public function isUpgradePossible($oldVersion, $newVersion, $allowedPreviousVersion) {
+		return (version_compare($allowedPreviousVersion, $oldVersion, '<=')
+			&& version_compare($oldVersion, $newVersion, '<='));
+	}
+	
+	/**
+	 * Forward messages emitted by the repair routine
+	 *
+	 * @param Repair $repair repair routine
+	 */
+	private function emitRepairMessages(Repair $repair) {
+		$repair->listen('\OC\Repair', 'warning', function ($description) {
+			$this->emit('\OC\Updater', 'repairWarning', array($description));
+		});
+		$repair->listen('\OC\Repair', 'error', function ($description) {
+			$this->emit('\OC\Updater', 'repairError', array($description));
+		});
+		$repair->listen('\OC\Repair', 'info', function ($description) {
+			$this->emit('\OC\Updater', 'repairInfo', array($description));
+		});
+		$repair->listen('\OC\Repair', 'step', function ($description) {
+			$this->emit('\OC\Updater', 'repairStep', array($description));
+		});	
 	}
 
 	/**
@@ -184,17 +280,17 @@ class Updater extends BasicEmitter {
 	 */
 	private function doUpgrade($currentVersion, $installedVersion) {
 		// Stop update if the update is over several major versions
-		if (!self::isUpgradePossible($installedVersion, $currentVersion)) {
-			throw new \Exception('Updates between multiple major versions are unsupported.');
-		}
-
-		// Update htaccess files for apache hosts
-		if (isset($_SERVER['SERVER_SOFTWARE']) && strstr($_SERVER['SERVER_SOFTWARE'], 'Apache')) {
-			try {
-				\OC_Setup::updateHtaccess();
-			} catch (\Exception $e) {
-				throw new \Exception($e->getMessage());
-			}
+		$allowedPreviousVersion = $this->getAllowedPreviousVersion();
+		if (!self::isUpgradePossible($installedVersion, $currentVersion, $allowedPreviousVersion)) {
+			throw new \Exception('Updates between multiple major versions and downgrades are unsupported.');
+ 		}
+		
+		// Update .htaccess files
+		try {
+			Setup::updateHtaccess();
+			Setup::protectDataDirectory();
+		} catch (\Exception $e) {
+			throw new \Exception($e->getMessage());
 		}
 
 		// create empty file in data dir, so we can later find
@@ -204,6 +300,7 @@ class Updater extends BasicEmitter {
 
 		// pre-upgrade repairs
 		$repair = new Repair(Repair::getBeforeUpgradeRepairSteps());
+		$this->emitRepairMessages($repair);
 		$repair->run();
 
 		// simulate DB upgrade
@@ -220,9 +317,13 @@ class Updater extends BasicEmitter {
 
 			$this->checkAppsRequirements();
 			$this->doAppUpgrade();
+			
+			// upgrade appstore apps
+			$this->upgradeAppStoreApps($disabledApps);
 
 			// post-upgrade repairs
 			$repair = new Repair(Repair::getRepairSteps());
+			$this->emitRepairMessages($repair);
 			$repair->run();
 
 			//Invalidate update feed
@@ -234,6 +335,8 @@ class Updater extends BasicEmitter {
 	}
 
 	protected function checkCoreUpgrade() {
+		$this->emit('\OC\Updater', 'dbSimulateUpgradeBefore');
+		
 		// simulate core DB upgrade
 		\OC_DB::simulateUpdateDbFromStructure(\OC::$SERVERROOT . '/db_structure.xml');
 
@@ -241,6 +344,8 @@ class Updater extends BasicEmitter {
 	}
 
 	protected function doCoreUpgrade() {
+		$this->emit('\OC\Updater', 'dbUpgradeBefore');
+		
 		// do the real upgrade
 		\OC_DB::updateDbFromStructure(\OC::$SERVERROOT . '/db_structure.xml');
 
@@ -252,6 +357,7 @@ class Updater extends BasicEmitter {
 	 */
 	protected function checkAppUpgrade($version) {
 		$apps = \OC_App::getEnabledApps();
+		$this->emit('\OC\Updater', 'appUpgradeCheckBefore');
 
 		foreach ($apps as $appId) {
 			$info = \OC_App::getAppInfo($appId);
@@ -269,6 +375,7 @@ class Updater extends BasicEmitter {
 					$this->includePreUpdate($appId);
 				}
 				if (file_exists(\OC_App::getAppPath($appId) . '/appinfo/database.xml')) {
+					$this->emit('\OC\Updater', 'appSimulateUpdate', array($appId));
 					\OC_DB::simulateUpdateDbFromStructure(\OC_App::getAppPath($appId) . '/appinfo/database.xml');
 				}
 			}
@@ -284,7 +391,6 @@ class Updater extends BasicEmitter {
 	private function includePreUpdate($appId) {
 		include \OC_App::getAppPath($appId) . '/appinfo/preupdate.php';
 	}
-
 
 	/**
 	 * upgrades all apps within a major ownCloud upgrade. Also loads "priority"
@@ -317,6 +423,7 @@ class Updater extends BasicEmitter {
 		foreach ($stacks as $type => $stack) {
 			foreach ($stack as $appId) {
 				if (\OC_App::shouldUpgrade($appId)) {
+					$this->emit('\OC\Updater', 'appUpgradeStarted', array($appId, \OC_App::getAppVersion($appId)));
 					\OC_App::updateApp($appId);
 					$this->emit('\OC\Updater', 'appUpgrade', array($appId, \OC_App::getAppVersion($appId)));
 				}
@@ -373,6 +480,24 @@ class Updater extends BasicEmitter {
 			return true;
 		}
 		return false;
+	}
+	
+	/**
+	 * @param array $disabledApps
+	 * @throws \Exception
+	 */
+	private function upgradeAppStoreApps(array $disabledApps) {
+		foreach($disabledApps as $app) {
+			try {
+				if (OC_Installer::isUpdateAvailable($app)) {
+					$ocsId = \OC::$server->getConfig()->getAppValue($app, 'ocsid', '');
+					$this->emit('\OC\Updater', 'upgradeAppStoreApp', array($app));
+					OC_Installer::updateAppByOCSId($ocsId);
+				}
+			} catch (\Exception $ex) {
+				$this->log->logException($ex, ['app' => 'core']);
+			}
+		}
 	}
 }
 
