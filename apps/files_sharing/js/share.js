@@ -98,7 +98,7 @@
 					'all',
 					'Info',
 					OC.PERMISSION_READ,
-					OC.imagePath('core', 'actions/share'),
+					OC.imagePath('core', 'actions/info'),
 					function(filename, context) {
 						window.alert("here");
 					},

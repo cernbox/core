@@ -88,14 +88,14 @@ OCA.Trashbin.App = {
 				var curFileId = tr.attr('data-item-id');
 				if($('#dropdown').data('item-id') != curFileId) {
 					OCA.Trashbin.App.hideInfoDropDown(function () {
-						OCA.Trashbin.App.showInfoDropDown(curFileId, tr.attr('eospath'), $(tr).find('.action.action-info'));
+						OCA.Trashbin.App.showInfoDropDown(curFileId, tr.attr('eospath'), $(tr).find('td.filename'));
 					});
 				} else {
 					OCA.Trashbin.App.hideInfoDropDown();
 					OCA.Trashbin.App.dropDownShown = false;
 				}
 			} else {
-				OCA.Trashbin.App.showInfoDropDown(tr.attr('data-item-id'), tr.attr('eospath'), $(tr).find('.action.action-info'));
+				OCA.Trashbin.App.showInfoDropDown(tr.attr('data-item-id'), tr.attr('eospath'), $(tr).find('td.filename'));
 				OCA.Trashbin.App.dropDownShown = true;
 			}
 		
