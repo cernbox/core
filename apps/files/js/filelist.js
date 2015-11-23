@@ -988,7 +988,7 @@
 			var linkElem = $('<a></a>').attr({
 				"class": "name",
 				"href": linkUrl
-			});'" type="checkbox" class="selectCheckBox"/><label for="select-' + this.id + '-' + fileData.id + '">' +
+			});
 
 			// from here work on the display name
 			name = fileData.displayName || name;

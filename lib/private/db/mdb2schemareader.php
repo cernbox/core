@@ -1,5 +1,4 @@
 <?php
-<?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>

@@ -109,7 +109,7 @@ class MailNotifications {
 
 			$items = \OCP\Share::getItemSharedWithUser($itemType, $itemSource, $recipient);
 			$filename = trim($items[0]['file_target'], '/');
-			$subject = (string) $this->l->t('%s shared »%s« with you', array($this->senderDisplayName, $filename));
+			$subject = (string) $this->l->t('%s (%s) shared »%s« with you', array($this->senderDisplayName, $this->userId, $filename));
 			$expiration = null;
 			if (isset($items[0]['expiration'])) {
 				try {
@@ -151,8 +151,9 @@ class MailNotifications {
 				$message->setPlainBody($textBody);
 				$message->setFrom([
 					\OCP\Util::getDefaultEmailAddress('sharing-noreply') =>
-						(string)$this->l->t('%s via %s', [
+						(string)$this->l->t('%s (%s) via %s', [
 							$this->senderDisplayName,
+							$this->userId,
 							$this->defaults->getName()
 						]),
 					]);
@@ -181,7 +182,7 @@ class MailNotifications {
 	 * @return array $result of failed recipients
 	 */
 	public function sendLinkShareMail($recipient, $filename, $link, $expiration) {
-		$subject = (string)$this->l->t('%s shared Â»%sÂ« with you', [$this->senderDisplayName, $filename]);
+		$subject = (string)$this->l->t('%s (%s) shared »%s« with you', [$this->senderDisplayName, $this->userId, $filename]);
 		list($htmlBody, $textBody) = $this->createMailBody($filename, $link, $expiration);
 
 		try {
@@ -192,8 +193,9 @@ class MailNotifications {
 			$message->setPlainBody($textBody);
 			$message->setFrom([
 				\OCP\Util::getDefaultEmailAddress('sharing-noreply') =>
-					(string)$this->l->t('%s via %s', [
+					(string)$this->l->t('%s (%s) via %s', [
 						$this->senderDisplayName,
+						$this->userId,
 						$this->defaults->getName()
 					]),
 			]);
@@ -224,6 +226,7 @@ class MailNotifications {
 		$html->assign('user_id', $this->senderId);
 		$html->assign ('link', $link);
 		$html->assign ('user_displayname', $this->senderDisplayName);
+		$html->assign ('user_id', $this->userId);
 		$html->assign ('filename', $filename);
 		$html->assign('expiration',  $formattedDate);
 		$htmlMail = $html->fetchPage();
@@ -231,6 +234,7 @@ class MailNotifications {
 		$plainText = new \OC_Template("core", "altmail", "");
 		$plainText->assign ('link', $link);
 		$plainText->assign ('user_displayname', $this->senderDisplayName);
+		$plainText->assign ('user_id', $this->userId);
 		$plainText->assign ('filename', $filename);
 		$plainText->assign('expiration', $formattedDate);
 		$plainTextMail = $plainText->fetchPage();

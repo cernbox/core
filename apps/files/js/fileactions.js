@@ -124,7 +124,7 @@
 				order: action.order || 0,
 				permissions: action.permissions || permissions,
 				type: action.type || FileActions.TYPE_DROPDOWN,
-				altText: action.altText || ''
+				altText: action.altText || '',
 				icon: icon,
 				actionHandler: action,
 				displayName: displayName || name
@@ -144,7 +144,9 @@
 				displayName: action.displayName,
 				mime: mime,
 				icon: action.icon,
-				permissions: action.permissions
+				permissions: action.permissions,
+				type: action.type || FileActions.TYPE_DROPDOWN,
+				altText: action.altText || ''
 			};
 			if (_.isUndefined(action.displayName)) {
 				actionSpec.displayName = t('files', name);

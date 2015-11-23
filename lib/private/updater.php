@@ -315,7 +315,7 @@ class Updater extends BasicEmitter {
 		if ($this->updateStepEnabled) {
 			$this->doCoreUpgrade();
 
-			$this->checkAppsRequirements();
+			$disabledApps = $this->checkAppsRequirements();
 			$this->doAppUpgrade();
 			
 			// upgrade appstore apps

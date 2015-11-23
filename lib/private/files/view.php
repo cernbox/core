@@ -78,6 +78,9 @@ class View {
 		if(!Filesystem::isValidPath($root)) {
 			throw new \Exception();
 		}
+		
+		$this->fakeRoot = $root;
+		$this->updater = new Updater($this);
 		$this->lockingProvider = \OC::$server->getLockingProvider();
 		$this->lockingEnabled = !($this->lockingProvider instanceof \OC\Lock\NoopLockingProvider);
 	}

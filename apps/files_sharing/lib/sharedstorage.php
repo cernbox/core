@@ -468,7 +468,6 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 	}
 
 	// XXX
-	/*
 	public static function setup($options) {
 		// HUGO in an normal request this hook is called at least twice, reducing performance, so we cached 
 		if (isset ( $GLOBALS ["shared_setup_hook"] )) {
@@ -480,7 +479,7 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 		
 		$mount_shared_stuff = false;
 		
-		if ($_GET ["view"] == "sharingin" or $_GET ["view"] == "sharingout" or $_GET ["view"] == "sharinglinks") {
+		if (isset($_GET['view']) && ($_GET ["view"] == "sharingin" or $_GET ["view"] == "sharingout" or $_GET ["view"] == "sharinglinks")) {
 			$mount_shared_stuff = true;
 		} else {
 			$uri_path_array = array ();
@@ -547,7 +546,7 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 			}
 		}
 		$GLOBALS ["shared_setup_hook"] = true;
-	}*/
+	}
 
 	/**
 	 * return mount point of share, relative to data/user/files

@@ -912,21 +912,6 @@ class OC_App {
 	}
 
 	/**
-	 * Returns the internal app ID or false
-	 * @param string $ocsID
-	 * @return string|false
-	 */
-	protected static function getInternalAppIdByOcs($ocsID) {
-		if(is_numeric($ocsID)) {
-			$idArray = \OC::$server->getAppConfig()->getValues(false, 'ocsid');
-			if(array_search($ocsID, $idArray)) {
-				return array_search($ocsID, $idArray);
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Get a list of all apps on the appstore
 	 * @param string $filter
 	 * @param string $category

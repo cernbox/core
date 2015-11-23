@@ -494,7 +494,7 @@ class OC_Util {
 	 * @param string $languageCode language code, defaults to the current language
 	 * @param bool $prepend prepend the Script to the beginning of the list
 	 */
-	public static function addTranslations($application, $languageCode = null) {
+	public static function addTranslations($application, $languageCode = null, $prepend = false) {
 		if (is_null($languageCode)) {
 			$l = new \OC_L10N($application);
 			$languageCode = \OC_L10N::findLanguage($application);

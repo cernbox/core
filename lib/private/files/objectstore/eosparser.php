@@ -154,8 +154,11 @@ class EosParser {
 
                 $fields = explode(" ", $line_to_parse);
                 foreach ($fields as $value) {
-                        $splitted           = explode("=", $value);
-                        $info[$splitted[0]] = $splitted[1];
+                        $splitted = explode("=", $value);
+                        if(count($splitted) > 1)
+                        	$info[$splitted[0]] = $splitted[1];
+                        else
+                        	$info[$splitted[0]] = NULL;
                 }
                 return $info['member'] == "true" ? true : false;
 	}

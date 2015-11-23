@@ -1626,6 +1626,7 @@ class Share extends Constants {
 		if($itemType === 'file' && is_numeric($item)) {
 			$item = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($item);	
 		}
+		
 		if (!self::isEnabled()) {
 			return array();
 		}
@@ -1829,7 +1830,7 @@ class Share extends Constants {
 			}
 			self::transformDBResults($row);
 			// Filter out duplicate group shares for users with unique targets
-			if ($fileDependent && !self::isFileReachable($row['path'], $row['storage_id'])) {
+			if ($fileDependent && !self::isFileReachable($row['path'], $storage_id)) {
 				continue;
 			}
 			if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
@@ -2469,26 +2470,37 @@ class Share extends Constants {
 					FROM`*PREFIX*share`
 					WHERE `uid_owner` = ? AND `item_target` = ? AND `item_source` = ? AND `stime` = ?
 					');
-				$r = $getId->execute(array($shareData['uidOwner'], $shareData['itemTarget'], $shareData['itemSource'], $shareData['shareTime']));
+				$r = $getId->execute(array($shareData['uidOwner'], $shareData ['itemTarget'],
+						$shareData ['itemSource'],
+						$shareData ['shareTime'] 
+				) );
 				if ($r) {
-					$row = $r->fetchRow();
-					$id = $row['id'];
+					$row = $r->fetchRow ();
+					$id = $row ['id'];
 				}
 			}
-
 		}
-		// HUGO  add user to ACL and notify by email
-                if($shareData["shareType"] == 0 || $shareData["shareType"] == 1) { // 0=>user, 1=>group, 2 => user inside group, 3 => link
-                        $type = $shareData["shareType"] == 0 ? "u": "egroup";
-                        $from = $shareData["uidOwner"];
-                        $to = $shareData["shareWith"];
-                        $fileid = $shareData["itemSource"];
-                        $ocPerm = $shareData["permissions"];
-                        $added = EosUtil::addUserToAcl($from, $to, $fileid, $ocPerm, $type);
-
-                        // Send different mails depending if the share was done to an user or to an egroup.
-                        $filedata = \OC\Files\ObjectStore\EosUtil::getFileById($fileid);
-                        $mailNotification = new \OC\Share\MailNotifications();
+		
+		// HUGO add user to ACL and notify by email
+		if ($shareData ["shareType"] == 0 || $shareData ["shareType"] == 1) { // 0=>user, 1=>group, 2 => user inside group, 3 => link
+			$type = $shareData ["shareType"] == 0 ? "u" : "egroup";
+			$from = $shareData ["uidOwner"];
+			$to = $shareData ["shareWith"];
+			$fileid = $shareData ["itemSource"];
+			$ocPerm = $shareData ["permissions"];
+			$added = EosUtil::addUserToAcl ( $from, $to, $fileid, $ocPerm, $type );
+			
+			// Send different mails depending if the share was done to an user or to an egroup.
+			$filedata = \OC\Files\ObjectStore\EosUtil::getFileById ( $fileid );
+			// $mailNotification = new \OC\Share\MailNotifications();
+			$defaults = new \OCP\Defaults();
+			$mailNotification = new \OC\Share\MailNotifications ( \OC::$server->getUserSession ()->getUser ()->getUID (), \OC::$server->getConfig (), 
+					\OC::$server->getL10N ( 'lib' ),
+                    \OC::$server->getMailer(),
+                    \OC::$server->getLogger(),
+                    $defaults
+            );
+			
 			if($type === 'u') {
 				$result = $mailNotification->sendLinkEosUser($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
 			} else {
@@ -2568,8 +2580,7 @@ class Share extends Constants {
 				if ($fileDependent) {
 					$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `*PREFIX*share`.`parent`,'
 					. ' `share_type`, `share_with`, `file_source`, `file_target`, `*PREFIX*share`.`permissions`, `stime`,'
-						. ' `expiration`, `token`, `storage`, `mail_send`, `uid_owner`, '
-						. '`*PREFIX*storages`.`id` AS `storage_id`, `*PREFIX*filecache`.`parent` as `file_parent`';
+						. ' `expiration`, `token`, `mail_send`, `uid_owner`';
 				} else {
 					$select = '`id`, `item_type`, `item_source`, `parent`, `share_type`, `share_with`, `*PREFIX*share`.`permissions`,'
 							. ' `stime`, `file_source`, `expiration`, `token`, `mail_send`, `uid_owner`';
@@ -2579,7 +2590,7 @@ class Share extends Constants {
 					if ($format == \OC_Share_Backend_File::FORMAT_GET_FOLDER_CONTENTS || $format == \OC_Share_Backend_File::FORMAT_FILE_APP_ROOT) {
 						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `*PREFIX*share`.`parent`, `uid_owner`, '
 						. '`share_type`, `share_with`, `file_source`,  `file_target`, `stime`, '
-						. '`*PREFIX*share`.`permissions`, `expiration`,  `*PREFIX*filecache`.`parent` as `file_parent`, '
+						. '`*PREFIX*share`.`permissions`, `expiration`,'
 						. '`name`, `mtime`, `mimetype`, `mimepart`, `size`, `encrypted`, `etag`, `mail_send`';
 					} else {
 						/*$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `item_target`,'
