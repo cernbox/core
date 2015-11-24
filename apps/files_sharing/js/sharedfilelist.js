@@ -96,6 +96,13 @@
 			}
 			return $tr;
 		},
+		
+		elementToFile: function($el) {
+			var data = OCA.Files.FileList.prototype.elementToFile.apply(this, arguments);
+			data.eospath = $el.attr('eospath');
+			data.projectname = $el.attr('projectname');			
+			return data;
+		},
 
 		/**
 		 * Set whether the list should contain outgoing shares

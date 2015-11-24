@@ -54,6 +54,8 @@
 	 * @property {OC.Share.Types.Collection|undefined} collection
 	 * @property {Date} expiration optional?
 	 * @property {number} stime optional?
+	 * @property {string} eospath optional?
+	 * @property {string} projectname optional? 
 	 */
 
 	/**
@@ -221,6 +223,9 @@
 			var shareType = attributes.shareType;
 			var shareWith = attributes.shareWith;
 			var fileName = this.fileInfoModel.get('name');
+			
+			
+			
 			options = options || {};
 
 			// Default permissions are Edit (CRUD) and Share
@@ -411,6 +416,14 @@
 		 */
 		getReshareType: function() {
 			return this.get('reshare').share_type;
+		},
+		
+		getEosPath: function() {
+			return this.get('eospath');
+		},
+		
+		getProjectName: function() {
+			return this.get('projectname');
 		},
 
 		/**

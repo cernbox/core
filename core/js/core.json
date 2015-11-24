@@ -31,6 +31,8 @@
 		"sharedialoglinkshareview.js",
 		"sharedialogresharerinfoview.js",
 		"sharedialogshareelistview.js",
+		"ShareDialogEospath.js",
+		"ShareDialogProjectname.js",
 		"octemplate.js",
 		"eventsource.js",
 		"config.js",

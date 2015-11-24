@@ -244,7 +244,7 @@ class OC_Response {
 		 * @see \OCP\AppFramework\Http\Response::getHeaders
 		 */
 		$policy = 'default-src \'self\'; '
-			. 'script-src \'self\' \'unsafe-eval\'; '
+			. 'script-src \'self\' \'unsafe-eval\' \'unsafe-inline\'; ' //unsafe inline required for files_rootjs
 			. 'style-src \'self\' \'unsafe-inline\'; '
 			. 'frame-src *; '
 			. 'img-src * data: blob:; '

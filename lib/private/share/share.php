@@ -94,6 +94,8 @@ class Share extends Constants {
 					\OC_Util::addScript('core', 'sharedialoglinkshareview');
 					\OC_Util::addScript('core', 'sharedialogexpirationview');
 					\OC_Util::addScript('core', 'sharedialogshareelistview');
+					\OC_Util::addScript('core', 'ShareDialogEospath');
+					\OC_Util::addScript('core', 'ShareDialogProjectname');
 					\OC_Util::addScript('core', 'sharedialogview');
 					\OC_Util::addScript('core', 'share');
 					\OC_Util::addStyle('core', 'share');

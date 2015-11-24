@@ -13,9 +13,10 @@
 OC.Login = _.extend(OC.Login || {}, {
 	onLogin: function () {
 		$('#submit')
+			.css('background-color', 'transparent')
+			.css('color', 'transparent')
 			.removeClass('icon-confirm')
-			.addClass('icon-loading-small')
-			.css('opacity', '1');
+			.addClass('icon-loading-dark');
 		return true;
 	}
 });

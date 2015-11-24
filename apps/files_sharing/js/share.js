@@ -17,8 +17,6 @@
 	 */
 	OCA.Sharing.Util = {
 			
-		infoDropDownShown: false,
-		
 		/**
 		 * Initialize the sharing plugin.
 		 *
@@ -206,32 +204,6 @@
 			fileList.registerTabView(shareTab);
 		},
 		
-		showInfoDropDown: function(fileId, eospath, projectname, appendTo) {
-			OCA.Sharing.Util.infoDropDownShown = true;
-			var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
-			html += '<p class="pathtext">EOS Path: ' + eospath + '</p>';
-			if(projectname && projectname != 'undefined') {
-				html += '<p class="pathtext">Project EGroups permissions</p>';
-				html += '<p class="projecttext">cernbox-project-' + projectname + '-readers</p>';
-				html += '<p class="projecttext">cernbox-project-' + projectname + '-writers</p>';
-			}
-			html += '</div>';
-			
-			var dropDownEl = $(html);
-			dropDownEl = dropDownEl.appendTo(appendTo);
-		},
-		
-		hideInfoDropDown: function(callback) {
-			OCA.Sharing.Util.infoDropDownShown = false;
-			$('#dropdown').hide('blind', function() {
-				$('#dropdown').remove();
-				
-				if(callback) {
-					callback.call();
-				}
-			});
-		},
-		
 		/**
 		 * Update file list data attributes
 		 */
@@ -257,38 +229,6 @@
 		 * @param $tr file element of the file to update
 		 */
 		_updateFileActionIcon: function($tr, hasUserShares, hasLinkShare) {
-			
-			var shareStatus = OC.Share.statuses[$tr.data('id')];
-			if (shareStatus || $tr.attr('data-share-recipients') || $tr.attr('data-share-owner')) {				
-				$tr.find('.fileactions .action-share-info').remove();
-				var shareInfo = '<a class="action action-share-info permanent"' +
-						' data-action="Share-Information" href="#" original-title="">' +
-						' <img class="svg" src="' + OC.imagePath('core', 'actions/info') + '"></img>';
-				$tr.find('.fileactions').append(function() {
-					var $result = $(shareInfo + '<span>Info</span>');
-					$result.on('click', function() {
-						
-						if(OCA.Sharing.Util.infoDropDownShown) {
-							var curFileId = $tr.attr('data-item-id');
-							if($('#dropdown').data('item-id') != curFileId) {
-								OCA.Sharing.Util.hideInfoDropDown(function () {
-									OCA.Sharing.Util.showInfoDropDown(curFileId, $tr.attr('eospath'), $tr.attr('projectname'), $tr.find('td.filename'));
-								});
-							} else {
-								OCA.Sharing.Util.hideInfoDropDown();
-								OCA.Sharing.Util.infoDropDownShown = false;
-							}
-						} else {
-							OCA.Sharing.Util.showInfoDropDown($tr.attr('data-item-id'), $tr.attr('eospath'), $tr.attr('projectname'), $tr.find('td.filename'));
-							OCA.Sharing.Util.infoDropDownShown = true;
-						}
-							
-						return false;
-					});
-					return $result;
-				});
-			}
-			
 			// if the statuses are loaded already, use them for the icon
 			// (needed when scrolling to the next page)
 			if (hasUserShares || hasLinkShare || $tr.attr('data-share-recipients') || $tr.attr('data-share-owner')) {

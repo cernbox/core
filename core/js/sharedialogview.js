@@ -26,6 +26,8 @@
 		'<div class="shareeListView subView"></div>' +
 		'<div class="linkShareView subView"></div>' +
 		'<div class="expirationView subView"></div>' +
+		'<div class="eospathView subView hidden"></div>' +
+		'<div class="projectnameView subView hidden"></div>' +
 		'<div class="loading hidden" style="height: 50px"></div>';
 
 	var TEMPLATE_REMOTE_SHARE_INFO =
@@ -63,6 +65,12 @@
 
 		/** @type {object} **/
 		expirationView: undefined,
+		
+		/** @type {object} **/
+		eospathView: undefined,
+		
+		/** @type {object} **/
+		projectnameView: undefined,
 
 		/** @type {object} **/
 		shareeListView: undefined,
@@ -99,7 +107,9 @@
 				resharerInfoView: 'ShareDialogResharerInfoView',
 				linkShareView: 'ShareDialogLinkShareView',
 				expirationView: 'ShareDialogExpirationView',
-				shareeListView: 'ShareDialogShareeListView'
+				shareeListView: 'ShareDialogShareeListView',
+				eospathView: 'ShareDialogEospath',
+				projectnameView: 'ShareDialogProjectname'
 			};
 
 			for(var name in subViews) {
@@ -224,6 +234,12 @@
 
 			this.shareeListView.$el = this.$el.find('.shareeListView');
 			this.shareeListView.render();
+			
+			this.eospathView.$el = this.$el.find('.eospathView');
+			this.eospathView.render();
+			
+			this.projectnameView.$el = this.$el.find('.projectnameView');
+			this.projectnameView.render();
 
 			this.$el.find('.hasTooltip').tooltip();
 
