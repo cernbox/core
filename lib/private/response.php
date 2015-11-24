@@ -210,7 +210,7 @@ class OC_Response {
 			. 'script-src \'self\' \'unsafe-eval\'; '
 			. 'style-src \'self\' \'unsafe-inline\'; '
 			. 'frame-src *; '
-			. 'img-src *; '
+			. 'img-src \'self\' data: blob:; '
 			. 'font-src \'self\' data:; '
 			. 'media-src *; ' 
 			. 'connect-src *');
