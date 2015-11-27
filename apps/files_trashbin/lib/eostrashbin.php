@@ -267,7 +267,7 @@ class EosTrashbin {
 		} else if ($sortAttribute === 'size') {
 			$sortFunc = 'compareSize';
 		}
-		usort($files, array('\OCA\Files_Trashbin\EosTrashbinr', $sortFunc));
+		usort($files, array('\OCA\Files_Trashbin\EosTrashbin', $sortFunc));
 		if ($sortDescending) {
 			$files = array_reverse($files);
 		}

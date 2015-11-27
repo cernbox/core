@@ -33,6 +33,8 @@
 
 class OC_Log_Owncloud {
 	static protected $logFile;
+	
+	static private $logFileHandle;
 
 	/**
 	 * Init class data
@@ -53,6 +55,10 @@ class OC_Log_Owncloud {
 		if (!file_exists(self::$logFile) && !@touch(self::$logFile)) {
 			self::$logFile = $defaultLogFile;
 		}
+		
+		self::$logFileHandle = @fopen(self::$logFile, "a");
+		@stream_set_blocking(self::$logFileHandle, 0);
+		@chmod(self::$logFile, 0640);
 	}
 
 	/**
@@ -88,14 +94,28 @@ class OC_Log_Owncloud {
 			$entry = compact('reqId', 'remoteAddr', 'app', 'message', 'level', 'time');
 		}
 		$entry = json_encode($entry);
-		$handle = @fopen(self::$logFile, 'a');
-		@chmod(self::$logFile, 0640);
-		if ($handle) {
-			fwrite($handle, $entry."\n");
-			fclose($handle);
+		//$handle = @fopen(self::$logFile, 'a');
+		//@stream_set_blocking(self::$logFile, 0);
+		//@chmod(self::$logFile, 0640);
+		if (self::$logFileHandle) {
+			flock(self::$logFileHandle, LOCK_EX);
+			fwrite(self::$logFileHandle, $entry."\n");
+			flock(self::$logFileHandle, LOCK_UN);
+			//fclose($handle);
 		} else {
 			// Fall back to error_log
 			error_log($entry);
+		}
+	}
+	
+	public static function close()
+	{
+		if(self::$logFileHandle)
+		{
+			flock(self::$logFileHandle, LOCK_EX);
+			fflush(self::$logFileHandle);
+			flock(self::$logFileHandle, LOCK_UN);
+			fclose(self::$logFileHandle);
 		}
 	}
 

@@ -45,7 +45,6 @@ class EosReqCache {
 	public static function setFileById($id, $data) {
 		 self::init();
          $GLOBALS['cernbox']['getfilebyid'][$id] = $data;
-
 	}
 	
 	private static function dontUseCache() {

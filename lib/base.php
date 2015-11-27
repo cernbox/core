@@ -905,6 +905,8 @@ class OC {
 			// Not handled and not logged in
 			self::handleLogin();
 		}
+		
+		OCP\Util::closeLogger();
 	}
 
 	protected static function handleAuthHeaders() {

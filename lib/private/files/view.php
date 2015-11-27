@@ -41,8 +41,6 @@
 
 namespace OC\Files;
 
-namespace OC\Files;
-
 use Icewind\Streams\CallbackWrapper;
 use OC\Files\Cache\Updater;
 use OC\Files\Mount\MoveableMount;

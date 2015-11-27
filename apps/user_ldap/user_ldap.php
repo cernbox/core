@@ -97,11 +97,17 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function getLDAPUserByLoginName($loginName) {
 		//find out dn of the user name
+		$cached = \OCA\user_ldap\LDapCache::getCacheData('getLDAPUserByLoginName '.$loginName);
+		if($cached)
+			return $cached;
+		
 		$attrs = $this->access->userManager->getAttributes();
 		$users = $this->access->fetchUsersByLoginName($loginName, $attrs, 1);
 		if(count($users) < 1) {
 			throw new \Exception('No user available for the given login name.');
 		}
+		
+		\OCA\user_ldap\LDapCache::setCacheData('getLDAPUserByLoginName '.$loginName, $users[0]);
 		return $users[0];
 	}
 
@@ -154,6 +160,10 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function getUsers($search = '', $limit = 10, $offset = 0, $searchParams = null) {
 		$search = $this->access->escapeFilterPart($search, true);
+		
+		$cached = \OCA\user_ldap\LDapCache::findRecursivelyData($search, 'getUsers %key%');
+		if($cached)
+			return $cached;
 		
 		$cachekey = '';
 		if($searchParams) {
@@ -208,6 +218,9 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		\OCP\Util::writeLog('user_ldap', 'getUsers: '.count($ldap_users). ' Users found', \OCP\Util::DEBUG);
 
 		$this->access->connection->writeToCache($cachekey, $ldap_users);
+		
+		\OCA\user_ldap\LDapCache::setCacheData('getUsers '.$search, $ldap_users);
+		
 		return $ldap_users;
 	}
 
@@ -218,6 +231,11 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * @return bool
 	 */
 	public function userExistsOnLDAP($user) {
+		
+		$cached = \OCA\user_ldap\LDapCache::getCacheData('userExistsOnLDAP '.$user);
+		if($cached)
+			return true;
+		
 		if(is_string($user)) {
 			$user = $this->access->userManager->get($user);
 		}
@@ -234,6 +252,8 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			}
 			return false;
 		}
+		
+		\OCA\user_ldap\LDapCache::setCacheData('userExistsOnLDAP '.$user, true);
 
 		return true;
 	}
@@ -245,6 +265,11 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * @throws \Exception when connection could not be established
 	 */
 	public function userExists($uid) {
+		
+		$cached = \OCA\user_ldap\LDapCache::getCacheData('userExists '.$uid);
+		if($cached)
+			return true;
+		
 		if($this->access->connection->isCached('userExists'.$uid)) {
 			return $this->access->connection->getFromCache('userExists'.$uid);
 		}
@@ -266,6 +291,8 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$this->access->connection->writeToCache('userExists'.$uid, $result);
 		if($result === true) {
 			$user->update();
+			
+			\OCA\user_ldap\LDapCache::setCacheData('userExists '.$uid, true);
 		}
 		return $result;
 	}
@@ -307,6 +334,10 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			return $this->homesToKill[$uid];
 		}
 		
+		$cached = \OCA\user_ldap\LDapCache::getCacheData('getHome '.$uid);
+		if($cached)
+			return $cached;
+		
 		// user Exists check required as it is not done in user proxy!
 		if(!$this->userExists($uid)) {
 			return false;
@@ -319,6 +350,8 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$user = $this->access->userManager->get($uid);
 		$path = $user->getHomePath();
 		$this->access->cacheUserHome($uid, $path);
+		
+		\OCA\user_ldap\LDapCache::setCacheData('getHome '.$uid, $path);
 
 		return $path;
 	}
@@ -332,6 +365,10 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		if(!$this->userExists($uid)) {
 			return false;
 		}
+		
+		$cached = \OCA\user_ldap\LDapCache::getCacheData('getDisplayName '.$uid);
+		if($cached)
+			return $cached;
 
 		$cacheKey = 'getDisplayName'.$uid;
 		if(!is_null($displayName = $this->access->connection->getFromCache($cacheKey))) {
@@ -345,6 +382,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 
 		if($displayName && (count($displayName) > 0)) {
 			$this->access->connection->writeToCache($cacheKey, $displayName[0]);
+			\OCA\user_ldap\LDapCache::setCacheData('getDisplayName '.$uid, $displayName[0]);
 			return $displayName[0];
 		}
 
@@ -366,12 +404,19 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			$cacheKey = 'getDisplayNames-'.$search.'-'.$limit.'-'.$offset;
 		}
 		
+		$cached = \OCA\user_ldap\LDapCache::findRecursivelyData($search, 'getDisplayNames %key%');
+		if($cached)
+			return $cached;
+		
 		if(!is_null($displayNames = $this->access->connection->getFromCache($cacheKey))) {
 			return $displayNames;
 		}
 
 		$users = $this->getUsers($search, $limit, $offset, $searchParams);
 		$this->access->connection->writeToCache($cacheKey, $users);
+		
+		\OCA\user_ldap\LDapCache::setCacheData('getDisplayNames '.$search, $users);
+		
 		return $users;
 	}
 

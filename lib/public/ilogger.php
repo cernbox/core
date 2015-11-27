@@ -132,4 +132,6 @@ interface ILogger {
 	 * @since 8.2.0
 	 */
 	public function logException(\Exception $exception, array $context = array());
+	
+	public function close();
 }

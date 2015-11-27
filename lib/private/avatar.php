@@ -58,7 +58,8 @@ class Avatar implements \OCP\IAvatar {
 	 * @return boolean|\OCP\IImage containing the avatar or false if there's no image
 	*/
 	public function get ($size = 64) {
-		if ($this->view->file_exists('avatar.jpg')) {
+		return false;
+		/*if ($this->view->file_exists('avatar.jpg')) {
 			$ext = 'jpg';
 		} elseif ($this->view->file_exists('avatar.png')) {
 			$ext = 'png';
@@ -69,7 +70,7 @@ class Avatar implements \OCP\IAvatar {
 		$avatar = new OC_Image();
 		$avatar->loadFromData($this->view->file_get_contents('avatar.'.$ext));
 		$avatar->resize($size);
-		return $avatar;
+		return $avatar;*/
 	}
 
 	/**
@@ -78,7 +79,7 @@ class Avatar implements \OCP\IAvatar {
 	 * @return bool
 	 */
 	public function exists() {
-		return $this->view->file_exists('avatar.jpg') || $this->view->file_exists('avatar.png');
+		return false;//return $this->view->file_exists('avatar.jpg') || $this->view->file_exists('avatar.png');
 	}
 
 	/**

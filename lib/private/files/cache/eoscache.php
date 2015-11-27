@@ -217,11 +217,14 @@ class EosCache {
 
 		/* Add extra attributes */
 		foreach($extraAttrs as $eospath => $attrs) {
-			$file = $files[$eospath];
-			foreach($attrs as $attr => $value) {
-				$file[$attr] = $value;
+			if(isset($files[$eospath]))
+			{
+				$file = $files[$eospath];
+				foreach($attrs as $attr => $value) {
+					$file[$attr] = $value;
+				}
+				$files[$eospath] = $file;
 			}
-			$files[$eospath] = $file;
 		}		
 
 		return array_values($files);
@@ -488,6 +491,13 @@ class EosCache {
 	 * @return array, first element holding the storage id, second the path
 	 */
 	static public function getById($id) {
+		$cached = EosReqCache::getFileById($id);
+		if($cached){
+			if($cached['path']) {
+				$storage_id = EosUtil::getStorageId($cached['eospath']);
+				return array($storage_id, $cached['path']);
+			}
+		}
 		$uid = 0; $gid = 0;
 		EosUtil::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info inode:" . $id . " -m";
@@ -496,6 +506,7 @@ class EosCache {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
+			EosReqCache::setFileById($id, $data);
 			if($data["path"] === false){
 				return null;
 			}

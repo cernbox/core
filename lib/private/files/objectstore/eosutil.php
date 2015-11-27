@@ -592,7 +592,7 @@ class EosUtil {
                         $data = EosParser::parseMember($line_to_parse);
                         return $data;
                 }
-                return false;;
+                return false;
 	}
 
 	public static function getMimeType($path, $type){

@@ -165,6 +165,11 @@ class Util {
 	public static function logException( $app, \Exception $ex, $level = \OCP\Util::FATAL ) {
 		\OC::$server->getLogger()->logException($ex, ['app' => $app]);
 	}
+	
+	public static function closeLogger()
+	{
+		\OC::$server->getLogger()->close();
+	}
 
 	/**
 	 * check if sharing is disabled for the current user

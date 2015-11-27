@@ -275,4 +275,12 @@ class Log implements ILogger {
 		$exception['Trace'] = preg_replace('!(login|checkPassword)\(.*\)!', '$1(*** username and password replaced ***)', $exception['Trace']);
 		$this->error('Exception: ' . json_encode($exception), $context);
 	}
+	
+	public function close()
+	{
+		if(function_exists(array($logger, 'close')))
+		{
+			call_user_func(array($logger, 'close'));
+		}
+	}
 }
