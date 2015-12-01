@@ -232,7 +232,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 */
 	public function userExistsOnLDAP($user) {
 		
-		$cached = \OCA\user_ldap\LDapCache::getCacheData('userExistsOnLDAP '.$user);
+		$cached = \OCA\user_ldap\LDapCache::getCacheData('userExistsOnLDAP '. (is_string($user)? $user : $user->getUsername()));
 		if($cached)
 			return true;
 		
@@ -253,7 +253,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			return false;
 		}
 		
-		\OCA\user_ldap\LDapCache::setCacheData('userExistsOnLDAP '.$user, true);
+		\OCA\user_ldap\LDapCache::setCacheData('userExistsOnLDAP '.$user->getUsername(), true);
 
 		return true;
 	}

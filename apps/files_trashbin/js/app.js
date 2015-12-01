@@ -29,29 +29,9 @@ OCA.Trashbin.App = {
 			$('#app-content-trashbin'), {
 				scrollContainer: $('#app-content'),
 				fileActions: this._createFileActions(),
-				detailsViewEnabled: false
+				detailsViewEnabled: true
 			}
 		);
-	},
-	
-	showInfoDropDown: function(fileId, eospath, appendTo) {
-		OCA.Trashbin.App.dropDownShown = true;
-		var html = '<div id="dropdown" class="drop shareDropDown" data-item-id="'+fileId+'">';
-		html += '<p class="pathtext"><u>EOS Restore Path</u>: ' + eospath + '</p></div>';
-		
-		var dropDownEl = $(html);
-		dropDownEl = dropDownEl.appendTo(appendTo);
-	},
-	
-	hideInfoDropDown: function(callback) {
-		OCA.Trashbin.App.dropDownShown = false;
-		$('#dropdown').hide('blind', function() {
-			$('#dropdown').remove();
-			
-			if(callback) {
-				callback.call();
-			}
-		});
 	},
 
 	_createFileActions: function() {
@@ -81,7 +61,7 @@ OCA.Trashbin.App = {
 		}, t('files_trashbin', 'Restore'));
 		
 		
-		fileActions.register('all', 'Info', OC.PERMISSION_READ, OC.imagePath('core', 'actions/info'), function(filename, context) {
+		/*fileActions.register('all', 'Info', OC.PERMISSION_READ, OC.imagePath('core', 'actions/info'), function(filename, context) {
 			var fileList = context.fileList;
 			var tr = fileList.findFileEl(filename);
 			
@@ -100,7 +80,7 @@ OCA.Trashbin.App = {
 				OCA.Trashbin.App.dropDownShown = true;
 			}
 		
-		}, t('files_trashbin', 'Info'));
+		}, t('files_trashbin', 'Info'));*/
 
 		/* HUGO hide delete button per file. EOS does not support per file purge
 		fileActions.registerAction({

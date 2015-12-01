@@ -52,6 +52,10 @@
 			var result = OCA.Files.FileList.prototype.initialize.apply(this, arguments);
 			this.$el.find('.undelete').click('click', _.bind(this._onClickRestoreSelected, this));
 			
+			if (this._detailsView) {
+				this._detailsView.addDetailView(new OC.Share.RestorePathView());
+			}
+			
 			/**
 			 * Override crumb making to add "Deleted Files" entry
 			 * and convert files with ".d" extensions to a more
@@ -109,7 +113,7 @@
 			tr.find('td.filesize').remove();
 			
 			tr.attr('data-item-id', fileData.id);
-			tr.attr('eospath', fileData.eosrestorepath);
+			tr.attr('eospath', fileData['restore-path']);
 		
 			return tr;
 		},
@@ -124,7 +128,7 @@
 			}
 			if (!dirListing) {
 				fileData.displayName = fileData.displayName || fileData.name;
-		        fileData.name = fileData.id;
+		        //fileData.name = fileData.id;
 			}
 			return OCA.Files.FileList.prototype._renderRow.call(this, fileData, options);
 		},
@@ -150,21 +154,14 @@
 			if (this.getCurrentDirectory() === '/') {
 				fileInfo.displayName = getDeletedFileName(fileInfo.name);
 			}
+			
+			fileInfo['restore-path'] = $el.attr('eospath');
+			
 			// no size available
 			delete fileInfo.size;
 			return fileInfo;
 		},
 		
-		elementToFile: function($el) {
-			var fileInfo = OCA.Files.FileList.prototype.elementToFile($el);
-			if (this.getCurrentDirectory() === '/') {
-				fileInfo.displayName = getDeletedFileName(fileInfo.name);
-			}
-			// no size available
-			delete fileInfo.size;
-			return fileInfo;
-		},
-
 		updateEmptyContent: function(){
 			var exists = this.$fileList.find('tr:first').exists();
 			this.$el.find('#emptycontent').toggleClass('hidden', exists);
