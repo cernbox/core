@@ -278,9 +278,9 @@ class Log implements ILogger {
 	
 	public function close()
 	{
-		if(function_exists(array($logger, 'close')))
+		if(method_exists($this->logger, 'close'))
 		{
-			call_user_func(array($logger, 'close'));
+			call_user_func_array(array($this->logger, 'close'));
 		}
 	}
 }
