@@ -1,6 +1,6 @@
 <?php
 
-namespace OCA\user_ldap;
+namespace OCA\user_ldap\lib;
 
 class LDapCache
 {
@@ -8,16 +8,16 @@ class LDapCache
 	
 	private static function init()
 	{
-		if(!isset($GLOBALS[LDAPKEY]))
+		if(!isset($GLOBALS[self::LDAPKEY]))
 		{
-				$GLOBALS[LDAPKEY] = [];			
+				$GLOBALS[self::LDAPKEY] = [];			
 		}
 	}
 	
 	public static function getCacheData($key)
 	{
-		if(isset($GLOBALS[LDAPKEY][$key]))
-			return $GLOBALS[LDAPKEY][$key];
+		if(isset($GLOBALS[self::LDAPKEY][$key]))
+			return $GLOBALS[self::LDAPKEY][$key];
 		
 		return false;
 	}
@@ -41,6 +41,6 @@ class LDapCache
 	public static function setCacheData($key, $value)
 	{
 		self::init();
-		$GLOBALS[LDAPKEY][$key] = $value;
+		$GLOBALS[self::LDAPKEY][$key] = $value;
 	}
 }

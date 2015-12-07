@@ -33,6 +33,8 @@ namespace OCA\user_ldap;
 
 use OCA\user_ldap\lib\Access;
 use OCA\user_ldap\lib\BackendUtility;
+use OCA\user_ldap\lib\LDapCache;
+use OCA\user_ldap\lib\LDAPDatabase;
 
 class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	protected $enabled = false;
@@ -69,8 +71,8 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			return false;
 		}
 		
-		$ldapcachekey = 'inGroup '.$gid.' '.$uid;
-		$cached = \OCA\user_ldap\LDapCache::getCacheData($ldapcachekey);
+		/*$ldapcachekey = 'inGroup '.$gid.' '.$uid;
+		$cached = \OCA\user_ldap\lib\LDapCache::getCacheData($ldapcachekey);
 		if($cached)
 			return $cached;
 		
@@ -92,7 +94,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			$this->cachedGroupMembers[$gid] = $members;
 			$isInGroup = in_array($userDN, $members);
 			$this->access->connection->writeToCache($cacheKey, $isInGroup);
-			\OCA\user_ldap\LDapCache::setCacheData($ldapcachekey, $isInGroup? 'true':'false');
+			\OCA\user_ldap\lib\LDapCache::setCacheData($ldapcachekey, $isInGroup? 'true':'false');
 			return $isInGroup;
 		}
 
@@ -100,14 +102,14 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		// just in case
 		if(!$groupDN || !$userDN) {
 			$this->access->connection->writeToCache($cacheKey, false);
-			\OCA\user_ldap\LDapCache::setCacheData($ldapcachekey, 'false');
+			\OCA\user_ldap\lib\LDapCache::setCacheData($ldapcachekey, 'false');
 			return false;
 		}
 
 		//check primary group first
 		if($gid === $this->getUserPrimaryGroup($userDN)) {
 			$this->access->connection->writeToCache($cacheKey, true);
-			\OCA\user_ldap\LDapCache::setCacheData($ldapcachekey, 'true');
+			\OCA\user_ldap\lib\LDapCache::setCacheData($ldapcachekey, 'true');
 			return true;
 		}
 
@@ -116,7 +118,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		$members = array_keys($members); // uids are returned as keys
 		if(!is_array($members) || count($members) === 0) {
 			$this->access->connection->writeToCache($cacheKey, false);
-			\OCA\user_ldap\LDapCache::setCacheData($ldapcachekey, 'false');
+			\OCA\user_ldap\lib\LDapCache::setCacheData($ldapcachekey, 'false');
 			return false;
 		}
 
@@ -151,8 +153,10 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		$this->access->connection->writeToCache($cacheKey, $isInGroup);
 		$this->access->connection->writeToCache($cacheKeyMembers, $members);
 		$this->cachedGroupMembers[$gid] = $members;
-		\OCA\user_ldap\LDapCache::setCacheData($ldapcachekey, $isInGroup? 'true':'false');
-		return $isInGroup;
+		\OCA\user_ldap\lib\LDapCache::setCacheData($ldapcachekey, $isInGroup? 'true':'false');
+		return $isInGroup;*/
+		
+		return \OCA\user_ldap\lib\LDAPDatabase::isInGroup($uid, $gid);
 	}
 
 	/**
@@ -164,21 +168,23 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if ($seen === null) {
 			$seen = array();
 		}
-		$allMembers = array();
+		
 		if (array_key_exists($dnGroup, $seen)) {
 			// avoid loops
 			return array();
 		}
 		
-		$cached = \OCA\user_ldap\LDapCache::getCacheData('_groupMembers '.$dnGroup);
+		$cached = \OCA\user_ldap\lib\LDapCache::getCacheData('_groupMembers '.$dnGroup);
 		if($cached)
 			return $cached;
-		
+
 		// used extensively in cron job, caching makes sense for nested groups
 		$cacheKey = '_groupMembers'.$dnGroup;
 		if($this->access->connection->isCached($cacheKey)) {
 			return $this->access->connection->getFromCache($cacheKey);
 		}
+		
+		$allMembers = array();
 		$seen[$dnGroup] = 1;
 		$members = $this->access->readAttribute($dnGroup, $this->access->connection->ldapGroupMemberAssocAttr,
 												$this->access->connection->ldapGroupFilter);
@@ -196,9 +202,17 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		}
 		$this->access->connection->writeToCache($cacheKey, $allMembers);
 		
-		\OCA\user_ldap\LDapCache::setCacheData('_groupMembers '.$dnGroup, $allMembers);
+		\OCA\user_ldap\lib\LDapCache::setCacheData('_groupMembers '.$dnGroup, $allMembers);
 		
 		return $allMembers;
+		
+		/*$allMembers = \OCA\user_ldap\lib\LDAPDatabase::fetchGroupMembers($dnGroup);
+		$result = [];
+		foreach($allMembers as $member)
+			$result[$member] = 1;
+		
+		$seen[$dnGroup] = 1;
+		return $result;*/
 	}
 
 	/**
@@ -215,7 +229,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			return array();
 		}
 		
-		$cached = \OCA\user_ldap\LDapCache::getCacheData('_getGroupDNsFromMemberOf '.$DN);
+		$cached = \OCA\user_ldap\lib\LDapCache::getCacheData('_getGroupDNsFromMemberOf '.$DN);
 		if($cached)
 			return $cached;
 		
@@ -234,7 +248,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			}
 		}
 		
-		\OCA\user_ldap\LDapCache::setCacheData('_getGroupDNsFromMemberOf '.$DN, $allGroups);
+		\OCA\user_ldap\lib\LDapCache::setCacheData('_getGroupDNsFromMemberOf '.$DN, $allGroups);
 		
 		return $allGroups;	
 	}
@@ -246,10 +260,6 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return string|bool
 	 */
 	public function primaryGroupID2Name($gid, $dn) {
-		$cached = \OCA\user_ldap\LDapCache::getCacheData('primaryGroupID2Name '.$gid.' '.$dn);
-		if($cached)
-			return $cached;
-		
 		$cacheKey = 'primaryGroupIDtoName';
 		if($this->access->connection->isCached($cacheKey)) {
 			$groupNames = $this->access->connection->getFromCache($cacheKey);
@@ -281,7 +291,9 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 
 		$this->access->connection->writeToCache($cacheKey, $name);
 		
-		\OCA\user_ldap\LDapCache::setCacheData('primaryGroupID2Name '.$gid.' '.$dn, $name);
+		\OCA\user_ldap\lib\LDapCache::setCacheData('primaryGroupID2Name '.$gid.' '.$dn, $name);
+		
+		\OCA\user_ldap\lib\LDAPUtil::log('groups_ldap.log', [__METHOD__, $name]);
 
 		return $name;
 	}
@@ -315,15 +327,15 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return string|bool
 	 */
 	public function getUserPrimaryGroupIDs($dn) {
-		$primaryGroupID = false;
+		/*$primaryGroupID = false;
 		if($this->access->connection->hasPrimaryGroups) {
 			$primaryGroupID = $this->getEntryGroupID($dn, 'primaryGroupID');
 			if($primaryGroupID === false) {
 				$this->access->connection->hasPrimaryGroups = false;
 			}
 		}
-		return $primaryGroupID;
-		
+		return $primaryGroupID;*/
+		return false;
 	}
 
 	/**
@@ -362,7 +374,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return string[]
 	 */
 	public function getUsersInPrimaryGroup($groupDN, $search = '', $limit = -1, $offset = 0) {
-		$cached = \OCA\user_ldap\LDapCache::findRecursivelyData($search, 'getUsersInPrimaryGroup '.$groupDN.' %key%');
+		/*$cached = \OCA\user_ldap\lib\LDapCache::findRecursivelyData($search, 'getUsersInPrimaryGroup '.$groupDN.' %key%');
 		if($cached)
 			return $cached;
 		try {
@@ -374,11 +386,12 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 					$offset
 					);
 			$ocNames = $this->access->ownCloudUserNames($users);
-			\OCA\user_ldap\LDapCache::setCacheData('getUsersInPrimaryGroup '.$groupDN.' '.$search, $ocNames);
+			\OCA\user_ldap\lib\LDapCache::setCacheData('getUsersInPrimaryGroup '.$groupDN.' '.$search, $ocNames);
 			return $this->access->ownCloudUserNames($users);
 		} catch (\Exception $e) {
 			return array();
-		}
+		}*/
+		return [];
 	}
 	/**
 	 * returns the number of users that have the given group as primary group
@@ -390,13 +403,14 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return int
 	 */
 	public function countUsersInPrimaryGroup($groupDN, $search = '', $limit = -1, $offset = 0) {
-		try {
+		/*try {
 			$filter = $this->prepareFilterForUsersInPrimaryGroup($groupDN, $search);
 			$users = $this->access->countUsers($filter, array('dn'), $limit, $offset);
 			return (int)$users;
 		} catch (\Exception $e) {
 			return 0;
-		}
+		}*/
+		return 0;
 	}
 
 	/**
@@ -405,13 +419,13 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return string
 	 */
 	public function getUserPrimaryGroup($dn) {
-		$groupID = $this->getUserPrimaryGroupIDs($dn);
+		/*$groupID = $this->getUserPrimaryGroupIDs($dn);
 		if($groupID !== false) {
 			$groupName = $this->primaryGroupID2Name($groupID, $dn);
 			if($groupName !== false) {
 				return $groupName;
 			}
-		}
+		}*/
 
 		return false;
 	}
@@ -521,10 +535,6 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			return array();
 		}
 		
-		$cached = \OCA\user_ldap\LDapCache::getCacheData('getGroupsByMember '.$dn);
-		if($cached)
-			return $cached;
-		
 		$seen[$dn] = true;
 		$filter = $this->access->combineFilterWithAnd(array(
 			$this->access->connection->ldapGroupFilter,
@@ -546,8 +556,6 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			}
 		}
 		
-		\OCA\user_ldap\LDapCache::setCacheData('getGroupsByMember '.$dn, $allGroups);
-		
 		return $allGroups;
 	}
 
@@ -567,13 +575,14 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if(!$this->groupExists($gid)) {
 			return array();
 		}
+		
 		$search = $this->access->escapeFilterPart($search, true);
 		
-		$cached = \OCA\user_ldap\LDapCache::findRecursivelyData($search, 'usersInGroup '.$gid.' %key%');
+		/*$cached = \OCA\user_ldap\lib\LDapCache::findRecursivelyData($search, 'usersInGroup '.$gid.' %key%');
 		if($cached)
-			return $cached;
+			return $cached;*/
 		
-		$cacheKey = 'usersInGroup-'.$gid.'-'.$search.'-'.$limit.'-'.$offset;
+		/*$cacheKey = 'usersInGroup-'.$gid.'-'.$search.'-'.$limit.'-'.$offset;
 		// check for cache of the exact query
 		$groupUsers = $this->access->connection->getFromCache($cacheKey);
 		if(!is_null($groupUsers)) {
@@ -585,7 +594,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if(!is_null($groupUsers)) {
 			$groupUsers = array_slice($groupUsers, $offset, $limit);
 			$this->access->connection->writeToCache($cacheKey, $groupUsers);
-			\OCA\user_ldap\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, $groupUsers);
+			\OCA\user_ldap\lib\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, $groupUsers);
 			return $groupUsers;
 		}
 
@@ -596,7 +605,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if(!$groupDN) {
 			// group couldn't be found, return empty resultset
 			$this->access->connection->writeToCache($cacheKey, array());
-			\OCA\user_ldap\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, array());
+			\OCA\user_ldap\lib\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, array());
 			return array();
 		}
 
@@ -605,7 +614,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if(!$members && empty($primaryUsers)) {
 			//in case users could not be retrieved, return empty result set
 			$this->access->connection->writeToCache($cacheKey, array());
-			\OCA\user_ldap\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, array());
+			\OCA\user_ldap\lib\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, array());
 			return array();
 		}
 
@@ -645,10 +654,15 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		$this->access->connection->writeToCache('usersInGroup-'.$gid.'-'.$search, $groupUsers);
 		$groupUsers = array_slice($groupUsers, $offset, $limit);
 
-		$this->access->connection->writeToCache($cacheKey, $groupUsers);
-		
-		\OCA\user_ldap\LDapCache::setCacheData('usersInGroup '.$gid.' '.$search, $groupUsers);
+		$this->access->connection->writeToCache($cacheKey, $groupUsers);*/
 
+		$raw = \OCA\user_ldap\lib\LDAPDatabase::fetchGroupMembers($gid);
+		$groupUsers = [];
+		foreach($raw as $token)
+		{
+			$groupUsers[] = $token['user_cn'];
+		}
+		
 		return $groupUsers;
 	}
 
@@ -659,7 +673,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return int|bool
 	 */
 	public function countUsersInGroup($gid, $search = '') {
-		$cached = \OCA\user_ldap\LDapCache::findRecursivelyData($search, 'countUsersInGroup '.$gid.' %key%');
+		/*$cached = \OCA\user_ldap\lib\LDapCache::findRecursivelyData($search, 'countUsersInGroup '.$gid.' %key%');
 		if($cached)
 			return $cached;
 		
@@ -690,7 +704,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		if(empty($search)) {
 			$groupUsers = count($members) + $primaryUserCount;
 			$this->access->connection->writeToCache($cacheKey, $groupUsers);
-			\OCA\user_ldap\LDapCache::setCacheData('countUsersInGroup '.$gid.' '.$search, $groupUsers);
+			\OCA\user_ldap\lib\LDapCache::setCacheData('countUsersInGroup '.$gid.' '.$search, $groupUsers);
 			return $groupUsers;
 		}
 		$search = $this->access->escapeFilterPart($search, true);
@@ -738,9 +752,11 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		
 		$total = count($groupUsers) + $primaryUsers;
 		
-		\OCA\user_ldap\LDapCache::setCacheData('countUsersInGroup '.$gid.' '.$search, $total);
+		\OCA\user_ldap\lib\LDapCache::setCacheData('countUsersInGroup '.$gid.' '.$search, $total);
 		
-		return $total;
+		//return count($this->usersInGroup($gid, $search));*/
+		
+		return count(\OCA\user_ldap\lib\LDAPDatabase::fetchGroupMembers($gid, '%'.$search.'%'));
 	}
 
 	/**
@@ -810,11 +826,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		
 		$search = $this->access->escapeFilterPart($search, true);
 		
-		$cached = \OCA\user_ldap\LDapCache::findRecursivelyData($serach, 'getGroups %key%');
-		if($cached)
-			return $cached;
-		
-		$pagingSize = $this->access->connection->ldapPagingSize;
+		/*$pagingSize = $this->access->connection->ldapPagingSize;
 		if ((! $this->access->connection->hasPagedResultSupport)
 		   	|| empty($pagingSize)) {
 			return $this->getGroupsChunk($search, $limit, $offset);
@@ -839,9 +851,15 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			if ($nread < $chunkLimit) {
 				break;
 			}
-		}
+		}*/
+
+		$groups = \OCA\user_ldap\lib\LDAPDatabase::fetchGroupsData('%'.$search.'%', ['cn'], ['cn'], $limit);
+		$allGroups = [];
 		
-		\OCA\user_ldap\LDapCache::setCacheData('getGroups '.$search, $allGroups);
+		foreach($groups as $group)
+		{
+			$allGroups[$group['cn']] = $group['cn'];
+		}
 		
 		return $allGroups;
 	}
@@ -860,7 +878,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	 * @return bool
 	 */
 	public function groupExists($gid) {
-		if($this->access->connection->isCached('groupExists'.$gid)) {
+		/*if($this->access->connection->isCached('groupExists'.$gid)) {
 			return $this->access->connection->getFromCache('groupExists'.$gid);
 		}
 
@@ -879,7 +897,10 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		}
 
 		$this->access->connection->writeToCache('groupExists'.$gid, true);
-		return true;
+		return true;*/
+		
+		$result = \OCA\user_ldap\lib\LDAPDatabase::getGroupData($gid);
+		return ($result && count($result) > 0);
 	}
 
 	/**

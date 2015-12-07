@@ -413,6 +413,7 @@ class Access extends LDAPUtility implements user\IUserTools {
 	 * @return string|false with with the name to use in ownCloud
 	 */
 	public function dn2ocname($fdn, $ldapName = null, $isUser = true) {
+		
 		if($isUser) {
 			$mapper = $this->getUserMapper();
 			$nameAttribute = $this->connection->ldapUserDisplayName;
@@ -843,10 +844,10 @@ class Access extends LDAPUtility implements user\IUserTools {
 		}
 
 		//check whether paged search should be attempted
-		$pagedSearchOK = false; //XXX $this->initPagedSearch($filter, $base, $attr, intval($limit), $offset);
+		$pagedSearchOK = $this->initPagedSearch($filter, $base, $attr, intval($limit), $offset);
 
 		$linkResources = array_pad(array(), count($base), $cr);
-		$sr = $this->ldap->search($linkResources, $base, $filter, $attr);
+		$sr = $this->ldap->search($linkResources, $base, $filter, $attr, 0, $limit);
 		$error = $this->ldap->errno($cr);
 		if(!is_array($sr) || $error !== 0) {
 			\OCP\Util::writeLog('user_ldap',
@@ -994,9 +995,9 @@ class Access extends LDAPUtility implements user\IUserTools {
 			//thus pass 1 or any other value as $iFoundItems because it is not
 			//used
 			
-			/* XXX $this->processPagedSearchStatus($sr, $filter, $base, 1, $limit,
+			$this->processPagedSearchStatus($sr, $filter, $base, 1, $limit,
 											$offset, $pagedSearchOK,
-											$skipHandling);*/
+											$skipHandling);
 			return array();
 		}
 
@@ -1012,9 +1013,9 @@ class Access extends LDAPUtility implements user\IUserTools {
 			$findings = array_merge($findings, $this->ldap->getEntries($cr	, $res ));
 		}
 
-		/* XXX $this->processPagedSearchStatus($sr, $filter, $base, $findings['count'],
+		$this->processPagedSearchStatus($sr, $filter, $base, $findings['count'],
 										$limit, $offset, $pagedSearchOK,
-										$skipHandling);*/
+										$skipHandling);
 
 		// if we're here, probably no connection resource is returned.
 		// to make ownCloud behave nicely, we simply give back an empty array.

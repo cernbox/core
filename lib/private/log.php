@@ -280,7 +280,7 @@ class Log implements ILogger {
 	{
 		if(method_exists($this->logger, 'close'))
 		{
-			call_user_func_array(array($this->logger, 'close'));
+			call_user_func_array(array($this->logger, 'close'), []);
 		}
 	}
 }

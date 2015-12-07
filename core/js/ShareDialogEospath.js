@@ -44,6 +44,9 @@
 		},
 
 		render: function() {
+			if(!this.model.getEosPath() || this.model.getEosPath() == 'undefined')
+				return;
+			
 			var eospathT = this.model.getEosPath().trim();
 			
 			if (!eospathT || eospathT == 'undefined')
