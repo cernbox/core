@@ -7,6 +7,16 @@ class LDAPUtil
 	const LDAP_USERS_BASE_DN = 'ou=users,ou=organic units,dc=cern,dc=ch';
 	const LDAP_GROUPS_BASE_DN = 'ou=e-groups,ou=Workgroups,ou=cern,ou=ch';
 	
+	public static function getEGroupBaseDN()
+	{
+		return self::LDAP_GROUPS_BASE_DN;
+	}
+	
+	public static function getUserBaseDN()
+	{
+		return self::LDAP_USERS_BASE_DN;
+	}
+	
 	public static function getUserDN($userCN)
 	{
 		return ('cn=' . $userCN . ',' . self::LDAP_USERS_BASE_DN);

@@ -176,24 +176,28 @@ class LDAPDatabase
 	 */
 	public static function fetchGroupMembers($group, $search = '', $limit = null)
 	{
+		$tempGroupCN = str_replace('%', '', $group);
+		if(empty($tempGroupCN))
+			$searchOp = 'LIKE';
+		else
+			$searchOp = '=';
+		
 		try 
 		{
 			if(!$search || empty($search))
 			{
-				$queryStr = 'SELECT user_cn FROM ' . self::GROUP_MAPPINGS . ' WHERE group_cn = ?';
+				$queryStr = 'SELECT user_cn FROM ' . self::GROUP_MAPPINGS . ' WHERE group_cn ' .$searchOp. ' ?';
 				$query = \OC_DB::prepare($queryStr, $limit);
 				$result = $query->execute([$group]);
 			}
 			else
 			{
-				$queryStr = 'SELECT user_cn FROM ' . self::GROUP_MAPPINGS . ' WHERE group_cn = ? AND user_cn LIKE ?';
+				$queryStr = 'SELECT user_cn FROM ' . self::GROUP_MAPPINGS . ' WHERE group_cn ' .$searchOp. ' ? AND user_cn LIKE ?';
 				$query = \OC_DB::prepare($queryStr, $limit);
 				$result = $query->execute([$group, $search]);
 			}
 			
 			$data = $result->fetchAll();
-			
-			\OCA\user_ldap\lib\LDAPUtil::log('ldapdatabase.log', [__METHOD__, $queryStr, $group, $search, $data]);
 			
 			return $data;
 		}
