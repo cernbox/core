@@ -87,7 +87,7 @@ function arrangeDatabaseArray(array $array)
  * @param string $dn The source DN string
  * @return string The cn from the given $dn
  */
-function getCNFromDN(string $dn)
+function getCNFromDN($dn)
 {
 	$tokenized = explode(',', $dn);
 	return explode('=', $tokenized[0])[1];
@@ -177,7 +177,8 @@ try
 			{
 				foreach($memberOfArray as $memberof)
 				{
-					$userGroups[] = ['user_cn' => $key, 'group_cn' => $memberof];
+					if(strpos($memberof, 'e-groups') != FALSE)
+						$userGroups[] = ['user_cn' => $key, 'group_cn' => getCNFromDN($memberof)];
 				}
 			}
 				
@@ -192,8 +193,8 @@ try
 		unset($userGroups);
 		
 		// Clear non e-groups
-		$clearSt = \OC_DB::prepare('DELETE FROM ldap_group_members WHERE group_cn NOT IN (SELECT cn FROM ldap_groups)');
-		$clearSt->execute();
+		//$clearSt = \OC_DB::prepare('DELETE FROM ldap_group_members WHERE group_cn NOT IN (SELECT cn FROM ldap_groups)');
+		//$clearSt->execute();
 		
 		cronlog('Done');
 	}

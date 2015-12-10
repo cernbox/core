@@ -936,6 +936,10 @@ class OC {
 		$messages = [];
 
 		try {
+			if(self::trySSOLogin())
+			{
+				$error[] = 'ssoauthfailed';
+			}
 			// auth possible via apache module?
 			if (OC::tryApacheAuth()) {
 				$error[] = 'apacheauthfailed';
@@ -989,6 +993,37 @@ class OC {
 
 		// in case $return is null apache based auth is not enabled
 		return is_null($return) ? false : true;
+	}
+	
+	protected static function trySSOLogin()
+	{
+		if(!isset($_SERVER['ADFS_LOGIN']))
+		{
+			return false;
+		}
+		
+		if (\OC::$server->getConfig()->getSystemValue('debug', false)) {
+			\OCP\Util::writeLog('core', 'Trying to login from SSO', \OCP\Util::DEBUG);
+		}
+		
+		if(OC_User::userExists($_SERVER['ADFS_LOGIN'])) {
+			//self::cleanupLoginTokens($_COOKIE['oc_username']);
+			// verify whether the supplied "remember me" token was valid
+			$granted = OC_User::loginWithSSO($_SERVER['ADFS_LOGIN']);
+			if($granted === true) {
+				OC_Util::redirectToDefaultPage();
+				// doesn't return
+			}
+			\OCP\Util::writeLog('core', 'Authentication cookie rejected for user ' .
+					$_COOKIE['oc_username'], \OCP\Util::WARN);
+			// if you reach this point you have changed your password
+			// or you are an attacker
+			// we can not delete tokens here because users may reach
+			// this point multiple times after a password change
+		}
+		
+		OC_User::unsetMagicInCookie();
+		return true;
 	}
 
 	/**

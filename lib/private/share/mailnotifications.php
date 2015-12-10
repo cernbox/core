@@ -81,8 +81,8 @@ class MailNotifications {
 		$this->replyTo = $this->config->getUserValue($this->userId, 'settings', 'email', null);
 		$this->senderDisplayName = \OCP\User::getDisplayName($this->userId);
 		
-		if(!$senderDisplayName) {
-			$senderDisplayName = 'CERNBox';
+		if(!$this->senderDisplayName) {
+			$this->senderDisplayName = 'CERNBox';
 		}
 	}
 

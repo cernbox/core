@@ -326,6 +326,18 @@ class Session implements IUserSession, Emitter {
 		$this->manager->emit('\OC\User', 'postRememberedLogin', array($user));
 		return true;
 	}
+	
+	public function loginWithSSO($uid)
+	{
+		$user = $this->manager->get($uid);
+		if (is_null($user)) {
+			// user does not exist
+			return false;
+		}
+		
+		$this->setUser($user);
+		return true;
+	}
 
 	/**
 	 * logout the user from the session

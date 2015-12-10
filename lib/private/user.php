@@ -264,6 +264,11 @@ class OC_User {
 	public static function loginWithCookie($uid, $token) {
 		return self::getUserSession()->loginWithCookie($uid, $token);
 	}
+	
+	public static function loginWithSSO($uid)
+	{
+		return self::getUserSession()->loginWithSSO($uid);
+	}
 
 	/**
 	 * Try to login a user, assuming authentication
