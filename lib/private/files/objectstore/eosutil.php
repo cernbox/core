@@ -385,6 +385,7 @@ class EosUtil {
 	}
 
 	public static function changePermAcl($from, $to, $fileid, $permissions, $type){
+		
 		$data = self::getFileById($fileid);
 		if(!$data) {
 			return false;
@@ -417,6 +418,7 @@ class EosUtil {
 		if(!$data) {
 			return false;
 		}
+		
 		$ocacl = self::toOcAcl($data["sys.acl"]);
 		if(isset($ocacl[$to])){
 			return $ocacl[$to]["ocperm"];
@@ -443,30 +445,13 @@ class EosUtil {
 		    }
 		}
 		
-		$usersSysAcl = self::multi_array_unique($usersSysAcl, 1);
-		
-		
 		foreach($usersSysAcl as $user) {
 		    $ocAcl[$user[1]] = array("type"=>$user[0], "ocperm"=>self::toOcPerm($user[2]), "eosperm"=>$user[2]);
-		} 
+		}
+		
 		return $ocAcl;
 	}
 	
-	private static function multi_array_unique($multiArray, $key) {
-		$keys = array();
-		$temp = array();
-		$i = 0;
-	
-		foreach($multiArray as $arrayEntry) {
-			if(!in_array($arrayEntry[$key], $keys)) {
-				$keys[$i] = $arrayEntry[$key];
-				$temp[$i] = $arrayEntry;
-			}
-		}
-	
-		return $temp;
-	}
-
 	// transform the ocacl to eosacl 
 	public static function toEosAcl($ocAcl){ // VERIFIED
 		$sysAcl = array();
