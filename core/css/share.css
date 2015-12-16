@@ -178,3 +178,27 @@ a.showCruds:hover,a.unshare:hover {
 	font-weight: 500;
 	src: local('Open Sans Semibold'), local('OpenSans-Semibold'), url(../fonts/OpenSans-Semibold.woff) format('woff');
 }
+
+#recipentList {
+	width: 94%;
+	border-style: solid;
+	border-width: 2px;
+	border-color: #55739A;
+	border-radius: 3px;
+}
+
+#recipentList p {
+	color:white;
+	opacity:.5;
+	background-color: #55739A;
+	padding-left: 3px;
+}
+
+#recipentList #emailButton {
+	margin-top: 20px;
+}
+
+.recipentDeleter {
+	vertical-align:middle;
+	margin-right:2px;
+}

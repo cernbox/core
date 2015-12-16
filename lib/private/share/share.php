@@ -2492,6 +2492,11 @@ class Share extends Constants {
 			$ocPerm = $shareData ["permissions"];
 			$added = EosUtil::addUserToAcl ( $from, $to, $fileid, $ocPerm, $type );
 			
+			if(!$added)
+			{
+				\OCP\Util::writeLog('core', 'Could not add ' .$to. ' to EOS ACL', \OCP\Util::ERROR);
+			}
+			
 			// Send different mails depending if the share was done to an user or to an egroup.
 			$filedata = \OC\Files\ObjectStore\EosUtil::getFileById ( $fileid );
 			// $mailNotification = new \OC\Share\MailNotifications();

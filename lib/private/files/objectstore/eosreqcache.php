@@ -18,6 +18,14 @@ class EosReqCache {
 		}
 	}
 	
+	public static function clearFileByIdCache($id)
+	{
+		if($id && isset($GLOBALS['cernbox']['getfilebyid'][$id]))
+		{
+			unset($GLOBALS['cernbox']['getfilebyid'][$id]);
+		}
+	}
+	
 	public static function getUidAndGid($username) {
 		self::init();
 		if(isset($GLOBALS['cernbox']['idresolution'][$username])) {

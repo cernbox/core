@@ -23,6 +23,9 @@
 		'    <span class="shareWithLoading icon-loading-small hidden"></span>'+
 		'{{{remoteShareInfo}}}' +
 		'</div>' +
+		'<div id="recipentList" class="shareRecipentListView hidden"><p>Share item to the following users/groups:</p><ul></ul>' +
+		'<input id="shareListButton" class="emailButton" type="submit" value="Confirm">' +
+		'</div>' +
 		'{{/if}}' +
 		'{{/if}}' +
 		'<div class="shareeListView subView"></div>' +
@@ -76,6 +79,9 @@
 
 		/** @type {object} **/
 		shareeListView: undefined,
+		
+		/** @type {array} **/
+		shareRecipientList: [],
 
 		initialize: function(options) {
 			var view = this;
@@ -169,11 +175,62 @@
 				.append(insert)
 				.appendTo(ul);
 		},
+		
+		_getRecipentIndex: function(recipentUid)
+		{
+			for(var i = 0; i < this.shareRecipientList.length; i++)
+			{
+				if(this.shareRecipientList[i].uid == recipentUid) return i;
+			}
+			return -1;
+		},
 
 		_onSelectRecipient: function(e, s) {
 			e.preventDefault();
 			$(e.target).val('');
-			this.model.addShare(s.item.value);
+			var recipent = s.item.value.shareWith;
+			
+			if(this._getRecipentIndex(recipent) != -1)
+			{
+				return;
+			}
+			
+			var recipientData = {uid: recipent, displayName: s.item.label, type: s.item.value.shareType };
+			this.shareRecipientList.push(recipientData);
+			
+			var recipentList = $('#recipentList').find('ul');
+			if(recipentList && this.shareRecipientList.length > 0)
+			{
+				$('#recipentList').removeClass('hidden');
+				recipentList.empty();
+				var _self = this;
+				for(var i = 0; i < this.shareRecipientList.length; i++)
+				{
+					curRecipient = this.shareRecipientList[i];
+					var li = $('<li recipent="'+ curRecipient.uid + '"><img class="recipentDeleter" src="'+ OC.imagePath('core', 'actions/close.svg') +'"><span class="username">' +curRecipient.displayName + '</span></li>');
+					var img = li.find('img');
+					img.click(function()
+						{
+							var delRecipient = $(this).parent().attr('recipent');
+							if(delRecipient && delRecipient != 'undefined')
+							{
+								var index = _self._getRecipentIndex(delRecipient);
+								if(index != -1)
+								{
+									_self.shareRecipientList.splice(index, 1);
+									if(_self.shareRecipientList.length <= 0)
+									{
+										$('#recipentList').addClass('hidden');
+									}
+								}
+							}
+							
+							$(this).parent().remove();
+						});
+					recipentList.append(li);
+				}
+			}
+			//this.model.addShare(s.item.value);
 		},
 
 		_toggleLoading: function(state) {
@@ -245,6 +302,26 @@
 			this.projectnameView.render();
 
 			this.$el.find('.hasTooltip').tooltip();
+			
+			var shareButton = $('#recipentList').find('#shareListButton');
+			var _self = this;
+			shareButton.click(function(event)
+			{
+				event.preventDefault();
+				
+				var shareRequestData = [];
+				for(var i = 0; i < _self.shareRecipientList.length; i++)
+				{
+					var token = {uid: _self.shareRecipientList[i].uid, type: _self.shareRecipientList[i].type };
+					shareRequestData.push(token);
+				}
+				
+				_self.model.addShareList(shareRequestData);
+				
+				_self.shareRecipientList.length = 0;
+				$('#recipentList').addClass('hidden');
+				_self._toggleLoading(true);
+			});
 
 			return this;
 		},

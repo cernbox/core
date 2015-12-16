@@ -260,9 +260,7 @@ class User {
 			return $path;
 		}
 
-		if(    !is_null($attr)
-			&& $this->config->getAppValue('user_ldap', 'enforce_home_folder_naming_rule', true)
-		) {
+		if(!is_null($attr) && $this->config->getAppValue('user_ldap', 'enforce_home_folder_naming_rule', true)) {
 			// a naming rule attribute is defined, but it doesn't exist for that LDAP user
 			throw new \Exception('Home dir attribute can\'t be read from LDAP for uid: ' . $this->getUsername());
 		}
@@ -273,13 +271,15 @@ class User {
 	}
 
 	public function getMemberOfGroups() {
-		$cacheKey = 'getMemberOf'.$this->getUsername();
-		if($this->connection->isCached($cacheKey)) {
-			return $this->connection->getFromCache($cacheKey);
+		
+		$groups = \OCA\user_ldap\lib\LDAPDatabase::fetchUserGroups($this->getUsername());
+		$result = [];
+		foreach($groups as $key => $value)
+		{
+			$result[] = \OCA\user_ldap\lib\LDAPUtil::getGroupDN($value['group_cn']);
 		}
-		$groupDNs = $this->access->readAttribute($this->getDN(), 'memberOf');
-		$this->connection->writeToCache($cacheKey, $groupDNs);
-		return $groupDNs;
+		
+		return $result;
 	}
 
 	/**
@@ -287,7 +287,7 @@ class User {
 	 * @return string data (provided by LDAP) | false
 	 */
 	public function getAvatarImage() {
-		if(!is_null($this->avatarImage)) {
+		/*if(!is_null($this->avatarImage)) {
 			return $this->avatarImage;
 		}
 
@@ -301,7 +301,8 @@ class User {
 			}
 		}
 
-		return $this->avatarImage;
+		return $this->avatarImage;*/
+		return false;
 	}
 
 	/**
@@ -385,7 +386,7 @@ class User {
 	 * @return null
 	 */
 	public function updateEmail($valueFromLDAP = null) {
-		if($this->wasRefreshed('email')) {
+		/*if($this->wasRefreshed('email')) {
 			return;
 		}
 		$email = $valueFromLDAP;
@@ -398,10 +399,9 @@ class User {
 				}
 			}
 		}
-		if(!is_null($email)) {
-			$this->config->setUserValue(
-				$this->uid, 'settings', 'email', $email);
-		}
+		if(!is_null($email)) {*/
+		$this->config->setUserValue($this->uid, 'settings', 'email', $this->getUsername() . '@cern.ch');
+		//}
 	}
 
 	/**

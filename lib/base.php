@@ -896,7 +896,8 @@ class OC {
 				}
 				OC_User::logout();
 				// redirect to webroot and add slash if webroot is empty
-				header("Location: " . OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
+				//header("Location: " . OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
+				header("Location: https://login.cern.ch/adfs/ls/?wa=wsignout1.0");
 			} else {
 				// Redirect to default application
 				OC_Util::redirectToDefaultPage();

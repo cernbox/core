@@ -47,7 +47,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				try {
 					$shareType = (int)$_POST['shareType'];
 					$shareWith = $_POST['shareWith'];
-									$itemSourceName = isset($_POST['itemSourceName']) ? (string)$_POST['itemSourceName'] : null;
+					$itemSourceName = isset($_POST['itemSourceName']) ? (string)$_POST['itemSourceName'] : null;
 
 					/*
 					 * Nasty nasty fix for https://github.com/owncloud/core/issues/19950
@@ -95,6 +95,38 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				}
 			}
 			break;
+			
+		case 'shareList':
+			if (isset($_POST['shareWith']) && isset($_POST['permissions'])) {
+				try {
+					$itemSourceName=(isset($_POST['itemSourceName'])) ? (string)$_POST['itemSourceName']:'';
+					$shareWithArray = (is_array($_POST['shareWith'])? $_POST['shareWith'] : [$_POST['shareWith']]);
+					
+					foreach($shareWithArray as $share)
+					{
+						$shareWith = $share['uid'];
+						$shareType = (int)$share['type'];
+						
+						OCP\Share::shareItem(
+								$_POST['itemType'],
+								$_POST['itemSource'],
+								$shareType,
+								$shareWith,
+								$_POST['permissions'],
+								$itemSourceName,
+								(!empty($_POST['expirationDate']) ? new \DateTime((string)$_POST['expirationDate']) : null),
+								null
+								);
+					}
+					OC_JSON::success();
+				} catch (\OC\HintException $exception) {
+					OC_JSON::error(array('data' => array('message' => $exception->getHint())));
+				} catch (Exception $exception) {
+					OC_JSON::error(array('data' => array('message' => $exception->getMessage())));
+				}
+			}
+			break;
+			
 		case 'unshare':
 			if (isset($_POST['shareType']) && isset($_POST['shareWith'])) {
 				if ((int)$_POST['shareType'] === OCP\Share::SHARE_TYPE_LINK && $_POST['shareWith'] == '') {

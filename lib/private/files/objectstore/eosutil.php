@@ -362,6 +362,7 @@ class EosUtil {
 		}
 
 		$ocacl = self::toOcAcl($data["sys.acl"]);
+		
 		$ocacl[$to] = array("type"=>$type, "ocperm"=>$ocPerm);
 		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
@@ -375,6 +376,9 @@ class EosUtil {
 		} else {
 			$uid =0;$gid=0; // harcoded because we cannot acces the storageID
 		}
+		
+		EosReqCache::clearFileByIdCache($fileId);
+		
 		$addUserToSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
 		list($result, $errcode) = EosCmd::exec($addUserToSysAcl);
 		if ($errcode === 0 && $result) {
