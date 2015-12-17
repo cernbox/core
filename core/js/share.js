@@ -247,6 +247,7 @@ OC.Share = _.extend(OC.Share || {}, {
 		var message;
 		var recipients;
 		var owner = $tr.attr('data-share-owner');
+		var ownerDisplayName = $tr.attr('data-share-owner-displayname');
 		var shareFolderIcon;
 		var image = OC.imagePath('core', 'actions/share');
 		action.removeClass('shared-style');
@@ -283,7 +284,7 @@ OC.Share = _.extend(OC.Share || {}, {
 			message = t('core', 'Shared');
 			// even if reshared, only show "Shared by"
 			if (owner) {
-				message = this._formatRemoteShare(owner);
+				message = this._formatRemoteShare(ownerDisplayName + ' (' + owner + ')');
 			}
 			else if (recipients) {
 				message = t('core', 'Shared with {recipients}', {recipients: this._formatShareList(recipients.split(", ")).join(", ")}, 0, {escape: false});

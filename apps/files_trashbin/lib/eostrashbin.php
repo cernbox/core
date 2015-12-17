@@ -73,13 +73,21 @@ class EosTrashbin {
 		$cmd             = "eos -b -r $uid $gid recycle ls -m";
 		list($result, $errcode) = EosCmd::exec($cmd);
 		$files = array();
+		$isProjectSpaceAdmin = (EosUtil::getProjectNameForUser($username) != null);
 		if ($errcode === 0) {// No error
 			foreach ($result as $rawdata) {
 				$line_to_parse = $rawdata;
 				$file          = EosParser::parseRecycleLsMonitorMode($line_to_parse);
 				// only list files in the trashbin that were in the files dir
-				$filter        = $eos_prefix . substr($username, 0, 1) . "/" . $username . "/";
-				if (strpos($file["restore-path"], $filter) === 0) {
+				if(!$isProjectSpaceAdmin)
+				{
+					$filter        = $eos_prefix . substr($username, 0, 1) . "/" . $username . "/";
+					if (strpos($file["restore-path"], $filter) === 0) {
+						$files[] = $file;
+					}
+				}
+				else
+				{
 					$files[] = $file;
 				}
 			}

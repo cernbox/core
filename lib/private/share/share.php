@@ -1832,9 +1832,9 @@ class Share extends Constants {
 			}
 			self::transformDBResults($row);
 			// Filter out duplicate group shares for users with unique targets
-			if ($fileDependent && !self::isFileReachable($row['path'], $storage_id)) {
+			/*if ($fileDependent && !self::isFileReachable($row['path'], $storage_id)) {
 				continue;
-			}
+			}*/
 			if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
 				$row['share_type'] = self::SHARE_TYPE_GROUP;
 				$row['unique_name'] = true; // remember that we use a unique name for this user

@@ -72,6 +72,7 @@
 				var fileInfo = oldElementToFile.apply(this, arguments);
 				fileInfo.sharePermissions = $el.attr('data-share-permissions') || undefined;
 				fileInfo.shareOwner = $el.attr('data-share-owner') || undefined;
+				fileInfo.shareOwnerDisplayName = $el.attr('data-share-owner-displayname') || undefined;
 				return fileInfo;
 			};
 
