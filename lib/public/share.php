@@ -9,7 +9,7 @@
  * @author Michael Kuhn <suraia@ikkoku.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Sam Tuke <mail@samtuke.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
@@ -80,13 +80,14 @@ class Share extends \OC\Share\Constants {
 	 * @param string $ownerUser owner of the file
 	 * @param bool $includeOwner include owner to the list of users with access to the file
 	 * @param bool $returnUserPaths Return an array with the user => path map
+	 * @param bool $recursive take parent folders into account
 	 * @return array
 	 * @note $path needs to be relative to user data dir, e.g. 'file.txt'
-	 *       not '/admin/data/file.txt'
-	 * @since 5.0.0
+	 *       not '/admin/files/file.txt'
+	 * @since 5.0.0 - $recursive was added in 9.0.0
 	 */
-	public static function getUsersSharingFile($path, $ownerUser, $includeOwner = false, $returnUserPaths = false) {
-		return \OC\Share\Share::getUsersSharingFile($path, $ownerUser, $includeOwner, $returnUserPaths);
+	public static function getUsersSharingFile($path, $ownerUser, $includeOwner = false, $returnUserPaths = false, $recursive = true) {
+		return \OC\Share\Share::getUsersSharingFile($path, $ownerUser, $includeOwner, $returnUserPaths, $recursive);
 	}
 
 	/**

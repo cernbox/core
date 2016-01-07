@@ -54,7 +54,8 @@ describe('OCA.External.Settings tests', function() {
 		// within the DOM by the server template
 		$('#externalStorage .selectBackend:first').data('configurations', {
 				'\\OC\\TestBackend': {
-					'backend': 'Test Backend Name',
+					'identifier': '\\OC\\TestBackend',
+					'name': 'Test Backend',
 					'configuration': {
 						'field1': 'Display Name 1',
 						'field2': '&Display Name 2'
@@ -65,7 +66,8 @@ describe('OCA.External.Settings tests', function() {
 					'priority': 11
 				},
 				'\\OC\\AnotherTestBackend': {
-					'backend': 'Another Test Backend Name',
+					'identifier': '\\OC\\AnotherTestBackend',
+					'name': 'Another Test Backend',
 					'configuration': {
 						'field1': 'Display Name 1',
 						'field2': '&Display Name 2'
@@ -80,6 +82,7 @@ describe('OCA.External.Settings tests', function() {
 
 		$('#externalStorage #addMountPoint .authentication:first').data('mechanisms', {
 			'mechanism1': {
+				'identifier': 'mechanism1',
 				'name': 'Mechanism 1',
 				'configuration': {
 				},
@@ -251,13 +254,13 @@ describe('OCA.External.Settings tests', function() {
 				// defaults to true
 				var $field = $td.find('.dropdown [name=previews]');
 				expect($field.prop('checked')).toEqual(true);
-				$td.find('.dropdown [name=filesystem_check_changes]').val(2);
+				$td.find('.dropdown [name=filesystem_check_changes]').val(0);
 				$('body').mouseup();
 
 				expect(JSON.parse($tr.find('input.mountOptions').val())).toEqual({
 					encrypt: true,
 					previews: true,
-					filesystem_check_changes: 2
+					filesystem_check_changes: 0
 				});
 			});
 		});

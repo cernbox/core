@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
  * @copyright Copyright (c) 2015, ownCloud, Inc.
  * @license AGPL-3.0
@@ -27,6 +27,13 @@ use OCA\Files_sharing\Tests\TestCase;
 use OCP\AppFramework\Http;
 use OCP\Share;
 
+/**
+ * Class ShareesTest
+ *
+ * @group DB
+ *
+ * @package OCA\Files_Sharing\Tests\API
+ */
 class ShareesTest extends TestCase {
 	/** @var Sharees */
 	protected $sharees;
@@ -81,6 +88,11 @@ class ShareesTest extends TestCase {
 		);
 	}
 
+	/**
+	 * @param string $uid
+	 * @param string $displayName
+	 * @return \OCP\IUser|\PHPUnit_Framework_MockObject_MockObject
+	 */
 	protected function getUserMock($uid, $displayName) {
 		$user = $this->getMockBuilder('OCP\IUser')
 			->disableOriginalConstructor()
@@ -97,6 +109,10 @@ class ShareesTest extends TestCase {
 		return $user;
 	}
 
+	/**
+	 * @param string $gid
+	 * @return \OCP\IGroup|\PHPUnit_Framework_MockObject_MockObject
+	 */
 	protected function getGroupMock($gid) {
 		$group = $this->getMockBuilder('OCP\IGroup')
 			->disableOriginalConstructor()

@@ -24,7 +24,6 @@ OC.L10N.register(
     "Could not detect Base DN, please enter it manually." : "Tidak dapat mendeteksi Base DN, mohon masukkan secara manual.",
     "{nthServer}. Server" : "{nthServer}. Server",
     "No object found in the given Base DN. Please revise." : "Tidak ada obyek ditemukan di Base DN yang diberikan. Mohon diperiksa kembali.",
-    "More than 1.000 directory entries available." : "Lebih dari 1.000 entri direktori yang tersedia.",
     " entries available within the provided Base DN" : "entri tersedia didalam Base DN yang diberikan",
     "An error occurred. Please check the Base DN, as well as connection settings and credentials." : "Terjadi kesalahan. Silakan periksa Base DN, serta pengaturan sambungan dan kredensial.",
     "Do you really want to delete the current Server Configuration?" : "Apakan Anda ingin menghapus Konfigurasi Server saat ini?",
@@ -153,8 +152,6 @@ OC.L10N.register(
     "Username-LDAP User Mapping" : "Pemetaan Pengguna LDAP-Nama pengguna",
     "Usernames are used to store and assign (meta) data. In order to precisely identify and recognize users, each LDAP user will have an internal username. This requires a mapping from username to LDAP user. The created username is mapped to the UUID of the LDAP user. Additionally the DN is cached as well to reduce LDAP interaction, but it is not used for identification. If the DN changes, the changes will be found. The internal username is used all over. Clearing the mappings will have leftovers everywhere. Clearing the mappings is not configuration sensitive, it affects all LDAP configurations! Never clear the mappings in a production environment, only in a testing or experimental stage." : "Nama pengguna digunakan untuk menyimpan dan menetapkan (meta) data. Dalam rangka untuk mengidentifikasi dan mengenali pengguna secara tepat, setiap pengguna LDAP akan memiliki nama pengguna internal. Hal ini memerlukan sebuah pemetaan dari nama pengguna ke pengguna LDAP. Nama pengguna yang dibuat akan dipetakan pada UUID pengguna LDAP. Selain itu, DN akan di cache untuk mengurangi interaksi LDAP, tetapi tidak digunakan untuk identifikasi. Jika DN berubah, perubahan akan ditemukan. Nama pengguna internal digunakan secara menyeluruh. Membersihkan pemetaan akan mempengaruhi semua konfigurasi LDAP! JANGAN PERNAH MENGHAPUS PEMETAAN PADA LINGKUNGAN PRODUKSI, hanya gunakan dalam tahap uji coba dan pengujian.",
     "Clear Username-LDAP User Mapping" : "Bersihkan Pemetaan Pengguna LDAP-Nama pengguna",
-    "Clear Groupname-LDAP Group Mapping" : "Bersihkan Pemetaan Grup LDAP-Nama grup",
-    "Backup (Replica) Host" : "Cadangkan (Replika) Host",
-    "Backup (Replica) Port" : "Cadangkan (Replika) Port"
+    "Clear Groupname-LDAP Group Mapping" : "Bersihkan Pemetaan Grup LDAP-Nama grup"
 },
 "nplurals=1; plural=0;");

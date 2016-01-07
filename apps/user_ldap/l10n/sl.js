@@ -17,7 +17,6 @@ OC.L10N.register(
     "Select groups" : "Izberi skupine",
     "Select object classes" : "Izbor razredov predmeta",
     "{nthServer}. Server" : "{nthServer}. strežnik",
-    "More than 1.000 directory entries available." : "Na voljo je več kot 1.000 elementov imenika.",
     "Do you really want to delete the current Server Configuration?" : "Ali res želite izbrisati trenutne nastavitve strežnika?",
     "Confirm Deletion" : "Potrdi brisanje",
     "Mode switch" : "Preklop načina",
@@ -113,8 +112,6 @@ OC.L10N.register(
     "UUID Attribute for Groups:" : "Atribut UUID za skupine:",
     "Username-LDAP User Mapping" : "Uporabniška preslikava uporabniškega imena na LDAP",
     "Clear Username-LDAP User Mapping" : "Izbriši preslikavo uporabniškega imena na LDAP",
-    "Clear Groupname-LDAP Group Mapping" : "Izbriši preslikavo skupine na LDAP",
-    "Backup (Replica) Host" : "Varnostna kopija (replika) podatkov gostitelja",
-    "Backup (Replica) Port" : "Vrata varnostne kopije (replike)"
+    "Clear Groupname-LDAP Group Mapping" : "Izbriši preslikavo skupine na LDAP"
 },
 "nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3);");

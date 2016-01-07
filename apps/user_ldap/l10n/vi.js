@@ -40,7 +40,6 @@ OC.L10N.register(
     "Group-Member association" : "Nhóm thành viên Cộng đồng",
     "Special Attributes" : "Special Attributes",
     "in bytes" : "Theo Byte",
-    "Leave empty for user name (default). Otherwise, specify an LDAP/AD attribute." : "Để trống tên người dùng (mặc định). Nếu không chỉ định thuộc tính LDAP/AD",
-    "Backup (Replica) Port" : "Cổng sao lưu (Replica)"
+    "Leave empty for user name (default). Otherwise, specify an LDAP/AD attribute." : "Để trống tên người dùng (mặc định). Nếu không chỉ định thuộc tính LDAP/AD"
 },
 "nplurals=1; plural=0;");

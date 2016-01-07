@@ -8,16 +8,12 @@
 	<shipped>true</shipped>
 	<standalone/>
 	<default_enable/>
-	<version>1.2.0</version>
+	<version>1.4.1</version>
 	<types>
 		<filesystem/>
 	</types>
-	<remote>
-		<files>appinfo/remote.php</files>
-		<webdav>appinfo/remote.php</webdav>
-	</remote>
 	<dependencies>
-		<owncloud min-version="8.2" />
+		<owncloud min-version="9.0" />
 	</dependencies>
 	<documentation>
 		<user>user-files</user>

@@ -9,12 +9,13 @@
     "add group" : "խումբ ավելացնել",
     "SSL" : "SSL",
     "TLS" : "TLS",
+    "Cancel" : "Չեղարկել",
+    "Email" : "Էլ. հասցե",
     "Password" : "Գաղտնաբառ",
     "New password" : "Նոր գաղտնաբառ",
-    "Email" : "Էլ. հասցե",
-    "Cancel" : "Չեղարկել",
     "Language" : "Լեզու",
     "Help translate" : "Օգնել թարգմանել",
+    "Username" : "Օգտանուն",
     "Group" : "Խումբ",
     "Other" : "Այլ"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"

@@ -178,7 +178,11 @@ class Util {
 	 * @since 7.0.0
 	 */
 	public static function isSharingDisabledForUser() {
-		return \OC_Util::isSharingDisabledForUser();
+		return \OC_Util::isSharingDisabledForUser(
+				\OC::$server->getConfig(),
+				\OC::$server->getGroupManager(),
+				\OC::$server->getUserSession()->getUser()
+		);
 	}
 
 	/**
@@ -270,7 +274,10 @@ class Util {
 	 * @since 4.0.0 - parameter $args was added in 4.5.0
 	 */
 	public static function linkToAbsolute( $app, $file, $args = array() ) {
-		return(\OC_Helper::linkToAbsolute( $app, $file, $args ));
+		$urlGenerator = \OC::$server->getURLGenerator();
+		return $urlGenerator->getAbsoluteURL(
+			$urlGenerator->linkTo($app, $file, $args)
+		);
 	}
 
 	/**
@@ -280,7 +287,11 @@ class Util {
 	 * @since 4.0.0
 	 */
 	public static function linkToRemote( $service ) {
-		return(\OC_Helper::linkToRemote( $service ));
+		$urlGenerator = \OC::$server->getURLGenerator();
+		$remoteBase = $urlGenerator->linkTo('', 'remote.php') . '/' . $service;
+		return $urlGenerator->getAbsoluteURL(
+			$remoteBase . (($service[strlen($service) - 1] != '/') ? '/' : '')
+		);
 	}
 
 	/**
@@ -303,7 +314,7 @@ class Util {
 	 * @since 5.0.0
 	 */
 	public static function linkToRoute( $route, $parameters = array() ) {
-		return \OC_Helper::linkToRoute($route, $parameters);
+		return \OC::$server->getURLGenerator()->linkToRoute($route, $parameters);
 	}
 
 	/**
@@ -317,7 +328,7 @@ class Util {
 	 * @since 4.0.0 - parameter $args was added in 4.5.0
 	 */
 	public static function linkTo( $app, $file, $args = array() ) {
-		return(\OC_Helper::linkTo( $app, $file, $args ));
+		return \OC::$server->getURLGenerator()->linkTo($app, $file, $args);
 	}
 
 	/**
@@ -362,9 +373,10 @@ class Util {
 	 * @since 5.0.0
 	 */
 	public static function getDefaultEmailAddress($user_part) {
-		$user_part = \OC_Config::getValue('mail_from_address', $user_part);
+		$config = \OC::$server->getConfig();
+		$user_part = $config->getSystemValue('mail_from_address', $user_part);
 		$host_name = self::getServerHostName();
-		$host_name = \OC_Config::getValue('mail_domain', $host_name);
+		$host_name = $config->getSystemValue('mail_domain', $host_name);
 		$defaultEmailAddress = $user_part.'@'.$host_name;
 
 		$mailer = \OC::$server->getMailer();
@@ -487,7 +499,9 @@ class Util {
 	 * @since 4.5.0
 	 */
 	public static function callCheck() {
-		\OC_Util::callCheck();
+		if (!(\OC::$server->getRequest()->passesCSRFCheck())) {
+			exit();
+		}
 	}
 
 	/**
@@ -497,11 +511,11 @@ class Util {
 	 * string or array of strings before displaying it on a web page.
 	 *
 	 * @param string|array $value
-	 * @return string|array an array of sanitized strings or a single sinitized string, depends on the input parameter.
+	 * @return string|array an array of sanitized strings or a single sanitized string, depends on the input parameter.
 	 * @since 4.5.0
 	 */
-	public static function sanitizeHTML( $value ) {
-		return(\OC_Util::sanitizeHTML($value));
+	public static function sanitizeHTML($value) {
+		return \OC_Util::sanitizeHTML($value);
 	}
 
 	/**
@@ -545,7 +559,7 @@ class Util {
 	 * @deprecated 8.2.0 Use substr_replace() instead.
 	 */
 	public static function mb_substr_replace($string, $replacement, $start, $length = null, $encoding = 'UTF-8') {
-		return(\OC_Helper::mb_substr_replace($string, $replacement, $start, $length, $encoding));
+		return substr_replace($string, $replacement, $start, $length);
 	}
 
 	/**
@@ -561,7 +575,7 @@ class Util {
 	 * @deprecated 8.2.0 Use str_replace() instead.
 	 */
 	public static function mb_str_replace($search, $replace, $subject, $encoding = 'UTF-8', &$count = null) {
-		return(\OC_Helper::mb_str_replace($search, $replace, $subject, $encoding, $count));
+		return str_replace($search, $replace, $subject, $count);
 	}
 
 	/**

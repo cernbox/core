@@ -7,6 +7,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
  * @copyright Copyright (c) 2015, ownCloud, Inc.
  * @license AGPL-3.0
@@ -123,7 +124,7 @@ class ShareController extends Controller {
 	 * @UseSession
 	 *
 	 * Authenticates against password-protected shares
-	 * @param $token
+	 * @param string $token
 	 * @param string $password
 	 * @return RedirectResponse|TemplateResponse
 	 */
@@ -333,8 +334,7 @@ class ShareController extends Controller {
 				OC_Util::tearDownFS();
 				OC_Util::setupFS($rootLinkItem['uid_owner']);
 				$path = Filesystem::getPath($linkItem['file_source']);
-
-				if(!empty($path) && Filesystem::isReadable($path)) {
+				if(Filesystem::isReadable($path)) {
 					return $path;
 				}
 			}

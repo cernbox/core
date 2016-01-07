@@ -4,9 +4,15 @@ OC.L10N.register(
     "Failed to clear the mappings." : "Nepavyko išvalyti sąsajų.",
     "Failed to delete the server configuration" : "Nepavyko pašalinti serverio konfigūracijos",
     "The configuration is valid and the connection could be established!" : "Konfigūracija yra tinkama bei prisijungta sėkmingai!",
+    "The configuration is invalid. Please have a look at the logs for further details." : "Neteisinga konfigūracija. Daugiau informacijos rasite žurnaluose.",
+    "No action specified" : "Nepasirinktas veiksmas",
+    "No data specified" : "Nepateikta duomenų",
     "Select groups" : "Pasirinkti grupes",
     "Do you really want to delete the current Server Configuration?" : "Ar tikrai norite ištrinti dabartinę serverio konfigūraciją?",
     "Confirm Deletion" : "Patvirtinkite trynimą",
+    "Select attributes" : "Pasirink atributus",
+    "_%s group found_::_%s groups found_" : ["Rasta %s grupė","Rastos %s grupės","Rastos %s grupės"],
+    "_%s user found_::_%s users found_" : ["Rastas %s vartotojas","Rasti %s vartotojai","Rasti %s vartotojai"],
     "Server" : "Serveris",
     "Users" : "Vartotojai",
     "Groups" : "Grupės",
@@ -46,8 +52,6 @@ OC.L10N.register(
     "Override UUID detection" : "Perrašyti UUID aptikimą",
     "Username-LDAP User Mapping" : "Naudotojo vardo - LDAP naudotojo sąsaja",
     "Clear Username-LDAP User Mapping" : "Išvalyti naudotojo vardo - LDAP naudotojo sąsają",
-    "Clear Groupname-LDAP Group Mapping" : "Išvalyti grupės pavadinimo - LDAP naudotojo sąsają",
-    "Backup (Replica) Host" : "Atsarginės kopijos (Replica) mazgas",
-    "Backup (Replica) Port" : "Atsarginės kopijos (Replica) prievadas"
+    "Clear Groupname-LDAP Group Mapping" : "Išvalyti grupės pavadinimo - LDAP naudotojo sąsają"
 },
 "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);");

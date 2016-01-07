@@ -37,6 +37,14 @@ use OC\HintException;
  */
 class StorageNotAvailableException extends HintException {
 
+	const STATUS_SUCCESS = 0;
+	const STATUS_ERROR = 1;
+	const STATUS_INDETERMINATE = 2;
+	const STATUS_INCOMPLETE_CONF = 3;
+	const STATUS_UNAUTHORIZED = 4;
+	const STATUS_TIMEOUT = 5;
+	const STATUS_NETWORK_ERROR = 6;
+
 	/**
 	 * StorageNotAvailableException constructor.
 	 *
@@ -45,7 +53,7 @@ class StorageNotAvailableException extends HintException {
 	 * @param \Exception $previous
 	 * @since 6.0.0
 	 */
-	public function __construct($message ='', $code = 0, \Exception $previous = null) {
+	public function __construct($message = '', $code = 0, \Exception $previous = null) {
 		$l = \OC::$server->getL10N('core');
 		parent::__construct($message, $l->t('Storage not available'), $code, $previous);
 	}

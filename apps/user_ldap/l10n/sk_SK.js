@@ -24,7 +24,6 @@ OC.L10N.register(
     "Could not detect Base DN, please enter it manually." : "Nemožno automaticky detekovať základnú DN, zadajte ručne prosím.",
     "{nthServer}. Server" : "{nthServer}. Server",
     "No object found in the given Base DN. Please revise." : "Objekt nebol nájdený v zadanej základnej DN. Overte to prosím.",
-    "More than 1.000 directory entries available." : "K dispozícii je viac ako 1.000 priečinkov.",
     " entries available within the provided Base DN" : "dostupných záznamov v zadanej základnej DN",
     "An error occurred. Please check the Base DN, as well as connection settings and credentials." : "Nastala chyba. Overte základnú DN, nastavenia pripojenia a prihlasovacie údaje.",
     "Do you really want to delete the current Server Configuration?" : "Naozaj chcete zmazať súčasné nastavenie servera?",
@@ -153,8 +152,6 @@ OC.L10N.register(
     "Username-LDAP User Mapping" : "Mapovanie názvov LDAP používateľských mien",
     "Usernames are used to store and assign (meta) data. In order to precisely identify and recognize users, each LDAP user will have an internal username. This requires a mapping from username to LDAP user. The created username is mapped to the UUID of the LDAP user. Additionally the DN is cached as well to reduce LDAP interaction, but it is not used for identification. If the DN changes, the changes will be found. The internal username is used all over. Clearing the mappings will have leftovers everywhere. Clearing the mappings is not configuration sensitive, it affects all LDAP configurations! Never clear the mappings in a production environment, only in a testing or experimental stage." : "Používateľské mená sa používajú na uchovávanie a priraďovanie (meta)dát. Každý používateľ v LDAP bude mať interné používateľské meno, aby bolo možné správne identifikovať a rozpoznávať používateľov. To je vyžaduje vytvorenie mapovania používateľských mien na používateľov v LDAPe. Vytvorené používateľské meno sa namapuje na UUID používateľa v LDAPe. Naviac je sa vo vyrovnávacej pamäti udržiava DN, aby sa obmedzila nadmerná interakcia s LDAPom, ale to sa nepoužíva na identifikáciu. Ak sa DN zmení, zmena bude správne rozpoznaná. Interné používateľské meno sa používa všade. Vyčistenie mapovaní vymaže zvyšky všade. Vyčistenie mapovaní naviac nie je špecifické pre určitú konfiguráciu; bude mať vplyv na všetky konfigurácie LDAPu! Nikdy nečistite mapovanie v produkčnom prostredí, len v testovacej alebo experimentálnej fáze.",
     "Clear Username-LDAP User Mapping" : "Zrušiť mapovanie LDAP používateľských mien",
-    "Clear Groupname-LDAP Group Mapping" : "Zrušiť mapovanie názvov LDAP skupín",
-    "Backup (Replica) Host" : "Záložný server (kópia) hostiteľa",
-    "Backup (Replica) Port" : "Záložný server (kópia) port"
+    "Clear Groupname-LDAP Group Mapping" : "Zrušiť mapovanie názvov LDAP skupín"
 },
 "nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;");

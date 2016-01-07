@@ -3,7 +3,8 @@
  * @author Joas Schilling <nickvergessen@owncloud.com>
  * @author Lukas Reschke <lukas@owncloud.com>
  * @author Robin Appelman <icewind@owncloud.com>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
  * @copyright Copyright (c) 2015, ownCloud, Inc.
  * @license AGPL-3.0
@@ -24,10 +25,7 @@
 
 namespace OCA\Files_Sharing\AppInfo;
 
-use OCA\Files_Sharing\Helper;
 use OCA\Files_Sharing\MountProvider;
-use OCA\Files_Sharing\Propagation\PropagationManager;
-use OCA\Files_Sharing\Propagation\GroupPropagationManager;
 use OCP\AppFramework\App;
 use OC\AppFramework\Utility\SimpleContainer;
 use OCA\Files_Sharing\Controllers\ExternalSharesController;
@@ -115,8 +113,7 @@ class Application extends App {
 			/** @var \OCP\IServerContainer $server */
 			$server = $c->query('ServerContainer');
 			return new MountProvider(
-				$server->getConfig(),
-				$c->query('PropagationManager')
+				$server->getConfig()
 			);
 		});
 
@@ -162,12 +159,5 @@ class Application extends App {
 		$mountProviderCollection = $server->getMountProviderCollection();
 		$mountProviderCollection->registerProvider($this->getContainer()->query('MountProvider'));
 		$mountProviderCollection->registerProvider($this->getContainer()->query('ExternalMountProvider'));
-	}
-
-	public function setupPropagation() {
-		$propagationManager = $this->getContainer()->query('PropagationManager');
-		\OCP\Util::connectHook('OC_Filesystem', 'setup', $propagationManager, 'globalSetup');
-
-		$this->getContainer()->query('GroupPropagationManager')->globalSetup();
 	}
 }

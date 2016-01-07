@@ -24,12 +24,12 @@ script(
 ?>
 <script id="categories-template" type="text/x-handlebars-template">
 {{#each this}}
-	<li id="app-category-{{id}}" data-category-id="{{id}}" tabindex="0">
+	<li id="app-category-{{ident}}" data-category-id="{{ident}}" tabindex="0">
 		<a>{{displayName}}</a>
 	</li>
 {{/each}}
 
-<?php if(OC_Config::getValue('appstoreenabled', true) === true): ?>
+<?php if($_['appstoreEnabled']): ?>
 	<li>
 		<a class="app-external" target="_blank" href="https://owncloud.org/dev"><?php p($l->t('Developer documentation'));?> ↗</a>
 	</li>
@@ -111,8 +111,10 @@ script(
 	<input class="update hidden" type="submit" value="<?php p($l->t('Update to %s', array('{{update}}'))); ?>" data-appid="{{id}}" />
 	{{#if active}}
 	<input class="enable" type="submit" data-appid="{{id}}" data-active="true" value="<?php p($l->t("Disable"));?>"/>
-	<input type="checkbox" class="groups-enable" id="groups_enable-{{id}}"/>
-	<label for="groups_enable-{{id}}"><?php p($l->t('Enable only for specific groups')); ?></label>
+	<span class="groups-enable">
+		<input type="checkbox" class="groups-enable__checkbox checkbox" id="groups_enable-{{id}}"/>
+		<label for="groups_enable-{{id}}"><?php p($l->t('Enable only for specific groups')); ?></label>
+	</span>
 	<br />
 	<input type="hidden" id="group_select" title="<?php p($l->t('All')); ?>" style="width: 200px">
 	{{else}}
@@ -127,7 +129,7 @@ script(
 	</div>
 </script>
 
-<div id="app-navigation" class="icon-loading">
+<div id="app-navigation" class="icon-loading" data-category="<?php p($_['category']);?>">
 	<ul id="apps-categories">
 
 	</ul>

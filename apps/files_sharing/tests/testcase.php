@@ -36,6 +36,8 @@ use OCA\Files_Sharing\Appinfo\Application;
 /**
  * Class Test_Files_Sharing_Base
  *
+ * @group DB
+ *
  * Base class for sharing tests.
  */
 abstract class TestCase extends \Test\TestCase {
@@ -61,7 +63,6 @@ abstract class TestCase extends \Test\TestCase {
 
 		$application = new Application();
 		$application->registerMountProviders();
-		$application->setupPropagation();
 		
 		// reset backend
 		\OC_User::clearBackends();
@@ -110,9 +111,12 @@ abstract class TestCase extends \Test\TestCase {
 
 	public static function tearDownAfterClass() {
 		// cleanup users
-		\OC_User::deleteUser(self::TEST_FILES_SHARING_API_USER1);
-		\OC_User::deleteUser(self::TEST_FILES_SHARING_API_USER2);
-		\OC_User::deleteUser(self::TEST_FILES_SHARING_API_USER3);
+		$user = \OC::$server->getUserManager()->get(self::TEST_FILES_SHARING_API_USER1);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get(self::TEST_FILES_SHARING_API_USER2);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get(self::TEST_FILES_SHARING_API_USER3);
+		if ($user !== null) { $user->delete(); }
 
 		// delete group
 		\OC_Group::deleteGroup(self::TEST_FILES_SHARING_API_GROUP1);
@@ -142,7 +146,7 @@ abstract class TestCase extends \Test\TestCase {
 		}
 
 		if ($create) {
-			\OC_User::createUser($user, $password);
+			\OC::$server->getUserManager()->createUser($user, $password);
 			\OC_Group::createGroup('group');
 			\OC_Group::addToGroup($user, 'group');
 		}

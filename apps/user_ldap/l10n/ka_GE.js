@@ -50,8 +50,6 @@ OC.L10N.register(
     "in bytes" : "ბაიტებში",
     "Email Field" : "იმეილის ველი",
     "User Home Folder Naming Rule" : "მომხმარებლის Home დირექტორიის სახელების დარქმევის წესი",
-    "Leave empty for user name (default). Otherwise, specify an LDAP/AD attribute." : "დატოვეთ ცარიელი მომხმარებლის სახელი (default). სხვა დანარჩენში მიუთითეთ LDAP/AD ატრიბუტი.",
-    "Backup (Replica) Host" : "ბექაფ  (რეპლიკა)  ჰოსტი",
-    "Backup (Replica) Port" : "ბექაფ (რეპლიკა) პორტი"
+    "Leave empty for user name (default). Otherwise, specify an LDAP/AD attribute." : "დატოვეთ ცარიელი მომხმარებლის სახელი (default). სხვა დანარჩენში მიუთითეთ LDAP/AD ატრიბუტი."
 },
 "nplurals=1; plural=0;");

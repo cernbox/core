@@ -1,6 +1,7 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@owncloud.com>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
  * @copyright Copyright (c) 2015, ownCloud, Inc.
@@ -72,9 +73,9 @@ class OfflineUser {
 
 	/**
 	 * @param string $ocName
-	 * @param OCP\IConfig $config
-	 * @param OCP\IDBConnection $db
-	 * @param OCA\User_LDAP\Mapping\UserMapping $mapping
+	 * @param \OCP\IConfig $config
+	 * @param \OCP\IDBConnection $db
+	 * @param \OCA\User_LDAP\Mapping\UserMapping $mapping
 	 */
 	public function __construct($ocName, \OCP\IConfig $config, \OCP\IDBConnection $db, UserMapping $mapping) {
 		$this->ocName = $ocName;

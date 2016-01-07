@@ -22,6 +22,8 @@ OC.L10N.register(
     "Available groups" : "Käytettävissä olevat ryhmät",
     "Selected groups" : "Valitut ryhmät",
     "LDAP Filter:" : "LDAP-suodatin:",
+    "LDAP / AD Username:" : "LDAP-/AD-käyttäjätunnus:",
+    "LDAP / AD Email Address:" : "LDAP-/AD-sähköpostiosoite:",
     "Verify settings" : "Vahvista asetukset",
     "1. Server" : "1. Palvelin",
     "%s. Server:" : "%s. Palvelin:",
@@ -34,6 +36,7 @@ OC.L10N.register(
     "Password" : "Salasana",
     "For anonymous access, leave DN and Password empty." : "Jos haluat mahdollistaa anonyymin pääsyn, jätä DN ja Salasana tyhjäksi ",
     "You can specify Base DN for users and groups in the Advanced tab" : "Voit määrittää käyttäjien ja ryhmien oletus DN:n (distinguished name) 'tarkemmat asetukset'-välilehdeltä  ",
+    "Verify settings and count users" : "Vahvista asetukset ja laske käyttäjät",
     "Saving" : "Tallennetaan",
     "Back" : "Takaisin",
     "Continue" : "Jatka",
@@ -59,8 +62,6 @@ OC.L10N.register(
     "Email Field" : "Sähköpostikenttä",
     "User Home Folder Naming Rule" : "Käyttäjän kotihakemiston nimeämissääntö",
     "Leave empty for user name (default). Otherwise, specify an LDAP/AD attribute." : "Jätä tyhjäksi käyttäjänimi (oletusasetus). Muutoin anna LDAP/AD-atribuutti.",
-    "Internal Username" : "Sisäinen käyttäjänimi",
-    "Backup (Replica) Host" : "Varmuuskopioinnin (replikointi) palvelin",
-    "Backup (Replica) Port" : "Varmuuskopioinnin (replikoinnin) portti"
+    "Internal Username" : "Sisäinen käyttäjänimi"
 },
 "nplurals=2; plural=(n != 1);");

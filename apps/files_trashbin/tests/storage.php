@@ -27,6 +27,13 @@ namespace OCA\Files_trashbin\Tests\Storage;
 use OC\Files\Storage\Temporary;
 use OC\Files\Filesystem;
 
+/**
+ * Class Storage
+ *
+ * @group DB
+ *
+ * @package OCA\Files_trashbin\Tests\Storage
+ */
 class Storage extends \Test\TestCase {
 	/**
 	 * @var string
@@ -68,7 +75,8 @@ class Storage extends \Test\TestCase {
 	protected function tearDown() {
 		\OC\Files\Filesystem::getLoader()->removeStorageWrapper('oc_trashbin');
 		$this->logout();
-		\OC_User::deleteUser($this->user);
+		$user = \OC::$server->getUserManager()->get($this->user);
+		if ($user !== null) { $user->delete(); }
 		\OC_Hook::clear();
 		parent::tearDown();
 	}

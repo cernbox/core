@@ -20,13 +20,13 @@
 		<admin>admin-encryption</admin>
 	</documentation>
 	<rememberlogin>false</rememberlogin>
-	<version>1.1.0</version>
+	<version>1.2.0</version>
 	<types>
 		<filesystem/>
 	</types>
 	<dependencies>
 		<lib>openssl</lib>
-		<owncloud min-version="8.2" />
+		<owncloud min-version="9.0" />
 	</dependencies>
 
 </info>

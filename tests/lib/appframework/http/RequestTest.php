@@ -10,7 +10,6 @@
 
 namespace OC\AppFramework\Http;
 
-use OC\Security\Crypto;
 use OCP\Security\ISecureRandom;
 use OCP\IConfig;
 
@@ -639,6 +638,26 @@ class RequestTest extends \Test\TestCase {
 			[
 				'server' => [
 					'HTTPS' => 'off'
+				],
+			],
+			$this->secureRandom,
+			$this->config,
+			$this->stream
+		);
+		$this->assertSame('http', $request->getServerProtocol());
+	}
+
+	public function testGetServerProtocolWithHttpsServerValueEmpty() {
+		$this->config
+			->expects($this->once())
+			->method('getSystemValue')
+			->with('overwriteprotocol')
+			->will($this->returnValue(''));
+
+		$request = new Request(
+			[
+				'server' => [
+					'HTTPS' => ''
 				],
 			],
 			$this->secureRandom,

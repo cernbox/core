@@ -37,7 +37,9 @@
 namespace OC\Files\Storage;
 
 use OC\Files\Cache\Cache;
+use OC\Files\Cache\Propagator;
 use OC\Files\Cache\Scanner;
+use OC\Files\Cache\Updater;
 use OC\Files\Filesystem;
 use OC\Files\Cache\Watcher;
 use OCP\Files\FileNameTooLongException;
@@ -64,7 +66,9 @@ abstract class Common implements Storage {
 	protected $cache;
 	protected $scanner;
 	protected $watcher;
+	protected $propagator;
 	protected $storageCache;
+	protected $updater;
 
 	protected $mountOptions = [];
 
@@ -225,7 +229,7 @@ abstract class Common implements Storage {
 		if ($this->is_dir($path)) {
 			return 'httpd/unix-directory';
 		} elseif ($this->file_exists($path)) {
-			return \OC_Helper::getFileNameMimeType($path);
+			return \OC::$server->getMimeTypeDetector()->detectPath($path);
 		} else {
 			return false;
 		}
@@ -248,7 +252,7 @@ abstract class Common implements Storage {
 	}
 
 	public function getLocalFolder($path) {
-		$baseDir = \OC_Helper::tmpFolder();
+		$baseDir = \OC::$server->getTempManager()->getTemporaryFolder();
 		$this->addLocalFolder($path, $baseDir);
 		return $baseDir;
 	}
@@ -345,6 +349,32 @@ abstract class Common implements Storage {
 		return $this->watcher;
 	}
 
+	/**
+	 * get a propagator instance for the cache
+	 *
+	 * @param \OC\Files\Storage\Storage (optional) the storage to pass to the watcher
+	 * @return \OC\Files\Cache\Propagator
+	 */
+	public function getPropagator($storage = null) {
+		if (!$storage) {
+			$storage = $this;
+		}
+		if (!isset($this->propagator)) {
+			$this->propagator = new Propagator($storage);
+		}
+		return $this->propagator;
+	}
+
+	public function getUpdater($storage = null) {
+		if (!$storage) {
+			$storage = $this;
+		}
+		if (!isset($this->updater)) {
+			$this->updater = new Updater($storage);
+		}
+		return $this->updater;
+	}
+
 	public function getStorageCache($storage = null) {
 		if (!$storage) {
 			$storage = $this;
@@ -372,13 +402,7 @@ abstract class Common implements Storage {
 	 * @return string|false
 	 */
 	public function getETag($path) {
-		$ETagFunction = \OC\Connector\Sabre\Node::$ETagFunction;
-		if ($ETagFunction) {
-			$hash = call_user_func($ETagFunction, $path);
-			return $hash;
-		} else {
-			return uniqid();
-		}
+		return uniqid();
 	}
 
 	/**
