@@ -223,7 +223,7 @@ class OC_Defaults {
 			$footer = $this->theme->getShortFooter();
 		} else {
 			$footer = '<a href="'. $this->getBaseUrl() . '" target="_blank">' .$this->getEntity() . '</a>'.
-				' – ' . $this->getSlogan();
+				' – <a href="' . $this->getSloganUrl() . '" target="_blank">' . $this->getSlogan() . '</a>';
 		}
 
 		return $footer;
