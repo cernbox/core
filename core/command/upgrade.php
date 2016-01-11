@@ -46,6 +46,7 @@ class Upgrade extends Command {
 	private $logger;
 	/**
 	 * @param IConfig $config
+	 * @param ILogger $logger
 	 */
 	public function __construct(IConfig $config, ILogger $logger) {
 		parent::__construct();
@@ -108,9 +109,12 @@ class Upgrade extends Command {
 				$output->setFormatter($timestampFormatter);
 			}
 			$self = $this;
-			$updater = new Updater(\OC::$server->getHTTPHelper(),
-				$this->config,
-				$this->logger);
+			$updater = new Updater(
+					\OC::$server->getHTTPHelper(),
+					$this->config,
+					\OC::$server->getIntegrityCodeChecker(),
+					$this->logger
+			);
 			$updater->setSimulateStepEnabled($simulateStepEnabled);
 			$updater->setUpdateStepEnabled($updateStepEnabled);
 			$updater->setSkip3rdPartyAppsDisable($skip3rdPartyAppsDisable);
@@ -179,10 +183,10 @@ class Upgrade extends Command {
 				$output->writeln("<error>$message</error>");
 			});
 			$updater->listen('\OC\Updater', 'setDebugLogLevel', function ($logLevel, $logLevelName) use($output) {
-				$output->writeln("<info>Set log level to debug - current level: '$logLevelName'</info>");
+				$output->writeln("<info>Set log level to debug</info>");
 			});
 			$updater->listen('\OC\Updater', 'resetLogLevel', function ($logLevel, $logLevelName) use($output) {
-				$output->writeln("<info>Reset log level to '$logLevelName'</info>");
+				$output->writeln("<info>Reset log level</info>");
 			});
 			if(OutputInterface::VERBOSITY_NORMAL < $output->getVerbosity()) {
 				$updater->listen('\OC\Updater', 'repairInfo', function ($message) use($output) {

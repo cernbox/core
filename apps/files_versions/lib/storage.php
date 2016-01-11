@@ -43,6 +43,7 @@ namespace OCA\Files_Versions;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosUtil;
 use OC\Files\ObjectStore\EosCmd;
+use OCP\Files\NotFoundException;
 
 class Storage {
 
@@ -57,9 +58,13 @@ class Storage {
 		if ( $uid != \OCP\User::getUser() ) {
 			$info = \OC\Files\Filesystem::getFileInfo($filename);
 			$ownerView = new \OC\Files\View('/'.$uid.'/files');
-			$filename = $ownerView->getPath($info['fileid']);
+			try {
+				$filename = $ownerView->getPath($info['fileid']);
+			} catch (NotFoundException $e) {
+				$filename = null;
+			}
 		}
-		return array($uid, $filename);
+		return [$uid, $filename];
 	}
 
 	/**

@@ -22,7 +22,8 @@
 
 namespace OCA\Files;
 
-use OC\L10N\Factory;
+use OCP\IDBConnection;
+use OCP\L10N\IFactory;
 use OCP\Activity\IExtension;
 use OCP\Activity\IManager;
 use OCP\IConfig;
@@ -43,7 +44,7 @@ class Activity implements IExtension {
 	/** @var IL10N */
 	protected $l;
 
-	/** @var Factory */
+	/** @var IFactory */
 	protected $languageFactory;
 
 	/** @var IURLGenerator */
@@ -51,6 +52,9 @@ class Activity implements IExtension {
 
 	/** @var \OCP\Activity\IManager */
 	protected $activityManager;
+	
+	/** @var \OCP\IDBConnection */
+	protected $connection;
 
 	/** @var \OCP\IConfig */
 	protected $config;
@@ -59,18 +63,20 @@ class Activity implements IExtension {
 	protected $helper;
 
 	/**
-	 * @param Factory $languageFactory
+	 * @param IFactory $languageFactory
 	 * @param IURLGenerator $URLGenerator
 	 * @param IManager $activityManager
 	 * @param ActivityHelper $helper
+	 * @param IDBConnection $connection
 	 * @param IConfig $config
 	 */
-	public function __construct(Factory $languageFactory, IURLGenerator $URLGenerator, IManager $activityManager, ActivityHelper $helper, IConfig $config) {
+	public function __construct(IFactory $languageFactory, IURLGenerator $URLGenerator, IManager $activityManager, ActivityHelper $helper, IDBConnection $connection, IConfig $config) {
 		$this->languageFactory = $languageFactory;
 		$this->URLGenerator = $URLGenerator;
 		$this->l = $this->getL10N();
 		$this->activityManager = $activityManager;
 		$this->helper = $helper;
+		$this->connection = $connection;
 		$this->config = $config;
 	}
 
@@ -160,7 +166,7 @@ class Activity implements IExtension {
 	 * @param string $text
 	 * @param IL10N $l
 	 * @param array $params
-	 * @return bool|string
+	 * @return string|false
 	 */
 	protected function translateLong($text, IL10N $l, array $params) {
 		switch ($text) {
@@ -390,7 +396,7 @@ class Activity implements IExtension {
 			}
 			foreach ($favorites['folders'] as $favorite) {
 				$fileQueryList[] = '`file` LIKE ?';
-				$parameters[] = $favorite . '/%';
+				$parameters[] = $this->connection->escapeLikeParameter($favorite) . '/%';
 			}
 
 			$parameters[] = self::APP_FILES;

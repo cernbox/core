@@ -7,7 +7,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Roeland Jago Douma <roeland@owncloud.com>
  * @author scambra <sergio@entrecables.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
@@ -31,8 +31,6 @@
 namespace OC\Files\Storage;
 use OC\Files\Filesystem;
 use OCA\Files_Sharing\ISharedStorage;
-use OCA\Files_Sharing\Propagator;
-use OCA\Files_Sharing\SharedMount;
 use OCP\Lock\ILockingProvider;
 use OC\Files\ObjectStore\EosUtil;
 
@@ -53,11 +51,6 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 	private $ownerView;
 	
 	/**
-	 * @var \OCA\Files_Sharing\Propagation\PropagationManager
-	 */
-	private $propagationManager;
-	
-	/**
 	 * @var string
 	 */
 	private $user;
@@ -67,7 +60,6 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 	public function __construct($arguments) {
 		$this->share = $arguments['share'];
 		$this->ownerView = $arguments['ownerView'];
-		$this->propagationManager = $arguments['propagationManager'];
 		$this->user = $arguments['user'];
 	}
 	
@@ -77,8 +69,6 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 		}
 		$this->initialized = true;
 		Filesystem::initMountPoints($this->share['uid_owner']);
-		// for updating our etags when changes are made to the share from the owners side (probably indirectly by us trough another share)
-		$this->propagationManager->listenToOwnerChanges($this->share['uid_owner'], $this->user);
 	}
 
 	/**
@@ -640,6 +630,13 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 			$storage = $this;
 		}
 		return new \OC\Files\Cache\Shared_Watcher($storage);
+	}
+	
+	public function getPropagator($storage = null) {
+		if (!$storage) {
+			$storage = $this;
+		}
+		return new \OCA\Files_Sharing\SharedPropagator($storage);
 	}
 
 	public function getOwner($path) {

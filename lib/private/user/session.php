@@ -218,6 +218,7 @@ class Session implements IUserSession, Emitter {
 		// so the user is correclty authenticated but we reply with a wrong message saying the user should subscribe to a Linux e-group
 		$uid = strtolower($uid);
 
+		$this->session->regenerateId();
 		$this->manager->emit('\OC\User', 'preLogin', array($uid, $password));
 		$user = $this->manager->checkPassword($uid, $password);
 		if ($user !== false) {
@@ -302,6 +303,7 @@ class Session implements IUserSession, Emitter {
 	 * @return bool
 	 */
 	public function loginWithCookie($uid, $currentToken) {
+		$this->session->regenerateId();
 		$this->manager->emit('\OC\User', 'preRememberedLogin', array($uid));
 		$user = $this->manager->get($uid);
 		if (is_null($user)) {
@@ -358,7 +360,7 @@ class Session implements IUserSession, Emitter {
 	 */
 	public function setMagicInCookie($username, $token) {
 		$secureCookie = \OC::$server->getRequest()->getServerProtocol() === 'https';
-		$expires = time() + \OC_Config::getValue('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
+		$expires = time() + \OC::$server->getConfig()->getSystemValue('remember_login_cookie_lifetime', 60 * 60 * 24 * 15);
 		setcookie("oc_username", $username, $expires, \OC::$WEBROOT, '', $secureCookie, true);
 		setcookie("oc_token", $token, $expires, \OC::$WEBROOT, '', $secureCookie, true);
 		setcookie("oc_remember_login", "1", $expires, \OC::$WEBROOT, '', $secureCookie, true);

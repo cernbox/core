@@ -19,6 +19,11 @@
 * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/**
+ * Class Test_Share
+ *
+ * @group DB
+ */
 class Test_Share extends \Test\TestCase {
 
 	protected $itemType;
@@ -49,13 +54,13 @@ class Test_Share extends \Test\TestCase {
 		$this->user5 = $this->getUniqueID('user5_');
 		$this->user6 = $this->getUniqueID('user6_');
 		$this->groupAndUser = $this->getUniqueID('groupAndUser_');
-		OC_User::createUser($this->user1, 'pass');
-		OC_User::createUser($this->user2, 'pass');
-		OC_User::createUser($this->user3, 'pass');
-		OC_User::createUser($this->user4, 'pass');
-		OC_User::createUser($this->user5, 'pass');
-		OC_User::createUser($this->user6, 'pass'); // no group
-		OC_User::createUser($this->groupAndUser, 'pass');
+		\OC::$server->getUserManager()->createUser($this->user1, 'pass');
+		\OC::$server->getUserManager()->createUser($this->user2, 'pass');
+		\OC::$server->getUserManager()->createUser($this->user3, 'pass');
+		\OC::$server->getUserManager()->createUser($this->user4, 'pass');
+		\OC::$server->getUserManager()->createUser($this->user5, 'pass');
+		\OC::$server->getUserManager()->createUser($this->user6, 'pass'); // no group
+		\OC::$server->getUserManager()->createUser($this->groupAndUser, 'pass');
 		OC_User::setUserId($this->user1);
 		OC_Group::clearBackends();
 		OC_Group::useBackend(new OC_Group_Dummy);
@@ -89,13 +94,20 @@ class Test_Share extends \Test\TestCase {
 		$query->execute(array('test'));
 		\OC::$server->getAppConfig()->setValue('core', 'shareapi_allow_resharing', $this->resharing);
 
-		OC_User::deleteUser($this->user1);
-		OC_User::deleteUser($this->user2);
-		OC_User::deleteUser($this->user3);
-		OC_User::deleteUser($this->user4);
-		OC_User::deleteUser($this->user5);
-		OC_User::deleteUser($this->user6);
-		OC_User::deleteUser($this->groupAndUser);
+		$user = \OC::$server->getUserManager()->get($this->user1);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get($this->user2);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get($this->user3);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get($this->user4);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get($this->user5);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get($this->user6);
+		if ($user !== null) { $user->delete(); }
+		$user = \OC::$server->getUserManager()->get($this->groupAndUser);
+		if ($user !== null) { $user->delete(); }
 
 		OC_Group::deleteGroup($this->group1);
 		OC_Group::deleteGroup($this->group2);
@@ -370,7 +382,8 @@ class Test_Share extends \Test\TestCase {
 
 		// Remove user
 		OC_User::setUserId($this->user1);
-		OC_User::deleteUser($this->user1);
+		$user = \OC::$server->getUserManager()->get($this->user1);
+		if ($user !== null) { $user->delete(); }
 		OC_User::setUserId($this->user2);
 		$this->assertEquals(array('test1.txt'), OCP\Share::getItemsSharedWith('test', Test_Share_Backend::FORMAT_TARGET));
 	}
@@ -1732,6 +1745,61 @@ class Test_Share extends \Test\TestCase {
 		$config->deleteAppValue('core', 'shareapi_expire_after_n_days');
 	}
 	
+	/**
+	 * Test case for #17560
+	 */
+	public function testAccesToSharedSubFolder() {
+		OC_User::setUserId($this->user1);
+		$view = new \OC\Files\View('/' . $this->user1 . '/');
+		$view->mkdir('files/folder1');
+	
+		$fileInfo = $view->getFileInfo('files/folder1');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_ALL),
+				'Failed asserting that user 1 successfully shared "test" with user 2.'
+				);
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user3, \OCP\Constants::PERMISSION_ALL),
+				'Failed asserting that user 1 successfully shared "test" with user 3.'
+				);
+	
+		$view->mkdir('files/folder1/folder2');
+	
+		$fileInfo = $view->getFileInfo('files/folder1/folder2');
+		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
+		$fileId = $fileInfo->getId();
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user4, \OCP\Constants::PERMISSION_ALL),
+				'Failed asserting that user 1 successfully shared "test" with user 4.'
+				);
+	
+		$res = OCP\Share::getItemShared(
+				'folder',
+				$fileId,
+				OCP\Share::FORMAT_NONE,
+				null,
+				true
+				);
+		$this->assertCount(3, $res);
+	
+		$this->assertTrue(
+				OCP\Share::shareItem('folder', $fileId, OCP\Share::SHARE_TYPE_USER, $this->user5, \OCP\Constants::PERMISSION_ALL),
+				'Failed asserting that user 1 successfully shared "test" with user 5.'
+				);
+		$res = OCP\Share::getItemShared(
+				'folder',
+				$fileId,
+				OCP\Share::FORMAT_NONE,
+				null,
+				true
+				);
+		$this->assertCount(4, $res);
+	}
+	
 	public function testShareWithSelfError() {
 		OC_User::setUserId($this->user1);
 		$view = new \OC\Files\View('/' . $this->user1 . '/');
@@ -1748,6 +1816,7 @@ class Test_Share extends \Test\TestCase {
 			$this->assertEquals('Sharing /folder1 failed, because you can not share with yourself', $e->getMessage());
 		}
 	}
+	
 	
 	public function testShareWithOwnerError() {
 		OC_User::setUserId($this->user1);

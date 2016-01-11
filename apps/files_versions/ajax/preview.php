@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Björn Schießle <schiessle@owncloud.com>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
+ * @author Roeland Jago Douma <roeland@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
@@ -49,7 +49,7 @@ try {
 	list($user, $file) = \OCA\Files_Versions\Storage::getUidAndFilename($file);
 	$pathinfo = pathinfo($file);
 	$preview = new \OC\Preview($user, 'files/.sys.v#.' . $pathinfo['basename'], $version);		
-	$mimetype = \OC_Helper::getFileNameMimeType($file);
+	$mimetype = \OC::$server->getMimeTypeDetector()->detectPath($file);
 	$preview->setMimetype($mimetype);
 	$preview->setMaxX($maxX);
 	$preview->setMaxY($maxY);

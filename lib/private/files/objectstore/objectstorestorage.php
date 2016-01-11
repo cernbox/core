@@ -41,16 +41,6 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	 * @var \OC\User\User $user
 	 */
 	protected $user;
-	
-	public function getCache($path = '', $storage = null) {
-		if (!$storage) {
-			$storage = $this;
-		}
-		if (!isset($this->cache)) {
-			$this->cache = new \OC\Files\Cache\EosCache($storage);  
-		}
-		return $this->cache;
-	}
 
 	public function __construct($params) {
 		if (isset($params['objectstore']) && $params['objectstore'] instanceof IObjectStore) {
@@ -63,43 +53,55 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		} else {
 			$this->id = 'object::store:' . $this->objectStore->getStorageId();
 		}
+		//initialize cache with root directory in cache
+		if (!$this->is_dir('/')) {
+			$this->mkdir('/');
+		}
 	}
 
 	public function mkdir($path) {
 		$path = $this->normalizePath($path);
 
-		$dirName = $this->normalizePath(dirname($path));
-		return 	$this->objectStore->mkdir(EosProxy::toEos($path, $this->getOwner($path)));
+		if ($this->file_exists($path)) {
+			return false;
+		}
+
+		$mTime = time();
+		$data = [
+			'mimetype' => 'httpd/unix-directory',
+			'size' => 0,
+			'mtime' => $mTime,
+			'storage_mtime' => $mTime,
+			'permissions' => \OCP\Constants::PERMISSION_ALL,
+		];
+		if ($path === '') {
+			//create root on the fly
+			$data['etag'] = $this->getETag('');
+			$this->getCache()->put('', $data);
+			return true;
+		} else {
+			// if parent does not exist, create it
+			$parent = $this->normalizePath(dirname($path));
+			$parentType = $this->filetype($parent);
+			if ($parentType === false) {
+				if (!$this->mkdir($parent)) {
+					// something went wrong
+					return false;
+				}
+			} else if ($parentType === 'file') {
+				// parent is a file
+				return false;
+			}
+			// finally create the new dir
+			$mTime = time(); // update mtime
+			$data['mtime'] = $mTime;
+			$data['storage_mtime'] = $mTime;
+			$data['etag'] = $this->getETag($path);
+			$this->getCache()->put($path, $data);
+			return true;
+		}
 	}
 
-	// override from Common
-	public function isReadable($path){
-		$data = $this->getCache()->get($path);
-		if($data){
-			$permissions = $data["permissions"];
-			if($permissions){
-				if($permissions & \OCP\PERMISSION_READ){
-					return true;
-				} 
-			} 
-		}
-		return false; 
-	}
-	
-
-	// override from Common to use permissions instead of file existence
-	public function isUpdatable($path){
-		$data = $this->getCache()->get($path);
-		if($data){
-			$permissions = $data["permissions"];
-			if($permissions){
-				if($permissions & \OCP\PERMISSION_UPDATE){
-					return true;
-				} 
-			} 
-		}
-		return false; 
-	}
 	/**
 	 * @param string $path
 	 * @return string
@@ -141,17 +143,51 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 
 	public function rmdir($path) {
 		$path = $this->normalizePath($path);
-		return 	$this->objectStore->deleteObject(EosProxy::toEos($path, $this->id));
+
+		if (!$this->is_dir($path)) {
+			return false;
+		}
+
+		$this->rmObjects($path);
+
+		$this->getCache()->remove($path);
+
+		return true;
 	}
 
 	private function rmObjects($path) {
-		$path = $this->normalizePath($path);
-		$this->objectStore->deleteObject(EosProxy::toEos($path, $this->getOwner($path)));
+		$children = $this->getCache()->getFolderContents($path);
+		foreach ($children as $child) {
+			if ($child['mimetype'] === 'httpd/unix-directory') {
+				$this->rmObjects($child['path']);
+			} else {
+				$this->unlink($child['path']);
+			}
+		}
 	}
 
 	public function unlink($path) {
 		$path = $this->normalizePath($path);
-		return	$this->objectStore->deleteObject(EosProxy::toEos($path, $this->getOwner($path)));
+		$stat = $this->stat($path);
+
+		if ($stat && isset($stat['fileid'])) {
+			if ($stat['mimetype'] === 'httpd/unix-directory') {
+				return $this->rmdir($path);
+			}
+			try {
+				$this->objectStore->deleteObject($this->getURN($stat['fileid']));
+			} catch (\Exception $ex) {
+				if ($ex->getCode() !== 404) {
+					\OCP\Util::writeLog('objectstore', 'Could not delete object: ' . $ex->getMessage(), \OCP\Util::ERROR);
+					return false;
+				} else {
+					//removing from cache is ok as it does not exist in the objectstore anyway
+				}
+			}
+			$this->getCache()->remove($path);
+			return true;
+		}
+		return false;
 	}
 
 	public function stat($path) {
@@ -210,7 +246,17 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		switch ($mode) {
 			case 'r':
 			case 'rb':
-					return $this->objectStore->readObject(EosProxy::toEos($path, $this->getOwner($path)));
+				$stat = $this->stat($path);
+				if (is_array($stat)) {
+					try {
+						return $this->objectStore->readObject($this->getURN($stat['fileid']));
+					} catch (\Exception $ex) {
+						\OCP\Util::writeLog('objectstore', 'Could not get object: ' . $ex->getMessage(), \OCP\Util::ERROR);
+						return false;
+					}
+				} else {
+					return false;
+				}
 			case 'w':
 			case 'wb':
 			case 'a':
@@ -228,7 +274,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 				} else {
 					$ext = '';
 				}
-				$tmpFile = \OC_Helper::tmpFile($ext);
+				$tmpFile = \OC::$server->getTempManager()->getTemporaryFile($ext);
 				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
 				if ($this->file_exists($path)) {
 					$source = $this->fopen($path, 'r');
@@ -249,9 +295,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	public function rename($source, $target) {
 		$source = $this->normalizePath($source);
 		$target = $this->normalizePath($target);
-		if(!$this->objectStore->rename(EosProxy::toEos($source, $this->getOwner($source)), EosProxy::toEos($target, $this->getOwner($target)))){
-			return false;
-		}
+		$this->remove($target);
+		$this->getCache()->move($source, $target);
+		$this->touch(dirname($target));
 		return true;
 	}
 
@@ -266,8 +312,44 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	}
 
 	public function touch($path, $mtime = null) {
-		$path         = $this->normalizePath($path);
-		return 	$this->objectStore->writeObject(EosProxy::toEos($path, $this->getOwner($path)), fopen('php://memory', 'r'));
+		if (is_null($mtime)) {
+			$mtime = time();
+		}
+
+		$path = $this->normalizePath($path);
+		$dirName = dirname($path);
+		$parentExists = $this->is_dir($dirName);
+		if (!$parentExists) {
+			return false;
+		}
+
+		$stat = $this->stat($path);
+		if (is_array($stat)) {
+			// update existing mtime in db
+			$stat['mtime'] = $mtime;
+			$this->getCache()->update($stat['fileid'], $stat);
+		} else {
+			$mimeType = \OC::$server->getMimeTypeDetector()->detectPath($path);
+			// create new file
+			$stat = array(
+				'etag' => $this->getETag($path),
+				'mimetype' => $mimeType,
+				'size' => 0,
+				'mtime' => $mtime,
+				'storage_mtime' => $mtime,
+				'permissions' => \OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE,
+			);
+			$fileId = $this->getCache()->put($path, $stat);
+			try {
+				//read an empty file from memory
+				$this->objectStore->writeObject($this->getURN($fileId), fopen('php://memory', 'r'));
+			} catch (\Exception $ex) {
+				$this->getCache()->remove($path);
+				\OCP\Util::writeLog('objectstore', 'Could not create object: ' . $ex->getMessage(), \OCP\Util::ERROR);
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public function writeBack($tmpFile) {
@@ -276,14 +358,29 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		}
 
 		$path = self::$tmpFiles[$tmpFile];
-		$path = $this->normalizePath($path);
 		$stat = $this->stat($path);
+		if (empty($stat)) {
+			// create new file
+			$stat = array(
+				'permissions' => \OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE,
+			);
+		}
+		// update stat with new data
+		$mTime = time();
+		$stat['size'] = filesize($tmpFile);
+		$stat['mtime'] = $mTime;
+		$stat['storage_mtime'] = $mTime;
+		$stat['mimetype'] = \OC::$server->getMimeTypeDetector()->detect($tmpFile);
+		$stat['etag'] = $this->getETag($path);
+
+		$fileId = $this->getCache()->put($path, $stat);
 		try {
 			//upload to object storage
-			$this->objectStore->writeObject(EosProxy::toEos($path, $this->getOwner($path)), fopen($tmpFile, 'r'));
+			$this->objectStore->writeObject($this->getURN($fileId), fopen($tmpFile, 'r'));
 		} catch (\Exception $ex) {
+			$this->getCache()->remove($path);
 			\OCP\Util::writeLog('objectstore', 'Could not create object: ' . $ex->getMessage(), \OCP\Util::ERROR);
-			return false;
+			throw $ex; // make this bubble up
 		}
 	}
 

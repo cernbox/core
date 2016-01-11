@@ -34,7 +34,7 @@ $pathinfo = pathinfo($filename);
 $versionName = '/'. $uid .'/files/' .$pathinfo['dirname'] . '/.sys.v#.'.$pathinfo['basename'].'/'. $revision;
 $view = new OC\Files\View('/');
 
-$ftype = $view->getMimeType('/'.$uid.'/files/'.$filename);
+$ftype = \OC::$server->getMimeTypeDetector()->getSecureMimeType($view->getMimeType('/'.$uid.'/files/'.$filename));
 
 header('Content-Type:'.$ftype);
 OCP\Response::setContentDispositionHeader(basename($filename), 'attachment');

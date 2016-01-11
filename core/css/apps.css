@@ -6,7 +6,7 @@
 	width: 100%;
 }
 #app * {
-	-moz-box-sizing: border-box; box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 
@@ -21,7 +21,7 @@
 	width: 250px;
 	height: 100%;
 	float: left;
-	-moz-box-sizing: border-box; box-sizing: border-box;
+	box-sizing: border-box;
 	background-color: #fff;
 	padding-bottom: 44px;
 	-webkit-user-select: none;
@@ -35,12 +35,12 @@
 	height: 100%;
 	overflow: auto;
 	width: inherit;
-	-moz-box-sizing: border-box; box-sizing: border-box;
+	box-sizing: border-box;
 }
 #app-navigation li {
 	position: relative;
 	width: 100%;
-	-moz-box-sizing: border-box; box-sizing: border-box;
+	box-sizing: border-box;
 }
 
 #app-navigation .active.with-menu > a,
@@ -67,7 +67,7 @@
 	min-height: 44px;
 	padding: 0 12px;
 	overflow: hidden;
-	-moz-box-sizing: border-box; box-sizing: border-box;
+	box-sizing: border-box;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	color: #333;
@@ -110,17 +110,13 @@
 }
 
 #app-navigation .collapsible .collapse {
-	-moz-transform: rotate(-90deg);
 	-webkit-transform: rotate(-90deg);
 	-ms-transform:rotate(-90deg);
-	-o-transform:rotate(-90deg);
 	transform: rotate(-90deg);
 }
 #app-navigation .collapsible.open .collapse {
-	-moz-transform: rotate(0);
 	-webkit-transform: rotate(0);
 	-ms-transform:rotate(0);
-	-o-transform:rotate(0);
 	transform: rotate(0);
 }
 
@@ -139,8 +135,6 @@
 
 #app-navigation .collapsible.open {
 	background-image: linear-gradient(top, rgb(238,238,238) 0%, rgb(245,245,245) 100%);
-	background-image: -o-linear-gradient(top, rgb(238,238,238) 0%, rgb(245,245,245) 100%);
-	background-image: -moz-linear-gradient(top, rgb(238,238,238) 0%, rgb(245,245,245) 100%);
 	background-image: -webkit-linear-gradient(top, rgb(238,238,238) 0%, rgb(245,245,245) 100%);
 	background-image: -ms-linear-gradient(top, rgb(238,238,238) 0%, rgb(245,245,245) 100%);
 }
@@ -210,10 +204,7 @@
 
 /* drag and drop */
 #app-navigation .drag-and-drop {
-	-moz-transition: padding-bottom 500ms ease 0s;
-	-o-transition: padding-bottom 500ms ease 0s;
 	-webkit-transition: padding-bottom 500ms ease 0s;
-	-ms-transition: padding-bottom 500ms ease 0s;
 	transition: padding-bottom 500ms ease 0s;
 	padding-bottom: 40px;
 }
@@ -461,8 +452,6 @@
 	background: #fff;
 	border-left: 1px solid #eee;
 	-webkit-transition: margin-right 300ms;
-	-moz-transition: margin-right 300ms;
-	-o-transition: margin-right 300ms;
 	transition: margin-right 300ms;
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -565,16 +554,18 @@ button.loading {
 #app-content > .section:first-child {
 	border-top: none;
 }
-.section h2 {
+/* heading styles */
+h2 {
 	font-size: 20px;
-	margin-bottom: 12px;
 	font-weight: 300;
+	margin-bottom: 12px;
 }
-.section h3 {
+h3 {
 	font-size: 15px;
 	font-weight: 300;
 	margin: 12px 0;
 }
+
 /* slight position correction of checkboxes and radio buttons */
 .section input[type="checkbox"],
 .section input[type="radio"] {

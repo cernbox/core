@@ -56,7 +56,7 @@ if ($_['mail_smtpmode'] == 'qmail') {
 			if (isset($form['anchor'])) {
 				$anchor = '#' . $form['anchor'];
 				$sectionName = $form['section-name'];
-				print_unescaped(sprintf("<li><a href='%s'>%s</a></li>", OC_Util::sanitizeHTML($anchor), OC_Util::sanitizeHTML($sectionName)));
+				print_unescaped(sprintf("<li><a href='%s'>%s</a></li>", \OCP\Util::sanitizeHTML($anchor), \OCP\Util::sanitizeHTML($sectionName)));
 			}
 		}?>
 	</ul>
@@ -301,17 +301,18 @@ if ($_['cronErrors']) {
 			$relative_time = relative_modified_date($_['lastcron']);
 			$absolute_time = OC_Util::formatDate($_['lastcron']);
 			if (time() - $_['lastcron'] <= 3600): ?>
-				<span class="cronstatus success"></span>
+				<span class="status success"></span>
 				<span class="crondate" original-title="<?php p($absolute_time);?>">
 					<?php p($l->t("Last cron job execution: %s.", [$relative_time]));?>
 				</span>
-			<?php else: ?>				<span class="cronstatus error"></span>
+			<?php else: ?>				
+				<span class="status error"></span>
 				<span class="crondate" original-title="<?php p($absolute_time);?>">
 					<?php p($l->t("Last cron job execution: %s. Something seems wrong.", [$relative_time]));?>
 				</span>
 			<?php endif;
 		else: ?>
-			<span class="cronstatus error"></span>
+			<span class="status error"></span>
 			<?php p($l->t("Cron was not executed yet!"));
 		endif; ?>
 	</p>

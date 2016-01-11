@@ -16,7 +16,7 @@ if(!isset($_)) {//also provide standalone error page
 		<li class="error">
 			<?php p($l->t('Resource not found.')); ?><br>
 			<p class="hint"><?php p($l->t('Share may not longer exist: removed or expired. File or directory may have been deleted.')); ?></p>
-			<p class="hint"><a href="<?php p(OC_Helper::linkTo('', 'index.php')) ?>"><?php p($l->t('You can click here to return to %s.', array($theme->getName()))); ?></a></p>
+			<p class="hint"><a href="<?php p(\OC::$server->getURLGenerator()->linkTo('', 'index.php')) ?>"><?php p($l->t('You can click here to return to %s.', array($theme->getName()))); ?></a></p>
 		</li>
 	</ul>
 <?php endif; ?>

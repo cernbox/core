@@ -50,7 +50,7 @@ class OC_Defaults {
 
 	function __construct() {
 		$this->l = \OC::$server->getL10N('lib');
-		$version = OC_Util::getVersion();
+		$version = $version = \OCP\Util::getVersion();
 
 		$this->defaultEntity = 'CERNBox'; /* e.g. company name, used for footers and copyright notices */
 		$this->defaultName = 'CERNBox'; /* short name, used when referring to the software */
@@ -60,7 +60,7 @@ class OC_Defaults {
 		$this->defaultiOSClientUrl = 'https://cernbox.cern.ch/cernbox/doc';
 		$this->defaultiTunesAppId = '543672169';
 		$this->defaultAndroidClientUrl = 'https://play.google.com/store/apps/details?id=ch.cern.cernbox';
-		$this->defaultDocBaseUrl = 'http://cernbox.cern.ch/cernbox/doc';
+		$this->defaultDocBaseUrl = 'https://cernbox.cern.ch/cernbox/doc/clients.html';
 		$this->defaultDocVersion = $version[0] . '.' . $version[1]; // used to generate doc links
 		$this->defaultSloganUrl = "http://cernbox.cern.ch/cernbox/doc";
 		$this->defaultSlogan = $this->l->t('Help and Download Clients');

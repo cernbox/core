@@ -23,6 +23,7 @@ namespace OC;
 
 use OCP\IConfig;
 use OCP\ILogger;
+use OC\IntegrityCheck\Checker;
 
 class UpdaterTest extends \Test\TestCase {
 	/** @var IConfig */
@@ -33,6 +34,8 @@ class UpdaterTest extends \Test\TestCase {
 	private $logger;
 	/** @var Updater */
 	private $updater;
+	/** @var Checker */
+	private $checker;
 	
 	public function setUp() {
 		parent::setUp();
@@ -45,10 +48,14 @@ class UpdaterTest extends \Test\TestCase {
 		$this->logger = $this->getMockBuilder('\\OCP\\ILogger')
 			->disableOriginalConstructor()
 			->getMock();
+		$this->checker = $this->getMockBuilder('\OC\IntegrityCheck\Checker')
+			->disableOriginalConstructor()
+			->getMock();
 
 		$this->updater = new Updater(
 			$this->httpHelper,
 			$this->config,
+			$this->checker,
 			$this->logger
 		);
 	}
@@ -58,7 +65,7 @@ class UpdaterTest extends \Test\TestCase {
 	 * @return string
 	 */
 	private function buildUpdateUrl($baseUrl) {
-		return $baseUrl . '?version='.implode('x', \OC_Util::getVersion()).'xinstalledatxlastupdatedatx'.\OC_Util::getChannel().'x'.\OC_Util::getEditionString().'x';
+		return $baseUrl . '?version='.implode('x', \OCP\Util::getVersion()).'xinstalledatxlastupdatedatx'.\OC_Util::getChannel().'x'.\OC_Util::getEditionString().'x';
 	}
 	
 	/**
@@ -157,11 +164,11 @@ class UpdaterTest extends \Test\TestCase {
 	 * 
 	 * @param string $oldVersion
 	 * @param string $newVersion
+	 * @param string $allowedVersion
 	 * @param bool $result
 	 */
 	public function testIsUpgradePossible($oldVersion, $newVersion, $allowedVersion, $result) {
-		$updater = new Updater($this->httpHelper, $this->config, $this->logger);
-		$this->assertSame($result, $updater->isUpgradePossible($oldVersion, $newVersion, $allowedVersion));
+		$this->assertSame($result, $this->updater->isUpgradePossible($oldVersion, $newVersion, $allowedVersion));
 	}
 
 	public function testCheckInCache() {

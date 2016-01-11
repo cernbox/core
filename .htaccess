@@ -14,6 +14,11 @@ RequestHeader set XAuthorization %{XAUTHORIZATION}e env=XAUTHORIZATION
     Header set X-Robots-Tag "none"
     Header set X-Frame-Options "SAMEORIGIN"
     SetEnv modHeadersAvailable true
+    
+    # Add CSP header if not set, used for static resources
+    Header append Content-Security-Policy ""
+    Header edit Content-Security-Policy "^$" "default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    
   </IfModule>
 
   # Add cache control for CSS and JS files
@@ -38,13 +43,26 @@ RewriteEngine on
 RewriteRule .* - [env=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^\.well-known/host-meta /public.php?service=host-meta [QSA,L]
 RewriteRule ^\.well-known/host-meta\.json /public.php?service=host-meta-json [QSA,L]
-RewriteRule ^\.well-known/carddav /remote.php/carddav/ [R]
-RewriteRule ^\.well-known/caldav /remote.php/caldav/ [R]
-RewriteRule ^apps/calendar/caldav\.php remote.php/caldav/ [QSA,L]
-RewriteRule ^apps/contacts/carddav\.php remote.php/carddav/ [QSA,L]
+RewriteRule ^\.well-known/carddav /remote.php/dav/ [R=301,L]
+RewriteRule ^\.well-known/caldav /remote.php/dav/ [R=301,L]
 RewriteRule ^remote/(.*) remote.php [QSA,L]
 RewriteRule ^(build|tests|config|lib|3rdparty|templates)/.* - [R=404,L]
 RewriteRule ^(\.|autotest|occ|issue|indie|db_|console).* - [R=404,L]
+
+# Rewrite rules for `front_controller_active`
+Options -MultiViews
+RewriteRule ^core/js/oc.js$ index.php/core/js/oc.js [PT,E=PATH_INFO:$1]
+RewriteRule ^core/preview.png$ index.php/core/preview.png [PT,E=PATH_INFO:$1]
+RewriteCond %{REQUEST_FILENAME} !\.(css|js|svg|gif|png|html|ttf|woff|ico)$
+RewriteCond %{REQUEST_FILENAME} !core/img/favicon.ico$
+RewriteCond %{REQUEST_FILENAME} !/remote.php
+RewriteCond %{REQUEST_FILENAME} !/public.php
+RewriteCond %{REQUEST_FILENAME} !/cron.php
+RewriteCond %{REQUEST_FILENAME} !/core/ajax/update.php
+RewriteCond %{REQUEST_FILENAME} !/status.php
+RewriteCond %{REQUEST_FILENAME} !/ocs/v1.php
+RewriteCond %{REQUEST_FILENAME} !/ocs/v2.php
+RewriteRule .* index.php [PT,E=PATH_INFO:$1]
 </IfModule>
 <IfModule mod_mime.c>
 AddType image/svg+xml svg svgz

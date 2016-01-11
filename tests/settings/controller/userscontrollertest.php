@@ -566,7 +566,7 @@ class UsersControllerTest extends \Test\TestCase {
 			->will($this->returnValue([]));
 
 		$expectedResponse = new DataResponse([]);
-		$response = $this->container['UsersController']->index(0, 10, '','', 'OC_User_Dummy');
+		$response = $this->container['UsersController']->index(0, 10, '','', '\Test\Util\User\Dummy');
 		$this->assertEquals($expectedResponse, $response);
 	}
 
@@ -1147,7 +1147,7 @@ class UsersControllerTest extends \Test\TestCase {
 	public function testCreateUnsuccessfulWithInvalidEmailAdmin() {
 		$this->container['IsAdmin'] = true;
 
-			$expectedResponse = new DataResponse([
+		$expectedResponse = new DataResponse([
 				'message' => 'Invalid mail address',
 			],
 			Http::STATUS_UNPROCESSABLE_ENTITY
@@ -1162,59 +1162,60 @@ class UsersControllerTest extends \Test\TestCase {
 	public function testCreateSuccessfulWithValidEmailAdmin() {
 		$this->container['IsAdmin'] = true;
 		$message = $this->getMockBuilder('\OC\Mail\Message')
-		->disableOriginalConstructor()->getMock();
+			->disableOriginalConstructor()->getMock();
 		$message
-		->expects($this->at(0))
-		->method('setTo')
-		->with(['validMail@Adre.ss' => 'foo']);
+			->expects($this->at(0))
+			->method('setTo')
+			->with(['validMail@Adre.ss' => 'foo']);
 		$message
-		->expects($this->at(1))
-		->method('setSubject')
-		->with('Your  account was created');
+			->expects($this->at(1))
+			->method('setSubject')
+			->with('Your  account was created');
 		$htmlBody = new Http\TemplateResponse(
-				'settings',
-				'email.new_user',
-				[
-						'username' => 'foo',
-						'url' => '',
-				],
-				'blank'
-				);
+			'settings',
+			'email.new_user',
+			[
+				'username' => 'foo',
+				'url' => '',
+			],
+			'blank'
+		);
 		$message
-		->expects($this->at(2))
-		->method('setHtmlBody')
-		->with($htmlBody->render());
+			->expects($this->at(2))
+			->method('setHtmlBody')
+			->with($htmlBody->render());
 		$plainBody = new Http\TemplateResponse(
-				'settings',
-				'email.new_user_plain_text',
-				[
-						'username' => 'foo',
-						'url' => '',
-				],
-				'blank'
-				);
+			'settings',
+			'email.new_user_plain_text',
+			[
+				'username' => 'foo',
+				'url' => '',
+			],
+			'blank'
+		);
 		$message
-		->expects($this->at(3))
-		->method('setPlainBody')
-		->with($plainBody->render());
+			->expects($this->at(3))
+			->method('setPlainBody')
+			->with($plainBody->render());
 		$message
-		->expects($this->at(4))
-		->method('setFrom')
-		->with(['no-reply@owncloud.com' => null]);
-		
+			->expects($this->at(4))
+			->method('setFrom')
+			->with(['no-reply@owncloud.com' => null]);
+
 		$this->container['Mailer']
-		->expects($this->at(0))
-		->method('validateMailAddress')
-		->with('validMail@Adre.ss')
-		->will($this->returnValue(true));
+			->expects($this->at(0))
+			->method('validateMailAddress')
+			->with('validMail@Adre.ss')
+			->will($this->returnValue(true));
 		$this->container['Mailer']
-		->expects($this->at(1))
-		->method('createMessage')
-		->will($this->returnValue($message));
+			->expects($this->at(1))
+			->method('createMessage')
+			->will($this->returnValue($message));
 		$this->container['Mailer']
-		->expects($this->at(2))
-		->method('send')
-		->with($message);
+			->expects($this->at(2))
+			->method('send')
+			->with($message);
+
 		$user = $this->getMockBuilder('\OC\User\User')
 			->disableOriginalConstructor()->getMock();
 		$user
@@ -1235,6 +1236,7 @@ class UsersControllerTest extends \Test\TestCase {
 			->expects($this->once())
 			->method('createUser')
 			->will($this->onConsecutiveCalls($user));
+
 
 		$response = $this->container['UsersController']->create('foo', 'password', [], 'validMail@Adre.ss');
 		$this->assertEquals(Http::STATUS_CREATED, $response->getStatus());
@@ -1352,7 +1354,7 @@ class UsersControllerTest extends \Test\TestCase {
 			->expects($this->once())
 			->method('isEnabledForUser')
 			->with(
-				$this->equalTo('files_encryption')
+				$this->equalTo('encryption')
 			)
 			->will($this->returnValue(true));
 		$this->container['Config']
@@ -1360,7 +1362,7 @@ class UsersControllerTest extends \Test\TestCase {
 			->method('getAppValue')
 			->with(
 				$this->equalTo('encryption'),
-				$this->equalTo('recoveryEnabled'),
+				$this->equalTo('recoveryAdminEnabled'),
 				$this->anything()
 			)
 			->will($this->returnValue('1'));
@@ -1370,8 +1372,8 @@ class UsersControllerTest extends \Test\TestCase {
 			->method('getUserValue')
 			->with(
 				$this->anything(),
-				$this->equalTo('files_encryption'),
-				$this->equalTo('recovery_enabled'),
+				$this->equalTo('encryption'),
+				$this->equalTo('recoveryEnabled'),
 				$this->anything()
 			)
 			->will($this->returnValue('0'));
@@ -1381,17 +1383,17 @@ class UsersControllerTest extends \Test\TestCase {
 		$result = self::invokePrivate($this->container['UsersController'], 'formatUserForIndex', [$user]);
 		$this->assertEquals($expectedResult, $result);
 	}
-	
+
 	public function setEmailAddressData() {
 		return [
-				/* mailAddress,    isValid, expectsUpdate, expectsDelete, canChangeDisplayName, responseCode */
-				[ '',              true,    false,         true,          true,                 Http::STATUS_OK ],
-				[ 'foo@local',     true,    true,          false,         true,                 Http::STATUS_OK],
-				[ 'foo@bar@local', false,   false,         false,         true,                 Http::STATUS_UNPROCESSABLE_ENTITY],
-				[ 'foo@local',     true,    false,         false,         false,                Http::STATUS_FORBIDDEN],
+			/* mailAddress,    isValid, expectsUpdate, expectsDelete, canChangeDisplayName, responseCode */
+			[ '',              true,    false,         true,          true,                 Http::STATUS_OK ],
+			[ 'foo@local',     true,    true,          false,         true,                 Http::STATUS_OK],
+			[ 'foo@bar@local', false,   false,         false,         true,                 Http::STATUS_UNPROCESSABLE_ENTITY],
+			[ 'foo@local',     true,    false,         false,         false,                Http::STATUS_FORBIDDEN],
 		];
 	}
-	
+
 	/**
 	 * @dataProvider setEmailAddressData
 	 *
@@ -1402,129 +1404,129 @@ class UsersControllerTest extends \Test\TestCase {
 	 */
 	public function testSetEmailAddress($mailAddress, $isValid, $expectsUpdate, $expectsDelete, $canChangeDisplayName, $responseCode) {
 		$this->container['IsAdmin'] = true;
-	
+
 		$user = $this->getMockBuilder('\OC\User\User')
-		->disableOriginalConstructor()->getMock();
+			->disableOriginalConstructor()->getMock();
 		$user
-		->expects($this->any())
-		->method('getUID')
-		->will($this->returnValue('foo'));
+			->expects($this->any())
+			->method('getUID')
+			->will($this->returnValue('foo'));
 		$user
-		->expects($this->any())
-		->method('canChangeDisplayName')
-		->will($this->returnValue($canChangeDisplayName));
+			->expects($this->any())
+			->method('canChangeDisplayName')
+			->will($this->returnValue($canChangeDisplayName));
 		$this->container['UserSession']
-		->expects($this->atLeastOnce())
-		->method('getUser')
-		->will($this->returnValue($user));
+			->expects($this->atLeastOnce())
+			->method('getUser')
+			->will($this->returnValue($user));
 		$this->container['Mailer']
-		->expects($this->any())
-		->method('validateMailAddress')
-		->with($mailAddress)
-		->willReturn($isValid);
-	
+			->expects($this->any())
+			->method('validateMailAddress')
+			->with($mailAddress)
+			->willReturn($isValid);
+
 		if ($isValid) {
 			$user->expects($this->atLeastOnce())
-			->method('canChangeDisplayName')
-			->willReturn(true);
-	
+				->method('canChangeDisplayName')
+				->willReturn(true);
+
 			$this->container['UserManager']
-			->expects($this->atLeastOnce())
-			->method('get')
-			->with('foo')
-			->will($this->returnValue($user));
+				->expects($this->atLeastOnce())
+				->method('get')
+				->with('foo')
+				->will($this->returnValue($user));
 		}
-	
+
 		$this->container['Config']
-		->expects(($expectsUpdate) ? $this->once() : $this->never())
-		->method('setUserValue')
-		->with(
+			->expects(($expectsUpdate) ? $this->once() : $this->never())
+			->method('setUserValue')
+			->with(
 				$this->equalTo($user->getUID()),
 				$this->equalTo('settings'),
 				$this->equalTo('email'),
 				$this->equalTo($mailAddress)
-	
-				);
+
+			);
 		$this->container['Config']
-		->expects(($expectsDelete) ? $this->once() : $this->never())
-		->method('deleteUserValue')
-		->with(
+			->expects(($expectsDelete) ? $this->once() : $this->never())
+			->method('deleteUserValue')
+			->with(
 				$this->equalTo($user->getUID()),
 				$this->equalTo('settings'),
 				$this->equalTo('email')
-	
-				);
-	
+
+			);
+
 		$response = $this->container['UsersController']->setMailAddress($user->getUID(), $mailAddress);
-	
+
 		$this->assertSame($responseCode, $response->getStatus());
 	}
-	
+
 	public function testStatsAdmin() {
 		$this->container['IsAdmin'] = true;
-	
+
 		$this->container['UserManager']
-		->expects($this->at(0))
-		->method('countUsers')
-		->will($this->returnValue([128, 44]));
-	
+			->expects($this->at(0))
+			->method('countUsers')
+			->will($this->returnValue([128, 44]));
+
 		$expectedResponse = new DataResponse(
-				[
-						'totalUsers' => 172
-				]
-				);
+			[
+				'totalUsers' => 172
+			]
+		);
 		$response = $this->container['UsersController']->stats();
 		$this->assertEquals($expectedResponse, $response);
 	}
-	
+
 	/**
 	 * Tests that the subadmin stats return unique users, even
 	 * when a user appears in several groups.
 	 */
 	public function testStatsSubAdmin() {
 		$this->container['IsAdmin'] = false;
-	
+
 		$user = $this->getMockBuilder('\OC\User\User')
-		->disableOriginalConstructor()->getMock();
+			->disableOriginalConstructor()->getMock();
 		$user->expects($this->once())
-		->method('getUID')
-		->will($this->returnValue('username'));
-	
+			->method('getUID')
+			->will($this->returnValue('username'));
+
 		$this->container['SubAdminFactory']
-		->expects($this->once())
-		->method('getSubAdminsOfGroups')
-		->with('username')
-		->will($this->returnValue(['SubGroup1', 'SubGroup2']));
-	
+			->expects($this->once())
+			->method('getSubAdminsOfGroups')
+			->with('username')
+			->will($this->returnValue(['SubGroup1', 'SubGroup2']));
+
 		$this->container['UserSession']
-		->expects($this->once())
-		->method('getUser')
-		->will($this->returnValue($user));
-	
+			->expects($this->once())
+			->method('getUser')
+			->will($this->returnValue($user));
+
 		$subGroup1 = $this->getMockBuilder('\OCP\IGroup')
-		->disableOriginalConstructor()->getMock();
+			->disableOriginalConstructor()->getMock();
 		$subGroup1
-		->expects($this->once())
-		->method('getUsers')
-		->will($this->returnValue(['foo' => 'Foo', 'bar' => 'Bar']));
+			->expects($this->once())
+			->method('getUsers')
+			->will($this->returnValue(['foo' => 'Foo', 'bar' => 'Bar']));
 		$subGroup2 = $this->getMockBuilder('\OCP\IGroup')
-		->disableOriginalConstructor()->getMock();
+			->disableOriginalConstructor()->getMock();
 		$subGroup2
-		->expects($this->once())
-		->method('getUsers')
-		->will($this->returnValue(['foo' => 'Foo', 'two' => 'Two']));
-	
+			->expects($this->once())
+			->method('getUsers')
+			->will($this->returnValue(['foo' => 'Foo', 'two' => 'Two']));
+
 		$this->container['GroupManager']
-		->expects($this->exactly(2))
-		->method('get')
-		->will($this->onConsecutiveCalls($subGroup1, $subGroup2));
-	
+			->expects($this->exactly(2))
+			->method('get')
+			->will($this->onConsecutiveCalls($subGroup1, $subGroup2));
+
 		$expectedResponse = new DataResponse(
-				[
-						'totalUsers' => 3
-				]
-				);
-	
+			[
+				'totalUsers' => 3
+			]
+		);
+
 		$response = $this->container['UsersController']->stats();
 		$this->assertEquals($expectedResponse, $response);
 	}

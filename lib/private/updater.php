@@ -4,6 +4,7 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <schiessle@owncloud.com>
  * @author Frank Karlitschek <frank@owncloud.org>
+ * @author Joas Schilling <nickvergessen@owncloud.com>
  * @author Lukas Reschke <lukas@owncloud.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -33,6 +34,8 @@
 namespace OC;
 
 use OC\Hooks\BasicEmitter;
+use OC\IntegrityCheck\Checker;
+use OC\IntegrityCheck\Storage;
 use OC_App;
 use OC_Installer;
 use OC_Util;
@@ -59,6 +62,9 @@ class Updater extends BasicEmitter {
 	
 	/** @var IConfig */
 	private $config;
+	
+	/** @var Checker */
+	private $checker;
 
 	/** @var bool */
 	private $simulateStepEnabled;
@@ -80,12 +86,14 @@ class Updater extends BasicEmitter {
 	/**
 	 * @param HTTPHelper $httpHelper
 	 * @param IConfig $config
+	 * @param Checker $checker
 	 * @param \OC\Log $log
 	 */
-	public function __construct(HTTPHelper $httpHelper, IConfig $config, ILogger $log = null) {
+	public function __construct(HTTPHelper $httpHelper, IConfig $config, Checker $checker, ILogger $log = null) {
 		$this->httpHelper = $httpHelper;
 		$this->log = $log;
 		$this->config = $config;
+		$this->checker = $checker;
 		$this->simulateStepEnabled = true;
 		$this->updateStepEnabled = true;
 	}
@@ -144,7 +152,7 @@ class Updater extends BasicEmitter {
 			$this->config->setAppValue('core', 'installedat', microtime(true));
 		}
 
-		$version = \OC_Util::getVersion();
+		$version = \OCP\Util::getVersion();
 		$version['installed'] = $this->config->getAppValue('core', 'installedat');
 		$version['updated'] = $this->config->getAppValue('core', 'lastupdatedat');
 		$version['updatechannel'] = \OC_Util::getChannel();
@@ -168,6 +176,8 @@ class Updater extends BasicEmitter {
 				$tmp['versionstring'] = (string)$data->versionstring;
 				$tmp['url'] = (string)$data->url;
 				$tmp['web'] = (string)$data->web;
+			} else {
+				libxml_clear_errors();
 			}
 		} else {
 			$data = [];
@@ -197,7 +207,7 @@ class Updater extends BasicEmitter {
 		}
 		
 		$installedVersion = $this->config->getSystemValue('version', '0.0.0');
-		$currentVersion = implode('.', \OC_Util::getVersion());
+		$currentVersion = implode('.', \OCP\Util::getVersion());
 		$this->log->debug('starting upgrade from ' . $installedVersion . ' to ' . $currentVersion, array('app' => 'core'));
 		
 		$success = true;
@@ -314,6 +324,9 @@ class Updater extends BasicEmitter {
 
 		if ($this->updateStepEnabled) {
 			$this->doCoreUpgrade();
+			
+			// install new shipped apps on upgrade
+			OC_Installer::installShippedApps();
 
 			$disabledApps = $this->checkAppsRequirements();
 			$this->doAppUpgrade();
@@ -328,9 +341,16 @@ class Updater extends BasicEmitter {
 
 			//Invalidate update feed
 			$this->config->setAppValue('core', 'lastupdatedat', 0);
+			
+			// Check for code integrity on the stable channel
+			if(\OC_Util::getChannel() === 'stable') {
+				$this->emit('\OC\Updater', 'startCheckCodeIntegrity');
+				$this->checker->runInstanceVerification();
+				$this->emit('\OC\Updater', 'finishedCheckCodeIntegrity');
+			}
 
 			// only set the final version if everything went well
-			$this->config->setSystemValue('version', implode('.', \OC_Util::getVersion()));
+			$this->config->setSystemValue('version', implode('.', \OCP\Util::getVersion()));
 		}
 	}
 
@@ -446,7 +466,7 @@ class Updater extends BasicEmitter {
 	private function checkAppsRequirements() {
 		$isCoreUpgrade = $this->isCodeUpgrade();
 		$apps = OC_App::getEnabledApps();
-		$version = OC_Util::getVersion();
+		$version = \OCP\Util::getVersion();
 		foreach ($apps as $app) {
 			// check if the app is compatible with this version of ownCloud
 			$info = OC_App::getAppInfo($app);
@@ -475,7 +495,7 @@ class Updater extends BasicEmitter {
 
 	private function isCodeUpgrade() {
 		$installedVersion = $this->config->getSystemValue('version', '0.0.0');
-		$currentVersion = implode('.', OC_Util::getVersion());
+		$currentVersion = implode('.', \OCP\Util::getVersion());
 		if (version_compare($currentVersion, $installedVersion, '>')) {
 			return true;
 		}
