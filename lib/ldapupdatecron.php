@@ -132,7 +132,7 @@ function insertIntoDatabase($table, array $parameters, array $data)
 
 try 
 {
-	require_once '../../lib/base.php';
+	require_once 'base.php';
 	
 	cronlog('Starting LDAP Database update...');
 	
