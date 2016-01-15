@@ -1,5 +1,5 @@
 <?php 
-namespace OCA\user_ldap\lib;
+namespace OC\Cache;
 
 class LDAPDatabase
 {

@@ -31,10 +31,10 @@
 
 namespace OCA\user_ldap;
 
+use OC\Cache\LDAPDatabase;
 use OCA\user_ldap\lib\Access;
 use OCA\user_ldap\lib\BackendUtility;
 use OCA\user_ldap\lib\LDapCache;
-use OCA\user_ldap\lib\LDAPDatabase;
 
 class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 	protected $enabled = false;
@@ -156,7 +156,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		\OCA\user_ldap\lib\LDapCache::setCacheData($ldapcachekey, $isInGroup? 'true':'false');
 		return $isInGroup;*/
 		
-		return \OCA\user_ldap\lib\LDAPDatabase::isInGroup($uid, $gid);
+		return \OC\Cache\LDAPDatabase::isInGroup($uid, $gid);
 	}
 
 	/**
@@ -206,7 +206,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		
 		return $allMembers;
 		
-		/*$allMembers = \OCA\user_ldap\lib\LDAPDatabase::fetchGroupMembers($dnGroup);
+		/*$allMembers = \OC\Cache\LDAPDatabase::fetchGroupMembers($dnGroup);
 		$result = [];
 		foreach($allMembers as $member)
 			$result[$member] = 1;
@@ -656,7 +656,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 
 		$this->access->connection->writeToCache($cacheKey, $groupUsers);*/
 
-		$raw = \OCA\user_ldap\lib\LDAPDatabase::fetchGroupMembers($gid);
+		$raw = \OC\Cache\LDAPDatabase::fetchGroupMembers($gid);
 		$groupUsers = [];
 		foreach($raw as $token)
 		{
@@ -756,7 +756,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		
 		//return count($this->usersInGroup($gid, $search));*/
 		
-		return count(\OCA\user_ldap\lib\LDAPDatabase::fetchGroupMembers($gid, '%'.$search.'%'));
+		return count(\OC\Cache\LDAPDatabase::fetchGroupMembers($gid, '%'.$search.'%'));
 	}
 
 	/**
@@ -853,7 +853,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 			}
 		}*/
 
-		$groups = \OCA\user_ldap\lib\LDAPDatabase::fetchGroupsData('%'.$search.'%', ['cn'], ['cn'], $limit);
+		$groups = \OC\Cache\LDAPDatabase::fetchGroupsData('%'.$search.'%', ['cn'], ['cn'], $limit);
 		$allGroups = [];
 		
 		foreach($groups as $group)
@@ -899,7 +899,7 @@ class GROUP_LDAP extends BackendUtility implements \OCP\GroupInterface {
 		$this->access->connection->writeToCache('groupExists'.$gid, true);
 		return true;*/
 		
-		$result = \OCA\user_ldap\lib\LDAPDatabase::getGroupData($gid);
+		$result = \OC\Cache\LDAPDatabase::getGroupData($gid);
 		return ($result && count($result) > 0);
 	}
 

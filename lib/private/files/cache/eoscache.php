@@ -17,6 +17,7 @@ use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosCmd;
 use OC\Files\ObjectStore\EosReqCache;
+use OC\Files\ObjectStore\EosMemCache;
 
 /**
  * Metadata cache for the filesystem
@@ -128,6 +129,8 @@ class EosCache {
 		$cached = EosReqCache::getMeta($ocPath);
 		if($cached) {
 			return $cached;
+		} else if(( $cached = EosMemCache::readFromCache('getMeta-'.$ocPath) ) !== FALSE) {
+			return $cached;
 		}
 		$eos_prefix = EosUtil::getEosPrefix();
 		$ocPath = $this->normalize($ocPath);
@@ -152,6 +155,7 @@ class EosCache {
 			$data["storage"] = $this->storageId;
 			$data["permissions"] = 31;
 			EosReqCache::setMeta($ocPath, $data);
+			EosMemCache::writeToCache('getMeta-'.$ocPath, $data);
 			return $data;
 		}
 	}
@@ -497,6 +501,11 @@ class EosCache {
 				$storage_id = EosUtil::getStorageId($cached['eospath']);
 				return array($storage_id, $cached['path']);
 			}
+		} else if(( $cached = EosMemCache::readFromCache('getFileById-'.$id) ) !== FALSE) {
+			if($cached['path']) {
+				$storage_id = EosUtil::getStorageId($cached['eospath']);
+				return array($storage_id, $cached['path']);
+			}
 		}
 		$uid = 0; $gid = 0;
 		EosUtil::putEnv();
@@ -507,6 +516,7 @@ class EosCache {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
 			EosReqCache::setFileById($id, $data);
+			EosMemCache::writeToCache('getFileById-'.$id, $data);
 			if($data["path"] === false){
 				return null;
 			}

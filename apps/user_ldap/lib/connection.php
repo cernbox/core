@@ -79,10 +79,10 @@ class Connection extends LDAPUtility {
 		$this->configID = $configID;
 		$this->configuration = new Configuration($configPrefix,
 												 !is_null($configID));
-		$memcache = \OC::$server->getMemCacheFactory();
+		/*$memcache = \OC::$server->getMemCacheFactory();
 		if($memcache->isAvailable()) {
 			$this->cache = $memcache->create();
-		}
+		}*/
 		$this->hasPagedResultSupport =
 			$this->ldap->hasPagedResultSupport();
 		$helper = new Helper();
@@ -194,7 +194,7 @@ class Connection extends LDAPUtility {
 	 * @return mixed|null
 	 */
 	public function getFromCache($key) {
-		if(!$this->configured) {
+		/*if(!$this->configured) {
 			$this->readConfiguration();
 		}
 		if(is_null($this->cache) || !$this->configuration->ldapCacheTTL) {
@@ -206,7 +206,9 @@ class Connection extends LDAPUtility {
 		}
 		$key = $this->getCacheKey($key);
 
-		return json_decode(base64_decode($this->cache->get($key)));
+		return json_decode(base64_decode($this->cache->get($key)));*/
+		
+		return NULL;
 	}
 
 	/**
@@ -214,14 +216,16 @@ class Connection extends LDAPUtility {
 	 * @return bool
 	 */
 	public function isCached($key) {
-		if(!$this->configured) {
+		return false;
+		
+		/*if(!$this->configured) {
 			$this->readConfiguration();
 		}
 		if(is_null($this->cache) || !$this->configuration->ldapCacheTTL) {
 			return false;
 		}
 		$key = $this->getCacheKey($key);
-		return $this->cache->hasKey($key);
+		return $this->cache->hasKey($key);*/
 	}
 
 	/**
@@ -231,7 +235,7 @@ class Connection extends LDAPUtility {
 	 * @return string
 	 */
 	public function writeToCache($key, $value) {
-		if(!$this->configured) {
+		/*if(!$this->configured) {
 			$this->readConfiguration();
 		}
 		if(is_null($this->cache)
@@ -241,13 +245,13 @@ class Connection extends LDAPUtility {
 		}
 		$key   = $this->getCacheKey($key);
 		$value = base64_encode(json_encode($value));
-		$this->cache->set($key, $value, $this->configuration->ldapCacheTTL);
+		$this->cache->set($key, $value, $this->configuration->ldapCacheTTL);*/
 	}
 
 	public function clearCache() {
-		if(!is_null($this->cache)) {
+		/*if(!is_null($this->cache)) {
 			$this->cache->clear($this->getCacheKey(null));
-		}
+		}*/
 	}
 
 	/**

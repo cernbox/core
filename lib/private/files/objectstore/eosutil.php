@@ -71,7 +71,10 @@ class EosUtil {
 		$cached = EosReqCache::getOwner($eosPath);
 		if($cached) {
 			return $cached;
+		} else if(( $cached = EosMemCache::readFromCache('getOwner-'.$eosPath) ) !== FALSE) {
+			return $cached;
 		}
+		
 		$eos_prefix = EosUtil::getEosPrefix();
 		$eos_meta_dir = EosUtil::getEosMetaDir();
 		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
@@ -81,6 +84,7 @@ class EosUtil {
 			if (count($splitted >= 2)){
 				$user       = $splitted[1];
 				EosReqCache::setOwner($eosPath, $user);
+				EosMemCache::writeToCache('getOwner-'.$eosPath, $user);
 				return $user;
 			} else {
 				return false;
@@ -92,6 +96,7 @@ class EosUtil {
 			if(count($splitted) >= 2){
 				$user     = $splitted[1];
 				EosReqCache::setOwner($eosPath, $user);
+				EosMemCache::writeToCache('getOwner-'.$eosPath, $user);
 				return $user; 
 			} else {
 				return false;
@@ -102,7 +107,9 @@ class EosUtil {
 			$user=self::getUserForProjectName($prjname);
 			#\OCP\Util::writeLog('KUBA',"prj:" .  __FUNCTION__ . "(user:$user) (prjname:$prjname) (rel:$rel) (eosPath:$eosPath)", \OCP\Util::ERROR);
 			if (!$user) { return false; } # FIXME: does false mean root user?
-			EosReqCache::setOwner($eosPath, $user);		    
+			EosReqCache::setOwner($eosPath, $user);	
+			EosMemCache::writeToCache('getOwner-'.$eosPath, $user);
+			
 			return $user;
 			
 			#return "boxsvc";
@@ -258,9 +265,13 @@ class EosUtil {
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
 	public static function getUidAndGid($username) { // VERIFIED
 		$cached = EosReqCache::getUidAndGid($username);
+		
 		if($cached) {
-			return $cached;	
+			return $cached;
+		} else if(( $cached = EosMemCache::readFromCache('getUidAndGid-'.$username) ) !== FALSE) {
+			return $cached;
 		}
+		
 		self::putEnv();
 		$cmd     = "id " . $username;
 		$result  = null;
@@ -292,6 +303,8 @@ class EosUtil {
 			return false;
 		}
 		EosReqCache::setUidAndGid($username, $list);
+		
+		EosMemCache::writeToCache('getUidAndGid-'.$username, $list);
 		return $list;
 	}
 
@@ -351,7 +364,7 @@ class EosUtil {
 		if(!$data) {
 			return false;
 		}
-	        $eosPath = $data["eospath"];
+	    $eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
 		// do not allow shares above user home directory. Improve to not allow self home dir.
 		$eosprefix = self::getEosPrefix();
@@ -378,6 +391,8 @@ class EosUtil {
 		}
 		
 		EosReqCache::clearFileByIdCache($fileId);
+		
+		EosMemCache::deleteFromCache('getFileById-'.$fileId);
 		
 		$addUserToSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
 		list($result, $errcode) = EosCmd::exec($addUserToSysAcl);
@@ -529,7 +544,9 @@ class EosUtil {
 		$cached = EosReqCache::getFileById($id);
 		if($cached) {
 			return $cached;
-		} 
+		} else if(( $cached = EosMemCache::readFromCache('getFileById-'.$id) ) !== FALSE) {
+			return $cached;
+		}
 		$uid = 0; $gid = 0;
 		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid  file info  inode:" . $id . " -m";
@@ -539,6 +556,8 @@ class EosUtil {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
 			EosReqCache::setFileById($id, $data);
+			
+			EosMemCache::writeToCache('getFileById-'.$id, $data);
 			return $data;
 		}
 		return null;
@@ -549,6 +568,8 @@ class EosUtil {
 	public static function getFileByEosPath($eospath){ 
 		$cached = EosReqCache::getFileByEosPath($eospath);
 		if($cached) {
+			return $cached;
+		} else if(( $cached = EosMemCache::readFromCache('getFileByEosPath-'.$eospath) ) !== FALSE) {
 			return $cached;
 		}
 		$eospathEscaped = escapeshellarg($eospath);
@@ -561,6 +582,8 @@ class EosUtil {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
 			EosReqCache::setFileByEosPath($eospath, $data);
+			
+			EosMemCache::writeToCache('getFileByEosPath-'.$eospath, $data);
 			return $data;
 		}
 		return null;
@@ -741,24 +764,35 @@ class EosUtil {
 	// return the list of EGroups this member is part of, but NOT all, just the ones that appear in share database.
 	public static function getEGroups($username) {
 		$cached = EosReqCache::getEGroups($username);
-                if($cached) {
-                        return $cached;
-                }
-                $query = \OC_DB::prepare('SELECT DISTINCT share_with FROM `*PREFIX*share` WHERE share_type=?', null);
-		$queryArgs = array(1); // 0 is group share
+        if($cached) {
+        	return $cached;
+        } else if(( $cached = EosMemCache::readFromCache('getEGroups-'.$username) ) !== FALSE) {
+        	return $cached;
+        }
+        
+        $query = \OC_DB::prepare('SELECT group_cn FROM ldap_group_members WHERE user_cn = ? 
+        		AND group_cn IN (SELECT DISTINCT share_with FROM `*PREFIX*share` WHERE share_type=?)', null);
+		$queryArgs = [$username, 0]; // 0 is group share
 		$result = $query->execute($queryArgs);
 		if (\OC_DB::isError($result)) {
 			\OC_Log::write('EOSEGROUPS',	\OC_DB::getErrorMessage($result) . ', select=' . $query, \OC_Log::ERROR);
-                }
+        }
 		
 		$egroups = array();
-		while($row = $result->fetchRow()) {
+		/*while($row = $result->fetchRow()) {
 			$egroup = $row['share_with'];
 			if(self::isMemberOfEGroup($username, $egroup)) {
 				$egroups[] = $row['share_with'];
 			}
+		}*/
+		$src = $result->fetchAll();
+		foreach($src as $token)
+		{
+			$egroups[] = $token['group_cn'];
 		}
+		
 		EosReqCache::setEGroups($username, $egroups);
+		EosMemCache::writeToCache('getEGroups-'.$username, $egroups);
 		return $egroups;
 	}
 		

@@ -98,36 +98,135 @@ function cronlog($msg)
 	\OCP\Util::writeLog('CRON LDAP', $msg, \OCP\Util::ERROR);
 }
 
-function insertIntoDatabase($table, array $parameters, array $data)
+function buildQuery($table, $types, array $tags, array $data)
 {
-	$lockSt = \OC_DB::prepare('LOCK TABLE ' . $table . ' WRITE');
-	$lockSt->execute();
-	
-	$delSt = \OC_DB::prepare('DELETE FROM ' . $table);
-	$delSt->execute();
-	
-	$paramCount = count($parameters) - 1;
-	$queryParams = '';
-	for($i = 0; $i < $paramCount; $i++)
+	cronlog('Starting query build...');
+
+	$limit = count($data) - 1;
+	$cache = 'INSERT INTO ' . $table . ' VALUES ';
+	$outerKeys = array_keys($data);
+	$innerCount = count($tags) - 1;
+
+	for($i = 0; $i < $limit; $i++)
 	{
-		$queryParams .= '?,';
-	}
-	$queryParams .= '?';
-	
-	$insertSt = \OC_DB::prepare('INSERT INTO ' .$table. ' VALUES (' .$queryParams. ')');
-	foreach($data as $value)
-	{
-		$inputParams = [];
-		foreach($parameters as $param)
+		$innerArray = $data[$outerKeys[$i]];
+		$cache .= '(';
+		for($j = 0; $j < $innerCount; $j++)
 		{
-			$inputParams[] = $value[$param];
+			$val = (isset($innerArray[$tags[$j]])?  $innerArray[$tags[$j]] : 'NULL');
+			if($types[$j] == 's')
+				$cache .= '"' . $val . '",';
+			else
+				$cache .= $val . ',';
 		}
-		
-		$insertSt->execute($inputParams);
+		if($types[$innerCount] == 's')
+			$cache .= '"' . $innerArray[$tags[$innerCount]] . '"),';
+		else
+			$cache .= $innerArray[$tags[$innerCount]] . '),';
 	}
 	
-	$lockSt = \OC_DB::prepare('UNLOCK TABLES');
-	$lockSt->execute();
+	$innerArray = $data [$outerKeys [$limit]];
+	$cache .= '(';
+	for($j = 0; $j < $innerCount; $j ++) {
+		$val = (isset ( $innerArray [$tags [$j]] ) ? $innerArray [$tags [$j]] : 'NULL');
+		if ($types [$j] == 's')
+			$cache .= '"' . $val . '",';
+		else
+			$cache .= $val . ',';
+	}
+	if ($types [$innerCount] == 's')
+		$cache .= '"' . $innerArray [$tags [$innerCount]] . '");';
+	else
+		$cache .= $innerArray [$tags [$innerCount]] . ');';
+
+	cronlog('Query build finished');
+
+	return $cache;
+}
+
+function buildCVSFile($types, array $tags, array $data)
+{
+	cronlog('Starting query build...');
+	
+	$cache = '';
+	$limit = count($data) - 1;
+
+    $outerKeys = array_keys ( $data );
+	$innerCount = count ( $tags ) - 1;
+	
+	for($i = 0; $i < $limit; $i ++) {
+		$innerArray = $data [$outerKeys [$i]];
+		for($j = 0; $j < $innerCount; $j ++) {
+			$val = (isset ( $innerArray [$tags [$j]] ) ? $innerArray [$tags [$j]] : 'NULL');
+			/*if ($types [$j] == 's')
+				$cache .= '"' . $val . '",';
+			else*/
+				$cache .= $val . ',';
+		}
+		/*if ($types [$innerCount] == 's')
+			$cache .= '"' . $innerArray [$tags [$innerCount]] . '"' . PHP_EOL;
+		else*/
+			$cache .= $innerArray [$tags [$innerCount]] . PHP_EOL;
+	}
+	
+	$innerArray = $data [$outerKeys [$limit]];
+	for($j = 0; $j < $innerCount; $j ++) {
+		$val = (isset ( $innerArray [$tags [$j]] ) ? $innerArray [$tags [$j]] : 'NULL');
+		/*if ($types [$j] == 's')
+			$cache .= '"' . $val . '",';
+		else*/
+			$cache .= $val . ',';
+	}
+	/*if ($types [$innerCount] == 's')
+		$cache .= '"' . $innerArray [$tags [$innerCount]] . '"' . PHP_EOL;
+	else*/
+		$cache .= $innerArray [$tags [$innerCount]] . PHP_EOL;
+
+	cronlog('Done');
+
+	return $cache;
+}
+
+function getDatabaseConnection()
+{
+	$host = \OCP\Config::getSystemValue('dbhost', 'localhost');
+	$dbuser = \OCP\Config::getSystemValue('dbuser', 'root');
+	$dbpwd = \OCP\Config::getSystemValue('dbpassword', '');
+	$dbname = \OCP\Config::getSystemValue('dbname');
+	
+	$pdo = new PDO('mysql:host='.$host.';dbname='.$dbname.';charset=utf8', $dbuser, $dbpwd,
+			[
+					PDO::MYSQL_ATTR_LOCAL_INFILE => true,
+					PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
+			]);
+	
+	return $pdo;
+}
+
+function insertIntoDatabase($table, $sql, $useLoadData = false)
+{
+	$dbHandle = getDatabaseConnection();
+	
+	$dbHandle->exec('LOCK TABLE ' . $table . ' WRITE');
+	$dbHandle->exec('DELETE FROM ' . $table);
+	
+	if($useLoadData)
+	{
+		$handle = fopen($table . '.txt', 'w');
+		fwrite($handle, $sql);
+		fflush($handle);
+		fclose($handle);
+
+		$dbHandle->exec("LOAD DATA LOCAL INFILE '/cernbox/lib/" .$table. ".txt' IGNORE INTO TABLE " .$table. " FIELDS TERMINATED BY ','");
+	}
+	else
+	{		
+		$dbHandle->exec($sql);
+	}
+
+	$dbHandle->exec('UNLOCK TABLES');
+	
+	$dbHandle = null;
 }
 
 try 
@@ -160,8 +259,13 @@ try
 		$ldapGroups = retrieveLDAPData($ldapAccess, 'searchGroups');
 		$ldapGroups = arrangeLDAPArray($ldapGroups);
 		cronlog('Groups retrieved');
-		insertIntoDatabase('ldap_groups', ['cn'], $ldapGroups);
+
+		cronlog('Inserting groups into database...');
+
+		insertIntoDatabase('ldap_groups', buildQuery('ldap_groups', 's', ['cn'], $ldapGroups));
 		unset($ldapGroups);
+
+		cronlog('Done');
 		
 		cronlog('Retrieving users...');
 		$ldapUsers = retrieveLDAPData($ldapAccess, 'searchUsers', ['cn', 'uidNumber', 'displayName', 'employeeType', 'memberOf']);
@@ -184,18 +288,18 @@ try
 				
 			unset($ldapUsers[$key]['memberof']);
 		}
-		
-		// Update database
-		insertIntoDatabase('ldap_users', ['cn','uidnumber','displayname','employeetype'], $ldapUsers);
+
+		cronlog('Inserting users into database...');
+
+		insertIntoDatabase('ldap_users', buildQuery('ldap_users', 'siss', ['cn','uidnumber','displayname','employeetype'], $ldapUsers));
 		unset($ldapUsers);
-		
-		insertIntoDatabase('ldap_group_members', ['user_cn', 'group_cn'], $userGroups);
+
+		cronlog('Done');
+		cronlog('Inserting users <-> groups into database...');
+	
+		insertIntoDatabase('ldap_group_members', buildCVSFile('ss', ['user_cn','group_cn'], $userGroups), true);
 		unset($userGroups);
-		
-		// Clear non e-groups
-		//$clearSt = \OC_DB::prepare('DELETE FROM ldap_group_members WHERE group_cn NOT IN (SELECT cn FROM ldap_groups)');
-		//$clearSt->execute();
-		
+				
 		cronlog('Done');
 	}
 	else

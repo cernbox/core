@@ -30,13 +30,13 @@
 
 namespace OCA\user_ldap;
 
+use OC\Cache\LDAPDatabase;
 use OCA\user_ldap\lib\BackendUtility;
 use OCA\user_ldap\lib\Access;
 use OCA\user_ldap\lib\user\OfflineUser;
 use OCA\User_LDAP\lib\User\User;
 use OCP\IConfig;
 //use OCA\user_ldap\lib\LDapCache;
-use OCA\user_ldap\lib\LDAPDatabase;
 use OCA\user_ldap\lib\LDAPUtil;
 
 class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserInterface {
@@ -158,11 +158,11 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$ldap_users = [];
 		if($slicedParams[0] == 'a')
 		{
-			$ldap_users = \OCA\user_ldap\lib\LDAPDatabase::fetchUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn'], $limit);
+			$ldap_users = \OC\Cache\LDAPDatabase::fetchUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn'], $limit);
 		}
 		else
 		{
-			$ldap_users = \OCA\user_ldap\lib\LDAPDatabase::fetchPrimaryUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn'], $limit);
+			$ldap_users = \OC\Cache\LDAPDatabase::fetchPrimaryUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn'], $limit);
 		}
 		
 		return $ldap_users;
@@ -189,7 +189,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 			$name = $user->getUsername();
 		}
 		
-		$result = \OCA\user_ldap\lib\LDAPDatabase::getUserData($name);
+		$result = \OC\Cache\LDAPDatabase::getUserData($name);
 		
 		return ($result && count($result) > 0);
 	}
@@ -288,7 +288,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * @return string|false display name
 	 */
 	public function getDisplayName($uid) {
-		$result = \OCA\user_ldap\lib\LDAPDatabase::getUserData($uid, ['cn'], ['displayname'])[0];
+		$result = \OC\Cache\LDAPDatabase::getUserData($uid, ['cn'], ['displayname'])[0];
 
 		if(!$result)
 			return false;
@@ -310,11 +310,11 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 		$ldap_users = [];
 		if($slicedParams[0] == 'a')
 		{
-			$ldap_users = \OCA\user_ldap\lib\LDAPDatabase::fetchUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn', 'displayname'], $limit);
+			$ldap_users = \OC\Cache\LDAPDatabase::fetchUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn', 'displayname'], $limit);
 		}
 		else
 		{
-			$ldap_users = \OCA\user_ldap\lib\LDAPDatabase::fetchPrimaryUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn', 'displayname'], $limit);
+			$ldap_users = \OC\Cache\LDAPDatabase::fetchPrimaryUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn', 'displayname'], $limit);
 		}
 		
 		$users = [];
@@ -362,7 +362,7 @@ class USER_LDAP extends BackendUtility implements \OCP\IUserBackend, \OCP\UserIn
 	 * @return int|bool
 	 */
 	public function countUsers() {
-		return \OCA\user_ldap\lib\LDAPDatabase::countNumberOfUsers();
+		return \OC\Cache\LDAPDatabase::countNumberOfUsers();
 	}
 
 	/**
