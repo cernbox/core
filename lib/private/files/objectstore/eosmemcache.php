@@ -2,36 +2,204 @@
 
 namespace OC\Files\ObjectStore;
 
-class EosMemCache
+class EosMemCache implements IEosCache
 {
-	private static $memCache;
-	private static $unableToConnect;
+	/** @var int Cached data validity time */
+	const EXPIRE_TIME_SECONDS = 15;
 	
-	public static function init()
+	/** @var string Cache key for files stored by inode id */
+	const KEY_FILE_BY_ID = 'getFileById';
+	/** @var string Cache key for files stored by eos path */
+	const KEY_FILE_BY_PATH = 'getFileByEosPath';
+	/** @var string Cache key for files metadata stored by oc path */
+	const KEY_META = 'getMeta';
+	/** @var string Cache key for e-group lists stored by username */
+	const KEY_EGROUPS = 'getEGroups';
+	/** @var string Cache key for owner of files stored by those files path */
+	const KEY_OWNER = 'getOwner';
+	/** @var string Cache key for user id and group id stored by username */
+	const KEY_UID_GID = 'getUidAndGid';
+	
+	/** @var Redis redis client object */
+	private $redisClient;
+	/** @var bool stores whether cache system is available or not */
+	private $unableToConnect;
+	
+	public function __construct()
 	{
-		if(self::$memCache == NULL)
+		$this->init();
+	}
+	
+	/**
+	 * Stablish (if not done already) and test the connection to the cache
+	 * server on every call
+	 * 
+	 * @return bool True if server is available, false otherwise
+	 */
+	private function init()
+	{
+		if($this->redisClient == NULL)
 		{
-			self::$unableToConnect = false;
-			self::$memCache = new \Memcache();
+			$this->unableToConnect = false;
+			$this->redisClient = new \Redis();
 			
-			if(!self::$memCache->connect('localhost', 11211))
+			if(!$this->redisClient->connect('127.0.0.1', 6379))
 			{
-				self::$unableToConnect = true;
-				\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to connect to memcached server on localhost:11211', \OCP\Util::ERROR);
+				$this->unableToConnect = true;
+				\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to connect to redis server on 127.0.0.1:6379', \OCP\Util::ERROR);
 			}
 		}
 		
-		return !self::$unableToConnect;
+		return !$this->unableToConnect;
 	}
 	
-	public static function writeToCache($key, $value)
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setFileById()
+	 */
+	public function setFileById($id, $value)
 	{
-		if(self::init())
+		$this->writeToCache(self::KEY_FILE_BY_ID, $id, json_encode($value));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getFileById()
+	 */
+	public function getFileById($id)
+	{
+		return json_decode($this->readFromCache(self::KEY_FILE_BY_ID, $id), TRUE);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::clearFileById()
+	 */
+	public function clearFileById($id)
+	{
+		$this->deleteFromCache(self::KEY_FILE_BY_ID, $id);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setFileByEosPath()
+	 */
+	public function setFileByEosPath($path, $value)
+	{
+		$this->writeToCache(self::KEY_FILE_BY_PATH, $path, json_encode($value));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getFileByEosPath()
+	 */
+	public function getFileByEosPath($path)
+	{
+		return json_decode($this->readFromCache(self::KEY_FILE_BY_PATH, $path), TRUE);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setMeta()
+	 */
+	public function setMeta($ocPath, $value)
+	{
+		$this->writeToCache(self::KEY_META, $ocPath, json_encode($value));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getMeta()
+	 */
+	public function getMeta($ocPath)
+	{
+		return json_decode($this->readFromCache(self::KEY_META, $ocPath), TRUE);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setEGroups()
+	 */
+	public function setEGroups($user, $value)
+	{
+		$this->writeToCache(self::KEY_EGROUPS, $user, json_encode($value));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getEGroups()
+	 */
+	public function getEGroups($user)
+	{
+		return json_decode($this->readFromCache(self::KEY_EGROUPS, $user), TRUE);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setOwner()
+	 */
+	public function setOwner($path, $value)
+	{
+		$this->writeToCache(self::KEY_OWNER, $path, $value);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getOwner()
+	 */
+	public function getOwner($path)
+	{
+		return $this->readFromCache(self::KEY_OWNER, $path);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setUidAndGid()
+	 */
+	public function setUidAndGid($user, $data)
+	{
+		$this->writeToCache(self::KEY_UID_GID, $user, json_encode($data));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getUidAndGid()
+	 */
+	public function getUidAndGid($user)
+	{
+		return json_decode($this->readFromCache(self::KEY_UID_GID, $user), TRUE);
+	}
+	
+	/**
+	 * General method to write data to the cache server.
+	 * 
+	 * @param string $outerKey key to identify the hash to write to
+	 * @param string $key key to place the given data
+	 * @param string $value data to be placed on the cache
+	 */
+	private function writeToCache($outerKey, $key, $value)
+	{
+		if($this->init())
 		{
-			if(!self::$memCache->set($key, $value, /*MEMCACHE_COMPRESSED*/0, 30))
-			{
-				\OCP\Util::writeLog('EOS MEMCACHE', 'Failed to store value for key ' .$key, \OCP\Util::ERROR);
-			}
+			$this->redisClient->hSet($outerKey, $key, json_encode([time(), $value]));
+		}
+		else 
+		{
+			\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to access redis server', \OCP\Util::ERROR);
+		}
+	}
+	
+	/**
+	 * Erases an entry from the cache, given the hash set and the data key
+	 * 
+	 * @param string $outerKey hash list identifier
+	 * @param string $key data key identifier
+	 */
+	private function deleteFromCache($outerKey, $key)
+	{
+		if($this->init())
+		{
+			$this->redisClient->hDel($outerKey, $key);
 		}
 		else 
 		{
@@ -39,27 +207,33 @@ class EosMemCache
 		}
 	}
 	
-	public static function deleteFromCache($key)
-	{
-		if(self::init())
-		{
-			self::$memCache->delete($key);
-		}
-		else 
-		{
-			\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
-		}
-	}
-	
-	public static function readFromCache($key)
+	/**
+	 * Reads a value from cache, given the hash key and the data key
+	 * 
+	 * @param string $outerKey Key to identify the hash list
+	 * @param string $key Key to identify the data within the hash
+	 * @return string|bool a string containing the found data or FALSE otherwise.
+	 */
+	private function readFromCache($outerKey, $key)
 	{
 		$value = NULL;
-		if(self::init())
+		if($this->init())
 		{
-			$value = self::$memCache->get($key);
-			if($value == FALSE)
+			$value = $this->redisClient->hGet($outerKey, $key);
+			// Key found
+			if($value !== FALSE)
 			{
-				\OCP\Util::writeLog('EOS MEMCACHE', 'Miss or failure retrieving ' .$key, \OCP\Util::ERROR);
+				// Check for expire date
+				$value = json_decode($value, TRUE);
+				$elapsed = time() - (int)$value[0];
+				if($elapsed > self::EXPIRE_TIME_SECONDS)
+				{
+					$value = FALSE;
+				}
+				else
+				{
+					$value = $value[1];
+				}
 			}
 		}
 		else
@@ -68,17 +242,5 @@ class EosMemCache
 		}
 		
 		return $value;
-	}
-	
-	public static function invalidateCache()
-	{
-		if(self::init())
-		{
-			self::$memCache->flush();
-		}
-		else
-		{
-			\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
-		}
 	}
 }

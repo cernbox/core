@@ -16,8 +16,7 @@ use OC\Files\ObjectStore\EosUtil;
 use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosCmd;
-use OC\Files\ObjectStore\EosReqCache;
-use OC\Files\ObjectStore\EosMemCache;
+use OC\Files\ObjectStore\AbstractEosCache;
 
 /**
  * Metadata cache for the filesystem
@@ -126,12 +125,11 @@ class EosCache {
 	 * @return array|false
 	 */
 	public function get($ocPath) {
-		$cached = EosReqCache::getMeta($ocPath);
+		$cached = AbstractEosCache::getMeta($ocPath);
 		if($cached) {
 			return $cached;
-		} else if(( $cached = EosMemCache::readFromCache('getMeta-'.$ocPath) ) !== FALSE) {
-			return $cached;
-		}
+		} 
+		
 		$eos_prefix = EosUtil::getEosPrefix();
 		$ocPath = $this->normalize($ocPath);
 		$eosPath = EosProxy::toEos($ocPath, $this->storageId);
@@ -154,8 +152,7 @@ class EosCache {
 			}
 			$data["storage"] = $this->storageId;
 			$data["permissions"] = 31;
-			EosReqCache::setMeta($ocPath, $data);
-			EosMemCache::writeToCache('getMeta-'.$ocPath, $data);
+			AbstractEosCache::setMeta($ocPath, $data);
 			return $data;
 		}
 	}
@@ -495,18 +492,14 @@ class EosCache {
 	 * @return array, first element holding the storage id, second the path
 	 */
 	static public function getById($id) {
-		$cached = EosReqCache::getFileById($id);
+		$cached = AbstractEosCache::getFileById($id);
 		if($cached){
 			if($cached['path']) {
 				$storage_id = EosUtil::getStorageId($cached['eospath']);
 				return array($storage_id, $cached['path']);
 			}
-		} else if(( $cached = EosMemCache::readFromCache('getFileById-'.$id) ) !== FALSE) {
-			if($cached['path']) {
-				$storage_id = EosUtil::getStorageId($cached['eospath']);
-				return array($storage_id, $cached['path']);
-			}
-		}
+		} 
+		
 		$uid = 0; $gid = 0;
 		EosUtil::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info inode:" . $id . " -m";
@@ -515,8 +508,7 @@ class EosCache {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
-			EosReqCache::setFileById($id, $data);
-			EosMemCache::writeToCache('getFileById-'.$id, $data);
+			AbstractEosCache::setFileById($id, $data);
 			if($data["path"] === false){
 				return null;
 			}

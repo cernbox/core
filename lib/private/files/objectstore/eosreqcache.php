@@ -3,9 +3,13 @@
 namespace OC\Files\ObjectStore;
 
 
-class EosReqCache {
+class EosReqCache implements IEosCache {
 	
-	public static function init() {
+	public function __construct() {
+		$this->init();	
+	}
+	
+	private function init() {
 		if (!isset( $GLOBALS['cernbox'])) {
 			$GLOBALS['cernbox'] = array();
 			$GLOBALS['cernbox']['idresolution'] = array();
@@ -18,7 +22,11 @@ class EosReqCache {
 		}
 	}
 	
-	public static function clearFileByIdCache($id)
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::clearFileById()
+	 */
+	public function clearFileById($id)
 	{
 		if($id && isset($GLOBALS['cernbox']['getfilebyid'][$id]))
 		{
@@ -26,105 +34,154 @@ class EosReqCache {
 		}
 	}
 	
-	public static function getUidAndGid($username) {
-		self::init();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getUidAndGid()
+	 */
+	public function getUidAndGid($username) {
+		$this->init();
 		if(isset($GLOBALS['cernbox']['idresolution'][$username])) {
 			//\OCP\Util::writeLog('EOSCACHE',"HIT op:" .  __FUNCTION__ . "(username:$username)", \OCP\Util::ERROR);
 			return $GLOBALS['cernbox']['idresolution'][$username];	
 		}
 		//\OCP\Util::writeLog('EOSCACHE',"MIS op:" .  __FUNCTION__ . "(username:$username)", \OCP\Util::ERROR);
-		return null;
+		return FALSE;
 	}
-	public static function setUidAndGid($username, $data) {
-		self::init();
+	
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setUidAndGid()
+	 */
+	public function setUidAndGid($username, $data) {
+		$this->init();
 		$GLOBALS['cernbox']['idresolution'][$username] = $data;	
 	}
 	
-	public static function getFileById($id) {
-		self::init();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getFileById()
+	 */
+	public function getFileById($id) {
+		$this->init();
         if(isset($GLOBALS['cernbox']['getfilebyid'][$id])) {
 			//\OCP\Util::writeLog('EOSCACHE',"HIT op:" .  __FUNCTION__ . "(id:$id)", \OCP\Util::ERROR);
         	return $GLOBALS['cernbox']['getfilebyid'][$id];
         }
 		//\OCP\Util::writeLog('EOSCACHE',"MIS op:" .  __FUNCTION__ . "(id:$id)", \OCP\Util::ERROR);
-        return null;
+        return FALSE;
 	}
 	
-	public static function setFileById($id, $data) {
-		 self::init();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setFileById()
+	 */
+	public function setFileById($id, $data) {
+		 $this->init();
          $GLOBALS['cernbox']['getfilebyid'][$id] = $data;
 	}
 	
-	private static function dontUseCache() {
+	private function dontUseCache() {
 		$avoid_paths = \OCP\Config::getSystemValue("avoid_req_cache_paths", array());
         foreach($avoid_paths as $path) {
         	if(strpos($_SERVER['REQUEST_URI'], $path) !== false) {
 				return true;
 			}
         }
-		return false;
+		return FALSE;
 	}
 	
-	public static function getMeta($ocPath) {
-		if (self::dontUseCache ()) {
-			return null;
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getMeta()
+	 */
+	public function getMeta($ocPath) {
+		if ($this->dontUseCache ()) {
+			return FALSE;
 		}
-		self::init ();
+		$this->init ();
 		if (isset ( $GLOBALS ['cernbox'] ['getmeta'] [$ocPath] )) {
 			// \OCP\Util::writeLog('EOSCACHE',"HIT op:" . __FUNCTION__ . "(ocpath:$ocPath)", \OCP\Util::ERROR);
 			return $GLOBALS ['cernbox'] ['getmeta'] [$ocPath];
 		}
 		//\OCP\Util::writeLog ( 'EOSCACHE', "MIS op:" . __FUNCTION__ . "(ocpath:$ocPath)", \OCP\Util::ERROR );
-		return null;
+		return FALSE;
 	}
 	
-	public static function setMeta($ocPath, $data) {
-		self::init ();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setMeta()
+	 */
+	public function setMeta($ocPath, $data) {
+		$this->init ();
 		$GLOBALS ['cernbox'] ['getmeta'] [$ocPath] = $data;
 	}
 	
-	public static function getFileByEosPath($eosPath) {
-		self::init ();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getFileByEosPath()
+	 */
+	public function getFileByEosPath($eosPath) {
+		$this->init ();
 		if (isset ( $GLOBALS ['cernbox'] ['getfilebyeospath'] [$eosPath] )) {
 			//\OCP\Util::writeLog ( 'EOSCACHE', "HIT op:" . __FUNCTION__ . "(eospath:$eosPath)", \OCP\Util::ERROR );
 			return $GLOBALS ['cernbox'] ['getfilebyeospath'] [$eosPath];
 		}
 		//\OCP\Util::writeLog ( 'EOSCACHE', "MIS op:" . __FUNCTION__ . "(eospath:$eosPath)", \OCP\Util::ERROR );
-		return null;
+		return FALSE;
 	}
 	
-	public static function setFileByEosPath($eosPath, $data) {
-		self::init ();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setFileByEosPath()
+	 */
+	public function setFileByEosPath($eosPath, $data) {
+		$this->init ();
 		$GLOBALS ['cernbox'] ['getfilebyeospath'] [$eosPath] = $data;
 	}
 	
-	public static function getOwner($eosPath) {
-		self::init ();
+	/** 
+	 * {@inheritDoc}
+	 * @see IEosCache::getOwner()
+	 */
+	public function getOwner($eosPath) {
+		$this->init ();
 		if (isset ( $GLOBALS ['cernbox'] ['getowner'] [$eosPath] )) {
 			//\OCP\Util::writeLog ( 'EOSCACHE', "HIT op:" . __FUNCTION__ . "(eospath:$eosPath)", \OCP\Util::ERROR );
 			return $GLOBALS ['cernbox'] ['getowner'] [$eosPath];
 		}
 		//\OCP\Util::writeLog ( 'EOSCACHE', "MIS op:" . __FUNCTION__ . "(eospath:$eosPath)", \OCP\Util::ERROR );
-		return null;
+		return FALSE;
 	}
 	
-	public static function setOwner($eosPath, $data) {
-		self::init ();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setOwner()
+	 */
+	public function setOwner($eosPath, $data) {
+		$this->init ();
 		$GLOBALS ['cernbox'] ['getowner'] [$eosPath] = $data;
 	}
 	
-	public static function getEGroups($username) {
-		self::init ();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::getEGroups()
+	 */
+	public function getEGroups($username) {
+		$this->init ();
 		if (isset ( $GLOBALS ['cernbox'] ['getegroups'] [$username] )) {
 			//\OCP\Util::writeLog ( 'EOSCACHE', "HIT op:" . __FUNCTION__ . "(username:$username)", \OCP\Util::ERROR );
 			return $GLOBALS ['cernbox'] ['getegroups'] [$username];
 		}
 		//\OCP\Util::writeLog ( 'EOSCACHE', "MIS op:" . __FUNCTION__ . "(username:$username)", \OCP\Util::ERROR );
-		return null;
+		return FALSE;
 	}
 	
-	public static function setEGroups($username, $data) {
-		self::init ();
+	/**
+	 * {@inheritDoc}
+	 * @see IEosCache::setEGroups()
+	 */
+	public function setEGroups($username, $data) {
+		$this->init ();
 		$GLOBALS ['cernbox'] ['getegroups'] [$username] = $data;
 	}
 }
