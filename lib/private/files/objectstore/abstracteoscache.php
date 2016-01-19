@@ -4,8 +4,6 @@ namespace OC\Files\ObjectStore;
 
 use OC\Files\ObjectStore\EosReqCache;
 use OC\Files\ObjectStore\EosMemCache;
-use Icewind\Streams\File;
-use OC\DB\OracleConnection;
 
 class AbstractEosCache
 {

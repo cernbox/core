@@ -550,13 +550,15 @@ class EosUtil {
 
 	// get the file/dir metadata by his eospath
 	// due to we dont have the path we use the root user to obtain the info
-	public static function getFileByEosPath($eospath){ 
-		$cached = AbstractEosCache::getFileByEosPath($eospath);
+	public static function getFileByEosPath($eospath){
+		
+		$eospathEscaped = escapeshellarg($eospath);
+		
+		$cached = AbstractEosCache::getFileByEosPath($eospathEscaped);
 		if($cached) {
 			return $cached;
 		} 
 		
-		$eospathEscaped = escapeshellarg($eospath);
 		$uid = 0; $gid = 0;
 		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info $eospathEscaped -m";
@@ -565,7 +567,7 @@ class EosUtil {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
-			AbstractEosCache::setFileByEosPath($eospath, $data);
+			AbstractEosCache::setFileByEosPath($eospathEscaped, $data);
 			
 			return $data;
 		}

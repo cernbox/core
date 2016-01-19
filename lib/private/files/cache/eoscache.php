@@ -124,11 +124,7 @@ class EosCache {
 	 * @param $ocPath the owncloud path. like files/a.txt or cache/some.txt
 	 * @return array|false
 	 */
-	public function get($ocPath) {
-		$cached = AbstractEosCache::getMeta($ocPath);
-		if($cached) {
-			return $cached;
-		} 
+	public function get($ocPath) { 
 		
 		$eos_prefix = EosUtil::getEosPrefix();
 		$ocPath = $this->normalize($ocPath);
@@ -137,8 +133,15 @@ class EosCache {
 		if(!$eosPath){ 
 			return false;
 		}
+		
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
 		$eosPathEscaped = escapeshellarg($eosPath);
+		
+		$cached = AbstractEosCache::getMeta($eosPathEscaped);
+		if($cached) {
+			return $cached;
+		}
+		
 		$get     = "eos -b -r $uid $gid file info $eosPathEscaped -m";
 		$info    = array();
 		list($result, $errcode) = EosCmd::exec($get);
@@ -152,7 +155,7 @@ class EosCache {
 			}
 			$data["storage"] = $this->storageId;
 			$data["permissions"] = 31;
-			AbstractEosCache::setMeta($ocPath, $data);
+			AbstractEosCache::setMeta($eosPathEscaped, $data);
 			return $data;
 		}
 	}
