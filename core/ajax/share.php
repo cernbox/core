@@ -1,4 +1,5 @@
 <?php
+use OCA\user_ldap\lib\LDapCache;
 /**
  * @author Arthur Schiwon <blizzz@owncloud.com>
  * @author Bart Visscher <bartv@thisnet.nl>

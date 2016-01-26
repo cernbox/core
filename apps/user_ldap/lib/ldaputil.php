@@ -27,6 +27,16 @@ class LDAPUtil
 		return ('cn=' . $groupCN . ',' . self::LDAP_GROUPS_BASE_DN);
 	}
 	
+	public static function setSearchParams($params)
+	{
+		$GLOBALS['ldapsearchparam'] = $params;
+	}
+	
+	public static function getSearchParams()
+	{
+		return $GLOBALS['ldapsearchparam'];
+	}
+	
 	private static function dumpArray($handle, $array, $index = 0)
 	{
 		$tabs = "";
