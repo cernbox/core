@@ -47,6 +47,30 @@ interface IEosCache
 	public function getFileByEosPath($eosPath);
 	
 	/**
+	 * Invalidates the stored file data by the given EOS Path
+	 * @param string $eosPath file path within EOS
+	 */
+	public function clearFileByEosPath($eosPath);
+	
+	/**
+	 * Attempts to retrieve a a file/directory full information from the cache, given
+	 * it's EOS Path and a depth of exploration
+	 * @param int $depth Max nested folders levels to explore
+	 * @param string $eosPath file path within EOS
+	 * @return array|null The list of information of the given file, or null if it wasn't present 
+	 * 						or valid in the cache
+	 */
+	public function getFileInfoByEosPath($depth, $eosPath);
+	
+	/**
+	 * Stores the information of a given file (identified by it's EOS path and a given depth of nested exploration)
+	 * @param int $depth the maximun level of nested directories exploration
+	 * @param string $eosPath file path within EOS
+	 * @param array $data containing all the information to store
+	 */
+	public function setFileInfoByEosPath($depth, $eosPath, $data);
+	
+	/**
 	 * Stores the username owner of the file given by it's eos path
 	 *
 	 * @param string $path path of the file within eos

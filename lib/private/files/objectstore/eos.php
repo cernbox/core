@@ -122,6 +122,7 @@ class Eos implements IObjectStore {
 	 */
 	public function deleteObject($urn) {
 		$urnEscaped = escapeshellarg($urn);
+		AbstractEosCache::clearFileByEosPath($urnEscaped);
 		list($uid, $gid) = EosUtil::getEosRole($urn, false);
 		$cmd             = "eos -b -r $uid $gid rm -r $urnEscaped";
 		list($result, $errcode) = EosCmd::exec($cmd);

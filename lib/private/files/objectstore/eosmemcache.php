@@ -19,6 +19,8 @@ class EosMemCache implements IEosCache
 	const KEY_OWNER = 'getOwner';
 	/** @var string Cache key for user id and group id stored by username */
 	const KEY_UID_GID = 'getUidAndGid';
+	/** @var string Cache key for files identified by eospath and a given depth */
+	const KEY_FILEINFO_BY_PATH = 'getFileInfoByEosPath';
 	
 	/** @var Redis redis client object */
 	private $redisClient;
@@ -100,6 +102,15 @@ class EosMemCache implements IEosCache
 	
 	/**
 	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\IEosCache::clearFileByEosPath()
+	 */
+	public function clearFileByEosPath($eosPath)
+	{
+		$this->deleteFromCache(self::KEY_FILE_BY_PATH, $eosPath);
+	}
+	
+	/**
+	 * {@inheritDoc}
 	 * @see IEosCache::setMeta()
 	 */
 	public function setMeta($ocPath, $value)
@@ -168,6 +179,26 @@ class EosMemCache implements IEosCache
 	public function getUidAndGid($user)
 	{
 		return json_decode($this->readFromCache(self::KEY_UID_GID, $user), TRUE);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\IEosCache::setFileInfoByEosPath()
+	 */
+	public function setFileInfoByEosPath($depth, $eosPath, $data)
+	{
+		$key = $data . '-' . $eosPath;
+		$this->writeToCache(self::KEY_FILEINFO_BY_PATH, $key, json_encode($data));
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\IEosCache::getFileInfoByEosPath()
+	 */
+	public function getFileInfoByEosPath($depth, $eosPath)
+	{
+		$key - $depth . '-' . $eosPath;
+		return json_decode($this->readFromCache(self::KEY_FILEINFO_BY_PATH, $key));
 	}
 	
 	/**

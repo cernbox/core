@@ -4,6 +4,7 @@ namespace OCA\user_ldap;
 
 use OCA\user_ldap\GROUP_LDAP;
 use OC\Cache\LDAPDatabase;
+use OCA\user_ldap\lib\Access;
 
 /**
  * Wrapper class for ldap access using CERNBox's ldap database cache
@@ -46,7 +47,7 @@ class CACHED_GROUP_LDAP extends GROUP_LDAP
 		$all = [];
 		foreach($groups as $group)
 		{
-			$all[] = $group;
+			$all[] = $group['group_cn'];
 		}
 		
 		return $all;
@@ -58,7 +59,7 @@ class CACHED_GROUP_LDAP extends GROUP_LDAP
 		$all = [];
 		foreach($users as $user)
 		{
-			$all[] = $user;
+			$all[] = $user['user_cn'];
 		}
 		
 		return $all;
@@ -75,7 +76,7 @@ class CACHED_GROUP_LDAP extends GROUP_LDAP
 		$all = [];
 		foreach($groups as $group)
 		{
-			$all[] = $group;
+			$all[] = $group['cn'];
 		}
 		
 		return $all;

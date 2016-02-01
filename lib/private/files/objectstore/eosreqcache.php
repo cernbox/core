@@ -139,6 +139,15 @@ class EosReqCache implements IEosCache {
 		$GLOBALS ['cernbox'] ['getfilebyeospath'] [$eosPath] = $data;
 	}
 	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\IEosCache::clearFileByEosPath()
+	 */
+	public function clearFileByEosPath($eosPath) {
+		$this->init();
+		unset($GLOBALS['cernbox']['getfilebyeospath'][$eosPath]);
+	}
+	
 	/** 
 	 * {@inheritDoc}
 	 * @see IEosCache::getOwner()
@@ -183,5 +192,21 @@ class EosReqCache implements IEosCache {
 	public function setEGroups($username, $data) {
 		$this->init ();
 		$GLOBALS ['cernbox'] ['getegroups'] [$username] = $data;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\IEosCache::setFileInfoByEosPath()
+	 */
+	public function setFileInfoByEosPath($depth, $eosPath, $data)
+	{
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\IEosCache::getFileInfoByEosPath()
+	 */
+	public function getFileInfoByEosPath($depth, $eosPath)
+	{
 	}
 }

@@ -4,12 +4,18 @@ namespace OCA\user_ldap;
 
 use OC\Cache\LDAPDatabase;
 use OCA\user_ldap\lib\LDAPUtil;
+use OCA\user_ldap\lib\Access;
+use OCP\IConfig;
 
 /**
  * Wrapper class for ldap access using CERNBox's ldap database cache
  */
 class CACHED_USER_LDAP extends USER_LDAP
 {
+	/**
+	 * @param \OCA\user_ldap\lib\Access $access
+	 * @param \OCP\IConfig $ocConfig
+	 */
 	public function __construct(Access $access, IConfig $ocConfig) 
 	{
 		parent::__construct($access, $ocConfig);

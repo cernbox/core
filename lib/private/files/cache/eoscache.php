@@ -173,9 +173,15 @@ class EosCache {
 		$eosPath = EosProxy::toEos($ocPath, $this->storageId);
 		if(!$eosPath){
 			return false;
-		}	
-		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
+		}
 		$eosPathEscaped = escapeshellarg($eosPath);
+		
+		if(($cached = AbstractEosCache::getFileInfoByEosPath($depth, $eosPathEscaped)))
+		{
+			return $cached;
+		}
+		
+		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
 		$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 1 $eosPathEscaped";
 		if ($deep === true) {
 			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 10 $eosPathEscaped";
@@ -183,6 +189,7 @@ class EosCache {
 		$files             = array();
 		list($result, $errcode) = EosCmd::exec($getFolderContents);
 		if ($errcode !== 0) {
+			AbstractEosCache::setFileInfoByEosPath($depth, $eosPathEscaped, $files);
 			return $files;
 		}
 		

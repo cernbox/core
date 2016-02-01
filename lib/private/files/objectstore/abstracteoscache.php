@@ -123,6 +123,63 @@ class AbstractEosCache
 	}
 	
 	/**
+	 * Invalidates the data stored in the cache identified by it's EOS Path
+	 * @param string $eosPath path within EOS
+	 */
+	public static function clearFileByEosPath($eosPath)
+	{
+		if(self::init())
+		{
+			/** @var IEosCache $cache */
+			foreach(self::$caches as $cache)
+			{
+				$cache->clearFileByEosPath($eosPath);
+			}
+		}
+	}
+	
+	/**
+	 * Attempts to retrieve a a file/directory full information from the cache, given
+	 * it's EOS Path and a depth of exploration
+	 * @param int $depth Max nested folders levels to explore
+	 * @param string $eosPath file path within EOS
+	 * @return array|null The list of information of the given file, or null if it wasn't present 
+	 * 						or valid in the cache
+	 */
+	public static function getFileInfoByEosPath($depth, $eosPath)
+	{
+		if(self::init())
+		{
+			/** @var IEosCache $cache */
+			foreach(self::$caches as &$cache)
+			{
+				if(($data = $cache->getFileInfoByEosPath($depth, $eosPath)) !== FALSE)
+					return $data;
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Stores the information of a given file (identified by it's EOS path and a given depth of nested exploration)
+	 * @param int $depth the maximun level of nested directories exploration
+	 * @param string $eosPath file path within EOS
+	 * @param array $data containing all the information to store
+	 */
+	public static function setFileInfoByEosPath($depth, $eosPath, $data)
+	{
+		if(self::init())
+		{
+			/** @var IEosCache $cache */
+			foreach(self::$caches as &$cache)
+			{
+				$cache->setFileInfoByEosPath($depth, $eosPath, $data);
+			}
+		}
+	}
+	
+	/**
 	 * Attempts to retrieve a file's metadata stored by it's OC path
 	 * @param string $ocPath within ownCloud namespace
 	 * @return array|null An associative array containting the file metadata or
