@@ -762,7 +762,7 @@ class EosUtil {
 		$eosPathEscaped = escapeshellarg($eosPath);
 		list($uid, $gid) = self::getEosRole($eosPath, false);
 		//$uid = 0; $gid = 0; // root is the only one allowed to change permissions
-                $cmd = "eos -b -r $uid $gid cp $eosPathEscaped $eosPathEscaped";
+                $cmd = "eos -b -r $uid $gid file version $eosPathEscaped";
                 list($result, $errcode) = EosCmd::exec($cmd);
                 if ($errcode !== 0) {
                         return false;
