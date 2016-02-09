@@ -1399,7 +1399,7 @@ class Share extends \OC\Share\Constants {
 									$includeCollections = false, $itemShareWithBySource = false, $checkExpireDate  = true) {
 		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
 		if($itemType === 'file' && is_numeric($item)) {
-			$item = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($item);	
+			$item = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($item, false);	
 		}
 		if (!self::isEnabled()) {
 			return array();

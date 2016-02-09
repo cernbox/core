@@ -773,7 +773,7 @@ class EosUtil {
 	
 	// this function returns the fileid of the versions folder of a file
 	// if versions folder does not exist, it will create it
-	public static function getVersionsFolderIDFromFileID($id) {
+	public static function getVersionsFolderIDFromFileID($id, $createVersion = true) {
 		$meta = self::getFileById($id);
 		// here we can receive the file to convert to version folder
 		// or the version folder itself
@@ -795,7 +795,14 @@ class EosUtil {
 
 			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
 			if(!$versionInfo) {
-				self::createVersion($meta['eospath']);	
+				if($createVersion)
+				{
+					self::createVersion($meta['eospath']);
+				}
+				else
+				{
+					return null;
+				}
 			}
 			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
 			return $versionInfo['fileid'];
