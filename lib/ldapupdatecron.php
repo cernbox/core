@@ -100,7 +100,7 @@ function cronlog($msg)
 
 function buildQuery($table, $types, array $tags, array $data)
 {
-	cronlog('Starting query build...');
+	//cronlog('Starting query build...');
 
 	$limit = count($data) - 1;
 	$cache = 'INSERT INTO ' . $table . ' VALUES ';
@@ -139,14 +139,14 @@ function buildQuery($table, $types, array $tags, array $data)
 	else
 		$cache .= $innerArray [$tags [$innerCount]] . ');';
 
-	cronlog('Query build finished');
+	//cronlog('Query build finished');
 
 	return $cache;
 }
 
 function buildCVSFile($types, array $tags, array $data)
 {
-	cronlog('Starting query build...');
+	//cronlog('Starting query build...');
 	
 	$cache = '';
 	$limit = count($data) - 1;
@@ -158,31 +158,19 @@ function buildCVSFile($types, array $tags, array $data)
 		$innerArray = $data [$outerKeys [$i]];
 		for($j = 0; $j < $innerCount; $j ++) {
 			$val = (isset ( $innerArray [$tags [$j]] ) ? $innerArray [$tags [$j]] : 'NULL');
-			/*if ($types [$j] == 's')
-				$cache .= '"' . $val . '",';
-			else*/
-				$cache .= $val . ',';
+			$cache .= $val . ',';
 		}
-		/*if ($types [$innerCount] == 's')
-			$cache .= '"' . $innerArray [$tags [$innerCount]] . '"' . PHP_EOL;
-		else*/
-			$cache .= $innerArray [$tags [$innerCount]] . PHP_EOL;
+		$cache .= $innerArray [$tags [$innerCount]] . PHP_EOL;
 	}
 	
 	$innerArray = $data [$outerKeys [$limit]];
 	for($j = 0; $j < $innerCount; $j ++) {
 		$val = (isset ( $innerArray [$tags [$j]] ) ? $innerArray [$tags [$j]] : 'NULL');
-		/*if ($types [$j] == 's')
-			$cache .= '"' . $val . '",';
-		else*/
-			$cache .= $val . ',';
+		$cache .= $val . ',';
 	}
-	/*if ($types [$innerCount] == 's')
-		$cache .= '"' . $innerArray [$tags [$innerCount]] . '"' . PHP_EOL;
-	else*/
-		$cache .= $innerArray [$tags [$innerCount]] . PHP_EOL;
+	$cache .= $innerArray [$tags [$innerCount]] . PHP_EOL;
 
-	cronlog('Done');
+	//cronlog('Done');
 
 	return $cache;
 }
@@ -255,22 +243,22 @@ try
 		
 		$ldapGroupBaseDN = $connector->ldapBaseGroups;
 		
-		cronlog('Retrieving groups...');
+		//cronlog('Retrieving groups...');
 		$ldapGroups = retrieveLDAPData($ldapAccess, 'searchGroups');
 		$ldapGroups = arrangeLDAPArray($ldapGroups);
-		cronlog('Groups retrieved');
+		//cronlog('Groups retrieved');
 
-		cronlog('Inserting groups into database...');
+		//cronlog('Inserting groups into database...');
 
 		insertIntoDatabase('ldap_groups', buildQuery('ldap_groups', 's', ['cn'], $ldapGroups));
 		unset($ldapGroups);
 
-		cronlog('Done');
+		//cronlog('Done');
 		
-		cronlog('Retrieving users...');
+		//cronlog('Retrieving users...');
 		$ldapUsers = retrieveLDAPData($ldapAccess, 'searchUsers', ['cn', 'uidNumber', 'displayName', 'employeeType', 'memberOf']);
 		$ldapUsers = arrangeLDAPArray($ldapUsers);
-		cronlog('Users retrieved');
+		//cronlog('Users retrieved');
 		
 		// Split groups from user data
 		$userGroups = [];
@@ -289,13 +277,13 @@ try
 			unset($ldapUsers[$key]['memberof']);
 		}
 
-		cronlog('Inserting users into database...');
+		//cronlog('Inserting users into database...');
 
 		insertIntoDatabase('ldap_users', buildQuery('ldap_users', 'siss', ['cn','uidnumber','displayname','employeetype'], $ldapUsers));
 		unset($ldapUsers);
 
-		cronlog('Done');
-		cronlog('Inserting users <-> groups into database...');
+		//cronlog('Done');
+		//cronlog('Inserting users <-> groups into database...');
 	
 		insertIntoDatabase('ldap_group_members', buildCVSFile('ss', ['user_cn','group_cn'], $userGroups), true);
 		unset($userGroups);
@@ -313,6 +301,9 @@ catch(Exception $e)
 	\OCP\Util::writeLog('CRON user_ldap', $e->getMessage(), \OCP\Util::ERROR);
 	$handle = fopen('cron_user_ldap_error.log', 'w');
 	$trace = $e->getTrace();
+	
+	fwrite($handle, date('l jS \of F Y h:i:s A') . PHP_EOL);
+	
 	foreach($trace as $token)
 	{
 		$file = (isset($token['file'])?$token['file']:'');
@@ -321,6 +312,8 @@ catch(Exception $e)
 		
 		fwrite($handle, $file . ' ' .$function . ' ' .$line . PHP_EOL);
 	}
+	
+	fwrite($handle, PHP_EOL);
 	
 	fflush($handle);
 	fclose($handle);

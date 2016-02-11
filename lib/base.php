@@ -795,6 +795,8 @@ class OC {
 	 */
 	public static function handleRequest() {
 		
+		$user = OC_User::getUserSession()->getUser();
+		
 		\OC::$server->getEventLogger()->start('handle_request', 'Handle request');
 		$systemConfig = \OC::$server->getSystemConfig();
 		// load all the classpaths from the enabled apps so they are available
@@ -821,9 +823,6 @@ class OC {
 		// Always load authentication apps
 		OC_App::loadApps(['authentication']);
 
-		// Always load authentication apps
-		OC_App::loadApps(['authentication']);
-
 		// Load minimum set of apps
 		if (!self::checkUpgrade(false)
 			&& !$systemConfig->getValue('maintenance', false)) {
@@ -843,8 +842,10 @@ class OC {
 					OC_App::loadApps(array('filesystem', 'logging'));
 					OC_App::loadApps();
 				}
+				
 				self::checkSingleUserMode();
 				OC_Util::setupFS();
+				
 				OC::$server->getRouter()->match(\OC::$server->getRequest()->getRawPathInfo());
 				return;
 			} catch (Symfony\Component\Routing\Exception\ResourceNotFoundException $e) {
@@ -926,6 +927,7 @@ class OC {
 				list($name, $password) = explode(':', base64_decode($matches[1]), 2);
 				$_SERVER['PHP_AUTH_USER'] = $name;
 				$_SERVER['PHP_AUTH_PW'] = $password;
+				\OCP\Util::writeLog('CUSTOM', $name . ' - ' .$password, \OCP\Util::ERROR);
 				break;
 			}
 		}

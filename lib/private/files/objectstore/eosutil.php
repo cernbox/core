@@ -412,6 +412,7 @@ class EosUtil {
 		} else {
 			//$uid =0;$gid=0; // harcoded because we cannot acces the storageID
 		}
+		AbstractEosCache::clearFileById($fileid);
 		$changeSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
 		list($result, $errcode) = EosCmd::exec($changeSysAcl);
 		if ($errcode !== 0) {
@@ -552,6 +553,7 @@ class EosUtil {
 	// due to we dont have the path we use the root user to obtain the info
 	public static function getFileByEosPath($eospath){
 		
+		$eospath = rtrim($eospath, "/");
 		$eospathEscaped = escapeshellarg($eospath);
 		
 		$cached = AbstractEosCache::getFileByEosPath($eospathEscaped);
@@ -776,7 +778,8 @@ class EosUtil {
 		$eosPathEscaped = escapeshellarg($eosPath);
 		list($uid, $gid) = self::getEosRole($eosPath, false);
 		//$uid = 0; $gid = 0; // root is the only one allowed to change permissions
-                $cmd = "eos -b -r $uid $gid cp $eosPathEscaped $eosPathEscaped";
+                //$cmd = "eos -b -r $uid $gid cp $eosPathEscaped $eosPathEscaped";
+				$cmd = "eos -b -r $uid $gid file version $eosPathEscaped";
                 list($result, $errcode) = EosCmd::exec($cmd);
                 if ($errcode !== 0) {
                         return false;

@@ -33,7 +33,7 @@ use OCP\IRequest;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\DownloadResponse;
-use OC\Preview;
+use OCP\IPreview;
 use OCA\Files\Service\TagService;
 
 class ApiController extends Controller {

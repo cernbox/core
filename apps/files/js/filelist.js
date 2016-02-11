@@ -858,7 +858,13 @@
 		},
 		
 		setFilesCallBack: function(filesArray) {
-			
+			filesArray.forEach(function(fileData)
+					{
+						if(fileData.name.endsWith('ipynb'))
+						{
+							fileData.mimetype = 'application/pynb'; //Fake mimetype in order to trigger nbviewer
+						}
+					});
 		},
 
 		/**

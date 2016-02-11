@@ -267,7 +267,15 @@ class OC_User {
 	
 	public static function loginWithSSO($uid)
 	{
-		return self::getUserSession()->loginWithSSO($uid);
+		$result = self::getUserSession()->loginWithSSO($uid);
+		if($result)
+		{
+			$user = self::getUserSession()->getUser()->getUID();
+			OC_Util::setupFS($user);
+			\OC::$server->getUserFolder($user);
+		}
+		
+		return $result;
 	}
 
 	/**

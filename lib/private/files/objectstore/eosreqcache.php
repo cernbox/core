@@ -200,6 +200,9 @@ class EosReqCache implements IEosCache {
 	 */
 	public function setFileInfoByEosPath($depth, $eosPath, $data)
 	{
+		$this->init();
+		$key = $depth . '-' . $eosPath;
+		$GLOBALS['cernbox']['getFileInfoByEosPath'][$key] = $data;
 	}
 	
 	/**
@@ -208,5 +211,12 @@ class EosReqCache implements IEosCache {
 	 */
 	public function getFileInfoByEosPath($depth, $eosPath)
 	{
+		$this->init();
+		$key = $depth . '-' . $eosPath;
+		if(isset($GLOBALS['cernbox']['getFileInfoByEosPath'][$key]))
+		{
+			return $GLOBALS['cernbox']['getFileInfoByEosPath'][$key];
+		}
+		return FALSE;
 	}
 }

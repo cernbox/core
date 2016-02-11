@@ -135,9 +135,10 @@ class EosCache {
 		}
 		
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
+		$eosPath = rtrim($eosPath, "/");
 		$eosPathEscaped = escapeshellarg($eosPath);
 		
-		$cached = AbstractEosCache::getMeta($eosPathEscaped);
+		$cached = AbstractEosCache::getFileByEosPath($eosPathEscaped);
 		if($cached) {
 			return $cached;
 		}
@@ -155,7 +156,7 @@ class EosCache {
 			}
 			$data["storage"] = $this->storageId;
 			$data["permissions"] = 31;
-			AbstractEosCache::setMeta($eosPathEscaped, $data);
+			AbstractEosCache::setFileByEosPath($eosPathEscaped, $data);
 			return $data;
 		}
 	}
@@ -174,9 +175,11 @@ class EosCache {
 		if(!$eosPath){
 			return false;
 		}
+		
 		$eosPathEscaped = escapeshellarg($eosPath);
 		
-		if(($cached = AbstractEosCache::getFileInfoByEosPath($depth, $eosPathEscaped)))
+		$cached = AbstractEosCache::getFileInfoByEosPath(($deep? 10 : 1), $eosPathEscaped);
+		if($cached)
 		{
 			return $cached;
 		}
@@ -189,7 +192,6 @@ class EosCache {
 		$files             = array();
 		list($result, $errcode) = EosCmd::exec($getFolderContents);
 		if ($errcode !== 0) {
-			AbstractEosCache::setFileInfoByEosPath($depth, $eosPathEscaped, $files);
 			return $files;
 		}
 		
@@ -237,8 +239,11 @@ class EosCache {
 				$files[$eospath] = $file;
 			}
 		}		
+		
+		$result = array_values($files);
+		AbstractEosCache::setFileInfoByEosPath(($deep? 10 : 1), $eosPathEscaped, $result);
 
-		return array_values($files);
+		return $result;
 	}
 
 	/**

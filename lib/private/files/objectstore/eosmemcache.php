@@ -187,7 +187,7 @@ class EosMemCache implements IEosCache
 	 */
 	public function setFileInfoByEosPath($depth, $eosPath, $data)
 	{
-		$key = $data . '-' . $eosPath;
+		$key = $depth . '-' . $eosPath;
 		$this->writeToCache(self::KEY_FILEINFO_BY_PATH, $key, json_encode($data));
 	}
 	
@@ -197,8 +197,8 @@ class EosMemCache implements IEosCache
 	 */
 	public function getFileInfoByEosPath($depth, $eosPath)
 	{
-		$key - $depth . '-' . $eosPath;
-		return json_decode($this->readFromCache(self::KEY_FILEINFO_BY_PATH, $key));
+		$key = $depth . '-' . $eosPath;
+		return json_decode($this->readFromCache(self::KEY_FILEINFO_BY_PATH, $key), TRUE);
 	}
 	
 	/**
