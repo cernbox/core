@@ -360,6 +360,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				$colonPos = FALSE;
 				if(($colonPos = strpos($_GET['search'], ':')) != FALSE) {
 					$searchParams = substr((string)$_GET['search'], 0, $colonPos);
+					$GLOBALS['ldapsearchparam'] = $searchParams;
 					$searchStr = substr((string)$_GET['search'], $colonPos + 1);
 				} else {
 					$searchStr = (string)$_GET['search'];
