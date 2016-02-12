@@ -221,6 +221,8 @@ try
 {
 	require_once 'base.php';
 	
+	\OC::$server->getSession()->close();
+	
 	cronlog('Starting LDAP Database update...');
 	
 	// LDAP Access set up

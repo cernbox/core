@@ -42,8 +42,8 @@ if(count($configPrefixes) === 1) {
 	$connector = new OCA\user_ldap\lib\Connection($ldapWrapper, $configPrefixes[0]);
 	$ldapAccess = new OCA\user_ldap\lib\Access($connector, $ldapWrapper, $userManager);
 
-	$ldapAccess->setUserMapper(new OCA\User_LDAP\Mapping\UserMapping($dbc));
-	$ldapAccess->setGroupMapper(new OCA\User_LDAP\Mapping\GroupMapping($dbc));
+	$ldapAccess->setUserMapper(new OCA\User_LDAP\Mapping\CustomUserMapping($dbc));
+	$ldapAccess->setGroupMapper(new OCA\User_LDAP\Mapping\CustomGroupMapping($dbc));
 	$userBackend  = new OCA\user_ldap\CACHED_USER_LDAP($ldapAccess, $ocConfig);
 	$groupBackend = new OCA\user_ldap\CACHED_GROUP_LDAP($ldapAccess);
 } else if(count($configPrefixes) > 1) {

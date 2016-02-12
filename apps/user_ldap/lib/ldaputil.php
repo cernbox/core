@@ -22,9 +22,39 @@ class LDAPUtil
 		return ('cn=' . $userCN . ',' . self::LDAP_USERS_BASE_DN);
 	}
 	
+	public static function getUserCNFromDN($dn)
+	{
+		$tokens = explode(',', $dn);
+		foreach($tokens as $token)
+		{
+			$innerTokens = explode('=', $token);
+			if(strcmp(strtolower($innerTokens[0]), 'cn') === 0)
+			{
+				return $innerTokens[1];
+			}
+		}
+		
+		return null;
+	}
+	
 	public static function getGroupDN($groupCN)
 	{
 		return ('cn=' . $groupCN . ',' . self::LDAP_GROUPS_BASE_DN);
+	}
+	
+	public static function getGroupCNFromDN($dn)
+	{
+		$tokens = explode(',', $dn);
+		foreach($tokens as $token)
+		{
+			$innerTokens = explode('=', $token);
+			if(strcmp(strtolower($innerTokens[0]), 'cn') === 0)
+			{
+				return $innerTokens[1];
+			}
+		}
+		
+		return null;
 	}
 	
 	public static function setSearchParams($params)
