@@ -179,6 +179,11 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				&& isset($_GET['itemSource'])
 				&& isset($_GET['checkReshare'])
 				&& isset($_GET['checkShares'])) {
+
+			        $reshare = false;
+			
+			        /* KUBA: disable the reshare check altogether because we do not allow re-sharing in cernbox so this call is redundant*/
+				/*
 				if ($_GET['checkReshare'] == 'true') {
 					$reshare = OCP\Share::getItemSharedWithBySource(
 						$_GET['itemType'],
@@ -190,6 +195,8 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				} else {
 					$reshare = false;
 				}
+				*/ /* end of KUBA patch */
+
 				if ($_GET['checkShares'] == 'true') {
 					$shares = OCP\Share::getItemShared(
 						$_GET['itemType'],
