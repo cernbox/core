@@ -569,6 +569,7 @@ class EosUtil {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
+			$data['permissions'] = 31;
 			AbstractEosCache::setFileByEosPath($eospathEscaped, $data);
 			
 			return $data;
@@ -775,17 +776,18 @@ class EosUtil {
 	}
 		
 	public static function createVersion($eosPath) {
+		
+		AbstractEosCache::clearFileByEosPath($eosPath);
+		
 		$eosPathEscaped = escapeshellarg($eosPath);
 		list($uid, $gid) = self::getEosRole($eosPath, false);
 		//$uid = 0; $gid = 0; // root is the only one allowed to change permissions
-                //$cmd = "eos -b -r $uid $gid cp $eosPathEscaped $eosPathEscaped";
-				$cmd = "eos -b -r $uid $gid file version $eosPathEscaped";
-                list($result, $errcode) = EosCmd::exec($cmd);
-                if ($errcode !== 0) {
-                        return false;
-                }
-                return true;
-
+		$cmd = "eos -b -r $uid $gid file version $eosPathEscaped";
+        list($result, $errcode) = EosCmd::exec($cmd);
+        if ($errcode !== 0) {
+        	return false;
+        }
+        return true;
 	}
 	
 	// this function returns the fileid of the versions folder of a file
@@ -810,7 +812,7 @@ class EosUtil {
 			}
 				
 
-			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
+			$versionInfo = self::getFileByEosPath($versionFolder);
 			if(!$versionInfo) {
 				if($createVersion)
 				{
@@ -818,20 +820,21 @@ class EosUtil {
 				}
 				else
 				{
-					return null;
+					return $id;
 				}
+				$versionInfo = self::getFileByEosPath($versionFolder);
 			}
-			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
+			
 			return $versionInfo['fileid'];
-                }
+    	}
 	}
 	// given the fileid of a versions folder, returns the metadata of the real file
 	public static function getFileMetaFromVersionsFolderID($id) {
-		$meta = \OC\Files\ObjectStore\EosUtil::getFileById($id);
+		$meta = self::getFileById($id);
 		$dirname = dirname($meta['eospath']);
 		$basename = basename($meta['eospath']);
 		$realfile = $dirname . "/" . substr($basename, 8);
-		$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($realfile);
+		$realfilemeta = self::getFileByEosPath($realfile);
 		return $realfilemeta;
 	}
 	

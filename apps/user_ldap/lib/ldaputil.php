@@ -64,7 +64,9 @@ class LDAPUtil
 	
 	public static function getSearchParams()
 	{
-		return $GLOBALS['ldapsearchparam'];
+		if(isset($GLOBALS['ldapsearchparam']))
+			return $GLOBALS['ldapsearchparam'];
+		return '';
 	}
 	
 	private static function dumpArray($handle, $array, $index = 0)

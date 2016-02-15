@@ -131,7 +131,7 @@ class AbstractEosCache
 		if(self::init())
 		{
 			/** @var IEosCache $cache */
-			foreach(self::$caches as $cache)
+			foreach(self::$caches as &$cache)
 			{
 				$cache->clearFileByEosPath($eosPath);
 			}

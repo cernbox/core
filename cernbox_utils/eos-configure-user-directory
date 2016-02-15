@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # WARNING: THIS VERY SCRIPT IS USED BY HUGO ON OWNCLOUD SERVER BACKEND!
 
 usr=$1
@@ -10,9 +8,12 @@ if [ x$usr == x ]; then
    exit 1
 fi
 
-export EOS_MGM_URL=XEOS_MGM_URL
-STORAGE_PREFIX=XSTORAGE_PREFIX
-RECYCLE_BIN=XRECYCLE_BIN
+export EOS_MGM_URL=root://eosbackup.cern.ch
+STORAGE_PREFIX=/eos/scratch/user
+
+#This is bogus!! it sould be something like eos recycle add bin...
+#RECYCLE_BIN=/eos/scratch/user/proc/recycle
+
 
 #FIXME: protect from local users, root included
 
@@ -23,9 +24,9 @@ id $usr || (echo "ERROR resolving user" $usr; exit -1)
 
 group=`id -gn $usr`
 
-if [ $? -ne 0 ] ; then 
-    echo "ERROR: cannot retrieve group name for the user" $usr; 
-    exit -1 
+if [ $? -ne 0 ] ; then
+    echo "ERROR: cannot retrieve group name for the user" $usr;
+    exit -1
 fi
 
 homedir=${STORAGE_PREFIX}/$initial/$usr
@@ -41,10 +42,17 @@ eos -b -r 0 0 attr -r set sys.mtime.propagation="1" $homedir
 eos -b -r 0 0 attr -r set sys.forced.atomic="1" $homedir
 eos -b -r 0 0 attr -r set sys.versioning="10" $homedir
 
+eos -b -r 0 0 attr -r set sys.owner.auth="*"
+eos -b -r 0 0 attr -r set sys.forced.maxsize="10000000000"
+
 eos -b -r 0 0 quota set -u $usr -v 2TB -i 1M -p ${STORAGE_PREFIX}
 
-eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
+# DO NOT RUN IN PPS
+###eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
+# but run this in eosbackup
+eos -b -r 0 0 access allow user $usr
 
+#FIXME
 #eos -b -r 0 0 attr -r set sys.recycle="$RECYCLE_BIN" $homedir
 
 #eos -b -r 0 0 attr -r rm sys.eval.useracl $homedir
@@ -52,5 +60,3 @@ eos -b -r 0 0 access allow user $usr # this is temporary until we allow all user
 #set +o verbose
 
 #echo 'SUCCESS' $homedir 'created and ownership set to' $usr:$group
-
-# DONE.
