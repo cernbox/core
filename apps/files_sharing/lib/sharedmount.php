@@ -99,6 +99,7 @@ class SharedMount extends MountPoint implements MoveableMount {
 	 * @return bool
 	 */
 	private function updateFileTarget($newPath, &$share) {
+		/** CERNBOX SHARE PLUGIN PATCH
 		// if the user renames a mount point from a group share we need to create a new db entry
 		// for the unique name
 		if ($share['share_type'] === \OCP\Share::SHARE_TYPE_GROUP && empty($share['unique_name'])) {
@@ -121,6 +122,7 @@ class SharedMount extends MountPoint implements MoveableMount {
 		$result = $query->execute($arguments);
 
 		return $result === 1 ? true : false;
+		*/
 	}
 
 	/**

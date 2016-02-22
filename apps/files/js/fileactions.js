@@ -381,6 +381,19 @@
 		 * @param {OCA.Files.FileActionContext} context rendering context
 		 */
 		_renderInlineAction: function(actionSpec, isDefault, context) {
+			/** CERNBOX SHARE PLUGIN PATCH */
+			// HUGO here we control which actions to show or not
+			var mountType = context.$file.attr('data-mounttype');
+			if(mountType === "shared-root" && actionSpec.name === 'Delete') { 
+				return; // HUGO hide Unshare button on Shared with me
+			}
+			if(mountType === "shared-root" && actionSpec.name === "Rename") {
+				return; // HUGO hide rename button on Shared with me
+			}
+			if(mountType === "shared" && actionSpec.name === "Versions") {
+				return; // HUGO hide versions button in files under Shared with me
+			}
+			
 			var renderFunc = actionSpec.render || _.bind(this._defaultRenderAction, this);
 			var $actionEl = renderFunc(actionSpec, isDefault, context);
 			if (!$actionEl || !$actionEl.length) {

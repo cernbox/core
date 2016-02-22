@@ -260,9 +260,10 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 		case 'getItem':
 			if (isset($_GET['itemType'])
 				&& isset($_GET['itemSource'])
-				&& isset($_GET['checkReshare'])
+				//&& isset($_GET['checkReshare']) // CERNBOX SHARE PLUGIN PATCH
 				&& isset($_GET['checkShares'])) {
-				if ($_GET['checkReshare'] == 'true') {
+				/** CERNBOX SHARE PLUGIN PATCH */
+				/*if ($_GET['checkReshare'] == 'true') {
 					$reshare = OCP\Share::getItemSharedWithBySource(
 						(string)$_GET['itemType'],
 						(string)$_GET['itemSource'],
@@ -272,7 +273,8 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					);
 				} else {
 					$reshare = false;
-				}
+				}*/
+				$reshare = false;
 				if ($_GET['checkShares'] == 'true') {
 					$shares = OCP\Share::getItemShared(
 						(string)$_GET['itemType'],

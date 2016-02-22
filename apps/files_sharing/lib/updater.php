@@ -113,7 +113,7 @@ class Shared_Updater {
 	 * @param array $params
 	 */
 	static public function postShareHook($params) {
-
+		/** CERNBOX SHARE PLUGIN PATCH 
 		if ($params['itemType'] === 'folder' || $params['itemType'] === 'file') {
 
 			$shareWith = $params['shareWith'];
@@ -126,7 +126,7 @@ class Shared_Updater {
 					self::correctUsersFolder($user, $params['fileTarget']);
 				}
 			}
-		}
+		}*/
 	}
 
 	/**
