@@ -27,7 +27,7 @@ p($l->t('Cheers!'));
 <td width="20px">&nbsp;</td>
 <td style="font-weight:normal; font-size:0.8em; line-height:1.2em; font-family:verdana,'arial',sans;">--<br>
 <?php p($theme->getName()); ?> -
-<?php p($theme->getSlogan()); ?>
+<a href="<?php p($theme->getDocBaseUrl()); ?>"><?php p($theme->getSlogan()); ?></a>
 <br><a href="<?php p($theme->getBaseUrl()); ?>"><?php p($theme->getBaseUrl());?></a>
 </td>
 </tr>
