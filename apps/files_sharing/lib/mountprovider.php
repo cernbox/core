@@ -22,13 +22,12 @@
 
 namespace OCA\Files_Sharing;
 
-use OC\Files\Filesystem;
-use OC\User\NoUserException;
 use OCA\Files_Sharing\Propagation\PropagationManager;
 use OCP\Files\Config\IMountProvider;
 use OCP\Files\Storage\IStorageFactory;
 use OCP\IConfig;
 use OCP\IUser;
+use OC\Files\ObjectStore\EosUtil;
 
 class MountProvider implements IMountProvider {
 	/**
@@ -99,7 +98,7 @@ class MountProvider implements IMountProvider {
 			}
 				
 			foreach ( $uri_path_array as $uri_path ) {
-				\OCP\Util::writeLog ( 'KUBA', "OPTIMIZATION" . __FUNCTION__ . " files=" . $_GET ["files"] . " uri_path=" . $uri_path . " ", \OCP\Util::ERROR );
+				//\OCP\Util::writeLog ( 'KUBA', "OPTIMIZATION" . __FUNCTION__ . " files=" . $_GET ["files"] . " uri_path=" . $uri_path . " ", \OCP\Util::ERROR );
 				if ($uri_path) {
 						
 					if (EosUtil::isProjectURIPath ( $uri_path )) {

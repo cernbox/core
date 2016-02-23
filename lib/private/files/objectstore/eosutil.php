@@ -851,49 +851,46 @@ class EosUtil {
 		return null;
 	}
 	
-	public static function getUserForProjectName($prjname){
-	  # return NULL if project not defined
-	  $eos_project_mapping = self::getEosProjectMapping();
-	  return array_search($prjname,$eos_project_mapping); # FIXME: linear lookup (potential scaling problem with large arrays with many projects)
+	public static function getUserForProjectName($prjname) {
+		// return NULL if project not defined
+		$eos_project_mapping = self::getEosProjectMapping ();
+		return array_search ( $prjname, $eos_project_mapping ); // FIXME: linear lookup (potential scaling problem with large arrays with many projects)
 	}
-
-        public static function isProjectURIPath($uri_path){
-	  # uri paths always start with  leading slash (e.g. ?dir=/bla)
-
-	  if(startsWith($uri_path,'/')) {
-	    $topdir=explode("/",$uri_path)[1];
-	  }
-	  else {
-	    $topdir=explode("/",$uri_path)[0];
-	  }
-	  
-	  return startsWith($topdir,'  project ');
+	
+	public static function isProjectURIPath($uri_path) {
+		// uri paths always start with leading slash (e.g. ?dir=/bla)
+		if (startsWith ( $uri_path, '/' )) {
+			$topdir = explode ( "/", $uri_path ) [1];
+		} else {
+			$topdir = explode ( "/", $uri_path ) [0];
+		}
+		
+		return startsWith ( $topdir, '  project ' );
 	}
-
-	function isSharedURIPath($uri_path){
-          # uri paths always start with  leading slash (e.g. ?dir=/bla)                                                                                                                                                                                     # assume that all shared items follow the same naming convention at the top directory (and they do not clash with normal files and directories)
-          # the convention for top directory is: "name (#123)"
-	  # examples:
-	  # "/aaa (#1234)/jas"   => true
-	  # "/ d s (#77663455)/jas"  => true
-	  # "/aaa (#1)/jas"      => false 
-      	  # "/aaa (#ssss)/jas"   => false
-          # "aaa (#1234)/jas"    => false
-          # "/(#7766)/jas"       => false
-          # "/ (#7766)/jas"       => true (this is a flaw)
-
-
-          if(startsWith($uri_path,'/')) {
-            $topdir=explode("/",$uri_path)[1]; 
-	  }
-	  else {
-	    $topdir=explode("/",$uri_path)[0];
-	  }
-
-	  $parts = explode(" ",$topdir);
-	  if(count($parts)<2) { return false; }
-	  $marker=end($parts);
-	  return preg_match("/[(][#](\d{3,})[)]/", $marker); # we match at least 3 digits enclosed within our marker:  (#123)
+	
+	public static function isSharedURIPath($uri_path) {
+		// uri paths always start with leading slash (e.g. ?dir=/bla) # assume that all shared items follow the same naming convention at the top directory (and they do not clash with normal files and directories)
+		// the convention for top directory is: "name (#123)"
+		// examples:
+		// "/aaa (#1234)/jas" => true
+		// "/ d s (#77663455)/jas" => true
+		// "/aaa (#1)/jas" => false
+		// "/aaa (#ssss)/jas" => false
+		// "aaa (#1234)/jas" => false
+		// "/(#7766)/jas" => false
+		// "/ (#7766)/jas" => true (this is a flaw)
+		if (startsWith ( $uri_path, '/' )) {
+			$topdir = explode ( "/", $uri_path ) [1];
+		} else {
+			$topdir = explode ( "/", $uri_path ) [0];
+		}
+		
+		$parts = explode ( " ", $topdir );
+		if (count ( $parts ) < 2) {
+			return false;
+		}
+		$marker = end ( $parts );
+		return preg_match ( "/[(][#](\d{3,})[)]/", $marker ); // we match at least 3 digits enclosed within our marker: (#123)
 	}
 
 }
