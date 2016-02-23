@@ -183,8 +183,8 @@ class Server extends SimpleContainer implements IServerContainer {
 			$manager = $c->getUserManager();
 
 			$session = new \OC\Session\Memory('');
-
-			$userSession = new \OC\User\Session($manager, $session);
+			/** CERNBOX USER SET UP PATCH */
+			$userSession = new \OC\User\CernboxSession($manager, $session);
 			$userSession->listen('\OC\User', 'preCreateUser', function ($uid, $password) {
 				\OC_Hook::emit('OC_User', 'pre_createUser', array('run' => true, 'uid' => $uid, 'password' => $password));
 			});
