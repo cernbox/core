@@ -28,54 +28,41 @@ OCP\JSON::checkLoggedIn();
 OCP\JSON::callCheck();
 \OC::$server->getSession()->close();
 
-$files = $_POST['files'];
-$dir = '/';
-if (isset($_POST['dir'])) {
-	$dir = rtrim((string)$_POST['dir'], '/'). '/';
+$files    = null;
+$allfiles = null;
+if (isset($_POST['files'])) {
+	$files = json_decode($_POST['files']);
 }
-$allFiles = false;
-if (isset($_POST['allfiles']) && (string)$_POST['allfiles'] === 'true') {
-	$allFiles = true;
-	$list = array();
-	$dirListing = true;
-	if ($dir === '' || $dir === '/') {
-		$dirListing = false;
-	}
-	foreach (OCA\Files_Trashbin\Helper::getTrashFiles($dir, \OCP\User::getUser()) as $file) {
-		$fileName = $file['name'];
-		if (!$dirListing) {
-			$fileName .= '.d' . $file['mtime'];
-		}
-		$list[] = $fileName;
-	}
-} else {
-	$list = json_decode($files);
+if (isset($_POST['allfiles'])) {
+	$allfiles = json_decode($_POST['allfiles']);
 }
 
 $error = array();
 $success = array();
 
+if ($allfiles) {
+	$files = \OCA\Files_Trashbin\EosTrashbin::getAllRestoreKeys();
+}
 $i = 0;
-foreach ($list as $file) {
-	$path = $dir . '/' . $file;
-	if ($dir === '/') {
-		$file = ltrim($file, '/');
-		$delimiter = strrpos($file, '.d');
-		$filename = substr($file, 0, $delimiter);
-		$timestamp =  substr($file, $delimiter+2);
-	} else {
-		$path_parts = pathinfo($file);
-		$filename = $path_parts['basename'];
-		$timestamp = null;
-	}
-
-	if ( !OCA\Files_Trashbin\Trashbin::restore($path, $filename, $timestamp) ) {
-		$error[] = $filename;
-		\OCP\Util::writeLog('trashbin', 'can\'t restore ' . $filename, \OCP\Util::ERROR);
-	} else {
-		$success[$i]['filename'] = $file;
-		$success[$i]['timestamp'] = $timestamp;
+foreach ($files as $file) {
+	$restoredFile = OCA\Files_Trashbin\EosTrashbin::restore($file);
+	if(is_array($restoredFile)) {
+		$success[$i]['filename']  = $file;
+		$success[$i]['timestamp'] = strtotime($restoredFile['deletion-time']);
 		$i++;
+	} else {
+		$fileInfo = OCA\Files_Trashbin\EosTrashbin::getFileByKey($file);
+		$eosRestorePath = $fileInfo["restore-path"];
+		$ocRestorePath = OC\Files\ObjectStore\EosProxy::toOc($eosRestorePath);
+		$pathinfo = pathinfo($ocRestorePath);
+		$dir = $pathinfo["dirname"];
+		$dir = substr($dir,6); // remove the files/ part
+		if($restoredFile === 17) {
+			$error[] = $pathinfo["basename"] . " (folder/file already exists)";
+		} else {
+			$error[] = $pathinfo["basename"] . " (you need to create the folder: $dir)";
+		}
+		\OCP\Util::writeLog('trashbin', 'can\'t restore ' . $pathinfo['basename'], \OCP\Util::ERROR);
 	}
 
 }

@@ -58,6 +58,8 @@ OCA.Trashbin.App = {
 			);
 		}, t('files_trashbin', 'Restore'));
 
+		/** EOS TRASHBIN PLUGIN PATCH */
+		/*// DISABLE DELETE BUTTON IN SINGLE FILES
 		fileActions.registerAction({
 			name: 'Delete',
 			displayName: t('files', 'Delete'),
@@ -87,7 +89,7 @@ OCA.Trashbin.App = {
 					_.bind(fileList._removeCallback, fileList)
 				);
 			}
-		});
+		});*/
 		return fileActions;
 	}
 };
