@@ -75,6 +75,7 @@
 			$tr.attr('data-share-id', _.pluck(fileData.shares, 'id').join(','));
 			if (this._sharedWithUser) {
 				$tr.attr('data-share-owner', fileData.shareOwner);
+				$tr.attr('data-share-owner-displayname', fileData.ownerDisplayName);
 				$tr.attr('data-mounttype', 'shared-root');
 				var permission = parseInt($tr.attr('data-permissions')) | OC.PERMISSION_DELETE;
 				$tr.attr('data-permissions', permission);
@@ -236,6 +237,11 @@
 						icon: OC.MimeType.getIconUrl(share.mimetype),
 						mimetype: share.mimetype
 					};
+					
+					if('displayname_owner' in share) {
+						file.ownerDisplayName = share.displayname_owner;
+					}
+					
 					if (share.item_type === 'folder') {
 						file.type = 'dir';
 						file.mimetype = 'httpd/unix-directory';
@@ -253,7 +259,7 @@
 						stime: share.stime * 1000,
 					};
 					if (self._sharedWithUser) {
-						file.shareOwner = share.displayname_owner;
+						file.shareOwner = share.uid_owner;
 						file.name = OC.basename(share.file_target);
 						file.path = OC.dirname(share.file_target);
 						file.permissions = share.permissions;

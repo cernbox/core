@@ -355,7 +355,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				$limit = 0;
 				$offset = 0;
 				// limit defaults to 15 if not specified via request parameter and can be no larger than 500
-				$request_limit = min((int)$_GET['limit'] ?: 15, 500);
+				$request_limit = 15; //min((int)$_GET['limit'] ?: 15, 500);
 				while ($count < $request_limit && count($users) == $limit) {
 					$limit = $request_limit - $count;
 					if ($shareWithinGroupOnly) {
@@ -375,7 +375,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							|| !in_array($uid, $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER]))
 							&& $uid != OC_User::getUser()) {
 							$shareWith[] = array(
-								'label' => $displayName,
+								'label' => $displayName . ' (' . $uid . ')',
 								'value' => array(
 									'shareType' => OCP\Share::SHARE_TYPE_USER,
 									'shareWith' => $uid)
