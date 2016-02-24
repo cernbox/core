@@ -57,7 +57,7 @@ script('core', [
 		</p>
 
 		<?php if (isset($_['invalidpassword']) && ($_['invalidpassword'])): ?>
-		<a id="lost-password" class="warning" href="https://account.cern.ch/account/CERNAccount/ChangePassword.aspx" target="_blank">
+		<a id="lost-password" class="warning" href="">
 			<?php p($l->t('Wrong password. Reset it?')); ?>
 		</a>
 		<?php endif; ?>
