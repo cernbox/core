@@ -126,7 +126,17 @@ class OC_Helper {
 	 * Returns a url to the given service.
 	 */
 	public static function linkToRemoteBase($service) {
-		return self::linkTo('', 'remote.php') . '/' . $service;
+		/** CERNBOX WEBDAV PATCH */
+		//return self::linkTo('', 'remote.php') . '/' . $service;
+		// HUGO we show EOS webdav endpoint instead the OC one
+		//return self::linkTo('', 'remote.php') . '/' . $service;
+		$user = \OCP\User::getUser();
+		$prefix = \OC\Files\ObjectStore\EosUtil::getEosPrefix();
+		$eosWebDavRoot = \OCP\Config::getSystemValue('eoswebdavroot', '/cernbox/webdav');
+		if($service == "webdav"){
+			$service = $eosWebDavRoot . $prefix . substr($user, 0, 1) . "/" . $user;
+		}
+		return $service;
 	}
 
 	/**
