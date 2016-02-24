@@ -864,6 +864,16 @@
 		 */
 		setFiles: function(filesArray) {
 			var self = this;
+			
+			/** CERNBOX NB VIEWER APP PATCH */
+			// Fake notebooks mimetype to be able to open it with the nb application
+			filesArray.forEach(function(fileData)
+			{
+				if(fileData.name.endsWith('ipynb'))
+				{
+					fileData.mimetype = 'application/pynb'; //Fake mimetype in order to trigger nbviewer
+				}
+			});
 
 			// detach to make adding multiple rows faster
 			this.files = filesArray;
