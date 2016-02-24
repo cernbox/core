@@ -244,11 +244,11 @@ class OC_Response {
 		 * @see \OCP\AppFramework\Http\Response::getHeaders
 		 */
 		$policy = 'default-src \'self\'; '
-			. 'script-src \'self\' \'unsafe-eval\'; '
+			. 'script-src \'self\' \'unsafe-eval\' \'unsafe-inline\'; '
 			. 'style-src \'self\' \'unsafe-inline\'; '
 			. 'frame-src *; '
 			. 'img-src * data: blob:; '
-			. 'font-src \'self\' data:; '
+			. 'font-src \'self\' data: blob:; '
 			. 'media-src *; ' 
 			. 'connect-src *';
 		header('Content-Security-Policy:' . $policy);
