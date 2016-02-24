@@ -216,6 +216,37 @@
 			this.get('linkShare').password = password;
 			this.get('linkShare').passwordChanged = true;
 		},
+		
+		/** CERNBOX SHARE USER LIST PR PATCH */
+		addShareList: function(shareWith, options)
+		{
+			var fileName = this.fileInfoModel.get('name');
+			
+			options = options || {};
+
+			// Default permissions are Edit (CRUD) and Share
+			// Check if these permissions are possible
+			var permissions = OC.PERMISSION_READ;
+			if (this.updatePermissionPossible()) {
+				permissions = permissions | OC.PERMISSION_UPDATE;
+			}
+			if (this.createPermissionPossible()) {
+				permissions = permissions | OC.PERMISSION_CREATE;
+			}
+			if (this.deletePermissionPossible()) {
+				permissions = permissions | OC.PERMISSION_DELETE;
+			}
+			if (this.configModel.get('isResharingAllowed') && (this.sharePermissionPossible())) {
+				permissions = permissions | OC.PERMISSION_SHARE;
+			}
+
+			var model = this;
+			var itemType = this.get('itemType');
+			var itemSource = this.get('itemSource');
+			OC.Share.shareList(itemType, itemSource, null, shareWith, permissions, fileName, options.expiration, function() {
+				model.fetch();
+			});
+		},
 
 		addShare: function(attributes, options) {
 			var shareType = attributes.shareType;
