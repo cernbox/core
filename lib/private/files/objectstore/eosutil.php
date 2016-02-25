@@ -604,7 +604,8 @@ class EosUtil {
 			
 			    /* CERN mime types */
 			    'root' => 'application/x-root',			
-
+				'ipynb' => 'application/pynb',
+		    		
 			    'txt' => 'text/plain',
 			    'htm' => 'text/html',
 			    'html' => 'text/html',
@@ -658,11 +659,11 @@ class EosUtil {
 			    'odt' => 'application/vnd.oasis.opendocument.text',
 	            	    'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
 	             );
-		
+		    
 			$val = explode('.', $path);
 		        $ext = strtolower(array_pop($val));
 		        if (array_key_exists($ext, $mime_types)) {
-	        	    return $mime_types[$ext];
+		        	return $mime_types[$ext];
 	        	}
             		return 'application/octet-stream';
 		}
