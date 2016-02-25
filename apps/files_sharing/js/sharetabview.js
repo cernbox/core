@@ -52,7 +52,9 @@
 				var attributes = {
 					itemType: this.model.isDirectory() ? 'folder' : 'file',
 				   	itemSource: this.model.get('id'),
-					possiblePermissions: this.model.get('sharePermissions')
+					possiblePermissions: this.model.get('sharePermissions'),
+					eospath: this.model.get('eospath'),			// CERNBOX SHOW SHARE INFO PR PATCH
+					projectname: this.model.get('projectname')	// CERNBOX SHOW SHARE INFO PR PATCH
 				};
 				var configModel = new OC.Share.ShareConfigModel();
 				var shareModel = new OC.Share.ShareItemModel(attributes, {

@@ -27,7 +27,7 @@ OCA.Trashbin.App = {
 			$('#app-content-trashbin'), {
 				scrollContainer: $('#app-content'),
 				fileActions: this._createFileActions(),
-				detailsViewEnabled: false
+				detailsViewEnabled: true // CERNBOX SHOW TRASHBIN INFO PATCH
 			}
 		);
 	},

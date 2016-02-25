@@ -54,6 +54,8 @@
 	 * @property {OC.Share.Types.Collection|undefined} collection
 	 * @property {Date} expiration optional?
 	 * @property {number} stime optional?
+	 * @property {string} eospath optional?  	// CERNBOX SHOW SHARE INFO PR PATCH 
+ 	 * @property {string} projectname optional?	// CERNBOX SHOW SHARE INFO PR PATCH
 	 */
 
 	/**
@@ -442,6 +444,14 @@
 		 */
 		getReshareType: function() {
 			return this.get('reshare').share_type;
+		},
+		
+		/** CERNBOX SHOW SHARE INFO PR PATCH */
+		getEosPath: function() {
+			return this.get('eospath');
+		},		
+		getProjectName: function() {
+			return this.get('projectname');
 		},
 
 		/**

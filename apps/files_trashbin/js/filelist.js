@@ -49,6 +49,10 @@
 		initialize: function() {
 			var result = OCA.Files.FileList.prototype.initialize.apply(this, arguments);
 			this.$el.find('.undelete').click('click', _.bind(this._onClickRestoreSelected, this));
+			
+			if (this._detailsView) {
+				this._detailsView.addDetailView(new OC.Share.RestorePathView());
+			}
 
 			this.setSort('mtime', 'desc');
 			/**
@@ -84,10 +88,11 @@
 			}
 		},
 
-		_createRow: function() {
+		_createRow: function(fileData) {
 			// FIXME: MEGAHACK until we find a better solution
 			var tr = OCA.Files.FileList.prototype._createRow.apply(this, arguments);
 			tr.find('td.filesize').remove();
+			tr.attr('eospath', fileData['restore-path']);
 			return tr;
 		},
 
@@ -127,6 +132,10 @@
 			if (this.getCurrentDirectory() === '/') {
 				fileInfo.displayName = getDeletedFileName(fileInfo.name);
 			}
+			
+			/** CERNBOX SHOW TRASHBIN INFO PATCH */
+			fileInfo['restore-path'] = $el.attr('eospath');
+			
 			// no size available
 			delete fileInfo.size;
 			return fileInfo;
