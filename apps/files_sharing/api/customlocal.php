@@ -165,7 +165,7 @@ class CustomLocal
 				$data['token'] = $token;
 			}
 			
-			return new \OC_OCS_Result([$data]);
+			return new \OC_OCS_Result($data);
 		}
 		else
 		{
@@ -264,9 +264,13 @@ class CustomLocal
 				$basename = basename($versionMeta['eospath']);
 				
 				if($row['item_type'] === 'file')
+				{
 					$realfile = $dirname . "/" . substr($basename, 8);
-					else
-				$realfile = $dirname . "/" . $basename;
+				}
+				else
+				{
+					$realfile = $dirname . "/" . $basename;
+				}
 				
 				//$realfile = $dirname . "/" . substr($basename, 8);
 				
@@ -303,6 +307,7 @@ class CustomLocal
 	{
 		$username = \OCP\User::getUser();
 		$view = new \OC\Files\View('/'.$username.'/files');
+		$fileInfo = $view->getFileInfo($path);
 		
 		$eosPath = EosProxy::toEos('files' . $path, 'object::user:'.$username);
 		$originalEosMeta = EosUtil::getFileByEosPath($eosPath);
@@ -311,9 +316,16 @@ class CustomLocal
 		{
 			$dirname = dirname($eosPath);
 			$basename = basename($eosPath);
-			$versionFolder = $dirname . "/.sys.v#." . $basename;
-			
-			$eosMeta = EosUtil::getFileByEosPath($versionFolder, false);
+			$eosMeta = null;
+			if($fileInfo['eostype'] === 'file')
+			{
+				$versionFolder = $dirname . "/.sys.v#." . $basename;
+				$eosMeta = EosUtil::getFileByEosPath($versionFolder, false);
+			}
+			else
+			{
+				$eosMeta = $fileInfo;
+			}
 			
 			if($eosMeta === null)
 			{

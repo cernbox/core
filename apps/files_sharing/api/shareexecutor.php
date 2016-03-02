@@ -31,10 +31,19 @@ abstract class ShareExecutor
 	{
 		$view = new \OC\Files\View('/'.\OCP\User::getUser().'/files');
 		$this->meta = $view->getFileInfo($path);
-		$this->versionMeta = \OC\Files\ObjectStore\EosUtil::getVersionFolderFromFileId($this->meta['fileid']);
+		
+		$this->itemType = $this->meta['mimetype'] === 'httpd/unix-directory' ? 'folder' : 'file';
+		
+		if($this->itemType === 'file')
+		{
+			$this->versionMeta = \OC\Files\ObjectStore\EosUtil::getVersionFolderFromFileId($this->meta['fileid']);
+		}
+		else
+		{
+			$this->versionMeta = $this->meta;
+		}
 		
 		$this->itemSource = $this->versionMeta['fileid'];
-		$this->itemType = $this->meta['mimetype'] === 'httpd/unix-directory' ? 'folder' : 'file';
 		
 		if($this->itemSource === null) 
 		{

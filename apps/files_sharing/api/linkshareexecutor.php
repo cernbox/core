@@ -132,7 +132,7 @@ class LinkShareExecutor extends ShareExecutor
 			if (isset($oldToken)) {
 				$this->token = $oldToken;
 			} else {
-				$this->token = \OC::$server->getSecureRandom()->getMediumStrengthGenerator()->generate(self::TOKEN_LENGTH,
+				$this->token = \OC::$server->getSecureRandom()->getMediumStrengthGenerator()->generate(\OC\Share\Share::TOKEN_LENGTH,
 						\OCP\Security\ISecureRandom::CHAR_LOWER.\OCP\Security\ISecureRandom::CHAR_UPPER.
 						\OCP\Security\ISecureRandom::CHAR_DIGITS);
 			}
