@@ -771,9 +771,8 @@ class EosUtil {
 
 	}
 	
-	// this function returns the fileid of the versions folder of a file
-	// if versions folder does not exist, it will create it
-	public static function getVersionsFolderIDFromFileID($id, $createVersion = true) {
+	public static function getVersionFolderFromFileId($id, $createVersion = true)
+	{
 		$meta = self::getFileById($id);
 		// here we can receive the file to convert to version folder
 		// or the version folder itself
@@ -781,32 +780,38 @@ class EosUtil {
 		$eos_version_regex = \OCP\Config::getSystemValue("eos_version_regex");
 		// if file is already version folder we return that inode
 		if (preg_match("|".$eos_version_regex."|", basename($meta["eospath"])) ) {
-			return $meta['fileid'];
+			return $meta;
 		} else {
 			$dirname = dirname($meta['eospath']);
 			$basename = basename($meta['eospath']);
 			// We need to handle the case where the file is already a version.
-			// In that case the version folder is the parent.	
+			// In that case the version folder is the parent.
 			$versionFolder = $dirname . "/.sys.v#." . $basename;
 			if (preg_match("|".$eos_version_regex."|", $dirname) ) {
-				$versionFolder = $dirname;	
+				$versionFolder = $dirname;
 			}
-				
-
+		
+		
 			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
 			if(!$versionInfo) {
 				if($createVersion)
 				{
 					self::createVersion($meta['eospath']);
+					$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
 				}
 				else
 				{
 					return null;
 				}
 			}
-			$versionInfo = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($versionFolder);
-			return $versionInfo['fileid'];
-                }
+			return $versionInfo;
+		}
+	}
+	
+	// this function returns the fileid of the versions folder of a file
+	// if versions folder does not exist, it will create it
+	public static function getVersionsFolderIDFromFileID($id, $createVersion = true) {
+		return self::getVersionFolderFromFileId($id, $createVersion)['fileid'];
 	}
 	// given the fileid of a versions folder, returns the metadata of the real file
 	public static function getFileMetaFromVersionsFolderID($id) {
@@ -850,7 +855,7 @@ class EosUtil {
 	  return startsWith($topdir,'  project ');
 	}
 
-	function isSharedURIPath($uri_path){
+	public static function isSharedURIPath($uri_path){
           # uri paths always start with  leading slash (e.g. ?dir=/bla)                                                                                                                                                                                     # assume that all shared items follow the same naming convention at the top directory (and they do not clash with normal files and directories)
           # the convention for top directory is: "name (#123)"
 	  # examples:

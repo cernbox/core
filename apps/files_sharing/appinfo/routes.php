@@ -34,17 +34,17 @@ $this->create('sharing_external_test_remote', '/testremote')
 
 \OC_API::register('get',
 		'/apps/files_sharing/api/v1/shares',
-		array('\OCA\Files_Sharing\API\Local', 'getAllShares'),
+		array('\OCA\Files_Sharing\API\CustomLocal', 'getAllShares'),
 		'files_sharing');
 
 \OC_API::register('post',
 		'/apps/files_sharing/api/v1/shares',
-		array('\OCA\Files_Sharing\API\Local', 'createShare'),
+		array('\OCA\Files_Sharing\API\CustomLocal', 'createShare'),
 		'files_sharing');
 
 \OC_API::register('get',
 		'/apps/files_sharing/api/v1/shares/{id}',
-		array('\OCA\Files_Sharing\API\Local', 'getShare'),
+		array('\OCA\Files_Sharing\API\CustomLocal', 'getShare'),
 		'files_sharing');
 
 \OC_API::register('put',
