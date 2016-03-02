@@ -405,78 +405,85 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 		if(isset($GLOBALS["shared_setup_hook"])) {
 			return;
 		}
-
-
-		#KUBA: avoid mounting all shared storages if not necessary:
-		#\OCP\Util::writeLog('KUBA',"PATH" .  __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." REQ_URI=".$_SERVER['REQUEST_URI'], \OCP\Util::ERROR);
-
+			
+		// KUBA: avoid mounting all shared storages if not necessary:
+		// \OCP\Util::writeLog('KUBA',"PATH" . __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." REQ_URI=".$_SERVER['REQUEST_URI'], \OCP\Util::ERROR);
 		$mount_shared_stuff = false;
 		
-		if($_GET["view"] == "sharingin" or $_GET["view"] == "sharingout" or $_GET["view"] == "sharinglinks")
-		  {
-		    $mount_shared_stuff = true;
-		  }
-		else
-		  {
-		    $uri_path_array=array();
+		# Disable shared mounts for all OCS SHARE API Calls -- Nadir rewrote it.
+		if (strpos ( $_SERVER ['REQUEST_URI'], 'ocs/v1.php/apps/files_sharing/api' ) === FALSE)
+		{
+			# We are not in the OCS SHARE API call but probably a web browser request -- lets apply some other heuristics to check if we need shared mounts.
+			if (isset($_GET['view']) and ($_GET ["view"] == "sharingin" or $_GET ["view"] == "sharingout" or $_GET ["view"] == "sharinglinks"))
+			{
+				$mount_shared_stuff = true;
+			} 
+			else
+			{
+				$uri_path_array = array ();
+				
+				if ($_SERVER ['REQUEST_METHOD'] === 'POST')
+				{
+					if (isset ( $_POST ["dir"] ))
+					{
+						array_push ( $uri_path_array, $_POST ["dir"] );
+					} 
+					else
+					{
+						$mount_shared_stuff = true; // if dir is not defined, take the safe bet
+					}
+				} 
+				else
+				{
+					if (isset ( $_GET ["dir"] ))
+					{
+						array_push ( $uri_path_array, $_GET ["dir"] );
+					} 
+					else
+					{
+						$mount_shared_stuff = true; // if dir is not defined, take the safe bet
+					}
+					
+					if (isset ( $_GET ["files"] ))
+					{
+						
+						if (is_array ( $_GET ["files"] ))
+						{
+							$uri_path_array = array_merge ( $uri_path_array, $_GET ["files"] );
+						} 
+						else
+						{
+							array_push ( $uri_path_array, $_GET ["files"] );
+						}
+					}
+				}
+				
+				foreach ( $uri_path_array as $uri_path )
+				{
+					\OCP\Util::writeLog ( 'KUBA', "OPTIMIZATION" . __FUNCTION__ . " files=" . $_GET ["files"] . " uri_path=" . $uri_path . " ", \OCP\Util::ERROR );
+					if ($uri_path)
+					{
+						
+						if (EosUtil::isProjectURIPath ( $uri_path ))
+						{
+							$mount_shared_stuff = true;
+						} 
+						elseif (EosUtil::isSharedURIPath ( $uri_path ))
+						{
+							$mount_shared_stuff = true;
+						}
 
-		    if ($_SERVER['REQUEST_METHOD'] === 'POST') 
-		      {
-			if(isset($_POST["dir"]))
-			  {
-			    array_push($uri_path_array,$_POST["dir"]); 
-			  }
-			  else
-			    {
-			      $mount_shared_stuff = true; # if dir is not defined, take the safe bet
-			    }
-		      }
-		    else
-		      {
-			if(isset($_GET["dir"]))
-			  {
-			    array_push($uri_path_array,$_GET["dir"]);
-			  }
-			  else
-			    {
-			      $mount_shared_stuff = true; # if dir is not defined, take the safe bet
-			    }
-
-			if(isset($_GET["files"]))
-			  {
-
-			    if(is_array($_GET["files"]))
-			      {
-				$uri_path_array=array_merge($uri_path_array,$_GET["files"]);
-			      }
-			    else
-			      {
-				array_push($uri_path_array,$_GET["files"]);
-			      }
-
-			  }
-
-		      }
-
-
-		    foreach($uri_path_array as $uri_path) {
-		      \OCP\Util::writeLog('KUBA',"OPTIMIZATION" .  __FUNCTION__ . " files=".$_GET["files"]." uri_path=".$uri_path." ", \OCP\Util::ERROR);
-		      if($uri_path) {
-
-		      if(EosUtil::isProjectURIPath($uri_path)) { $mount_shared_stuff = true; }
-		      elseif (EosUtil::isSharedURIPath($uri_path)) { $mount_shared_stuff = true; }
-
-		      #\OCP\Util::writeLog('KUBA',"EosUtil::isSharedURIPath" .  __FUNCTION__ . "uri_path=|${uri_path}| ->".EosUtil::isSharedURIPath($uri_path), \OCP\Util::ERROR);
-		    }
-		    }
-		  }
+		      			#\OCP\Util::writeLog('KUBA',"EosUtil::isSharedURIPath" .  __FUNCTION__ . "uri_path=|${uri_path}| ->".EosUtil::isSharedURIPath($uri_path), \OCP\Util::ERROR);
+		    		}
+		    	}
+		  	}	
+		}
 
 		if(!$mount_shared_stuff) 
-		  {
-		    #\OCP\Util::writeLog('KUBA',"PATH" .  __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." NOT MOUNTING=".$mount_shared_stuff, \OCP\Util::ERROR);
-
+		{
+			#\OCP\Util::writeLog('KUBA',"PATH" .  __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." NOT MOUNTING=".$mount_shared_stuff, \OCP\Util::ERROR);
 		    return; # OPTIMIZATION ON/OFF
-		  }
+		}
 
 		#\OCP\Util::writeLog('KUBA',"PATH" .  __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." MOUNTING=".$mount_shared_stuff, \OCP\Util::ERROR);
 
