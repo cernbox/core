@@ -132,7 +132,7 @@ class CustomLocal
 		}
 		
 		$token = 0;
-		
+		$id = false;
 		try	{
 			if(!$executor->checkFileIntegrity())
 			{
@@ -147,7 +147,7 @@ class CustomLocal
 				throw new \Exception('Check share target failed');
 			}
 			
-			$executor->insertShare();
+			$id = $executor->insertShare();
 			$token = $executor->getInsertResult();
 			
 		} catch (\Exception $e) {
@@ -157,39 +157,15 @@ class CustomLocal
 		if($token)
 		{
 			$data = [];
-			$username = \OCP\User::getUser();
-			$queryStorages = \OC_DB::prepare('SELECT numeric_id FROM oc_storages WHERE id = ?');
-			$resultStorages = $queryStorages->execute(['object::user:'.$username]);
-			$storageId = $resultStorages->fetchRow()['numeric_id'];
-			
-			$rows = [];
+			$data['id'] = $id;
 			if(is_string($token))
 			{
-				$query = \OC_DB::prepare('SELECT * FROM oc_share WHERE token = ?');
-				$result = $query->execute([$token]);
-				$rows = $result->fetchAll();
+				$url = \OCP\Util::linkToPublic('files&t='.$token);
+				$data['url'] = $url; // '&' gets encoded to $amp;
+				$data['token'] = $token;
 			}
-			else
-			{
-				$rows = self::getAllFilesSharedByMe();
-			}
-				
-			foreach($rows as $key => $row)
-			{
-				// Only return information if the asker is the same person who shared the file
-				if($token === $row['token'] || ($share['share_with'] === $shareWith && $share['share_type'] === $shareType))
-				{
-					$data['id'] = $row['id'];	
-					if(is_string($token))
-					{
-						$url = \OCP\Util::linkToPublic('files&t='.$token);
-						$data['url'] = $url; // '&' gets encoded to $amp;
-						$data['token'] = $token;
-					}
-						
-					return new \OC_OCS_Result([$data]);
-				}
-			}
+			
+			return new \OC_OCS_Result([$data]);
 		}
 		else
 		{
