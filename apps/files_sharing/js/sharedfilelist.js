@@ -138,7 +138,7 @@
 				this._reloadCall.abort();
 			}
 			this._reloadCall = $.ajax({
-				url: OC.linkToOCS('apps/files_sharing/api/v1') + 'shares',
+				url: OC.linkToOCS('apps/files_sharing/api/v1old') + 'shares',
 				/* jshint camelcase: false */
 				data: {
 					format: 'json',
