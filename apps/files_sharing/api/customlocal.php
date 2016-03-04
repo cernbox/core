@@ -21,6 +21,12 @@ class CustomLocal
 	 */
 	public static function getAllShares($params) 
 	{
+		$sharedWithMe = self::param('shared_with_me');
+		if($sharedWithMe === 'true')
+		{
+			return self::getAllFilesSharedWithMe();	
+		}
+		
 		$path = self::param('path');
 		// If a path is specified, get information about specific shares
 		if($path !== FALSE)
@@ -133,7 +139,8 @@ class CustomLocal
 		
 		$token = 0;
 		$id = false;
-		try	{
+		try	
+		{
 			if(!$executor->checkFileIntegrity())
 			{
 				throw new \Exception('Check file integrity failed');
@@ -197,20 +204,162 @@ class CustomLocal
 			
 			foreach($rows as $key => $row)
 			{
-				$eosMeta = EosUtil::getFileMetaFromVersionsFolderID($row['file_source']);
+				if($row['expiration'] != null)
+				{
+					$timeStamp = strtotime($row['expiration']);
+					// The share expired
+					if($timeStamp < time())
+					{
+						unset($rows[$key]);
+						continue;
+					}
+				}
+				
+				$row['id'] = (int)$row['id'];
+				$row['file_source'] = (int)$row['file_source'];
+				$row['stime'] = (int)$row['stime'];
+				$row['permissions'] = (int)$row['permissions'];
+				$row['share_type'] = (int)$row['share_type'];
+				
+				if($row['item_type'] === 'file')
+				{
+					$eosMeta = EosUtil::getFileMetaFromVersionsFolderID($row['file_source']);
+				}
+				else 
+				{
+					$eosMeta = EosUtil::getFileById($row['file_source']);
+				}
+				
+				if($eosMeta == null)
+				{
+					unset($rows[$key]);
+					continue;
+				}
 				//$row['item_source'] = $eosMeta['fileid'];
 				//$row['file_source'] = $eosMeta['fileid'];
 				$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
+				if(!$row['path'])
+				{
+					unset($rows[$key]);
+					continue;
+				}
 				$row['file_target'] = $eosMeta['name'];
-				$row['storage'] = $storageId;
+				$row['storage'] = (int)$storageId;
+				$row['eospath'] = $eosMeta['eospath'];
 				unset($row['accepted']);
-				unset($row['item_target']);
 				$row['mimetype'] = $eosMeta['mimetype'];
 				$row['share_with_displayname'] = (isset($row['share_with']) && !empty($row['share_with'])) ? \OCP\User::getDisplayName($row['share_with']) : '';
+				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
 				
 				$rows[$key] = $row;
 			}
 			
+			return new \OC_OCS_Result($rows);
+		}
+		catch(Exception $e)
+		{
+			\OCP\Util::writeLog('files_sharing', 'OCS API: Failed to get all files shared by the user ' .$username . ': ' . $e->getMessage(), \OCP\Util::ERROR);
+		}
+		
+		return new \OC_OCS_Result([]);
+	}
+	
+	private static function getAllFilesSharedWithMe()
+	{
+		$username = \OCP\User::getUser();
+		try
+		{	
+			$groups = \OC_Group::getUserGroups($username);
+			$groupsLen = count($groups);
+			$placeHolder = "";
+			for($i = 0; $i < $groupsLen; $i++)
+			{
+				$placeHolder .= "?,";
+			}
+			
+			$placeHolder .= "?";
+			$groups[] = $username;
+				
+			$query = \OC_DB::prepare('SELECT * FROM oc_share WHERE share_with IN (' .$placeHolder .')');
+			$result = $query->execute($groups);
+				
+			$rows = $result->fetchAll();
+				
+			foreach($rows as $key => $row)
+			{
+				if($row['expiration'] != null)
+				{
+					$timeStamp = strtotime($row['expiration']);
+					// The share expired
+					if($timeStamp < time())
+					{
+						unset($rows[$key]);
+						continue;
+					}
+				}
+				
+				// CACHE STORAGE ID
+				$queryStorages = \OC_DB::prepare('SELECT numeric_id FROM oc_storages WHERE id = ?');
+				$resultStorages = $queryStorages->execute(['object::user:'.$row['uid_owner']]);
+				$storageId = $resultStorages->fetchRow()['numeric_id'];
+				
+				$row['id'] = (int)$row['id'];
+				$row['file_source'] = (int)$row['file_source'];
+				$row['stime'] = (int)$row['stime'];
+				$row['permissions'] = (int)$row['permissions'];
+				$row['share_type'] = (int)$row['share_type'];
+				
+				if($row['item_type'] === 'file')
+				{
+					$eosMeta = EosUtil::getFileMetaFromVersionsFolderID($row['file_source']);
+				}
+				else 
+				{
+					$eosMeta = EosUtil::getFileById($row['file_source']);
+				}
+				
+				if(eosMeta == null)
+				{
+					unset($rows[$key]);
+					continue;
+				}
+				//$row['item_source'] = $eosMeta['fileid'];
+				//$row['file_source'] = $eosMeta['fileid'];
+				$row['path'] = EosProxy::toOc($eosMeta['eospath']);
+				$row['storage'] = (int)$storageId;
+				$row['eospath'] = $eosMeta['eospath'];
+				unset($row['accepted']);
+				if(strpos($eosMeta['eospath'], EosUtil::getEosProjectPrefix()) === 0)
+				{
+					$row['file_target'] = '/  project ' . $eosMeta['name'];
+					$row['project_share'] = true;
+					$row['projectname'] = EosUtil::getProjectNameForUser($row["uid_owner"]);
+					
+					$readers = $row;
+					$readers['share_with'] = 'cernbox-project-'.$row['projectname'].'-readers';
+					$readers['permissions'] = 1;
+					
+					$writers = $row;
+					$writers['share_with'] = 'cernbox-project-'.$row['projectname'].'-writers';
+					$writers['permissions'] = 15;
+					
+					$row['grouped'] = [];
+					$row['grouped'][] = $readers;
+					$row['grouped'][] = $writers;
+					
+				}
+				else 
+				{
+					$row['project_share'] = false;
+					$row['file_target'] = '/' . $eosMeta['name'] . ' (#' . $eosMeta['fileid'] . ')';
+				}
+				$row['mimetype'] = $eosMeta['mimetype'];
+				$row['share_with_displayname'] = (isset($row['share_with']) && !empty($row['share_with'])) ? \OCP\User::getDisplayName($row['share_with']) : '';
+				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
+		
+				$rows[$key] = $row;
+			}
+				
 			return new \OC_OCS_Result($rows);
 		}
 		catch(Exception $e)
