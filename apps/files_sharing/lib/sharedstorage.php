@@ -407,16 +407,21 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 		}
 			
 		// KUBA: avoid mounting all shared storages if not necessary:
-		// \OCP\Util::writeLog('KUBA',"PATH" . __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." REQ_URI=".$_SERVER['REQUEST_URI'], \OCP\Util::ERROR);
+		//\OCP\Util::writeLog('KUBA',"PATH" . __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." REQ_URI=".$_SERVER['REQUEST_URI'], \OCP\Util::ERROR);
 		$mount_shared_stuff = false;
 		
 		# Disable shared mounts for all OCS SHARE API Calls -- Nadir rewrote it.
-		if (strpos ( $_SERVER ['REQUEST_URI'], 'ocs/v1.php/apps/files_sharing/api' ) === FALSE)
+		# Also disable the mounts when "Share" action is clicked, they are not needed (apparently).
+		if (strpos ( $_SERVER ['REQUEST_URI'], 'ocs/v1.php/apps/files_sharing/api' ) == FALSE and 
+		    strpos ( $_SERVER ['REQUEST_URI'], 'core/ajax/share.php') == FALSE )
 		{
+		  //\OCP\Util::writeLog('KUBA',"CHECK " . __FUNCTION__ . " _GET[view]=".$_GET["view"], \OCP\Util::ERROR);
+
 			# We are not in the OCS SHARE API call but probably a web browser request -- lets apply some other heuristics to check if we need shared mounts.
 			if (isset($_GET['view']) and ($_GET ["view"] == "sharingin" or $_GET ["view"] == "sharingout" or $_GET ["view"] == "sharinglinks"))
 			{
 				$mount_shared_stuff = true;
+				//\OCP\Util::writeLog('CALLED', 'CALLED', \OCP\Util::ERROR);
 			} 
 			else
 			{
@@ -460,7 +465,7 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 				
 				foreach ( $uri_path_array as $uri_path )
 				{
-					\OCP\Util::writeLog ( 'KUBA', "OPTIMIZATION" . __FUNCTION__ . " files=" . $_GET ["files"] . " uri_path=" . $uri_path . " ", \OCP\Util::ERROR );
+				        // \OCP\Util::writeLog ( 'KUBA', "OPTIMIZATION" . __FUNCTION__ . " files=" . $_GET ["files"] . " uri_path=" . $uri_path . " ", \OCP\Util::ERROR );
 					if ($uri_path)
 					{
 						
@@ -481,7 +486,8 @@ class Shared extends \OC\Files\Storage\Common implements ISharedStorage {
 
 		if(!$mount_shared_stuff) 
 		{
-			#\OCP\Util::writeLog('KUBA',"PATH" .  __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." NOT MOUNTING=".$mount_shared_stuff, \OCP\Util::ERROR);
+			
+		    //\OCP\Util::writeLog('KUBA',"PATH" .  __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." NOT MOUNTING=".$mount_shared_stuff, \OCP\Util::ERROR);
 		    return; # OPTIMIZATION ON/OFF
 		}
 
