@@ -92,6 +92,7 @@
 			// FIXME: MEGAHACK until we find a better solution
 			var tr = OCA.Files.FileList.prototype._createRow.apply(this, arguments);
 			tr.find('td.filesize').remove();
+			tr.attr('data-file', fileData.id);
 			tr.attr('eospath', fileData['restore-path']);
 			return tr;
 		},
