@@ -63,17 +63,17 @@ $this->create('sharing_external_add', '/external')
 
 API::register('get',
 		'/apps/files_sharing/api/v1/shares',
-		array('\OCA\Files_Sharing\API\Local', 'getAllShares'),
+		array('\OCA\Files_Sharing\API\CustomLocal', 'getAllShares'),
 		'files_sharing');
 
 API::register('post',
 		'/apps/files_sharing/api/v1/shares',
-		array('\OCA\Files_Sharing\API\Local', 'createShare'),
+		array('\OCA\Files_Sharing\API\CustomLocal', 'createShare'),
 		'files_sharing');
 
 API::register('get',
 		'/apps/files_sharing/api/v1/shares/{id}',
-		array('\OCA\Files_Sharing\API\Local', 'getShare'),
+		array('\OCA\Files_Sharing\API\CustomLocal', 'getShare'),
 		'files_sharing');
 
 API::register('put',
@@ -115,6 +115,23 @@ API::register('delete',
 		'/apps/files_sharing/api/v1/remote_shares/{id}',
 		array('\OCA\Files_Sharing\API\Remote', 'unshare'),
 		'files_sharing');
+
+/** CERNBOX OCS OPTIMIZATION V1 OLD API */
+API::register('get',
+		'/apps/files_sharing/api/v1old/shares',
+		array('\OCA\Files_Sharing\API\Local', 'getAllShares'),
+		'files_sharing');
+
+API::register('post',
+		'/apps/files_sharing/api/v1old/shares',
+		array('\OCA\Files_Sharing\API\Local', 'createShare'),
+		'files_sharing');
+
+API::register('get',
+		'/apps/files_sharing/api/v1old/shares/{id}',
+		array('\OCA\Files_Sharing\API\Local', 'getShare'),
+		'files_sharing');
+
 
 
 $sharees = new \OCA\Files_Sharing\API\Sharees(\OC::$server->getGroupManager(),

@@ -792,9 +792,8 @@ class EosUtil {
         return true;
 	}
 	
-	// this function returns the fileid of the versions folder of a file
-	// if versions folder does not exist, it will create it
-	public static function getVersionsFolderIDFromFileID($id, $createVersion = true) {
+	public static function getVersionFolderFromFileID($id, $createVersion = true)
+	{
 		$meta = self::getFileById($id);
 		// here we can receive the file to convert to version folder
 		// or the version folder itself
@@ -802,18 +801,18 @@ class EosUtil {
 		$eos_version_regex = \OCP\Config::getSystemValue("eos_version_regex");
 		// if file is already version folder we return that inode
 		if (preg_match("|".$eos_version_regex."|", basename($meta["eospath"])) ) {
-			return $meta['fileid'];
+			return $meta;
 		} else {
 			$dirname = dirname($meta['eospath']);
 			$basename = basename($meta['eospath']);
 			// We need to handle the case where the file is already a version.
-			// In that case the version folder is the parent.	
+			// In that case the version folder is the parent.
 			$versionFolder = $dirname . "/.sys.v#." . $basename;
 			if (preg_match("|".$eos_version_regex."|", $dirname) ) {
-				$versionFolder = $dirname;	
+				$versionFolder = $dirname;
 			}
-				
-
+		
+		
 			$versionInfo = self::getFileByEosPath($versionFolder);
 			if(!$versionInfo) {
 				if($createVersion)
@@ -826,9 +825,21 @@ class EosUtil {
 				}
 				$versionInfo = self::getFileByEosPath($versionFolder);
 			}
-			
-			return $versionInfo['fileid'];
-    	}
+				
+			return $versionInfo;
+		}
+	}
+	
+	// this function returns the fileid of the versions folder of a file
+	// if versions folder does not exist, it will create it
+	public static function getVersionsFolderIDFromFileID($id, $createVersion = true) {
+		$version = self::getVersionFolderFromFileID($id, $createVersion);
+		if($version)
+		{
+			return $version['fileid'];
+		}
+		
+		return null;
 	}
 	// given the fileid of a versions folder, returns the metadata of the real file
 	public static function getFileMetaFromVersionsFolderID($id) {
