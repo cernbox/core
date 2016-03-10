@@ -71,8 +71,12 @@ class CernboxSession extends Session
 		\OCP\Util::writeLog('EOSLOGIN', "user: $uid has valid uid", \OCP\Util::ERROR);
 		
 		// HUGO check user has valid homedir if not we create it
-		$homedir = \OC\Files\ObjectStore\EosUtil::getEosPrefix() . substr($uid, 0, 1) . "/" . $uid;
-		$meta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($homedir);
+		$homedir = \OC\Files\ObjectStore\EosUtil::getEosPrefix() . substr($uid, 0, 1) . "/" . $uid . "/";
+		//$meta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($homedir);
+		$meta = \OC\Files\ObjectStore\EosUtil::getFolderContents($homedir, function(array &$data) use ($uid)
+		{
+			$data['storage'] = 'object::user:' . $uid;	
+		});
 	
 		if($meta) { // path exists so we let the user access the system
 			\OCP\Util::writeLog('EOSLOGIN', "user: $uid has a valid homedir that is: $homedir", \OCP\Util::ERROR);

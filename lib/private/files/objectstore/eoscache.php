@@ -137,12 +137,13 @@ class EosCache {
 		
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
 		$eosPath = rtrim($eosPath, "/");
-		$eosPathEscaped = escapeshellarg($eosPath);
 		
-		$cached = EosCacheManager::getFileByEosPath($eosPathEscaped);
+		$cached = EosCacheManager::getFileByEosPath($eosPath);
 		if($cached) {
 			return $cached;
 		}
+		
+		$eosPathEscaped = escapeshellarg($eosPath);
 		
 		$get     = "eos -b -r $uid $gid file info $eosPathEscaped -m";
 		$info    = array();
@@ -157,7 +158,7 @@ class EosCache {
 			}
 			$data["storage"] = $this->storageId;
 			$data["permissions"] = 31;
-			EosCacheManager::setFileByEosPath($eosPathEscaped, $data);
+			EosCacheManager::setFileByEosPath($eosPath, $data);
 			return $data;
 		}
 	}
@@ -177,74 +178,10 @@ class EosCache {
 			return false;
 		}
 		
-		$eosPathEscaped = escapeshellarg($eosPath);
-		
-		$cached = EosCacheManager::getFileInfoByEosPath(($deep? 10 : 1), $eosPathEscaped);
-		if($cached)
+		return EosUtil::getFolderContents($eosPath, function(array &$data)
 		{
-			return $cached;
-		}
-		
-		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
-		$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 1 $eosPathEscaped";
-		if ($deep === true) {
-			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 10 $eosPathEscaped";
-		}
-		$files             = array();
-		list($result, $errcode) = EosCmd::exec($getFolderContents);
-		if ($errcode !== 0) {
-			return $files;
-		}
-		
-		/*
-		 * This array is used to pass extra attributes to a file/folder	
-		 * The keys are eos paths and the values are arrays of key-value pairs (attr/value) 
-  		 * Example: ["/eos/scratch/user/o/ourense/photos/1.png" => ["cboxid" => 456123]]
-	 	 */
-		$extraAttrs = array();
-
-		foreach ($result as $line_to_parse) {
-			$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
-			if( $data["path"] !== false && rtrim($data["eospath"],"/") !== rtrim($eosPath,"/") ){ 
-				$data["storage"] = $this->storageId;
-				$data["permissions"] = 31;
-				
-				// HUGO  we need to be careful of not showing .sys.v#. folders when the folder asked to show the contents is a non sys folder.
-				if ( !preg_match("|".$eos_hide_regex."|", $ocPath) ) { // the folder asked to list is not a sys folder, i.e does not have the hide_regex.
-					if ( !preg_match("|".$eos_hide_regex."|", $data["eospath"]) ) { // the subfolder/subfile does not match the hide_regex so we added to the final list. 
-						$files[$data['eospath']] = $data;
-					} else {
-						/* If we found a versions folder we add its inode to the original file under cboxid attribute */
-						if (preg_match("|".$eos_version_regex."|", $data["eospath"]) ) {
-							$dirname = dirname($data['eospath']);
-							$basename = basename($data['eospath']);
-							$filename = substr($basename, 8);
-							$filepath = $dirname . "/" . $filename;
-							$extraAttrs[$filepath]["cboxid"] = $data['fileid']; 
-						}
-					}
-				} else { // the folder asked to list its contents is a sys folder, so we list the contents. This behaviour is not used directly by a user but it is used by versions and trashbin apps.
-					$files[$data['eospath']] = $data;
-				}
-			}
-		}
-
-		/* Add extra attributes */
-		foreach($extraAttrs as $eospath => $attrs) {
-			if(isset($files[$eospath]))
-			{
-				$file = $files[$eospath];
-				foreach($attrs as $attr => $value) {
-					$file[$attr] = $value;
-				}
-				$files[$eospath] = $file;
-			}
-		}		
-		
-		$result = array_values($files);
-		EosCacheManager::setFileInfoByEosPath(($deep? 10 : 1), $eosPathEscaped, $result);
-
-		return $result;
+			$data['storage'] = $this->storageId;
+		}, $deep);
 	}
 
 	/**

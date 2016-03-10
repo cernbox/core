@@ -891,9 +891,6 @@ class OC {
 
 		// Someone is logged in
 		if (OC_User::isLoggedIn()) {
-			OC_App::loadApps();
-			OC_User::setupBackends();
-			OC_Util::setupFS();
 			if (isset($_GET["logout"]) and ($_GET["logout"])) {
 				OC_JSON::callCheck();
 				if (isset($_COOKIE['oc_token'])) {
@@ -903,6 +900,9 @@ class OC {
 				// redirect to webroot and add slash if webroot is empty
 				header("Location: " . OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
 			} else {
+				OC_App::loadApps();
+				OC_User::setupBackends();
+				OC_Util::setupFS();
 				// Redirect to default application
 				OC_Util::redirectToDefaultPage();
 			}

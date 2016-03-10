@@ -554,12 +554,13 @@ class EosUtil {
 	public static function getFileByEosPath($eospath){
 		
 		$eospath = rtrim($eospath, "/");
-		$eospathEscaped = escapeshellarg($eospath);
 		
-		$cached = EosCacheManager::getFileByEosPath($eospathEscaped);
+		$cached = EosCacheManager::getFileByEosPath($eospath);
 		if($cached) {
 			return $cached;
-		} 
+		}
+		
+		$eospathEscaped = escapeshellarg($eospath);
 		
 		$uid = 0; $gid = 0;
 		self::putEnv();
@@ -570,7 +571,7 @@ class EosUtil {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
 			$data['permissions'] = 31;
-			EosCacheManager::setFileByEosPath($eospathEscaped, $data);
+			EosCacheManager::setFileByEosPath($eospath, $data);
 			
 			return $data;
 		}
@@ -894,4 +895,89 @@ class EosUtil {
 		return preg_match ( "/[(][#](\d{3,})[)]/", $marker ); // we match at least 3 digits enclosed within our marker: (#123)
 	}
 
+	public static function getFolderContents($eosPath, $additionalParameterCallback = null, $deep = false)
+	{
+		$eos_hide_regex = self::getEosHideRegex();
+		$eos_version_regex = self::getEosVersionRegex();
+		
+		$eosPathEscaped = escapeshellarg($eosPath);
+		
+		$cached = EosCacheManager::getFileInfoByEosPath(($deep? 10 : 1), $eosPathEscaped);
+		if($cached)
+		{
+			return $cached;
+		}
+		
+		list($uid, $gid) = self::getEosRole($eosPath, true);
+		if ($deep === true) {
+			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 10 $eosPathEscaped";
+		} else {
+			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 1 $eosPathEscaped";
+		}
+		
+		$files             = array();
+		list($result, $errcode) = EosCmd::exec($getFolderContents);
+		if ($errcode !== 0) {
+			return $files;
+		}
+		
+		/*
+		 * This array is used to pass extra attributes to a file/folder
+		 * The keys are eos paths and the values are arrays of key-value pairs (attr/value)
+		 * Example: ["/eos/scratch/user/o/ourense/photos/1.png" => ["cboxid" => 456123]]
+		 */
+		$extraAttrs = array();
+		
+		$hiddenFolder = preg_match("|".$eos_hide_regex."|", $eosPath);
+		
+		foreach ($result as $line_to_parse) {
+			$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
+			if( $data["path"] !== false && rtrim($data["eospath"],"/") !== rtrim($eosPath,"/") ){
+				
+				if($additionalParameterCallback !== null)
+				{
+					$additionalParameterCallback($data);	
+				}
+				
+				//$data["storage"] = $this->storageId;
+				$data["permissions"] = 31;
+		
+				// HUGO  we need to be careful of not showing .sys.v#. folders when the folder asked to show the contents is a non sys folder.
+				if (!$hiddenFolder && preg_match("|".$eos_hide_regex."|", $data["eospath"]) ) { // the folder asked to list is not a sys folder, i.e does not have the hide_regex.
+					/* If we found a versions folder we add its inode to the original file under cboxid attribute */
+					if (preg_match("|".$eos_version_regex."|", $data["eospath"]) ) {
+						$dirname = dirname($data['eospath']);
+						$basename = basename($data['eospath']);
+						$filename = substr($basename, 8);
+						$filepath = $dirname . "/" . $filename;
+						$extraAttrs[$filepath]["cboxid"] = $data['fileid'];
+					}
+				} else { // the folder asked to list its contents is a sys folder, so we list the contents. This behaviour is not used directly by a user but it is used by versions and trashbin apps.
+					$files[$data['eospath']] = $data;
+				}
+				
+				//$itemEosPath = escapeshellarg(rtrim($data['eospath'], '/'));
+				
+				EosCacheManager::setFileByEosPath($data['eospath'], $data);
+				EosCacheManager::setFileById($data['fileid'], $data);
+			}
+		}
+		
+		/* Add extra attributes */
+		foreach($extraAttrs as $eospath => $attrs) {
+			if(isset($files[$eospath]))
+			{
+				$file = $files[$eospath];
+				foreach($attrs as $attr => $value) {
+					$file[$attr] = $value;
+				}
+				$files[$eospath] = $file;
+			}
+		}
+		
+		$result = array_values($files);
+		EosCacheManager::setFileInfoByEosPath(($deep? 10 : 1), $eosPathEscaped, $result);
+		
+		return $result;
+	}
 }
