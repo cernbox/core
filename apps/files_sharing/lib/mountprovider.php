@@ -69,6 +69,10 @@ class MountProvider implements IMountProvider {
 		
 		$mount_shared_stuff = false;
 		
+		if (strpos ( $_SERVER ['REQUEST_URI'], 'ocs/v1.php/apps/files_sharing/api' ) == FALSE and
+				strpos ( $_SERVER ['REQUEST_URI'], 'core/ajax/share.php') == FALSE )
+		{
+		
 		if (isset($_GET['view']) && ($_GET ["view"] == "sharingin" or $_GET ["view"] == "sharingout" or $_GET ["view"] == "sharinglinks")) {
 			$mount_shared_stuff = true;
 		} else {
@@ -110,6 +114,7 @@ class MountProvider implements IMountProvider {
 					// \OCP\Util::writeLog('KUBA',"EosUtil::isSharedURIPath" . __FUNCTION__ . "uri_path=|${uri_path}| ->".EosUtil::isSharedURIPath($uri_path), \OCP\Util::ERROR);
 				}
 			}
+		}
 		}
 		
 		if (! $mount_shared_stuff) {
