@@ -79,7 +79,9 @@ OC.MimeTypeList={
     "text/x-java-source": "text/code",
     "text/x-python": "text/code",
     "text/x-shellscript": "text/code",
-    "web": "text/code"
+    "web": "text/code",
+    "application/pynb": "application-pynb",
+    "application/x-root" : "application-x-root"
 },
 	files: [
     "video",
@@ -101,7 +103,9 @@ OC.MimeTypeList={
     "file",
     "folder-shared",
     "image",
-    "audio"
+    "audio",
+    "application-pynb",
+    "application-x-root"
 ],
 	themes: []
 };
