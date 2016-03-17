@@ -56,6 +56,12 @@
 				return this;
 			}
 			
+			var eosPathSplit = eospathT.split(/\.sys\.v#\./g);
+			if(eosPathSplit.length > 1)
+			{
+				eospathT = eosPathSplit[0] + eosPathSplit[1];
+			}
+			
 			this.$el.removeClass('hidden');
 
 			var reshareTemplate = this.template();

@@ -82,9 +82,11 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 						(!empty($_POST['expirationDate']) ? new \DateTime((string)$_POST['expirationDate']) : null),
 						$passwordChanged
 					);
+					
+					$versionFolder = \OC\Files\ObjectStore\EosUtil::getVersionFolderFromFileID($_POST['itemSource'], false);
 
 					if (is_string($token)) {
-						OC_JSON::success(array('data' => array('token' => $token)));
+						OC_JSON::success(array('data' => array('token' => $token, 'eospath' => $versionFolder['eospath'])));
 					} else {
 						OC_JSON::success();
 					}

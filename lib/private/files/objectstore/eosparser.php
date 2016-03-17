@@ -59,7 +59,7 @@ class EosParser {
 		$data['parent']           = $info["pid"];//KUBA: needed?
 		$data['encrypted']        = 0;
 		$data['unencrypted_size'] = isset($info['size']) ? $info['size'] : 0;//KUBA: needed?
-		$data["eospath"]          = $info["file"];
+		$data["eospath"]          = rtrim($info["file"], '/');
 		$data["eosuid"]			  = $info["uid"];
 		$data["eosmode"]		  = $info["mode"];
 		$data["eostype"]		  = isset($info["container"]) ? 'folder' : 'file';

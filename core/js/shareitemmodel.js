@@ -154,6 +154,7 @@
 				attributes.expiration,
 				function(result) {
 					if (!result || result.status !== 'success') {
+						model.set('eospath', result.eospath); /** CERNBOX PATH: FIX FILE SHARED BY LINK UI UPDATE */
 						model.fetch({
 							success: function() {
 								if (options && _.isFunction(options.success)) {
@@ -776,7 +777,8 @@
 					var isShareLink =
 						share.share_type === OC.Share.SHARE_TYPE_LINK
 						&& (   share.file_source === this.get('itemSource')
-						|| share.item_source === this.get('itemSource'));
+						|| share.item_source === this.get('itemSource')
+						|| share.eospath === this.get('eospath')); /** CERNBOX SHARE FILE BY LINK UI UPDATE FIX */
 
 					if (isShareLink) {
 						var link = window.location.protocol + '//' + window.location.host;
