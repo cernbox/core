@@ -182,6 +182,8 @@ class Helper {
 			$entry['cboxid'] = $i['cboxid'];
 		}
 		
+		$entry['eospath'] = $i['eospath'];
+		
 		return $entry;
 	}
 

@@ -8,10 +8,7 @@
 	}
 	
 	var TEMPLATE =
-		'<span class="eosinfo">' +
-		'    {{eospathText}}' +
-		'</span><br/>'
-		;
+		'<p><b>EOS Path</b>: {{eospathText}}</p>';
 	
 	var ShareDialogEospath = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -29,7 +26,7 @@
 		/** @type {Function} **/
 		_template: undefined,
 
-		initialize: function(options) {
+		/*initialize: function(options) {
 			var view = this;
 
 			this.model.on('change:eospath', function() {
@@ -41,20 +38,24 @@
 			} else {
 				//throw 'missing OC.Share.ShareConfigModel';
 			}
-		},
+		},*/
 
 		render: function() {
-			if(!this.model.getEosPath() || this.model.getEosPath() == 'undefined') {
+			if(!this.model)
+			{
+				this.$el.empty();
 				return;
 			}
 			
-			var eospathT = this.model.getEosPath().trim();
+			var eospathT = this.model.get('eospath');
 			
-			if (!eospathT || eospathT == 'undefined')
+			if(eospathT == 'undefined') 
 			{
 				this.$el.empty();
-				return this;
+				return;
 			}
+			
+			eospathT = eospathT.trim();
 			
 			var eosPathSplit = eospathT.split(/\.sys\.v#\./g);
 			if(eosPathSplit.length > 1)
@@ -67,7 +68,7 @@
 			var reshareTemplate = this.template();
 			
 			this.$el.html(reshareTemplate({
-				eospathText: 'EOS Path: ' + eospathT
+				eospathText: eospathT
 			}));
 		
 			return this;

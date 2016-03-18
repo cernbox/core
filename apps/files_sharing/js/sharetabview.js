@@ -21,7 +21,8 @@
 		/** @lends OCA.Sharing.ShareTabView.prototype */ {
 		id: 'shareTabView',
 		className: 'tab shareTabView',
-
+		order: -20,
+		
 		template: function(params) {
 			if (!this._template) {
 				this._template = Handlebars.compile(TEMPLATE);

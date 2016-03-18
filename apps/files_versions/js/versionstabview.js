@@ -33,6 +33,7 @@
 		/** @lends OCA.Versions.VersionsTabView.prototype */ {
 		id: 'versionsTabView',
 		className: 'tab versionsTabView',
+		order: -10,
 
 		_template: null,
 

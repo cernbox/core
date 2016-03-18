@@ -24,6 +24,8 @@
 		"l10n.js",
 		"apps.js",
 		"share.js",
+		"cernboxplugin.js",
+		"cernboxtabview.js",
 		"shareconfigmodel.js",
 		"shareitemmodel.js",
 		"sharedialogview.js",

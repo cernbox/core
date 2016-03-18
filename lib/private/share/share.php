@@ -93,8 +93,8 @@ class Share extends Constants {
 					\OC_Util::addScript('core', 'sharedialogshareelistview');
 					
 					/** CERNBOX SHOW SHARE INFO PR PATCH */
-					\OC_Util::addScript('core', 'ShareDialogEospath');
-					\OC_Util::addScript('core', 'ShareDialogProjectname');
+					//\OC_Util::addScript('core', 'ShareDialogEospath');
+					//\OC_Util::addScript('core', 'ShareDialogProjectname');
 					
 					\OC_Util::addScript('core', 'sharedialogview');
 					\OC_Util::addScript('core', 'share');

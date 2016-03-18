@@ -31,8 +31,6 @@
 		'<div class="shareeListView subView"></div>' +
 		'<div class="linkShareView subView"></div>' +
 		'<div class="expirationView subView"></div>' +
-		'<div class="eospathView subView hidden"></div>' +
-		'<div class="projectnameView subView hidden"></div>' +
 		'<div class="loading hidden" style="height: 50px"></div>';
 
 	var TEMPLATE_REMOTE_SHARE_INFO =
@@ -116,9 +114,7 @@
 				resharerInfoView: 'ShareDialogResharerInfoView',
 				linkShareView: 'ShareDialogLinkShareView',
 				expirationView: 'ShareDialogExpirationView',
-				shareeListView: 'ShareDialogShareeListView',
-				eospathView: 'ShareDialogEospath',			// CERNBOX SHOW SHARE INFO PR PATCH
-				projectnameView: 'ShareDialogProjectname'	// CERNBOX SHOW SHARE INFO PR PATCH
+				shareeListView: 'ShareDialogShareeListView'
 			};
 
 			for(var name in subViews) {
@@ -299,12 +295,6 @@
 			this.shareeListView.$el = this.$el.find('.shareeListView');
 			this.shareeListView.render();
 			
-			/** CERNBOX SHOW SHARE INFO PR PATCH */
-			this.eospathView.$el = this.$el.find('.eospathView');
-			this.eospathView.render(); 			
-			this.projectnameView.$el = this.$el.find('.projectnameView');
-			this.projectnameView.render();
-
 			this.$el.find('.hasTooltip').tooltip();
 			
 			/** CERNBOX SHARE USER LIST PR PATCH */

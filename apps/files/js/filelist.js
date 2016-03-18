@@ -771,7 +771,8 @@
 				type: $el.attr('data-type'),
 				size: parseInt($el.attr('data-size'), 10),
 				etag: $el.attr('data-etag'),
-				permissions: parseInt($el.attr('data-permissions'), 10)
+				permissions: parseInt($el.attr('data-permissions'), 10),
+				eospath: $el.attr('data-eospath')
 			};
 			var icon = $el.attr('data-icon');
 			if (icon) {
@@ -905,6 +906,7 @@
 				mime = fileData.mimetype,
 				path = fileData.path,
 				dataIcon = null,
+				eospath = fileData.eospath,
 				linkUrl;
 			options = options || {};
 
@@ -930,7 +932,8 @@
 				"data-mime": mime,
 				"data-mtime": mtime,
 				"data-etag": fileData.etag,
-				"data-permissions": fileData.permissions || this.getDirectoryPermissions()
+				"data-permissions": fileData.permissions || this.getDirectoryPermissions(),
+				"data-eospath": eospath
 			});
 
 			if (dataIcon) {

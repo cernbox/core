@@ -8,10 +8,7 @@
 	}
 	
 	var TEMPLATE =
-		'<span class="eosinfo">' +
-		'    {{projectnameText}}' +
-		'</span><br/>'
-		;
+		'<p><b>E-Group Permissions:</b></p><ul><li>cernbox-project-{{projectnameText}}-readers</li><li>cernbox-project-{{projectnameText}}-writers</li></ul>';
 	
 	var ShareDialogProjectname = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -32,9 +29,9 @@
 		initialize: function(options) {
 			var view = this;
 
-			this.model.on('change:projectname', function() {
+			/*this.model.on('change:projectname', function() {
 				view.render();
-			});
+			});*/
 
 			if(!_.isUndefined(options.configModel)) {
 				this.configModel = options.configModel;
@@ -44,17 +41,26 @@
 		},
 
 		render: function() {
-			var projectnameT = this.model.getProjectName();
+			if(!this.model)
+			{
+				this.$el.empty();
+				return;
+			}
+			
+			var projectnameT = this.model.get('projectname');
 			if (!projectnameT || projectnameT == 'undefined')
 			{
 				this.$el.empty();
 				return this;
 			}
+			
+			this.$el.removeClass('hidden');
 
 			var reshareTemplate = this.template();
+			var projectnameT = 'Test';
 			
 			this.$el.html(reshareTemplate({
-				projectnameText: '<p>EGroup Permissions</p><p>cernbox-project-'+projectnameT+'-readers</p><p>cernbox-project-'+projectnameT+'-writers</p>'
+				projectnameText: projectnameT
 			}));
 
 			return this;
