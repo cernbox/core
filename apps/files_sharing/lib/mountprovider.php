@@ -30,6 +30,9 @@ use OCP\IUser;
 use OC\Files\ObjectStore\EosUtil;
 
 class MountProvider implements IMountProvider {
+	
+	private $notMountingURLs = ['ocs/v1.php/apps/files_sharing/api', 'core/ajax/share.php', '.css'];
+	
 	/**
 	 * @var \OCP\IConfig
 	 */
@@ -69,8 +72,18 @@ class MountProvider implements IMountProvider {
 		
 		$mount_shared_stuff = false;
 		
-		if (strpos ( $_SERVER ['REQUEST_URI'], 'ocs/v1.php/apps/files_sharing/api' ) == FALSE and
-				strpos ( $_SERVER ['REQUEST_URI'], 'core/ajax/share.php') == FALSE )
+		$keepChecking = true;
+		$request = $_SERVER['REQUEST_URI'];
+		foreach($this->notMountingURLs as $url)
+		{
+			if(strpos($request, $url) !== FALSE)
+			{
+				$keepChecking = false;
+				break;
+			}
+		}
+		
+		if ($keepChecking)
 		{
 		
 		if (isset($_GET['view']) && ($_GET ["view"] == "sharingin" or $_GET ["view"] == "sharingout" or $_GET ["view"] == "sharinglinks")) {
