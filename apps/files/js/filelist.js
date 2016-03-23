@@ -764,7 +764,7 @@
 		elementToFile: function($el){
 			$el = $($el);
 			var data = {
-				id: parseInt($el.attr('data-id'), 10),
+				id: /*parseInt(*/$el.attr('data-id'),/* 10),*/ // CERNBOX FIX BIG FILE IDs THAT WONT FIT ON JAVASCRIPT INT
 				name: $el.attr('data-file'),
 				mimetype: $el.attr('data-mime'),
 				mtime: parseInt($el.attr('data-mtime'), 10),

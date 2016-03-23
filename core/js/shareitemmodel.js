@@ -70,7 +70,7 @@
 	 * of integers, so we need to convert them accordingly...
 	 */
 	var SHARE_RESPONSE_INT_PROPS = [
-		'id', 'file_parent', 'mail_send', 'file_source', 'item_source', 'permissions',
+		'id', 'file_parent', 'mail_send', /*'file_source', 'item_source',*/ 'permissions', // CERNBOX FIX BIG FILE IDs THAT WONT FIT ON JAVASCRIPT INT
 		'storage', 'share_type', 'parent', 'stime'
 	];
 
