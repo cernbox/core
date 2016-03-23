@@ -2193,17 +2193,18 @@ class Share extends Constants {
 		$isGroupShare = false;
 		if ($shareType == self::SHARE_TYPE_GROUP) {
 			$isGroupShare = true;
+			$users = [];
 			/** CERNBOX SHARE PLUGIN PATCH */
 			/* HUGO we don't want to resolve users when putting the share */
 			/*if (isset($shareWith['users'])) {
 				$users = $shareWith['users'];
 			} else {
 				$users = \OC_Group::usersInGroup($shareWith['group']);
-			}*/
+			}
 			// remove current user from list
 			if (in_array(\OCP\User::getUser(), $users)) {
 				unset($users[array_search(\OCP\User::getUser(), $users)]);
-			}
+			}*/
 			$groupItemTarget = Helper::generateTarget($itemType, $itemSource,
 				$shareType, $shareWith['group'], $uidOwner, $suggestedItemTarget);
 			$groupFileTarget = Helper::generateTarget($itemType, $itemSource,
