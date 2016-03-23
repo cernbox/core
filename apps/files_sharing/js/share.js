@@ -152,7 +152,18 @@
 			if (fileList.id === 'files') {
 				return;
 			}
-			var recipients = _.pluck(shareModel.get('shares'), 'share_with_displayname');
+			
+			var share = shareModel.get('shares')[$tr.attr('data-share-id')];
+			$tr.attr('data-share-recipients', '');
+			
+			// We don't have data to show the share recipients or it's a linke share
+			if(typeof share === 'undefined' || share.share_type === 3)
+			{
+				return;
+			}
+			
+			var recipients = _.pluck(share, 'share_with_displayname');
+			
 			// note: we only update the data attribute because updateIcon()
 			if (recipients.length) {
 				$tr.attr('data-share-recipients', OCA.Sharing.Util.formatRecipients(recipients));
