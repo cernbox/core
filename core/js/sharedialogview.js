@@ -198,10 +198,12 @@
 			var recipientData = {uid: recipent, displayName: s.item.label, type: s.item.value.shareType };
 			this.shareRecipientList.push(recipientData);
 			
-			var recipentList = $('#recipentList').find('ul');
+			var recipentDiv = this.$el.find('#recipentList');
+			
+			var recipentList = recipentDiv.find('ul');
 			if(recipentList && this.shareRecipientList.length > 0)
 			{
-				$('#recipentList').removeClass('hidden');
+				recipentDiv.removeClass('hidden');
 				recipentList.empty();
 				var _self = this;
 				for(var i = 0; i < this.shareRecipientList.length; i++)
@@ -220,7 +222,7 @@
 									_self.shareRecipientList.splice(index, 1);
 									if(_self.shareRecipientList.length <= 0)
 									{
-										$('#recipentList').addClass('hidden');
+										_self.$el.find('#recipentList').addClass('hidden');
 									}
 								}
 							}
@@ -298,7 +300,7 @@
 			this.$el.find('.hasTooltip').tooltip();
 			
 			/** CERNBOX SHARE USER LIST PR PATCH */
-			var shareButton = $('#recipentList').find('#shareListButton');
+			var shareButton = this.$el.find('#recipentList').find('#shareListButton');
 			var _self = this;
 			shareButton.click(function(event)
 			{
@@ -314,7 +316,7 @@
 				_self.model.addShareList(shareRequestData);
 				
 				_self.shareRecipientList.length = 0;
-				$('#recipentList').addClass('hidden');
+				this.$el.find('#recipentList').addClass('hidden');
 				_self._toggleLoading(true);
 			});
 
