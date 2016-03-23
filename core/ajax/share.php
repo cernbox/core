@@ -327,17 +327,16 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					$reshare = false;
 				}*/
 				$reshare = false;
-				if ($_GET['checkShares'] == 'true') {
-					$shares = OCP\Share::getItemShared(
-						(string)$_GET['itemType'],
-						(string)$_GET['itemSource'],
-						OCP\Share::FORMAT_NONE,
-						null,
-						true
-					);
-				} else {
-					$shares = false;
-				}
+				$checkShares = ($_GET['checkShares'] == 'true');
+				
+				$shares = OCP\Share::getItemShared(
+					(string)$_GET['itemType'],
+					(string)$_GET['itemSource'],
+					OCP\Share::FORMAT_NONE,
+					null,
+					$checkShares
+				);
+				
 				OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $shares)));
 			}
 			break;
