@@ -28,6 +28,11 @@ class UserShareExecutor extends ShareExecutor
 	
 	public abstract function checkShareTarget()
 	{
+		$ocBasePath = dirname($this->meta['path']);
+		if($ocBasePath !== 'files')
+		{
+			return false;
+		}
 		return true;
 	}
 	

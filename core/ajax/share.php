@@ -49,6 +49,17 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					$shareWith = $_POST['shareWith'];
 					$itemSourceName = isset($_POST['itemSourceName']) ? (string)$_POST['itemSourceName'] : null;
 
+					if($shareType !== OCP\Share::SHARE_TYPE_LINK)
+					{
+						$meta = OC\Files\ObjectStore\EosUtil::getFileById($_POST['itemSource']);
+						$baseOCPath = dirname($meta['path']);
+						if($baseOCPath !== 'files')
+						{
+							OC_JSON::error(array('data' => array('message' => 'Only folders in the home directory may be shared with users/groups')));
+							break;
+						}
+					}
+					
 					/*
 					 * Nasty nasty fix for https://github.com/owncloud/core/issues/19950
 					 */
@@ -103,11 +114,19 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					try {
 						$itemSourceName=(isset($_POST['itemSourceName'])) ? (string)$_POST['itemSourceName']:'';
 						$shareWithArray = (is_array($_POST['shareWith'])? $_POST['shareWith'] : [$_POST['shareWith']]);
-							
+						
+						$meta = OC\Files\ObjectStore\EosUtil::getFileById($_POST['itemSource']);
+						$baseOCPath = dirname($meta['path']);
+						
 						foreach($shareWithArray as $share)
 						{
 							$shareWith = $share['uid'];
 							$shareType = (int)$share['type'];
+							
+							if($shareType !== OCP\Share::SHARE_TYPE_LINK && $baseOCPath !== 'files')
+							{
+								continue;
+							}
 			
 							OCP\Share::shareItem(
 									$_POST['itemType'],
