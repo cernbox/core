@@ -1656,7 +1656,7 @@ class Share extends Constants {
 		
 		/** CERNBOX SHARE PLUGIN PATCH */
 		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
-		if($itemType === 'file' /*&& is_numeric($item)*/) { // CERNBOX FIX BIG FILE IDs THAT WONT FIT ON JAVASCRIPT INT
+		if($itemType === 'file' && !empty($item)) { // CERNBOX FIX BIG FILE IDs THAT WONT FIT ON JAVASCRIPT INT
 			$item = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($item, false);
 		}
 		

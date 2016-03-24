@@ -40,7 +40,7 @@ use OCP\AppFramework\Http;
  */
 class ContentSecurityPolicy {
 	/** @var bool Whether inline JS snippets are allowed */
-	private $inlineScriptAllowed = false;
+	private $inlineScriptAllowed = true;
 	/**
 	 * @var bool Whether eval in JS scripts is allowed
 	 * TODO: Disallow per default
