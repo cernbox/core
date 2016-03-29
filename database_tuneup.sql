@@ -1,1 +1,2 @@
 UPDATE oc_appconfig SET configvalue = 'no' WHERE appid = 'firstrunwizard' AND configkey = 'enabled';
+INSERT INTO oc_appconfig VALUES ('files_nbviewer', 'enabled', 'yes'), ('files_nbviewer', 'installed_version', '1.0');
