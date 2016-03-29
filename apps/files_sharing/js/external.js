@@ -71,8 +71,8 @@
 		/*attach: function(filesApp) {
 			this.filesApp = filesApp;
 			this.processIncomingShareFromUrl();
-			this.processSharesToConfirm();*/
-		},
+			this.processSharesToConfirm();
+		},*/
 
 		/**
 		 * Process incoming remote share that might have been passed
