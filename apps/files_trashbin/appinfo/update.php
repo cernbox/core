@@ -22,6 +22,7 @@
  *
  */
 
+/** CERNBOX TRASHBIN PLUGIN PATCH
 $config = \OC::$server->getConfig();
 $installedVersion = $config->getAppValue('files_trashbin', 'installed_version');
 
@@ -50,3 +51,4 @@ if (version_compare($installedVersion, '0.6.4', '<')) {
 
 // Cron job for deleting expired trash items
 \OC::$server->getJobList()->add('OCA\Files_Trashbin\BackgroundJob\ExpireTrash');
+*/

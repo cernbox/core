@@ -13,8 +13,9 @@ OC.Lostpassword = {
 	resetErrorMsg : t('core', 'Password can not be changed. Please contact your administrator.'),
 
 	init : function() {
-		$('#lost-password').click(OC.Lostpassword.sendLink);
-		$('#reset-password #submit').click(OC.Lostpassword.resetPassword);
+		/** CERNBOX USER SET UP PATCH */
+		//$('#lost-password').click(OC.Lostpassword.sendLink);
+		//$('#reset-password #submit').click(OC.Lostpassword.resetPassword);
 	},
 
 	sendLink : function(event){

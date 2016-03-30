@@ -141,6 +141,11 @@ class OC_Template extends \OC\Template\Base {
 			OC_Util::addScript("compatibility", null, true);
 			OC_Util::addScript("placeholders", null, true);
 			
+			OC_Util::addScript("ShareDialogEospath");
+			OC_Util::addScript("ShareDialogProjectname");
+			OC_Util::addScript("cernboxtabview");
+			OC_Util::addScript("cernboxplugin");
+			
 			// Add the stuff we need always
 			// following logic will import all vendor libraries that are
 			// specified in core/js/core.json

@@ -50,7 +50,9 @@ try {
 	if (is_null($file)) {
 		\OC_Response::setStatus(404);
 	} else {
-		$preview = new \OC\Preview($user, 'files_versions', $file . '.v' . $version);
+		/** CERNBOX VERSIONS APP PATCH */
+		$pathinfo = pathinfo($file);
+		$preview = new \OC\Preview($user, 'files/.sys.v#.' . $pathinfo['basename'], $version);
 		$mimetype = \OC_Helper::getFileNameMimeType($file);
 		$preview->setMimetype($mimetype);
 		$preview->setMaxX($maxX);

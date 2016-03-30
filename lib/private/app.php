@@ -419,8 +419,9 @@ class OC_App {
 	 */
 	public static function getSettingsNavigation() {
 		$l = \OC::$server->getL10N('lib');
-
+		
 		$settings = array();
+		$themeSettings = new OC_Defaults();
 		// by default, settings only contain the help menu
 		if (OC_Util::getEditionString() === '' &&
 			OC_Config::getValue('knowledgebaseenabled', true) == true
@@ -429,7 +430,7 @@ class OC_App {
 				array(
 					"id" => "help",
 					"order" => 1000,
-					"href" => OC_Helper::linkToRoute("settings_help"),
+					"href" => $themeSettings->getDocBaseUrl(),
 					"name" => $l->t("Help"),
 					"icon" => OC_Helper::imagePath("settings", "help.svg")
 				)

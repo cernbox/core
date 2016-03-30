@@ -54,6 +54,8 @@
 	 * @property {OC.Share.Types.Collection|undefined} collection
 	 * @property {Date} expiration optional?
 	 * @property {number} stime optional?
+	 * @property {string} eospath optional?  	// CERNBOX SHOW SHARE INFO PR PATCH 
+ 	 * @property {string} projectname optional?	// CERNBOX SHOW SHARE INFO PR PATCH
 	 */
 
 	/**
@@ -68,7 +70,7 @@
 	 * of integers, so we need to convert them accordingly...
 	 */
 	var SHARE_RESPONSE_INT_PROPS = [
-		'id', 'file_parent', 'mail_send', 'file_source', 'item_source', 'permissions',
+		'id', 'file_parent', 'mail_send', /*'file_source', 'item_source',*/ 'permissions', // CERNBOX FIX BIG FILE IDs THAT WONT FIT ON JAVASCRIPT INT
 		'storage', 'share_type', 'parent', 'stime'
 	];
 
@@ -152,6 +154,7 @@
 				attributes.expiration,
 				function(result) {
 					if (!result || result.status !== 'success') {
+						model.set('eospath', result.eospath); /** CERNBOX PATH: FIX FILE SHARED BY LINK UI UPDATE */
 						model.fetch({
 							success: function() {
 								if (options && _.isFunction(options.success)) {
@@ -215,6 +218,37 @@
 		setPassword: function(password) {
 			this.get('linkShare').password = password;
 			this.get('linkShare').passwordChanged = true;
+		},
+		
+		/** CERNBOX SHARE USER LIST PR PATCH */
+		addShareList: function(shareWith, options)
+		{
+			var fileName = this.fileInfoModel.get('name');
+			
+			options = options || {};
+
+			// Default permissions are Edit (CRUD) and Share
+			// Check if these permissions are possible
+			var permissions = OC.PERMISSION_READ;
+			if (this.updatePermissionPossible()) {
+				permissions = permissions | OC.PERMISSION_UPDATE;
+			}
+			if (this.createPermissionPossible()) {
+				permissions = permissions | OC.PERMISSION_CREATE;
+			}
+			if (this.deletePermissionPossible()) {
+				permissions = permissions | OC.PERMISSION_DELETE;
+			}
+			if (this.configModel.get('isResharingAllowed') && (this.sharePermissionPossible())) {
+				permissions = permissions | OC.PERMISSION_SHARE;
+			}
+
+			var model = this;
+			var itemType = this.get('itemType');
+			var itemSource = this.get('itemSource');
+			OC.Share.shareList(itemType, itemSource, null, shareWith, permissions, fileName, options.expiration, function() {
+				model.fetch();
+			});
 		},
 
 		addShare: function(attributes, options) {
@@ -411,6 +445,14 @@
 		 */
 		getReshareType: function() {
 			return this.get('reshare').share_type;
+		},
+		
+		/** CERNBOX SHOW SHARE INFO PR PATCH */
+		getEosPath: function() {
+			return this.get('eospath');
+		},		
+		getProjectName: function() {
+			return this.get('projectname');
 		},
 
 		/**
@@ -735,7 +777,8 @@
 					var isShareLink =
 						share.share_type === OC.Share.SHARE_TYPE_LINK
 						&& (   share.file_source === this.get('itemSource')
-						|| share.item_source === this.get('itemSource'));
+						|| share.item_source === this.get('itemSource')
+						|| share.eospath === this.get('eospath')); /** CERNBOX SHARE FILE BY LINK UI UPDATE FIX */
 
 					if (isShareLink) {
 						var link = window.location.protocol + '//' + window.location.host;

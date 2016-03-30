@@ -42,6 +42,7 @@ use OC\Files\Filesystem;
 use OCP\IUserSession;
 use OCP\IDBConnection;
 use OCP\IConfig;
+use OC\Files\ObjectStore\EosUtil;
 
 /**
  * This class provides the ability for apps to share their content between users.
@@ -90,6 +91,11 @@ class Share extends Constants {
 					\OC_Util::addScript('core', 'sharedialoglinkshareview');
 					\OC_Util::addScript('core', 'sharedialogexpirationview');
 					\OC_Util::addScript('core', 'sharedialogshareelistview');
+					
+					/** CERNBOX SHOW SHARE INFO PR PATCH */
+					//\OC_Util::addScript('core', 'ShareDialogEospath');
+					//\OC_Util::addScript('core', 'ShareDialogProjectname');
+					
 					\OC_Util::addScript('core', 'sharedialogview');
 					\OC_Util::addScript('core', 'share');
 					\OC_Util::addStyle('core', 'share');
@@ -363,14 +369,15 @@ class Share extends Constants {
 
 		$where = 'WHERE';
 		$fileDependentWhere = '';
+		/** CERNBOX SHARE PLUGIN PATCH
 		if ($itemType === 'file' || $itemType === 'folder') {
 			$fileDependent = true;
 			$column = 'file_source';
 			$fileDependentWhere = 'INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid` ';
 			$fileDependentWhere .= 'INNER JOIN `*PREFIX*storages` ON `numeric_id` = `*PREFIX*filecache`.`storage` ';
-		} else {
+		} else { */
 			$column = 'item_source';
-		}
+		/** } */
 
 		$select = self::createSelectStatement(self::FORMAT_NONE, $fileDependent);
 
@@ -397,7 +404,8 @@ class Share extends Constants {
 		$result = \OC_DB::executeAudited($query, $arguments);
 
 		while ($row = $result->fetchRow()) {
-			if ($fileDependent && !self::isFileReachable($row['path'], $row['storage_id'])) {
+			/** CERNBOX SHARE PLUGIN PATCH */
+			/*if ($fileDependent && !self::isFileReachable($row['path'], $row['storage_id'])) {
 				continue;
 			}
 			if ($fileDependent && (int)$row['file_parent'] === -1) {
@@ -415,7 +423,7 @@ class Share extends Constants {
 						['app' => 'OCP\Share']
 					);
 				}
-			}
+			}*/
 			$shares[] = $row;
 		}
 
@@ -505,6 +513,14 @@ class Share extends Constants {
 		// password protected shares need to be authenticated
 		if ($checkPasswordProtection && !\OCP\Share::checkPasswordProtectedShare($row)) {
 			return false;
+		}
+		
+		/** CERNBOX SHARE PLUGIN PATCH */
+		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+		if($row['item_type'] === 'file') { // this MUST be a version folder already
+			$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileMetaFromVersionsFolderID($row['item_source']);
+			$row['item_source'] = $realfilemeta['fileid'];
+			$row['file_source'] = (int)$realfilemeta['fileid'];
 		}
 
 		return $row;
@@ -603,7 +619,12 @@ class Share extends Constants {
 	 * @throws \Exception
 	 */
 	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null, $passwordChanged = null) {
-
+		/** CERNBOX SHARE PLUGIN PATCH */
+		/* HUGO try to put here the logic to convert file share via link to version folder share */
+		if($shareType === 3 && $itemType === 'file') {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
+		}
+		
 		$backend = self::getBackend($itemType);
 		$l = \OC::$server->getL10N('lib');
 
@@ -624,6 +645,15 @@ class Share extends Constants {
 
 		// check if file can be shared
 		if ($itemType === 'file' or $itemType === 'folder') {
+			
+			// HUGO WE DONT ALLOW INTERNAL FILE SHARING
+			// EOS SHARE PLUGIN PATCH
+			if ($itemType === 'file' && $shareType !== 3) {
+				$message = 'Sharing %s failed, because internal file sharing is not allowed in this version, only link file sharing is allowed';
+				\OC_Log::write('OCP\Share', sprintf($message, $itemSourceName), \OC_Log::ERROR);
+				throw new \Exception(sprintf($message, $itemSourceName));
+			}
+			
 			$path = \OC\Files\Filesystem::getPath($itemSource);
 			$itemName = $path;
 
@@ -903,7 +933,16 @@ class Share extends Constants {
 	 * @return boolean true on success or false on failure
 	 */
 	public static function unshare($itemType, $itemSource, $shareType, $shareWith, $owner = null) {
-
+		/** CERNBOX SHARE PLUGIN PATCH */
+		/* HUGO this API function is different than OCS Share API. OCS Share API uses the share id to delete the share but here
+		 * we receive just the fileid/item_source so we need to get the path of this fileid and check if it is pointing to a file.
+		 * If it points to a file, we need to swap the parent arg for the fielid of the versions folders
+		 * Hooks under hooks.php that could call unshare are related to groups so for us they will not been called
+		 */
+		if($itemType === 'file' && is_numeric($itemSource)) {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
+		}
+		
 		// check if it is a valid itemType
 		self::getBackend($itemType);
 
@@ -1099,6 +1138,12 @@ class Share extends Constants {
 	 * @throws \Exception when trying to grant more permissions then the user has himself
 	 */
 	public static function setPermissions($itemType, $itemSource, $shareType, $shareWith, $permissions) {
+		// HUGO
+		// CERNBOX SHARE PLUGIN PATCH
+		if($itemType === 'file' && is_numeric($itemSource)) {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
+		}
+		
 		$l = \OC::$server->getL10N('lib');
 		if ($item = self::getItems($itemType, $itemSource, $shareType, $shareWith,
 			\OC_User::getUser(), self::FORMAT_NONE, null, 1, false)) {
@@ -1117,6 +1162,17 @@ class Share extends Constants {
 			}
 			$query = \OC_DB::prepare('UPDATE `*PREFIX*share` SET `permissions` = ? WHERE `id` = ?');
 			$query->execute(array($permissions, $item['id']));
+			
+			// HUGO
+			// CERNBOX SHARE PLUGIN PATCH
+			if($item["share_type"] === 0 || $item["share_type"] === 1){
+				$type = $item["share_type"] === 0 ? "u" : "egroup";
+				$from = $item["uid_owner"];
+				$to = $item["share_with"];
+				$fileid = $item["item_source"];
+				EosUtil::changePermAcl($from , $to, $fileid, $permissions, $type);
+			}
+			
 			if ($itemType === 'file' || $itemType === 'folder') {
 				\OC_Hook::emit('OCP\Share', 'post_update_permissions', array(
 					'itemType' => $itemType,
@@ -1244,6 +1300,12 @@ class Share extends Constants {
 	 * @throws \Exception when the expire date is not set, in the past or further in the future then the enforced date
 	 */
 	public static function setExpirationDate($itemType, $itemSource, $date, $shareTime = null) {
+		/** CERNBOX SHARE PLUGIN PATCH */
+		// HUGO
+		if($itemType === 'file' && is_numeric($itemSource)) {
+			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
+		}
+		
 		$user = \OC_User::getUser();
 		$l = \OC::$server->getL10N('lib');
 
@@ -1427,6 +1489,18 @@ class Share extends Constants {
 			list(, $remote) = Helper::splitUserRemote($item['share_with']);
 			self::sendRemoteUnshare($remote, $item['id'], $item['token']);
 		}
+		
+		// HUGO if we unshare we have to remove the shared user from the ACL for do that we change the permissions to 0
+		// CERNBOX SHARE PLUGIN PATCH
+		$shareType = $item['share_type'];
+		if($shareType == 0 || $shareType == 1) 
+		{
+			$type = $shareType == 0 ? "u" : "egroup";
+			$from = $item["uid_owner"];
+			$to = $item["share_with"];
+			$fileid = $item["item_source"];
+			EosUtil::changePermAcl($from , $to, $fileid, 0, $type);
+		}
 	}
 
 	/**
@@ -1579,8 +1653,16 @@ class Share extends Constants {
 		if (!self::isEnabled()) {
 			return array();
 		}
+		
+		/** CERNBOX SHARE PLUGIN PATCH */
+		/* HUGO if we receive itemType = file and an itemSource then we need to point to the versions folder */
+		if($itemType === 'file' && !empty($item)) { // CERNBOX FIX BIG FILE IDs THAT WONT FIT ON JAVASCRIPT INT
+			$item = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($item, false);
+		}
+		
 		$backend = self::getBackend($itemType);
 		$collectionTypes = false;
+		$where = '';
 		// Get filesystem root to add it to the file target and remove from the
 		// file source, match file_source with the file cache
 		if ($itemType == 'file' || $itemType == 'folder') {
@@ -1589,11 +1671,13 @@ class Share extends Constants {
 			} else {
 				$root = '';
 			}
-			$where = 'INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid` ';
+			// HUGO HACK TO BYPASS WHERE
+			// CERNBOX SHARE PLUGIN PATCH
+			//$where = 'INNER JOIN `*PREFIX*filecache` ON `file_source` = `*PREFIX*filecache`.`fileid` ';
 			if (!isset($item)) {
-				$where .= ' AND `file_target` IS NOT NULL ';
+				$where .= ' WHERE `file_target` IS NOT NULL ';
 			}
-			$where .= 'INNER JOIN `*PREFIX*storages` ON `numeric_id` = `*PREFIX*filecache`.`storage` ';
+			//$where .= 'INNER JOIN `*PREFIX*storages` ON `numeric_id` = `*PREFIX*filecache`.`storage` ';
 			$fileDependent = true;
 			$queryArgs = array();
 		} else {
@@ -1615,6 +1699,12 @@ class Share extends Constants {
 				$queryArgs = array($itemType);
 			}
 		}
+		// CERNBOX SHARE PLUGIN PATCH
+		if(!$where)
+		{
+			$where = 'WHERE 1=1';
+		}
+		
 		if (\OC::$server->getAppConfig()->getValue('core', 'shareapi_allow_links', 'yes') !== 'yes') {
 			$where .= ' AND `share_type` != ?';
 			$queryArgs[] = self::SHARE_TYPE_LINK;
@@ -1732,11 +1822,54 @@ class Share extends Constants {
 		$switchedItems = array();
 		$mounts = array();
 		while ($row = $result->fetchRow()) {
+			// CERNBOX SHARE PLUGIN PATCH
+			// HUGO HACK TO OBTAIN STORAGE NUMERIC ID
+			$storage_id = "object::user:" . $row["uid_owner"];
+			$queryMine  = \OC_DB::prepare('SELECT numeric_id FROM `*PREFIX*storages` WHERE id=?', null);
+			$resultMine = $queryMine->execute(array($storage_id));
+			if (\OC_DB::isError($resultMine)) {
+				\OC_Log::write('OCP\Share',
+						\OC_DB::getErrorMessage($resultMine) . ', select=' . $queryMine,
+						\OC_Log::ERROR);
+			}
+			$tmprow     = $resultMine->fetchRow();
+			$numeric_id = $tmprow["numeric_id"];
+			//HUGO HACK ADDED PATH,STORAGE MANUALLY TO TEST
+			// WE HAVE TO PUT THE FILES PREFIX BECAUSE THEN OC CREATES A FULL PATH WITH YOUR USERNAME LIKE /labrador/files/test/txt
+			// AND THEN REMOVE THE ROOT PART (/labrador/files/) IF YOU ARE THE OWNER OF THE FILE
+			// WE SHOULD USE ITEM_SOURCE INSTEAD FILE_SOURCE
+			$path           = isset($row["item_source"]) ?  \OC\Files\FileSystem::getPath($row["item_source"]) : false;
+			// SCENARIO: SHARE A FOLDER WITH KUBA. REMOVE FOLER FROM EOS. SHARE TABLE STILL HAS THE SHARE. THE FILE IS NOW AT /EOS/RECYCLE/UID/GID AND HAS THE SAME INDODE NUMBER
+			// SO THE CALL TO GETPATH RETURNS FALSE IN THIS CASE A WE NEED TO OMIT THIS FILE WITH NULL PATH
+			if(!$path) {continue;};
+			$row["path"]    = "files" . rtrim($path, "/");
+			$row['storage'] = $numeric_id;
+			// HUGO obtain share permissions from EOS and not from DB
+			$meta = EosUtil::getFileById($row['item_source']);
+			$row['eospath'] = $meta['eospath'];
+				
+			if($row["share_type"] == 0 || $row['share_type'] == 1 ) { // only internal individual and group folder sharing
+				$from = $row["uid_owner"];
+				$to = $row["share_with"];
+				$fileid = $row["item_source"];
+				$row["permissions"] = EosUtil::getAclPerm($from, $to, $fileid);
+			
+				// HUGO add project flag
+				$eos_project_prefix = EosUtil::getEosProjectPrefix();
+				if(strpos($meta['eospath'], $eos_project_prefix) === 0) {
+					$row['project_share'] = true;
+					$row['projectname'] = EosUtil::getProjectNameForUser($row["uid_owner"]);
+				} else {
+					$row['project_share'] = false;
+				}
+			} // END OF SHARE PLUGIN PATCH
+			
 			self::transformDBResults($row);
 			// Filter out duplicate group shares for users with unique targets
+			/** CERNBOX SHARE PLUGIN PATCH 
 			if ($fileDependent && !self::isFileReachable($row['path'], $row['storage_id'])) {
 				continue;
-			}
+			}*/
 			if ($row['share_type'] == self::$shareTypeGroupUserUnique && isset($items[$row['parent']])) {
 				$row['share_type'] = self::SHARE_TYPE_GROUP;
 				$row['unique_name'] = true; // remember that we use a unique name for this user
@@ -1845,6 +1978,16 @@ class Share extends Constants {
 			if ( isset($row['uid_owner']) && $row['uid_owner'] != '') {
 				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
 			}
+			
+			/** CERNBOX SHARE PLUGIN PATCH */
+			/* HUGO convert versions folder to file*/
+			if($row['item_type'] === 'file') { // this MUST be a version folder already
+				$realfilemeta = \OC\Files\ObjectStore\EosUtil::getFileMetaFromVersionsFolderID($row['item_source']);
+				$row['item_source'] = $realfilemeta['fileid'];
+				$row['file_source'] = (int)$realfilemeta['fileid'];
+				$row['file_target'] = basename($realfilemeta['path']);
+				$row['path'] = substr($realfilemeta['path'],5); // strip files prefix
+			}
 
 			if ($row['permissions'] > 0) {
 				$items[$row['id']] = $row;
@@ -1860,8 +2003,11 @@ class Share extends Constants {
 		if (!empty($items)) {
 			$collectionItems = array();
 			foreach ($items as &$row) {
+				/** CERNBOX SHARE PLUGIN PATCH (first if clause) */
 				// Return only the item instead of a 2-dimensional array
-				if ($limit == 1 && $row[$column] == $item && ($row['item_type'] == $itemType || $itemType == 'file')) {
+				//if ($limit == 1 && $row[$column] == $item && ($row['item_type'] == $itemType || $itemType == 'file')) {
+				// HUGO we comment the $row[$column] == $item because for us they will not match (fielid vs versions fileif)
+				if ($limit == 1 && ($row['item_type'] == $itemType || $itemType == 'file')) {
 					if ($format == self::FORMAT_NONE) {
 						return $row;
 					} else {
@@ -2047,7 +2193,10 @@ class Share extends Constants {
 		$isGroupShare = false;
 		if ($shareType == self::SHARE_TYPE_GROUP) {
 			$isGroupShare = true;
-			if (isset($shareWith['users'])) {
+			$users = [];
+			/** CERNBOX SHARE PLUGIN PATCH */
+			/* HUGO we don't want to resolve users when putting the share */
+			/*if (isset($shareWith['users'])) {
 				$users = $shareWith['users'];
 			} else {
 				$users = \OC_Group::usersInGroup($shareWith['group']);
@@ -2055,7 +2204,7 @@ class Share extends Constants {
 			// remove current user from list
 			if (in_array(\OCP\User::getUser(), $users)) {
 				unset($users[array_search(\OCP\User::getUser(), $users)]);
-			}
+			}*/
 			$groupItemTarget = Helper::generateTarget($itemType, $itemSource,
 				$shareType, $shareWith['group'], $uidOwner, $suggestedItemTarget);
 			$groupFileTarget = Helper::generateTarget($itemType, $itemSource,
@@ -2086,7 +2235,8 @@ class Share extends Constants {
 
 		$run = true;
 		$error = '';
-		$preHookData = array(
+		/** CERNBOX SHARE PLUGIN PATCH */
+		/*$preHookData = array(
 			'itemType' => $itemType,
 			'itemSource' => $itemSource,
 			'shareType' => $shareType,
@@ -2102,7 +2252,7 @@ class Share extends Constants {
 		$preHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$preHookData['shareWith'] = ($isGroupShare) ? $shareWith['group'] : $shareWith;
 
-		\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);
+		\OC_Hook::emit('OCP\Share', 'pre_shared', $preHookData);*/
 
 		if ($run === false) {
 			throw new \Exception($error);
@@ -2115,9 +2265,18 @@ class Share extends Constants {
 			$userShareType = ($isGroupShare) ? self::$shareTypeGroupUserUnique : $shareType;
 
 			if ($sourceExists && $sourceExists['item_source'] === $itemSource) {
+				/** CERNBOX SHARE PLUGIN PATCH
 				$fileTarget = $sourceExists['file_target'];
 				$itemTarget = $sourceExists['item_target'];
-
+				*/
+				// HUGO we don't use the pre-existing shared item target because then we will arrive
+				// to the situation of having ugly names like /rootjs_integration_sample_files (#123456789) (#123456789)
+				// the repetition of the inode is done because we autoamtically append the inode when we insert a share.
+				// So picking the previous item_target  we will have this duplciation, so we use the original itemSourceName
+				//$fileTarget = $sourceExists['file_target'];
+				$fileTarget = $itemSourceName;
+				$itemTarget = $sourceExists['item_target'];
+				
 				// for group shares we don't need a additional entry if the target is the same
 				if($isGroupShare && $groupItemTarget === $itemTarget) {
 					continue;
@@ -2199,7 +2358,8 @@ class Share extends Constants {
 			$id = self::insertShare($shareQuery);
 		}
 
-		$postHookData = array(
+		/** CERNBOX SHARE PLUGIN PATCH */
+		/*$postHookData = array(
 			'itemType' => $itemType,
 			'itemSource' => $itemSource,
 			'parent' => $parent,
@@ -2216,7 +2376,7 @@ class Share extends Constants {
 		$postHookData['itemTarget'] = ($isGroupShare) ? $groupItemTarget : $itemTarget;
 		$postHookData['fileTarget'] = ($isGroupShare) ? $groupFileTarget : $fileTarget;
 
-		\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);
+		\OC_Hook::emit('OCP\Share', 'post_shared', $postHookData);*/
 
 
 		return $id ? $id : false;
@@ -2327,7 +2487,13 @@ class Share extends Constants {
 	 * @return mixed false in case of a failure or the id of the new share
 	 */
 	private static function insertShare(array $shareData) {
-
+		/** CERNBOX SHARE PLUGIN PATCH */
+		// HUGO when inserting a share we append to the item_target (like a symlink, the one the user sees in Shared with me) the inode to keep it unique
+		// LUCA propossed to put the owner of the share as well like "root_js_sample_files (#ourense.1397353)" instead "just root_js_sample_files (#1397353)"
+		if($shareData['shareType'] == 0 || $shareData['shareType'] == 1) {
+			$shareData['fileTarget'] = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+		}
+		
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
 			.' `item_type`, `item_source`, `item_target`, `share_type`,'
 			.' `share_with`, `uid_owner`, `permissions`, `stime`, `file_source`,'
@@ -2365,6 +2531,42 @@ class Share extends Constants {
 				}
 			}
 
+		}
+		
+		// CERNBOX SHARE PLUGIN PATCH
+		// HUGO add user to ACL and notify by email
+		if ($shareData ["shareType"] == 0 || $shareData ["shareType"] == 1) { // 0=>user, 1=>group, 2 => user inside group, 3 => link
+			$type = $shareData ["shareType"] == 0 ? "u" : "egroup";
+			$from = $shareData ["uidOwner"];
+			$to = $shareData ["shareWith"];
+			$fileid = $shareData ["itemSource"];
+			$ocPerm = $shareData ["permissions"];
+			$added = EosUtil::addUserToAcl ( $from, $to, $fileid, $ocPerm, $type );
+				
+			if(!$added)
+			{
+				\OCP\Util::writeLog('core', 'Could not add ' .$to. ' to EOS ACL', \OCP\Util::ERROR);
+			}
+				
+			// Send different mails depending if the share was done to an user or to an egroup.
+			$filedata = \OC\Files\ObjectStore\EosUtil::getFileById ( $fileid );
+			// $mailNotification = new \OC\Share\MailNotifications();
+			$defaults = new \OCP\Defaults();
+			$mailNotification = new \OC\Share\MailNotifications ( \OC::$server->getUserSession ()->getUser ()->getUID (), \OC::$server->getConfig (),
+					\OC::$server->getL10N ( 'lib' ),
+					\OC::$server->getMailer(),
+					\OC::$server->getLogger(),
+					$defaults
+					);
+				
+			if($type === 'u') {
+				$result = $mailNotification->sendLinkEosUser($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			} else {
+				$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			}
+			// FIXME: KUBA
+			// FIXME: after next client release we shouldnot need this anymore (no need to navigate to subdrectory as users may type the path directly into a text field since 1.8)
+			EosUtil::propagatePermissionXToParents($filedata, $to,$type);
 		}
 
 		return $id;
@@ -2423,36 +2625,36 @@ class Share extends Constants {
 		$select = '*';
 		if ($format == self::FORMAT_STATUSES) {
 			if ($fileDependent) {
+				/* CERNBOX SHARE PLUGIN PATCH
 				$select = '`*PREFIX*share`.`id`, `*PREFIX*share`.`parent`, `share_type`, `path`, `storage`, '
 					. '`share_with`, `uid_owner` , `file_source`, `stime`, `*PREFIX*share`.`permissions`, '
-					. '`*PREFIX*storages`.`id` AS `storage_id`, `*PREFIX*filecache`.`parent` as `file_parent`';
+					. '`*PREFIX*storages`.`id` AS `storage_id`, `*PREFIX*filecache`.`parent` as `file_parent`';*/
+				$select = '`*PREFIX*share`.`id`, `*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner` , `file_source`, `stime`, `*PREFIX*share`.`permissions`';
 			} else {
 				$select = '`id`, `parent`, `share_type`, `share_with`, `uid_owner`, `item_source`, `stime`, `*PREFIX*share`.`permissions`';
 			}
 		} else {
 			if (isset($uidOwner)) {
+				// CERNBOX SHARE PLUGIN PATCH (if and else)
 				if ($fileDependent) {
 					$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `*PREFIX*share`.`parent`,'
-						. ' `share_type`, `share_with`, `file_source`, `file_target`, `path`, `*PREFIX*share`.`permissions`, `stime`,'
-						. ' `expiration`, `token`, `storage`, `mail_send`, `uid_owner`, '
-						. '`*PREFIX*storages`.`id` AS `storage_id`, `*PREFIX*filecache`.`parent` as `file_parent`';
+					. ' `share_type`, `share_with`, `file_source`, `file_target`, `*PREFIX*share`.`permissions`, `stime`,'
+						. ' `expiration`, `token`, `mail_send`, `uid_owner`';
 				} else {
 					$select = '`id`, `item_type`, `item_source`, `parent`, `share_type`, `share_with`, `*PREFIX*share`.`permissions`,'
-						. ' `stime`, `file_source`, `expiration`, `token`, `mail_send`, `uid_owner`';
+							. ' `stime`, `file_source`, `expiration`, `token`, `mail_send`, `uid_owner`';
 				}
 			} else {
 				if ($fileDependent) {
+					// CERNBOX SHARE PLUGIN PATCH (if and else)
 					if ($format == \OC_Share_Backend_File::FORMAT_GET_FOLDER_CONTENTS || $format == \OC_Share_Backend_File::FORMAT_FILE_APP_ROOT) {
 						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `*PREFIX*share`.`parent`, `uid_owner`, '
-							. '`share_type`, `share_with`, `file_source`, `path`, `file_target`, `stime`, '
-							. '`*PREFIX*share`.`permissions`, `expiration`, `storage`, `*PREFIX*filecache`.`parent` as `file_parent`, '
-							. '`name`, `mtime`, `mimetype`, `mimepart`, `size`, `encrypted`, `etag`, `mail_send`';
+						. '`share_type`, `share_with`, `file_source`,  `file_target`, `stime`, '
+						. '`*PREFIX*share`.`permissions`, `expiration`,'
+						. '`name`, `mtime`, `mimetype`, `mimepart`, `size`, `encrypted`, `etag`, `mail_send`';
 					} else {
-						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `item_target`,'
-							. '`*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner`,'
-							. '`file_source`, `path`, `file_target`, `*PREFIX*share`.`permissions`,'
-						    . '`stime`, `expiration`, `token`, `storage`, `mail_send`,'
-							. '`*PREFIX*storages`.`id` AS `storage_id`, `*PREFIX*filecache`.`parent` as `file_parent`';
+						$select = '`*PREFIX*share`.`id`, `item_type`, `item_source`, `item_target`, `*PREFIX*share`.`parent`, `share_type`, `share_with`, `uid_owner`,
+								`file_source`,  `file_target`, `*PREFIX*share`.`permissions`, `stime`, `expiration`, `token`,  `mail_send`';
 					}
 				}
 			}
@@ -2527,102 +2729,10 @@ class Share extends Constants {
 		}
 	}
 
-	/**
-	 * remove protocol from URL
-	 *
-	 * @param string $url
-	 * @return string
-	 */
-	public static function removeProtocolFromUrl($url) {
-		if (strpos($url, 'https://') === 0) {
-			return substr($url, strlen('https://'));
-		} else if (strpos($url, 'http://') === 0) {
-			return substr($url, strlen('http://'));
-		}
-
-		return $url;
-	}
-
-	/**
-	 * try http post first with https and then with http as a fallback
-	 *
-	 * @param string $url
-	 * @param array $fields post parameters
-	 * @return array
-	 */
-	private static function tryHttpPost($url, $fields) {
-		$protocol = 'https://';
-		$result = [
-			'success' => false,
-			'result' => '',
-		];
-		$try = 0;
-		while ($result['success'] === false && $try < 2) {
-			$result = \OC::$server->getHTTPHelper()->post($protocol . $url, $fields);
-			$try++;
-			$protocol = 'http://';
-		}
-
-		return $result;
-	}
-
-	/**
-	 * send server-to-server share to remote server
-	 *
-	 * @param string $token
-	 * @param string $shareWith
-	 * @param string $name
-	 * @param int $remote_id
-	 * @param string $owner
-	 * @return bool
-	 */
-	private static function sendRemoteShare($token, $shareWith, $name, $remote_id, $owner) {
-
-		list($user, $remote) = Helper::splitUserRemote($shareWith);
-
-		if ($user && $remote) {
-			$url = $remote . self::BASE_PATH_TO_SHARE_API . '?format=' . self::RESPONSE_FORMAT;
-
-			$local = \OC::$server->getURLGenerator()->getAbsoluteURL('/');
-
-			$fields = array(
-				'shareWith' => $user,
-				'token' => $token,
-				'name' => $name,
-				'remoteId' => $remote_id,
-				'owner' => $owner,
-				'remote' => $local,
-			);
-
-			$url = self::removeProtocolFromUrl($url);
-			$result = self::tryHttpPost($url, $fields);
-			$status = json_decode($result['result'], true);
-
-			return ($result['success'] && $status['ocs']['meta']['statuscode'] === 100);
-
-		}
-
-		return false;
-	}
-
-	/**
-	 * send server-to-server unshare to remote server
-	 *
-	 * @param string $remote url
-	 * @param int $id share id
-	 * @param string $token
-	 * @return bool
-	 */
-	private static function sendRemoteUnshare($remote, $id, $token) {
-		$url = rtrim($remote, '/') . self::BASE_PATH_TO_SHARE_API . '/' . $id . '/unshare?format=' . self::RESPONSE_FORMAT;
-		$fields = array('token' => $token, 'format' => 'json');
-		$url = self::removeProtocolFromUrl($url);
-		$result = self::tryHttpPost($url, $fields);
-		$status = json_decode($result['result'], true);
-
-		return ($result['success'] && $status['ocs']['meta']['statuscode'] === 100);
-	}
-
+	/** CERNBOX SHARE PLUGIN PATCH
+	 *  Removed functions: removeProtocolFromUrl, tryHttpPost, sendRemoteShare, sendRemoteUnshare
+	 * */
+	
 	/**
 	 * check if user can only share with group members
 	 * @return bool

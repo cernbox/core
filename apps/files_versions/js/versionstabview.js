@@ -33,6 +33,7 @@
 		/** @lends OCA.Versions.VersionsTabView.prototype */ {
 		id: 'versionsTabView',
 		className: 'tab versionsTabView',
+		order: -10,
 
 		_template: null,
 
@@ -172,6 +173,12 @@
 		},
 
 		_formatItem: function(version) {
+			// HUGO fix version  timestamp
+			/*var rev = revision.version; // JS epoch is 13 digit not 10
+			rev = rev.split(".");
+			rev = rev[0];
+			var title = formatDate(rev*1000); // JS epoch is*/
+			
 			var timestamp = version.get('timestamp') * 1000;
 			return _.extend({
 				formattedTimestamp: OC.Util.formatDate(timestamp),

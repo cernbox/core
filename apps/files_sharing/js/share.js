@@ -49,6 +49,8 @@
 				tr.attr('data-share-permissions', sharePermissions);
 				if (fileData.shareOwner) {
 					tr.attr('data-share-owner', fileData.shareOwner);
+					/** CERNBOX SHOW DISPLAYNAME PULL REQUEST PATCH */
+					//tr.attr('data-share-owner-displayname', fileData.ownerDisplayName);
 					// user should always be able to rename a mount point
 					if (fileData.isShareMountPoint) {
 						tr.attr('data-permissions', fileData.permissions | OC.PERMISSION_UPDATE);
@@ -150,7 +152,18 @@
 			if (fileList.id === 'files') {
 				return;
 			}
-			var recipients = _.pluck(shareModel.get('shares'), 'share_with_displayname');
+			
+			var share = shareModel.get('shares')[$tr.attr('data-share-id')];
+			$tr.attr('data-share-recipients', '');
+			
+			// We don't have data to show the share recipients or it's a linke share
+			if(typeof share === 'undefined' || share.share_type === 3)
+			{
+				return;
+			}
+			
+			var recipients = _.pluck(share, 'share_with_displayname');
+			
 			// note: we only update the data attribute because updateIcon()
 			if (recipients.length) {
 				$tr.attr('data-share-recipients', OCA.Sharing.Util.formatRecipients(recipients));

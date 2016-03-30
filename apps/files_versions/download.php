@@ -31,7 +31,9 @@ $revision=(int)$_GET['revision'];
 
 list($uid, $filename) = OCA\Files_Versions\Storage::getUidAndFilename($file);
 
-$versionName = '/'.$uid.'/files_versions/'.$filename.'.v'.$revision;
+/** CERNBOX VERSION APP PLUGIN PATCH */
+$pathinfo = pathinfo($filename);
+$versionName = '/'. $uid .'/files/' .$pathinfo['dirname'] . '/.sys.v#.'.$pathinfo['basename'].'/'. $revision;
 
 $view = new OC\Files\View('/');
 

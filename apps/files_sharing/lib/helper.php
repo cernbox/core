@@ -240,6 +240,7 @@ class Helper {
 	 * @return string $path
 	 */
 	public static function generateUniqueTarget($path, $excludeList, $view) {
+		/** CERNBOX SHARE PLUGIN PATCH
 		$pathinfo = pathinfo($path);
 		$ext = (isset($pathinfo['extension'])) ? '.'.$pathinfo['extension'] : '';
 		$name = $pathinfo['filename'];
@@ -249,7 +250,8 @@ class Helper {
 			$path = \OC\Files\Filesystem::normalizePath($dir . '/' . $name . ' ('.$i.')' . $ext);
 			$i++;
 		}
-
+		*/
+		// HUGO the generation of unique target is done when we insert the share at lib/private/share/share.php::insertShare
 		return $path;
 	}
 

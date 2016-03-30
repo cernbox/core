@@ -174,6 +174,16 @@ class Helper {
 		if (isset($i['extraData'])) {
 			$entry['extraData'] = $i['extraData'];
 		}
+		
+		/** CERNBOX FAVORITES PATCH */
+		// HUGO allow eos attrs to be passed to the web frontend
+		if(isset($i['cboxid']))
+		{
+			$entry['cboxid'] = $i['cboxid'];
+		}
+		
+		$entry['eospath'] = $i['eospath'];
+		
 		return $entry;
 	}
 
@@ -216,7 +226,16 @@ class Helper {
 	public static function populateTags(array $fileList) {
 		$filesById = array();
 		foreach ($fileList as $fileData) {
-			$filesById[$fileData['fileid']] = $fileData;
+			/** CERNBOX FAVORITES PATCH */
+			//$filesById[$fileData['fileid']] = $fileData;
+			if(isset($fileData['cboxid']))
+			{
+				$filesById[$fileData['cboxid']] = $fileData;
+			}
+			else
+			{
+				$filesById[$fileData['fileid']] = $fileData;
+			}
 		}
 		$tagger = \OC::$server->getTagManager()->load('files');
 		$tags = $tagger->getTagsForObjects(array_keys($filesById));

@@ -247,6 +247,7 @@ OC.Share = _.extend(OC.Share || {}, {
 		var message;
 		var recipients;
 		var owner = $tr.attr('data-share-owner');
+		var ownerDisplayName = $tr.attr('data-share-owner-displayname');
 		var shareFolderIcon;
 		var image = OC.imagePath('core', 'actions/share');
 		action.removeClass('shared-style');
@@ -282,7 +283,7 @@ OC.Share = _.extend(OC.Share || {}, {
 			message = t('core', 'Shared');
 			// even if reshared, only show "Shared by"
 			if (owner) {
-				message = this._formatRemoteShare(owner);
+				message = this._formatRemoteShare(ownerDisplayName + ' (' + owner + ')');
 			}
 			else if (recipients) {
 				message = t('core', 'Shared with {recipients}', {recipients: this._formatShareList(recipients.split(", ")).join(", ")}, 0, {escape: false});
@@ -311,12 +312,12 @@ OC.Share = _.extend(OC.Share || {}, {
 	 */
 	loadItem:function(itemType, itemSource, callback) {
 		var data = '';
-		var checkReshare = true;
+		var checkReshare = false;
 		var async = !_.isUndefined(callback);
-		if (typeof OC.Share.statuses[itemSource] === 'undefined') {
+		if(typeof itemSource !== 'undefined') {
+			var checkShares = false;
+		} else /*if (typeof OC.Share.statuses[itemSource] === 'undefined')*/{
 			// NOTE: Check does not always work and misses some shares, fix later
-			var checkShares = true;
-		} else {
 			var checkShares = true;
 		}
 		$.ajax({type: 'GET', url: OC.filePath('core', 'ajax', 'share.php'), data: { fetch: 'getItem', itemType: itemType, itemSource: itemSource, checkReshare: checkReshare, checkShares: checkShares }, async: async, success: function(result) {
@@ -350,6 +351,51 @@ OC.Share = _.extend(OC.Share || {}, {
 		return $.post(OC.filePath('core', 'ajax', 'share.php'),
 			{
 				action: 'share',
+				itemType: itemType,
+				itemSource: itemSource,
+				shareType: shareType,
+				shareWith: shareWith,
+				permissions: permissions,
+				itemSourceName: itemSourceName,
+				expirationDate: expirationDate
+			}, function (result) {
+				if (result && result.status === 'success') {
+					if (callback) {
+						callback(result.data);
+					}
+				} else {
+					if (_.isUndefined(errorCallback)) {
+						var msg = t('core', 'Error');
+						if (result.data && result.data.message) {
+							msg = result.data.message;
+						}
+						OC.dialogs.alert(msg, t('core', 'Error while sharing'));
+					} else {
+						errorCallback(result);
+					}
+				}
+			}
+		);
+	},
+	/** CERNBOX SHARE USER LIST PR PATCH */
+	shareList:function(itemType, itemSource, shareType, shareWith, permissions, itemSourceName, expirationDate, callback, errorCallback) {
+		// Add a fallback for old share() calls without expirationDate.
+		// We should remove this in a later version,
+		// after the Apps have been updated.
+		if (typeof callback === 'undefined' &&
+			typeof expirationDate === 'function') {
+			callback = expirationDate;
+			expirationDate = '';
+			console.warn(
+				"Call to 'OC.Share.share()' with too few arguments. " +
+				"'expirationDate' was assumed to be 'callback'. " +
+				"Please revisit the call and fix the list of arguments."
+			);
+		}
+
+		return $.post(OC.filePath('core', 'ajax', 'share.php'),
+			{
+				action: 'shareList',
 				itemType: itemType,
 				itemSource: itemSource,
 				shareType: shareType,

@@ -16,12 +16,17 @@
 	var TEMPLATE_BASE =
 		'<div class="resharerInfoView subView"></div>' +
 		'{{#if isSharingAllowed}}' +
+		'{{#if canShareWithUsers}}' +
 		'<label for="shareWith-{{cid}}" class="hidden-visually">{{shareLabel}}</label>' +
 		'<div class="oneline">' +
 		'    <input id="shareWith-{{cid}}" class="shareWithField" type="text" placeholder="{{sharePlaceholder}}" />' +
 		'    <span class="shareWithLoading icon-loading-small hidden"></span>'+
 		'{{{remoteShareInfo}}}' +
 		'</div>' +
+		'<div id="recipentList" class="shareRecipentListView hidden"><p>Share item to the following users/groups:</p><ul></ul>' +
+		'<input id="shareListButton" class="emailButton" type="submit" value="Confirm">' +
+		'</div>' +
+		'{{/if}}' +
 		'{{/if}}' +
 		'<div class="shareeListView subView"></div>' +
 		'<div class="linkShareView subView"></div>' +
@@ -66,6 +71,16 @@
 
 		/** @type {object} **/
 		shareeListView: undefined,
+		
+		/** CERNBOX SHARE USER LIST PR PATCH */
+		/** @type {array} **/
+		shareRecipientList: [],
+		
+		/** CERNBOX SHOW SHARE INFO PR PATCH */
+		/** @type {object} **/
+		 eospathView: undefined, 		
+		 /** @type {object} **/
+		 projectnameView: undefined,
 
 		initialize: function(options) {
 			var view = this;
@@ -157,11 +172,67 @@
 				.append(insert)
 				.appendTo(ul);
 		},
+		
+		/** CERNBOX SHARE USER LIST PR PATCH */
+		_getRecipentIndex: function(recipentUid)
+		{
+			for(var i = 0; i < this.shareRecipientList.length; i++)
+			{
+				if(this.shareRecipientList[i].uid == recipentUid) return i;
+			}
+			return -1;
+		},
 
 		_onSelectRecipient: function(e, s) {
 			e.preventDefault();
 			$(e.target).val('');
-			this.model.addShare(s.item.value);
+			/** CERNBOX SHARE USER LIST PR PATCH */
+			//this.model.addShare(s.item.value);
+			var recipent = s.item.value.shareWith;
+			
+			if(this._getRecipentIndex(recipent) != -1)
+			{
+				return;
+			}
+			
+			var recipientData = {uid: recipent, displayName: s.item.label, type: s.item.value.shareType };
+			this.shareRecipientList.push(recipientData);
+			
+			var recipentDiv = this.$el.find('#recipentList');
+			
+			var recipentList = recipentDiv.find('ul');
+			if(recipentList && this.shareRecipientList.length > 0)
+			{
+				recipentDiv.removeClass('hidden');
+				recipentList.empty();
+				var _self = this;
+				for(var i = 0; i < this.shareRecipientList.length; i++)
+				{
+					curRecipient = this.shareRecipientList[i];
+					var li = $('<li recipent="'+ curRecipient.uid + '"><img class="recipentDeleter" src="'+ OC.imagePath('core', 'actions/close.svg') +'"><span class="username">' +curRecipient.displayName + '</span></li>');
+					var img = li.find('img');
+					img.click(function()
+						{
+							var delRecipient = $(this).parent().attr('recipent');
+							if(delRecipient && delRecipient != 'undefined')
+							{
+								var index = _self._getRecipentIndex(delRecipient);
+								if(index != -1)
+								{
+									_self.shareRecipientList.splice(index, 1);
+									if(_self.shareRecipientList.length <= 0)
+									{
+										_self.$el.find('#recipentList').addClass('hidden');
+									}
+								}
+							}
+							
+							$(this).parent().remove();
+						});
+					recipentList.append(li);
+				}
+			}
+			//this.model.addShare(s.item.value);
 		},
 
 		_toggleLoading: function(state) {
@@ -197,7 +268,8 @@
 				shareLabel: t('core', 'Share'),
 				sharePlaceholder: this._renderSharePlaceholderPart(),
 				remoteShareInfo: this._renderRemoteShareInfoPart(),
-				isSharingAllowed: this.model.sharePermissionPossible()
+				isSharingAllowed: this.model.sharePermissionPossible(),
+				canShareWithUsers: this.model.isFolder() && this.model.fileInfoModel.get('path') == '/'
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
@@ -224,8 +296,29 @@
 
 			this.shareeListView.$el = this.$el.find('.shareeListView');
 			this.shareeListView.render();
-
+			
 			this.$el.find('.hasTooltip').tooltip();
+			
+			/** CERNBOX SHARE USER LIST PR PATCH */
+			var shareButton = this.$el.find('#recipentList').find('#shareListButton');
+			var _self = this;
+			shareButton.click(function(event)
+			{
+				event.preventDefault();
+				
+				var shareRequestData = [];
+				for(var i = 0; i < _self.shareRecipientList.length; i++)
+				{
+					var token = {uid: _self.shareRecipientList[i].uid, type: _self.shareRecipientList[i].type };
+					shareRequestData.push(token);
+				}
+				
+				_self.model.addShareList(shareRequestData);
+				
+				_self.shareRecipientList.length = 0;
+				this.$el.find('#recipentList').addClass('hidden');
+				_self._toggleLoading(true);
+			});
 
 			return this;
 		},
