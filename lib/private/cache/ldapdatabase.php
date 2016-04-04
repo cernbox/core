@@ -3,9 +3,9 @@ namespace OC\Cache;
 
 class LDAPDatabase
 {
-	const GROUPS_TABLE = 'ldap_groups';
-	const USERS_TABLE = 'ldap_users';
-	const GROUP_MAPPINGS = 'ldap_group_members';
+	const GROUPS_TABLE = 'cernbox_ldap_groups';
+	const USERS_TABLE = 'cernbox_ldap_users';
+	const GROUP_MAPPINGS = 'cernbox_ldap_group_members';
 	
 	/**
 	 * 

@@ -252,7 +252,7 @@ try
 
 		//cronlog('Inserting groups into database...');
 
-		insertIntoDatabase('ldap_groups', buildQuery('ldap_groups', 's', ['cn'], $ldapGroups));
+		insertIntoDatabase('cernbox_ldap_groups', buildQuery('cernbox_ldap_groups', 's', ['cn'], $ldapGroups));
 		unset($ldapGroups);
 
 		//cronlog('Done');
@@ -281,13 +281,13 @@ try
 
 		//cronlog('Inserting users into database...');
 
-		insertIntoDatabase('ldap_users', buildQuery('ldap_users', 'siss', ['cn','uidnumber','displayname','employeetype'], $ldapUsers));
+		insertIntoDatabase('cernbox_ldap_users', buildQuery('cernbox_ldap_users', 'siss', ['cn','uidnumber','displayname','employeetype'], $ldapUsers));
 		unset($ldapUsers);
 
 		//cronlog('Done');
 		//cronlog('Inserting users <-> groups into database...');
 	
-		insertIntoDatabase('ldap_group_members', buildCVSFile('ss', ['user_cn','group_cn'], $userGroups), true);
+		insertIntoDatabase('cernbox_ldap_group_members', buildCVSFile('ss', ['user_cn','group_cn'], $userGroups), true);
 		unset($userGroups);
 				
 		cronlog('Done');

@@ -1270,7 +1270,7 @@
 	</table>
 	
 	<table>
-		<name>ldap_users</name>
+		<name>cernbox_ldap_users</name>
 		<declaration>
 			<field>
 				<name>cn</name>
@@ -1318,7 +1318,7 @@
 	</table>
 	
 	<table>
-		<name>ldap_groups</name>
+		<name>cernbox_ldap_groups</name>
 		<declaration>
 			<field>
 				<name>cn</name>
@@ -1339,7 +1339,7 @@
 	</table>
 	
 	<table>
-		<name>ldap_group_members</name>
+		<name>cernbox_ldap_group_members</name>
 		<declaration>
 			<field>
 				<name>user_cn</name>
@@ -1368,35 +1368,5 @@
 			</index>			
 		</declaration>
 	</table>
-
-	<table>
-		<name>ldap_group_members</name>
-		<declaration>
-			<field>
-				<name>user_cn</name>
-				<type>text</type>
-				<default></default>
-				<notnull>true</notnull>
-				<length>50</length>
-			</field>
-			<field>
-				<name>group_cn</name>
-				<type>text</type>
-				<default></default>
-				<notnull>true</notnull>
-				<length>100</length>
-			</field>
-			<index>
-				<primary>true</primary>
-				<unique>true</unique>
-				<name>group_members_index</name>
-				<field>
-					<name>user_cn</name>
-				</field>
-				<field>
-					<name>group_cn</name>
-				</field>
-			</index>			
-		</declaration>
-	</table>
+	
 </database>
