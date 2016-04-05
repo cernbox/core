@@ -85,6 +85,10 @@ class CustomLocal
 					
 					$eosMeta = EosUtil::getFileByEosPath($realfile);
 					
+					if(strpos($eosMeta['eospath'], EosUtil::getEosRecycleDir()) !== FALSE)
+					{
+						return new \OC_OCS_Result(null, 404, 'the requested file has been deleted');
+					}
 					
 					$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
 					$row['file_target'] = $row['item_type'] === 'file' ? $eosMeta['name'] : "/" . $eosMeta['name'];
@@ -237,6 +241,13 @@ class CustomLocal
 					unset($rows[$key]);
 					continue;
 				}
+				
+				if(strpos($eosMeta['eospath'], EosUtil::getEosRecycleDir()) !== FALSE)
+				{
+					unset($rows[$key]);
+					continue;
+				}
+				
 				//$row['item_source'] = $eosMeta['fileid'];
 				//$row['file_source'] = $eosMeta['fileid'];
 				$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
@@ -325,6 +336,13 @@ class CustomLocal
 					unset($rows[$key]);
 					continue;
 				}
+				
+				if(strpos($eosMeta['eospath'], EosUtil::getEosRecycleDir()) !== FALSE)
+				{
+					unset($rows[$key]);
+					continue;
+				}
+				
 				//$row['item_source'] = $eosMeta['fileid'];
 				//$row['file_source'] = $eosMeta['fileid'];
 				$row['path'] = EosProxy::toOc($eosMeta['eospath']);
@@ -427,6 +445,12 @@ class CustomLocal
 				
 				$eosMeta = EosUtil::getFileByEosPath($realfile);
 				
+				if(!$eosMeta || strpos($eosMeta['eospath'], EosUtil::getEosRecycleDir()) !== FALSE)
+				{
+					unset($rows[$key]);
+					continue;
+				}
+				
 				//$row['item_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 				//$row['file_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 				$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
@@ -481,6 +505,11 @@ class CustomLocal
 			if($eosMeta === null)
 			{
 				return new \OC_OCS_Result(null, 400, 'the file is not shared ' .$eosPath);
+			}
+			
+			if(strpos($eosMeta['eospath'], EosUtil::getEosRecycleDir()) !== FALSE)
+			{
+				return new \OC_OCS_Result(null, 404, 'the requested file has been deleted');
 			}
 			
 			// CACHE STORAGE ID
