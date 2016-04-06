@@ -138,7 +138,7 @@ class EosCache {
 		list($uid, $gid) = EosUtil::getEosRole($eosPath, true);
 		$eosPath = rtrim($eosPath, "/");
 		
-		$cached = EosCacheManager::getFileByEosPath($eosPath);
+		$cached = EosCacheManager::getSecureFileByEosPath($eosPath);
 		if($cached) {
 			return $cached;
 		}

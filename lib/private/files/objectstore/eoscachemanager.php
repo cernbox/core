@@ -12,6 +12,19 @@ class EosCacheManager
 	/** @var bool flag to indicate the cache is initialized */
 	private static $initialized;
 	
+	private static function shouldAvoidCache()
+	{
+		$avoid_paths = \OCP\Config::getSystemValue("avoid_req_cache_paths", array());
+		foreach($avoid_paths as $path) 
+		{
+			if(strpos($_SERVER['REQUEST_URI'], $path) !== false) 
+			{
+				return TRUE;
+			}
+		}
+		return FALSE;
+	}
+	
 	/**
 	 * Initializes the different cache levels and returns the current
 	 * cache status
@@ -92,6 +105,34 @@ class EosCacheManager
 	 */
 	public static function getFileByEosPath($eosPath)
 	{
+		if(self::init())
+		{
+			/** @var IEosCache $cache */
+			foreach(self::$caches as &$cache)
+			{
+				if(($data = $cache->getFileByEosPath($eosPath)) !== FALSE)
+					return $data;
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Attempts to retrieve a file data stored by it's path within EOS namespace.
+	 * If the request path is contained inside the config setting 'avoid_req_cache_paths',
+	 * the cache will produce a fail in order to refresh the file info
+	 * @param string $eosPath file path within EOS
+	 * @return array|null An associatve array containing the file data or null if
+	 * 			the given eosPath key as not found in the cache
+	 */
+	public static function getSecureFileByEosPath($eosPath)
+	{
+		if(self::shouldAvoidCache())
+		{
+			return null;	
+		}
+		
 		if(self::init())
 		{
 			/** @var IEosCache $cache */
