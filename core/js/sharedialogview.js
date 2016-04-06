@@ -316,7 +316,7 @@
 				_self.model.addShareList(shareRequestData);
 				
 				_self.shareRecipientList.length = 0;
-				this.$el.find('#recipentList').addClass('hidden');
+				_self.$el.find('#recipentList').addClass('hidden');
 				_self._toggleLoading(true);
 			});
 
