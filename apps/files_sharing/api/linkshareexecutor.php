@@ -19,8 +19,8 @@ class LinkShareExecutor extends ShareExecutor
 		$this->shareWith = isset($_POST['password']) ? $_POST['password'] : null;
 		//check public link share
 		$this->publicUploadEnabled = \OC::$server->getAppConfig()->getValue('core', 'shareapi_allow_public_upload', 'yes') === 'yes'? TRUE : FALSE;
-		if(isset($_POST['publicUpload']) && $this->publicUploadEnabled) {
-			throw new Exception("public upload disabled by the administrator");
+		if(isset($_POST['publicUpload']) && !$this->publicUploadEnabled) {
+			throw new \Exception("public upload disabled by the administrator");
 		}
 		
 		$this->publicUpload = isset($_POST['publicUpload']) ? ($_POST['publicUpload'] === 'true'? TRUE : FALSE) : FALSE;
@@ -67,7 +67,7 @@ class LinkShareExecutor extends ShareExecutor
 			}
 			
 			if ($this->itemType === 'folder') {
-				$path = '/' . $uidOwner . '/files' . $this->path . '/';
+				$path = '/' . $this->uidOwner . '/files' . $this->path . '/';
 				$mountManager = \OC\Files\Filesystem::getMountManager();
 				$mounts = $mountManager->findIn($path);
 				foreach ($mounts as $mount) {
@@ -91,7 +91,7 @@ class LinkShareExecutor extends ShareExecutor
 	public function checkForPreviousShares()
 	{
 		$updateExistingShare = false;
-		if (\OC_Appconfig::getValue('core', 'shareapi_allow_links', 'yes') == 'yes') {
+		if (\OC::$server->getAppConfig()->getValue('core', 'shareapi_allow_links', 'yes') == 'yes') {
 		
 			// when updating a link share
 			// FIXME Don't delete link if we update it
