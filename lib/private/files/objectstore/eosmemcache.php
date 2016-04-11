@@ -22,37 +22,8 @@ class EosMemCache implements IEosCache
 	/** @var string Cache key for files identified by eospath and a given depth */
 	const KEY_FILEINFO_BY_PATH = 'getFileInfoByEosPath';
 	
-	/** @var Redis redis client object */
-	private $redisClient;
-	/** @var bool stores whether cache system is available or not */
-	private $unableToConnect;
-	
 	public function __construct()
 	{
-		$this->init();
-	}
-	
-	/**
-	 * Stablish (if not done already) and test the connection to the cache
-	 * server on every call
-	 * 
-	 * @return bool True if server is available, false otherwise
-	 */
-	private function init()
-	{
-		if($this->redisClient == NULL)
-		{
-			$this->unableToConnect = false;
-			$this->redisClient = new \Redis();
-			
-			if(!$this->redisClient->connect('127.0.0.1', 6379))
-			{
-				$this->unableToConnect = true;
-				\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to connect to redis server on 127.0.0.1:6379', \OCP\Util::ERROR);
-			}
-		}
-		
-		return !$this->unableToConnect;
 	}
 	
 	/**
@@ -210,14 +181,7 @@ class EosMemCache implements IEosCache
 	 */
 	private function writeToCache($outerKey, $key, $value)
 	{
-		if($this->init())
-		{
-			$this->redisClient->hSet($outerKey, $key, json_encode([time(), $value]));
-		}
-		else 
-		{
-			\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to access redis server', \OCP\Util::ERROR);
-		}
+		Redis::writeToCacheMap($outerKey, $key, json_encode([time(), $value]));
 	}
 	
 	/**
@@ -228,14 +192,7 @@ class EosMemCache implements IEosCache
 	 */
 	private function deleteFromCache($outerKey, $key)
 	{
-		if($this->init())
-		{
-			$this->redisClient->hDel($outerKey, $key);
-		}
-		else 
-		{
-			\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
-		}
+		Redis::deleteFromCacheMap($outerKey, $key);
 	}
 	
 	/**
@@ -247,29 +204,20 @@ class EosMemCache implements IEosCache
 	 */
 	private function readFromCache($outerKey, $key)
 	{
-		$value = NULL;
-		if($this->init())
+		$value = Redis::readFromCacheMap($outerKey, $key);
+		if($value !== FALSE)
 		{
-			$value = $this->redisClient->hGet($outerKey, $key);
-			// Key found
-			if($value !== FALSE)
+			// Check for expire date
+			$value = json_decode($value, TRUE);
+			$elapsed = time() - (int)$value[0];
+			if($elapsed > self::EXPIRE_TIME_SECONDS)
 			{
-				// Check for expire date
-				$value = json_decode($value, TRUE);
-				$elapsed = time() - (int)$value[0];
-				if($elapsed > self::EXPIRE_TIME_SECONDS)
-				{
-					$value = FALSE;
-				}
-				else
-				{
-					$value = $value[1];
-				}
+				$value = FALSE;
 			}
-		}
-		else
-		{
-			\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
+			else
+			{
+				$value = $value[1];
+			}
 		}
 		
 		return $value;

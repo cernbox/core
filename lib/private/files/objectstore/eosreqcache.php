@@ -79,25 +79,12 @@ class EosReqCache implements IEosCache {
 		 $this->init();
          $GLOBALS['cernbox']['getfilebyid'][$id] = $data;
 	}
-	
-	private function dontUseCache() {
-		$avoid_paths = \OCP\Config::getSystemValue("avoid_req_cache_paths", array());
-        foreach($avoid_paths as $path) {
-        	if(strpos($_SERVER['REQUEST_URI'], $path) !== false) {
-				return true;
-			}
-        }
-		return FALSE;
-	}
-	
+		
 	/**
 	 * {@inheritDoc}
 	 * @see IEosCache::getMeta()
 	 */
 	public function getMeta($ocPath) {
-		if ($this->dontUseCache ()) {
-			return FALSE;
-		}
 		$this->init ();
 		if (isset ( $GLOBALS ['cernbox'] ['getmeta'] [$ocPath] )) {
 			// \OCP\Util::writeLog('EOSCACHE',"HIT op:" . __FUNCTION__ . "(ocpath:$ocPath)", \OCP\Util::ERROR);
