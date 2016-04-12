@@ -228,7 +228,10 @@ class Manager extends PublicEmitter implements IGroupManager {
 			$groupIds = $backend->getUserGroups($uid);
 			if (is_array($groupIds)) {
 				foreach ($groupIds as $groupId) {
-					$groups[$groupId] = $this->get($groupId);
+					$groupInstance = $this->get($groupId);
+					if($groupInstance != null) {
+						$groups[$groupId] = $groupInstance;
+					}
 				}
 			}
 		}
