@@ -21,7 +21,8 @@
 			options = options ? _.clone(options) : {};
 			var model = this;
 			var file = this.getFullPath();
-			var revision = this.get('timestamp');
+			//var revision = this.get('timestamp');
+			var revision = this.get('id');
 
 			$.ajax({
 				type: 'GET',
@@ -55,7 +56,7 @@
 			var url = OC.generateUrl('/apps/files_versions/preview');
 			var params = {
 				file: this.get('fullPath'),
-				version: this.get('timestamp')
+				version: this.get('id')
 			};
 			return url + '?' + OC.buildQueryString(params);
 		},
@@ -64,7 +65,7 @@
 			var url = OC.generateUrl('/apps/files_versions/download.php');
 			var params = {
 				file: this.get('fullPath'),
-				revision: this.get('timestamp')
+				revision: this.get('id')
 			};
 			return url + '?' + OC.buildQueryString(params);
 		}

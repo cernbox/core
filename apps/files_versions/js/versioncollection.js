@@ -74,12 +74,12 @@
 
 		parse: function(result) {
 			var results = _.map(result.data.versions, function(version) {
-				var revision = parseInt(version.version, 10);
+				var revision = version.version;//parseInt(version.version, 10);
 				return {
 					id: revision,
 					name: version.name,
 					fullPath: version.path,
-					timestamp: revision,
+					timestamp: parseInt(revision),
 					size: version.size
 				};
 			});

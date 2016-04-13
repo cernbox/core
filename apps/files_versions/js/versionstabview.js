@@ -179,16 +179,18 @@
 			rev = rev[0];
 			var title = formatDate(rev*1000); // JS epoch is*/
 			
-			var timestamp = version.get('timestamp') * 1000;
-			return _.extend({
-				formattedTimestamp: OC.Util.formatDate(timestamp),
-				relativeTimestamp: OC.Util.relativeModifiedDate(timestamp),
+			var numTimestamp = version.get('timestamp') * 1000;
+			//var timestamp = version.get('id');
+			return /*_.extend*/({
+				timestamp: version.get('id'),
+				formattedTimestamp: OC.Util.formatDate(numTimestamp),
+				relativeTimestamp: OC.Util.relativeModifiedDate(numTimestamp),
 				downloadUrl: version.getDownloadUrl(),
 				downloadIconUrl: OC.imagePath('core', 'actions/download'),
 				revertIconUrl: OC.imagePath('core', 'actions/history'),
 				previewUrl: version.getPreviewUrl(),
 				revertLabel: t('files_versions', 'Restore'),
-			}, version.attributes);
+			}/*, version.attributes*/);
 		},
 
 		/**

@@ -27,7 +27,7 @@ OCP\JSON::checkAppEnabled('files_versions');
 OCP\JSON::checkLoggedIn();
 
 $file = $_GET['file'];
-$revision=(int)$_GET['revision'];
+$revision=$_GET['revision'];
 
 list($uid, $filename) = OCA\Files_Versions\Storage::getUidAndFilename($file);
 
