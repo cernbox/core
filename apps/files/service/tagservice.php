@@ -76,7 +76,7 @@ class TagService {
 			try {
 				$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
 			} catch (\OCP\Files\NotFoundException $e) {
-				EosUtil::createVersion($fileInfo['eospath']);
+				\OC\Files\ObjectStore\EosUtil::createVersion($fileInfo['eospath']);
 				$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
 			}
 		}
