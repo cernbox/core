@@ -48,7 +48,7 @@
 			}
 			
 			var projectnameT = this.model.get('projectname');
-			if (!projectnameT || projectnameT == 'undefined')
+			if (!projectnameT || typeof projectnameT == 'undefined')
 			{
 				this.$el.empty();
 				return this;

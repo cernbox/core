@@ -15,7 +15,14 @@
 				return;
 			}
 
-			fileList.registerTabView(new OC.Cernbox.CernboxDialogView('cernboxTabView', {order: -5}));
+			var view = new OC.Cernbox.CernboxDialogView('cernboxTabView', {order: -5});
+			
+			fileList.registerTabView(view);
+			
+			if (fileList.id === 'trashbin')
+			{
+				view.registerSubView('restorepathView', new OCA.Trashbin.RestorePathView());
+			}
 		}
 	};
 })();

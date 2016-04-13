@@ -8,7 +8,8 @@
 	var TEMPLATE_BASE =
 		'<div class="cernboxInfoView subView"></div>' +
 		'<div class="eospathView subView hidden"></div>' +
-		'<div class="projectnameView subView hidden"></div>';
+		'<div class="projectnameView subView hidden"></div>' +
+		'<div class="restorepathView subView hidden"></div>';
 	
 	var CernboxDialogView = OCA.Files.DetailTabView.extend (
 	{	
@@ -30,6 +31,9 @@
 		
 		/** @type {object} **/
 		projectnameView: undefined,
+		
+		/** @type {object} **/
+		restorepathView: undefined,
 		
 		subViews: 
 		{
@@ -66,6 +70,12 @@
 			}
 		},
 		
+		registerSubView: function(name, view)
+		{
+			view.setFileInfo(this.model);
+			this[name] = view;
+		},
+		
 		getLabel: function() {
 			return t('core', 'CERNBox Info');
 		},
@@ -83,6 +93,13 @@
 			this.projectnameView.model = this.model;
 			this.projectnameView.$el = this.$el.find('.projectnameView');
 			this.projectnameView.render();
+			
+			if(typeof this.restorepathView != 'undefined')
+			{
+				this.restorepathView.model = this.model;
+				this.restorepathView.$el = this.$el.find('.restorepathView');
+				this.restorepathView.render();
+			}
 
 			return this;
 		},

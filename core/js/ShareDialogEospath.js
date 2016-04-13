@@ -8,7 +8,7 @@
 	}
 	
 	var TEMPLATE =
-		'<p><b>EOS Path</b>: {{eospathText}}</p>';
+        '<p><b>EOS Path</b>:</p><textarea readonly>{{eospathText}}</textarea>';
 	
 	var ShareDialogEospath = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -49,7 +49,7 @@
 			
 			var eospathT = this.model.get('eospath');
 			
-			if(eospathT == 'undefined') 
+			if(typeof eospathT == 'undefined') 
 			{
 				this.$el.empty();
 				return;
@@ -70,6 +70,8 @@
 			this.$el.html(reshareTemplate({
 				eospathText: eospathT
 			}));
+			
+			this.$el.find('textarea').select();
 		
 			return this;
 		},

@@ -4,10 +4,7 @@
 	}
 	
 	var TEMPLATE =
-		'<span class="eosinfo">' +
-		'    {{eospathText}}' +
-		'</span><br/>'
-		;
+        '<p><b>EOS Restoration path</b>:</p><textarea readonly>{{eospathText}}</textarea>';
 	
 	var RestorePathView = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -49,21 +46,23 @@
 		render: function() {
 			if(!this.model)
 				return null;
-			/*var eospathT = this.model.getEosPath().trim();
+			var eospathT = this.model.get('restore-path');
 			
-			if (!eospathT || eospathT == 'undefined')
+			if (!eospathT || typeof eospathT == 'undefined')
 			{
 				this.$el.empty();
 				return this;
-			}*/
+			}
 			
 			this.$el.removeClass('hidden');
 
 			var reshareTemplate = this.template();
 			
 			this.$el.html(reshareTemplate({
-				eospathText: 'EOS restore path: ' + this.model.get('restore-path')
+				eospathText: eospathT
 			}));
+			
+			this.$el.find('textarea').select();
 		
 			return this;
 		},
@@ -81,6 +80,5 @@
 
 	});
 
-	OC.Share.RestorePathView = RestorePathView;
-
+	OCA.Trashbin.RestorePathView = RestorePathView;
 })();
