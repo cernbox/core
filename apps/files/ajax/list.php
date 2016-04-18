@@ -84,7 +84,7 @@ try {
 		foreach($shared as $share)
 		{
 			$name = ltrim($share['file_target'], '/');
-			if($share['item_type'] === 'folder' && $share['share_type'] !== 3)
+			if($share['item_type'] === 'folder' && $share['share_type'] !== '3')
 			{
 				$pos = strrpos($name, ' ');
 				$name = substr($name, 0, $pos);
@@ -94,7 +94,7 @@ try {
 				$name = ltrim($name, '.sys.v#.');
 			}
 			
-			if(!isset($finalShared[$name]) || (isset($finalShared[$name]) && $finalShared[$name] !== 3))
+			if(!isset($finalShared[$name]) || (isset($finalShared[$name]) && $finalShared[$name] !== '3'))
 			{
 				$finalShared[$name] = $share['share_type'];
 			}
