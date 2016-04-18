@@ -1,5 +1,10 @@
 (function() 
 {
+	if(!OCA.Files)
+	{
+		return;
+	}
+	
 	if(!OC.Cernbox) 
 	{
 		OC.Cernbox = {};

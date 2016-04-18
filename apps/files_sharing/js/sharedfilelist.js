@@ -59,7 +59,7 @@
 			OC.Plugins.attach('OCA.Sharing.FileList', this);
 		},
 
-		_renderRow: function() {
+		_renderRow: function(fileData) {
 			// HACK: needed to call the overridden _renderRow
 			// this is because at the time this class is created
 			// the overriding hasn't been done yet...
@@ -128,7 +128,7 @@
 			// no op because it doesn't have
 			// storage info like free space / used space
 		},
-
+		
 		reload: function() {
 			this.showMask();
 			if (this._reloadCall) {
@@ -196,6 +196,19 @@
 			}
 
 			this.setFiles(files);
+			
+			this.$fileList.children().each(function(i)
+			{
+				var sharees = $(this).attr('data-share-recipients');
+				if(typeof sharees == 'undefined')
+				{
+					OC.Share.markFileAsShared($(this), true, true);
+				}
+				else
+				{
+					OC.Share.markFileAsShared($(this), true, false);
+				}
+			});
 		},
 
 		_makeFilesFromRemoteShares: function(data) {

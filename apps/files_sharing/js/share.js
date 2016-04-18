@@ -50,7 +50,7 @@
 				if (fileData.shareOwner) {
 					tr.attr('data-share-owner', fileData.shareOwner);
 					/** CERNBOX SHOW DISPLAYNAME PULL REQUEST PATCH */
-					//tr.attr('data-share-owner-displayname', fileData.ownerDisplayName);
+					tr.attr('data-share-owner-displayname', fileData.displayname_owner);
 					// user should always be able to rename a mount point
 					if (fileData.isShareMountPoint) {
 						tr.attr('data-permissions', fileData.permissions | OC.PERMISSION_UPDATE);

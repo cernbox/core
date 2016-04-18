@@ -71,8 +71,47 @@ try {
 	}
 
 	$files = \OCA\Files\Helper::populateTags($files);
+	$formattedFiles = \OCA\Files\Helper::formatFileInfos($files);
+	
+	$userId = \OC::$server->getUserSession()->getUser()->getUID();
+	if($userId && $userId != '')
+	{
+		$shared = \OC_DB::prepare('SELECT item_type, share_type, file_target FROM oc_share WHERE uid_owner = ?')
+			->execute([$userId])
+			->fetchAll();
+		
+		$finalShared = [];
+		foreach($shared as $share)
+		{
+			$name = ltrim($share['file_target'], '/');
+			if($share['item_type'] === 'folder' && $share['share_type'] !== 3)
+			{
+				$pos = strrpos($name, ' ');
+				$name = substr($name, 0, $pos);
+			}
+			else if($share['item_type'] === 'file')
+			{
+				$name = ltrim($name, '.sys.v#.');
+			}
+			
+			if(!isset($finalShared[$name]) || (isset($finalShared[$name]) && $finalShared[$name] !== 3))
+			{
+				$finalShared[$name] = $share['share_type'];
+			}
+		}
+		
+		foreach($formattedFiles as $key => $file)
+		{
+			if(isset($finalShared[$file['name']]))
+			{
+				$file['share_type'] = $finalShared[$file['name']];
+				$formattedFiles[$key] = $file; // faster than foreach($formattedFiles as &$file)
+			}
+		}
+	}
+	
 	$data['directory'] = $dir;
-	$data['files'] = \OCA\Files\Helper::formatFileInfos($files);
+	$data['files'] = $formattedFiles;
 	$data['permissions'] = $permissions;
 
 	OCP\JSON::success(array('data' => $data));

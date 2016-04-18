@@ -1217,6 +1217,33 @@
 					iconDiv.css('background-image', 'url("' + previewUrl + '")');
 				}
 			}
+			
+			var share_type = fileData.share_type || -1;
+			share_type = parseInt(share_type);
+			
+			if(share_type != -1)
+			{
+				var icon = '';
+				var aLink = tr.find('a.action-share');
+				aLink.addClass('shared-style');
+				var img = aLink.find('img').first();
+				var span = $('<span></span>');
+				span.text(' Shared');
+				
+				switch(share_type)
+				{
+					case 0:
+					case 1:
+						icon = 'shared';
+						break;
+					case 3:
+						icon = 'public';
+						break;
+				}
+				img.attr('src', OC.imagePath('core', 'actions/' + icon));
+				aLink.append(span);
+			}
+			
 			return tr;
 		},
 		/**
