@@ -205,7 +205,7 @@ function insertIntoDatabase($table, $sql, $useLoadData = false)
 		fflush($handle);
 		fclose($handle);
 
-		$dbHandle->exec("LOAD DATA LOCAL INFILE '/cernbox/lib/" .$table. ".txt' IGNORE INTO TABLE " .$table. " FIELDS TERMINATED BY ','");
+		$dbHandle->exec("LOAD DATA LOCAL INFILE '/var/www/html/cernbox/lib/" .$table. ".txt' IGNORE INTO TABLE " .$table. " FIELDS TERMINATED BY ','");
 	}
 	else
 	{		
