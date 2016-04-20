@@ -4,7 +4,7 @@
 	}
 	
 	var TEMPLATE =
-        '<p><b>EOS Restoration path</b>:</p><textarea readonly>{{eospathText}}</textarea>';
+        '<p><b>EOS Restoration path</b>:</p><textarea onclick="this.focus();this.select()">{{eospathText}}</textarea>';
 	
 	var RestorePathView = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -62,7 +62,7 @@
 				eospathText: eospathT
 			}));
 			
-			this.$el.find('textarea').select();
+			//this.$el.find('textarea').select();
 		
 			return this;
 		},

@@ -8,7 +8,7 @@
 	}
 	
 	var TEMPLATE =
-        '<p><b>EOS Path</b>:</p><textarea readonly>{{eospathText}}</textarea>';
+		 '<p><b>EOS Path</b>:</p><textarea onclick="this.focus();this.select()">{{eospathText}}</textarea>';
 	
 	var ShareDialogEospath = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -71,7 +71,7 @@
 				eospathText: eospathT
 			}));
 			
-			this.$el.find('textarea').select();
+			//this.$el.find('textarea').select();
 		
 			return this;
 		},
