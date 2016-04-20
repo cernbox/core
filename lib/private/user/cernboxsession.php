@@ -87,18 +87,20 @@ class CernboxSession extends Session
 		// the path does not exists so we create it
 		// create home dir
 		$script_path = \OCP\Config::getSystemValue("eos_configure_new_homedir_script_path", false);
-		if(!$script_path) {
-			\OCP\Util::writeLog('EOSLOGIN', "cannot find script for creating users. check config.php", \OCP\Util::ERROR);
-			$tmpl = new \OC_Template('', 'error', 'guest');
-			$tmpl->assign('errors', [1 => ['error' => "Your account could not be created on the fly (internal script not found). <br> Please report via CERN Service Portal."]]);
-			$tmpl->printPage();
-			\OCP\User::logout();
+		$eosMGMURL = \OCP\Config::getSystemValue("eos_mgm_url", false);
+		$eosPrefix = \OCP\Config::getSystemValue("eos_prefix", false);
+		$eosRecycle = \OCP\Config::getSystemValue("eos_recycle_dir", false);
+		
+		if(!$script_path || !$eosMGMURL || !$eosPrefix || !$eosRecycle) {
+			$this->displayEOSConfigureDirError();
 			exit();
 			return false;
 		}
+		
 		$result = null;
 		$errcode = null;
-		$cmd2 = "/bin/bash $script_path " . $uid;
+		
+		$cmd2 = "/bin/bash $script_path " . $eosMGMURL . ' ' . $eosPrefix . ' ' . $eosRecycle . ' ' . $uid;
 		exec($cmd2, $result, $errcode);
 		if($errcode !== 0){
 			\OCP\Util::writeLog('EOSLOGIN', "error running the script to create the homedir: $homedir for user: $uid$ CMD: $cmd2 errcode: $errcode", \OCP\Util::ERROR);
@@ -113,5 +115,14 @@ class CernboxSession extends Session
 			
 		// all good, let the user enter
 		return true;
+	}
+	
+	private function displayEOSConfigureDirError()
+	{
+		\OCP\Util::writeLog('EOSLOGIN', "cannot find script for creating users. check config.php", \OCP\Util::ERROR);
+		$tmpl = new \OC_Template('', 'error', 'guest');
+		$tmpl->assign('errors', [1 => ['error' => "Your account could not be created on the fly (internal script not found). <br> Please report via CERN Service Portal."]]);
+		$tmpl->printPage();
+		\OCP\User::logout();
 	}
 }
