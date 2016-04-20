@@ -22,9 +22,9 @@
   </FilesMatch>
 </IfModule>
 <IfModule mod_php5.c>
-  php_value upload_max_filesize 513M
-  php_value post_max_size 513M
-  php_value memory_limit 512M
+  php_value upload_max_filesize 4G
+  php_value post_max_size 4G
+  php_value memory_limit 4G
   php_value mbstring.func_overload 0
   php_value always_populate_raw_post_data -1
   php_value default_charset 'UTF-8'
