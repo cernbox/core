@@ -47,8 +47,18 @@ class EosParser {
 		$data                     = array();
 		$data['fileid']           = $info['ino'];
 		$data['etag']             = $info['etag'];
-		$data['mtime']            = $info['mtime'];
-		$data['storage_mtime']    = $info['mtime'];//KUBA: what is a difference: mtime vs storage_mtime
+		
+		$mtimeTest = $info['mtime'];
+		if($mtimeTest === '0.0')
+		{
+			$data['mtime']            = $info['ctime'];
+			$data['storage_mtime']    = $info['ctime'];//KUBA: what is a difference: mtime vs storage_mtime
+		}
+		else
+		{
+			$data['mtime']            = $mtimeTest;
+			$data['storage_mtime']    = $mtimeTest;//KUBA: what is a difference: mtime vs storage_mtime
+		}
 		$data['size']             = isset($info['size']) ? $info['size'] : 0;
 		$data['name']             = $pathinfo['basename'];
 		// if the path is in the trashbin we return false
