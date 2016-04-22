@@ -153,8 +153,12 @@ class Helper {
 		if (isset($i['tags'])) {
 			$entry['tags'] = $i['tags'];
 		}
+		if(isset($i['uid_owner']))
+		{
+			$entry['shareOwner'] = $i['uid_owner'];
+		}
 		if (isset($i['displayname_owner'])) {
-			$entry['shareOwner'] = $i['displayname_owner'];
+			$entry['displayname_owner'] = $i['displayname_owner'];
 		}
 		if (isset($i['is_share_mount_point'])) {
 			$entry['isShareMountPoint'] = $i['is_share_mount_point'];
