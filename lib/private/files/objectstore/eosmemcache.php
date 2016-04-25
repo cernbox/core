@@ -6,6 +6,8 @@ class EosMemCache implements IEosCache
 {
 	/** @var int Cached data validity time */
 	const EXPIRE_TIME_SECONDS = 15;
+	/** @var int Cached uid and gid validity time */
+	const EXPIRE_UID_GID_TIME_SECONDS = 3600;
 	
 	/** @var string Cache key for files stored by inode id */
 	const KEY_FILE_BY_ID = 'getFileById';
@@ -149,7 +151,7 @@ class EosMemCache implements IEosCache
 	 */
 	public function getUidAndGid($user)
 	{
-		return json_decode($this->readFromCache(self::KEY_UID_GID, $user), TRUE);
+		return json_decode($this->readFromCache(self::KEY_UID_GID, $user, self::EXPIRE_UID_GID_TIME_SECONDS), TRUE);
 	}
 	
 	/**
@@ -202,15 +204,21 @@ class EosMemCache implements IEosCache
 	 * @param string $key Key to identify the data within the hash
 	 * @return string|bool a string containing the found data or FALSE otherwise.
 	 */
-	private function readFromCache($outerKey, $key)
-	{
+	private function readFromCache($outerKey, $key, $validTime = false)
+	{	
 		$value = Redis::readFromCacheMap($outerKey, $key);
 		if($value !== FALSE)
 		{
+			if(!$validTime)
+			{
+				$validTime = self::EXPIRE_TIME_SECONDS;
+			}
+			
 			// Check for expire date
 			$value = json_decode($value, TRUE);
 			$elapsed = time() - (int)$value[0];
-			if($elapsed > self::EXPIRE_TIME_SECONDS)
+			
+			if($elapsed > $validTime)
 			{
 				$value = FALSE;
 			}
