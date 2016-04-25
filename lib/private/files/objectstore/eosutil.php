@@ -991,4 +991,23 @@ class EosUtil {
 		
 		return $result;
 	}
+	
+	public static function getUserQuota()
+	{
+		$userId = \OC::$server->getUserSession()->getUser()->getUID();
+		list($uid, $gid) = self::getUidAndGid($userId);
+		$eosPrefix = self::getEosPrefix();
+		$cmd = "eos -r $uid $gid quota $eosPrefix -m";
+		list($result, $errorCode) = EosCmd::exec($cmd);
+		if($errorCode === 0)
+		{
+			$parsed = EosParser::parseQuota($result);
+			$parsed['owner'] = $userId;
+			$parsed['ownerDisplayName'] = \OC_User::getDisplayName($userId);
+			
+			return $parsed;
+		}
+		
+		return [ 'free' => 0, 'used' => 0, 'total' => 0, 'relative' => 0, 'owner' => $userId, 'ownerDisplayName' => \OC_User::getDisplayName($userId)];
+	}
 }
