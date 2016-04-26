@@ -14,7 +14,6 @@ use OC\Files\ObjectStore\EosCmd;
 class EosTrashbin {
 
 	public static function deleteAll() {
-		EosUtil::putEnv();
 		$eos_prefix = EosUtil::getEosPrefix();
 		$username   = \OCP\User::getUser();
 		$uidAndGid  = EosUtil::getUidAndGid($username);
@@ -37,7 +36,6 @@ class EosTrashbin {
 	 * @return file The file that has been restored or the error code
 	 */
 	public static function restore($key) {
-		EosUtil::putEnv();
 		$eos_prefix = EosUtil::getEosPrefix();
 		$username   = \OCP\User::getUser();
 		$uidAndGid  = EosUtil::getUidAndGid($username);
@@ -62,7 +60,6 @@ class EosTrashbin {
 	 * @return array The fies in the EOS Trashbin
 	 */
 	public static function getAllFiles() {
-		EosUtil::putEnv();
 		$eos_prefix = EosUtil::getEosPrefix();
 		$username   = \OCP\User::getUser();
 		$uidAndGid  = EosUtil::getUidAndGid($username);

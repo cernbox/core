@@ -63,7 +63,6 @@ class EosCache {
 			$this->storageId = md5($this->storageId);
 		}
 		$this->storageCache = new Storage($storage);
-		EosUtil::putEnv();
 	}
 
 	public function getNumericStorageId() {
@@ -454,7 +453,6 @@ class EosCache {
 		} 
 		
 		$uid = 0; $gid = 0;
-		EosUtil::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info inode:" . $id . " -m";
 		$files    = array();
 		list($result, $errcode) = EosCmd::exec($fileinfo);

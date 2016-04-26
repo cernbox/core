@@ -10,10 +10,10 @@ function startsWith($haystack, $needle) {
 class EosUtil {
 
 	public static function putEnv() { 
-		$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
+		/*$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
 		if (!getenv("EOS_MGM_URL")) {
 			putenv("EOS_MGM_URL=" . $eos_mgm_url);
-		}
+		}*/
 	}
 	
 	public static function getEosMgmUrl() { 
@@ -264,7 +264,6 @@ class EosUtil {
 			return $cached;
 		}
 		
-		self::putEnv();
 		$cmd     = "id " . $username;
 		$result  = null;
 		$errcode = null;
@@ -535,7 +534,6 @@ class EosUtil {
 			return $cached;
 		}
 		$uid = 0; $gid = 0;
-		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid  file info  inode:" . $id . " -m";
 		$files    = array();
 		list($result, $errcode) = EosCmd::exec($fileinfo);
@@ -563,7 +561,6 @@ class EosUtil {
 		$eospathEscaped = escapeshellarg($eospath);
 		
 		$uid = 0; $gid = 0;
-		self::putEnv();
 		$fileinfo = "eos -b -r $uid $gid file info $eospathEscaped -m";
 		$files    = array();
 		list($result, $errcode) = EosCmd::exec($fileinfo);
@@ -994,7 +991,6 @@ class EosUtil {
 	
 	public static function getUserQuota()
 	{
-		self::putEnv();
 		$userId = \OC::$server->getUserSession()->getUser()->getUID();
 		list($uid, $gid) = self::getUidAndGid($userId);
 		$eosPrefix = self::getEosPrefix();
