@@ -994,6 +994,7 @@ class EosUtil {
 	
 	public static function getUserQuota()
 	{
+		self::putEnv();
 		$userId = \OC::$server->getUserSession()->getUser()->getUID();
 		list($uid, $gid) = self::getUidAndGid($userId);
 		$eosPrefix = self::getEosPrefix();
