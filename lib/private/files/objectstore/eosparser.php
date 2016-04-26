@@ -191,7 +191,7 @@ class EosParser {
 		}
 		
 		$used = intval($data['usedlogicalbytes']);
-		$total = intval($data['maxlogialbytes']);
+		$total = intval($data['maxlogicalbytes']);
 		
 		return 
 		[
