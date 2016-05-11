@@ -994,22 +994,46 @@ class EosUtil {
 		return $result;
 	}
 	
-	public static function getUserQuota()
+	const STAT_FILE_NOT_EXIST = 14;
+	const STAT_FILE_EXIST = 0;
+	
+	public static function statFile($eosPath)
 	{
-		$userId = \OC::$server->getUserSession()->getUser()->getUID();
-		list($uid, $gid) = self::getUidAndGid($userId);
+		$eosPathEscaped = escapeshellarg($eosPath);
+		$cmd = "eos -r 0 0 stat $eosPathEscaped";
+		list($result, $errorCode) = EosCmd::exec($cmd);
+		return $errorCode;
+	}
+	
+	public static function getUserQuota($userName = false)
+	{
+		if(!$userName)
+		{
+			$userInstance = \OC::$server->getUserSession()->getUser();
+			if($userInstance)
+			{
+				$userName = $userInstance->getUID();
+			}
+		}
+		
+		if(!$userName)
+		{
+			return [ 'free' => -1, 'used' => 0, 'total' => 0, 'relative' => 0, 'owner' => '', 'ownerDisplayName' => ''];
+		}
+		
+		list($uid, $gid) = self::getUidAndGid($userName);
 		$eosPrefix = self::getEosPrefix();
 		$cmd = "eos -r $uid $gid quota $eosPrefix -m";
 		list($result, $errorCode) = EosCmd::exec($cmd);
 		if($errorCode === 0)
 		{
 			$parsed = EosParser::parseQuota($result);
-			$parsed['owner'] = $userId;
-			$parsed['ownerDisplayName'] = \OC_User::getDisplayName($userId);
+			$parsed['owner'] = $userName;
+			$parsed['ownerDisplayName'] = \OC_User::getDisplayName($userName);
 			
 			return $parsed;
 		}
 		
-		return [ 'free' => 0, 'used' => 0, 'total' => 0, 'relative' => 0, 'owner' => $userId, 'ownerDisplayName' => \OC_User::getDisplayName($userId)];
+		return [ 'free' => -1, 'used' => 0, 'total' => 0, 'relative' => 0, 'owner' => $userName, 'ownerDisplayName' => \OC_User::getDisplayName($userName)];
 	}
 }
