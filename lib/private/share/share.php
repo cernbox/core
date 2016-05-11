@@ -1270,7 +1270,8 @@ class Share extends Constants {
 			// initialize max date with share time
 			$maxDate = new \DateTime();
 			$maxDate->setTimestamp($shareTime);
-			$maxDays = \OCP\Config::getAppValue('core', 'shareapi_expire_after_n_days', '7');
+			// '+1' CERNBOX PATCH TO FIX LINK BY SHARE EXPIRATION DATE SET AROUND MIDNIGTH https://github.com/owncloud/core/issues/24533
+			$maxDays = \OCP\Config::getAppValue('core', 'shareapi_expire_after_n_days', '7') + 1;
 			$maxDate->add(new \DateInterval('P' . $maxDays . 'D'));
 			if ($date > $maxDate) {
 				$warning = 'Cannot set expiration date. Shares cannot expire later than ' . $maxDays . ' after they have been shared';
