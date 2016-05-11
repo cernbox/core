@@ -227,12 +227,10 @@ class CustomLocal
 				
 				if($row['item_type'] === 'file')
 				{
-					\OCP\Util::writeLog('CUSTOM', 'GETTING VERSION', \OCP\Util::ERROR);
 					$eosMeta = EosUtil::getFileMetaFromVersionsFolderID($row['file_source']);
 				}
 				else 
 				{
-					\OCP\Util::writeLog('CUSTOM', 'GETTING FOLDER', \OCP\Util::ERROR);
 					$eosMeta = EosUtil::getFileById($row['file_source']);
 				}
 				
@@ -282,7 +280,7 @@ class CustomLocal
 		$username = \OCP\User::getUser();
 		try
 		{	
-			$groups = \OC_Group::getUserGroups($username);
+			$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($username);//OC_Group::getUserGroups($username);
 			$groupsLen = count($groups);
 			$placeHolder = "";
 			for($i = 0; $i < $groupsLen; $i++)
@@ -292,6 +290,11 @@ class CustomLocal
 			
 			$placeHolder .= "?";
 			$groups[] = $username;
+			
+			foreach($groups as $group)
+			{
+				\OCP\Util::writeLog('CUSTOM', 'Group: ' .$group, \OCP\Util::ERROR);
+			}
 				
 			$query = \OC_DB::prepare('SELECT * FROM oc_share WHERE share_with IN (' .$placeHolder .')');
 			$result = $query->execute($groups);
@@ -422,6 +425,12 @@ class CustomLocal
 			{
 				// CHECK IF THE FILE IS INSIDE THE GIVEN FOLDER
 				$versionMeta = EosUtil::getFileById($row['file_source']);
+				
+				if(!$versionMeta)
+				{
+					unset($rows[$key]);
+				}
+				
 				$dirname = dirname($versionMeta['eospath']);
 				
 				if(strpos($eosPath, $dirname) === FALSE)

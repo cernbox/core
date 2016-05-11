@@ -75,7 +75,7 @@ class Redis
 	{
 		if(self::init())
 		{
-			return self::$redisInstance->hGetALl($hash);
+			return self::$redisInstance->hGetAll($hash);
 		}
 		else
 		{

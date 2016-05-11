@@ -186,6 +186,13 @@ class OC_Group {
 	 * @deprecated Use \OC::$server->getGroupManager->getuserGroupIds($user)
 	 */
 	public static function getUserGroups($uid) {
+		$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($uid);
+		if($groups)
+		{
+			return $groups;
+		}
+		return [];
+		
 		$user = self::getUserManager()->get($uid);
 		if ($user) {
 			return self::getManager()->getUserGroupIds($user);

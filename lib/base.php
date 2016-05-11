@@ -850,6 +850,10 @@ class OC {
 				}
 				self::checkSingleUserMode();
 				OC_Util::setupFS();
+				
+				/** CERNBOX LDAP CACHE PATCH */
+				\OC\LDAPCache\LDAPCacheManager::updateUserCacheRefresh();
+				
 				OC::$server->getRouter()->match(\OC::$server->getRequest()->getRawPathInfo());
 				return;
 			} catch (Symfony\Component\Routing\Exception\ResourceNotFoundException $e) {
@@ -888,7 +892,7 @@ class OC {
 			header("Location: " . OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
 			return;
 		}
-
+		
 		// Someone is logged in
 		if (OC_User::isLoggedIn()) {
 			if (isset($_GET["logout"]) and ($_GET["logout"])) {

@@ -1036,4 +1036,17 @@ class EosUtil {
 		
 		return [ 'free' => -1, 'used' => 0, 'total' => 0, 'relative' => 0, 'owner' => $userName, 'ownerDisplayName' => \OC_User::getDisplayName($userName)];
 	}
+	
+	public static function ls($eosPath)
+	{
+		$eosPath = escapeshellarg($eosPath);
+		$cmd = "eos -r 0 0 ls $eosPath";
+		list($result, $errCode) = EosCmd::exec($cmd);
+		if($errCode === 0)
+		{
+			return $result;
+		}
+	
+		return FALSE;
+	}
 }
