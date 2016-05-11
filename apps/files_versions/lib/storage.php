@@ -74,7 +74,6 @@ class Storage {
 	 */
 	public static function rollback($file, $revision) {
 		$file = "files" . $file;// we need to add the files prefix to send EOS to user root and not to m.etacernbox
-		EosUtil::putEnv();
 		$eos_prefix = EosUtil::getEosPrefix();
 		$username   = \OCP\User::getUser();
 		$uidAndGid  = EosUtil::getUidAndGid($username);
