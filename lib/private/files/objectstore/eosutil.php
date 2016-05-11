@@ -369,7 +369,7 @@ class EosUtil {
 		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
 		$username  = $from;
-		if($username) {
+		/*if($username) {
 			$uidAndGid = self::getUidAndGid($username);
 			if (!$uidAndGid) {
 				exit();
@@ -377,7 +377,9 @@ class EosUtil {
 			list($uid, $gid) = $uidAndGid;
 		} else {
 			$uid =0;$gid=0; // harcoded because we cannot acces the storageID
-		}
+		}*/
+		// THIS COMMAND ONLY WORKS WITH ROOT USER
+		$uid = 0; $gid = 0;
 		
 		EosCacheManager::clearFileById($fileId);
 		
@@ -402,7 +404,7 @@ class EosUtil {
 		$eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$username  = $from;
-		if($username) {
+		/*if($username) {
 			$uidAndGid = self::getUidAndGid($username);
 			if (!$uidAndGid) {
 				exit();
@@ -410,7 +412,10 @@ class EosUtil {
 			list($uid, $gid) = $uidAndGid;
 		} else {
 			//$uid =0;$gid=0; // harcoded because we cannot acces the storageID
-		}
+		}*/
+		//THIS COMMAND ONLY WORKS WITH ROOT USER
+		$uid = 0; $gid = 0; 
+		
 		EosCacheManager::clearFileById($fileid);
 		$changeSysAcl = "eos -b -r $uid $gid attr -r set sys.acl=$sysAcl $eosPathEscaped";
 		list($result, $errcode) = EosCmd::exec($changeSysAcl);
