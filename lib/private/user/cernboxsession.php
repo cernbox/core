@@ -73,13 +73,26 @@ class CernboxSession extends Session
 		// HUGO check user has valid homedir if not we create it
 		$homedir = \OC\Files\ObjectStore\EosUtil::getEosPrefix() . substr($uid, 0, 1) . "/" . $uid . "/";
 		//$meta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($homedir);
-		$meta = \OC\Files\ObjectStore\EosUtil::getFolderContents($homedir, function(array &$data) use ($uid)
+		
+		$errorCode = -1;
+		do
 		{
-			$data['storage'] = 'object::user:' . $uid;	
-		});
-	
-		if($meta) { // path exists so we let the user access the system
+			$errorCode = \OC\Files\ObjectStore\EosUtil::statFile($homedir);
+			if($errorCode != \OC\Files\ObjectStore\EosUtil::STAT_FILE_EXIST)
+			{
+				usleep(500000); // Half a second delay between request (microseconds)
+			}
+		}
+		while($errorCode != \OC\Files\ObjectStore\EosUtil::STAT_FILE_EXIST && $errorCode != \OC\Files\ObjectStore\EosUtil::STAT_FILE_NOT_EXIST);
+		
+		if($errorCode === \OC\Files\ObjectStore\EosUtil::STAT_FILE_EXIST) { // path exists so we let the user access the system
 			\OCP\Util::writeLog('EOSLOGIN', "user: $uid has a valid homedir that is: $homedir", \OCP\Util::ERROR);
+			
+			$meta = \OC\Files\ObjectStore\EosUtil::getFolderContents($homedir, function(array &$data) use ($uid)
+			{
+				$data['storage'] = 'object::user:' . $uid;
+			});
+			
 			return true;
 		}
 			
