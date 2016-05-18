@@ -7,22 +7,61 @@ class LDAPDatabase
 	const USERS_TABLE = 'cernbox_ldap_users';
 	const GROUP_MAPPINGS = 'cernbox_ldap_group_members';
 	
+	private static $TABLES_SCHEMA =
+	[
+		'cernbox_ldap_users' => 
+		[
+			'cn' => 's',
+			'uidnumber' => 'd',
+			'displayname' => 's',
+			'employeetype' => 's',
+		],
+		
+		'cernbox_ldap_groups' =>
+		[
+			'cn' => 's'		
+		]				
+	];
+	
 	/**
 	 * 
 	 * @param unknown $search
 	 * @param array $searchTokens
 	 * @param string $logicalOp
 	 */
-	private static function buildSelectQuey($searchOp = ['='], array $searchTokens = [], $logicalOp = ['OR'])
+	private static function buildSelectQuery($tableName, $searchOp = ['='], array $searchTokens = [], $logicalOp = ['OR'])
 	{
 		$result = '';
 		$count = count($searchTokens) - 1;
-		for($i = 0; $i < $count; $i++)
+		if(isset(self::$TABLES_SCHEMA[$tableName]))
 		{
-			$result .= $searchTokens[$i] . ' ' . $searchOp[$i] . ' ? ' . $logicalOp[$i] . ' ';
+			$tableSchema = self::$TABLES_SCHEMA[$tableName];
+		}
+		else
+		{
+			$tableSchema = false;
 		}
 		
-		$result .= $searchTokens[$count] . ' ' . $searchOp[$count] . ' ?';
+		for($i = 0; $i < $count; $i++)
+		{
+			$extraParam = '';
+			$token = $searchTokens[$i];
+			
+			if($tableSchema && isset($tableSchema[$token]) && $tableSchema[$token] === 's')
+			{
+				$extraParam = ' COLLATE UTF8_GENERAL_CI';
+			}
+			
+			$result .= $searchTokens[$i] . $extraParam . ' ' . $searchOp[$i] . ' ? ' . $logicalOp[$i] . ' ';
+		}
+		
+		$token = $searchTokens[$count];
+		if($tableSchema && isset($tableSchema[$token]) && $tableSchema[$token] === 's')
+		{
+			$extraParam = ' COLLATE UTF8_GENERAL_CI';
+		}
+		
+		$result .= $searchTokens[$count] . $extraParam . ' ' . $searchOp[$count] . ' ?';
 		
 		return $result;
 	}
@@ -84,7 +123,7 @@ class LDAPDatabase
 			$searchOp = self::processQueryArg($count, $searchOp);
 			$logicalOp = self::processQueryArg($count - 1, $logicalOp);
 			
-			$queryStr = 'SELECT '.$jointParams.' FROM '.self::USERS_TABLE.' WHERE ( '.self::buildSelectQuey($searchOp, $searchTokens, $logicalOp).' ) AND employeetype="Primary"';
+			$queryStr = 'SELECT '.$jointParams.' FROM '.self::USERS_TABLE.' WHERE ( '.self::buildSelectQuery(self::USERS_TABLE, $searchOp, $searchTokens, $logicalOp).' ) AND employeetype="Primary"';
 			
 			$query = \OC_DB::prepare($queryStr, $limit);
 			$result = $query->execute($search);
@@ -289,7 +328,7 @@ class LDAPDatabase
 			}
 			else
 			{
-				$queryStr = 'SELECT ' . $jointParams . ' FROM ' . $table . ' WHERE ' . self::buildSelectQuey($searchOp, $searchTokens, $logicalOp);
+				$queryStr = 'SELECT ' . $jointParams . ' FROM ' . $table . ' WHERE ' . self::buildSelectQuery($table, $searchOp, $searchTokens, $logicalOp);
 			}
 			
 			$query = \OC_DB::prepare($queryStr, $limit);
@@ -329,7 +368,7 @@ class LDAPDatabase
 			}
 			else
 			{
-				$queryStr = 'SELECT COUNT(*) FROM ' . $table . ' WHERE ' . self::buildSelectQuey($searchOp, $searchTokens, $logicalOp);
+				$queryStr = 'SELECT COUNT(*) FROM ' . $table . ' WHERE ' . self::buildSelectQuery($table, $searchOp, $searchTokens, $logicalOp);
 			}
 			
 			$query = \OC_DB::prepare($queryStr);
