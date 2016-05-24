@@ -1049,4 +1049,34 @@ class EosUtil {
 	
 		return FALSE;
 	}
+	
+	public static function createVersionFolder($eosPath)
+	{
+		$dir = dirname($eosPath);
+		$file = basename($eosPath);
+		$versionFolder = $dir . "/.sys.v#." . $file;
+		$versionFolder = escapeshellarg($versionFolder);
+		$cmd = "eos -b -r 0 0 mkdir -p $versionFolder";
+		list($result, $errcode) = EosCmd::exec($cmd);
+	
+		if($errcode !== 0)
+		{
+			return false;
+		}
+	
+		return $versionFolder;
+	}
+	
+	public static function createSymLink($eosPath)
+	{
+		$file = basename($eosPath);
+		$dir = dirname($eosPath);
+	
+		$linkDst = $dir . "/.sys.v#." . $file . '/' . $file;
+	
+		$cmd = "eos -b -r 0 0 $linkDst ..\/$file";
+		list($result, $errorcode) = EosCmd::exec($cmd);
+	
+		return $errorcode === 0;
+	}
 }
