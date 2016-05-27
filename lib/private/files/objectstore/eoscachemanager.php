@@ -25,6 +25,17 @@ class EosCacheManager
 		return FALSE;
 	}
 	
+	private static function getEosInstanceId()
+	{
+		$id = EosInstanceManager::getUserInstance();
+		if($id === NULL || !$id)
+		{
+			$id = '-1';
+		}
+		
+		return $id;
+	}
+	
 	/**
 	 * Initializes the different cache levels and returns the current
 	 * cache status
@@ -52,11 +63,12 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $id;
 			$data = NULL;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				if(($data = $cache->getFileById($id)) !== FALSE)
+				if(($data = $cache->getFileById($key)) !== FALSE)
 					return $data;
 			}
 		}
@@ -73,10 +85,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $id;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				$cache->setFileById($id, $data);
+				$cache->setFileById($key, $data);
 			}
 		}
 	}
@@ -89,10 +102,12 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $id;
+			
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				$cache->clearFileById($id);
+				$cache->clearFileById($key);
 			}
 		}
 	}
@@ -110,7 +125,9 @@ class EosCacheManager
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				if(($data = $cache->getFileByEosPath($eosPath)) !== FALSE)
+				$key = self::getEosInstanceId() . '-' . $eosPath;
+				
+				if(($data = $cache->getFileByEosPath($key)) !== FALSE)
 					return $data;
 			}
 		}
@@ -135,10 +152,11 @@ class EosCacheManager
 		
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				if(($data = $cache->getFileByEosPath($eosPath)) !== FALSE)
+				if(($data = $cache->getFileByEosPath($key)) !== FALSE)
 					return $data;
 			}
 		}
@@ -155,10 +173,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				$cache->setFileByEosPath($eosPath, $data);
+				$cache->setFileByEosPath($key, $data);
 			}
 		}
 	}
@@ -171,10 +190,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				$cache->clearFileByEosPath($eosPath);
+				$cache->clearFileByEosPath($key);
 			}
 		}
 	}
@@ -191,10 +211,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				if(($data = $cache->getFileInfoByEosPath($depth, $eosPath)) !== FALSE)
+				if(($data = $cache->getFileInfoByEosPath($depth, $key)) !== FALSE)
 					return $data;
 			}
 		}
@@ -212,10 +233,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				$cache->setFileInfoByEosPath($depth, $eosPath, $data);
+				$cache->setFileInfoByEosPath($depth, $key, $data);
 			}
 		}
 	}
@@ -230,10 +252,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $ocPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				if(($data = $cache->getMeta($ocPath)) !== FALSE)
+				if(($data = $cache->getMeta($key)) !== FALSE)
 					return $data;
 			}
 		}
@@ -250,10 +273,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $ocPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{	
-				$cache->setMeta($ocPath, $data);
+				$cache->setMeta($key, $data);
 			}
 		}
 	}
@@ -305,10 +329,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				if(($data = $cache->getOwner($eosPath)) !== FALSE)
+				if(($data = $cache->getOwner($key)) !== FALSE)
 					return $data;
 			}
 		}
@@ -325,10 +350,11 @@ class EosCacheManager
 	{
 		if(self::init())
 		{
+			$key = self::getEosInstanceId() . '-' . $eosPath;
 			/** @var IEosCache $cache */
 			foreach(self::$caches as &$cache)
 			{
-				$cache->setOwner($eosPath, $data);
+				$cache->setOwner($key, $data);
 			}
 		}
 	}

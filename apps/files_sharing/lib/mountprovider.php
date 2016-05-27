@@ -70,6 +70,11 @@ class MountProvider implements IMountProvider {
 		// KUBA: avoid mounting all shared storages if not necessary:
 		// \OCP\Util::writeLog('KUBA',"PATH" . __FUNCTION__ . "($kuba_path) dir=".$_GET["dir"]." REQ_URI=".$_SERVER['REQUEST_URI'], \OCP\Util::ERROR);
 		
+		if(\OC\Files\ObjectStore\EosInstanceManager::isInGlobalInstance())
+		{
+			return;
+		}
+		
 		$mount_shared_stuff = false;
 		
 		$keepChecking = true;
