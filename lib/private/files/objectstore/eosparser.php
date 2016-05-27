@@ -177,9 +177,21 @@ class EosParser {
 	public static function parseQuota($cmdResult)
 	{
 		$line = $cmdResult;
-		if(is_array($cmdResult))
+		if(is_array($cmdResult) && count($cmdResult) > 0)
 		{
 			$line = $cmdResult[0];
+		}
+		else
+		{
+			return
+			[
+					'free' => -1,
+					'used' => 0,
+					'total' => 0,
+					'relative' => 0,
+					'usedfiles' => 0,
+					'maxfiles' => 0,
+			];
 		}
 		
 		$line = explode(' ', $line);
@@ -188,6 +200,19 @@ class EosParser {
 		{
 			$parts = explode('=', $token);
 			$data[$parts[0]] = $parts[1];
+		}
+		
+		if(!isset($data['usedlogicalbytes']) || !isset($data['maxlogicalbytes']))
+		{
+			return 
+			[
+				'free' => -1,
+				'used' => 0,
+				'total' => 0,
+				'relative' => 0,
+				'usedfiles' => 0,
+				'maxfiles' => 0,
+			];
 		}
 		
 		$used = intval($data['usedlogicalbytes']);
