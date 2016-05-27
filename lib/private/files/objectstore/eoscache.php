@@ -452,7 +452,7 @@ class EosCache {
 			}
 		} 
 		
-		$uid = 0; $gid = 0;
+		list($uid, $gid) = EosUtil::getUidAndGid(\OC_User::getUser());
 		$fileinfo = "eos -b -r $uid $gid file info inode:" . $id . " -m";
 		$files    = array();
 		list($result, $errcode) = EosCmd::exec($fileinfo);
