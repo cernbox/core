@@ -1074,7 +1074,7 @@ class EosUtil {
 	
 		$linkDst = $dir . "/.sys.v#." . $file . '/' . $file;
 	
-		$cmd = "eos -b -r 0 0 $linkDst ..\/$file";
+		$cmd = "eos -b -r 0 0 ln $linkDst ..\/$file";
 		list($result, $errorcode) = EosCmd::exec($cmd);
 	
 		return $errorcode === 0;
