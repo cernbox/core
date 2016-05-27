@@ -6,7 +6,6 @@ class EosProxy {
 	// if the storageId is a user storage we return the username else false (object::store:$eos_prefix)
 	// when we are creating files (the storage id is still not defined) we receive the username of logged user
 	public static function getUsernameFromStorageId($storageId) {
-		$eos_prefix     = EosUtil::getEosPrefix();
 		$splitted       = explode(":", $storageId);
 		$differenciator = isset($splitted[2]) ? $splitted[2] : "";
 		if ($differenciator === "store") {
@@ -35,7 +34,7 @@ class EosProxy {
 		// if the user is a project owner,instead send him to his homedir we send him to the project dir.
 		$project = EosUtil::getProjectNameForUser($username);
 		if($project !== null) {
-			$project_path=  $eos_project_prefix . substr($ocPath,6); #KUBA: added /
+			$project_path=  $eos_project_prefix . $project . substr($ocPath,6); #KUBA: added /
 			return $project_path;
 		}		
 
@@ -45,7 +44,6 @@ class EosProxy {
 		}
 		//we must be cautious becasue there is files_encryption, that is the reason we do this check
 		$condition = false;
-		$posFiles  = strpos($ocPath, "files");
 		$lenOcPath = strlen($ocPath);
 		if (strpos($ocPath, "files") === 0) {
 			if ($lenOcPath === 5) {
@@ -89,8 +87,6 @@ class EosProxy {
 			$len_prefix = strlen($eos_prefix);
 			$rel        = substr($eosPath, $len_prefix);
 			$splitted   = explode("/", $rel);
-			$letter     = $splitted[0];
-			$username   = $splitted[1];
 			$lastPart   = "";
 			if (count($splitted) > 2 && $splitted[2] !== "") {
 				$lastPart = implode("/", array_slice($splitted, 2));
@@ -106,9 +102,9 @@ class EosProxy {
 		} else if (strpos($eosPath, $eos_project_prefix) === 0) {
 			$len_prefix = strlen($eos_project_prefix);
 			$rel        = substr($eosPath, $len_prefix);
-			//$splitted   = explode("/", $rel);
-			//$projectname     = $splitted[0];
-			$ocPath = "files/" . $rel;//substr($eosPath, strlen($eos_project_prefix . $projectname));
+			$splitted   = explode("/", $rel);
+			$projectname     = $splitted[0];
+			$ocPath = "files/" . substr($eosPath, strlen($eos_project_prefix . $projectname));
 			$ocPath = rtrim($ocPath, "/");
 			return $ocPath;
 		} else {
