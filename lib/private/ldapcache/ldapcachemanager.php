@@ -37,6 +37,7 @@ class LDAPCacheManager
 	
 	public static function executeRefresh(&$ldapUpdater)
 	{
+		\OC\Files\ObjectStore\EosUtil::setInternalScriptExecution(true);
 		$ldapUpdater->fetchData();
 		$ldapUpdater->fillCache();
 	}
