@@ -4,6 +4,7 @@ namespace OCA\user_ldap;
 
 use OCA\user_ldap\GROUP_LDAP;
 use OC\Cache\LDAPDatabase;
+use OC\Files\ObjectStore\EosUtil;
 use OCA\user_ldap\lib\Access;
 
 /**
@@ -18,7 +19,13 @@ class CACHED_GROUP_LDAP extends GROUP_LDAP
 	
 	public function inGroup($uid, $gid) 
 	{
-		return LDAPDatabase::isInGroup($uid, $gid);
+		$cachedGroups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($uid);
+		if(array_search($gid, $cachedGroups) !== false)
+		{
+			return true;
+		}
+		
+		return EosUtil::isMemberOfEGroup($uid, $gid);
 	}
 	
 	public function getUsersInPrimaryGroup($groupDN, $search = '', $limit = -1, $offset = 0)
