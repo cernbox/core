@@ -9,6 +9,13 @@ function startsWith($haystack, $needle) {
 
 class EosUtil {
 
+	private static $internalScript = false;
+	
+	public static function setInternalScriptExecution($val)
+	{
+		self::$internalScript = $val;
+	}
+	
 	public static function putEnv() { 
 		/*$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
 		if (!getenv("EOS_MGM_URL")) {
@@ -240,21 +247,17 @@ class EosUtil {
 			}
 			return $uidAndGid;
 		} else {
-			if($rootAllowed){
-				return array(0,0);
-			} else {
-				$user  = \OCP\User::getUser();
-				if($user){
-					$uidAndGid = self::getUidAndGid($owner);
-					if (!$uidAndGid) {
-						return false;
-					}
-					return $uidAndGid;
-				} else {
+			$user = \OCP\User::getUser();
+			if($user){
+				$uidAndGid = self::getUidAndGid($user);
+				if (!$uidAndGid) {
 					return false;
 				}
+				return $uidAndGid;
 			}
 		} 
+		
+		return false;
 	}
 
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
@@ -264,13 +267,17 @@ class EosUtil {
 			return $cached;
 		}
 		
+		if(self::$internalScript)
+		{
+			return [0,0];
+		}
+		
 		$cmd     = "id " . $username;
 		$result  = null;
 		$errcode = null;
 		exec($cmd, $result, $errcode);
 		$list = array();
 		if ($errcode === 0) { // the user exists else it not exists
-			$output   = var_export($result, true);
 			//\OCP\Util::writeLog("DEBUGID", $username . "----" . $output, \OCP\Util::ERROR);
 			$lines    = explode(" ", $result[0]);
 			$line_uid = $lines[0];
@@ -368,16 +375,7 @@ class EosUtil {
 		$ocacl[$to] = array("type"=>$type, "ocperm"=>$ocPerm);
 		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
-		$username  = $from;
-		/*if($username) {
-			$uidAndGid = self::getUidAndGid($username);
-			if (!$uidAndGid) {
-				exit();
-			}
-			list($uid, $gid) = $uidAndGid;
-		} else {
-			$uid =0;$gid=0; // harcoded because we cannot acces the storageID
-		}*/
+		
 		// THIS COMMAND ONLY WORKS WITH ROOT USER
 		$uid = 0; $gid = 0;
 		
@@ -403,16 +401,7 @@ class EosUtil {
 		$sysAcl = EosUtil::toEosAcl($ocacl);
 		$eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
-		$username  = $from;
-		/*if($username) {
-			$uidAndGid = self::getUidAndGid($username);
-			if (!$uidAndGid) {
-				exit();
-			}
-			list($uid, $gid) = $uidAndGid;
-		} else {
-			//$uid =0;$gid=0; // harcoded because we cannot acces the storageID
-		}*/
+		
 		//THIS COMMAND ONLY WORKS WITH ROOT USER
 		$uid = 0; $gid = 0; 
 		
@@ -538,9 +527,8 @@ class EosUtil {
 		if($cached) {
 			return $cached;
 		}
-		$uid = 0; $gid = 0;
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 		$fileinfo = "eos -b -r $uid $gid  file info  inode:" . $id . " -m";
-		$files    = array();
 		list($result, $errcode) = EosCmd::exec($fileinfo);
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
@@ -565,9 +553,8 @@ class EosUtil {
 		
 		$eospathEscaped = escapeshellarg($eospath);
 		
-		$uid = 0; $gid = 0;
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 		$fileinfo = "eos -b -r $uid $gid file info $eospathEscaped -m";
-		$files    = array();
 		list($result, $errcode) = EosCmd::exec($fileinfo);
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
@@ -755,28 +742,7 @@ class EosUtil {
 
 	// return the list of EGroups this member is part of, but NOT all, just the ones that appear in share database.
 	public static function getEGroups($username) {
-		$cached = EosCacheManager::getEGroups($username);
-        if($cached) {
-        	return $cached;
-        }
-        
-        $query = \OC_DB::prepare('SELECT group_cn FROM ldap_group_members WHERE user_cn = ? 
-        		AND group_cn IN (SELECT DISTINCT share_with FROM `*PREFIX*share` WHERE share_type=?)', null);
-		$queryArgs = [$username, 0]; // 0 is group share
-		$result = $query->execute($queryArgs);
-		if (\OC_DB::isError($result)) {
-			\OC_Log::write('EOSEGROUPS',	\OC_DB::getErrorMessage($result) . ', select=' . $query, \OC_Log::ERROR);
-        }
-		
-		$egroups = array();
-		$src = $result->fetchAll();
-		foreach($src as $token)
-		{
-			$egroups[] = $token['group_cn'];
-		}
-		
-		EosCacheManager::setEGroups($username, $egroups);
-		return $egroups;
+		return \OC\LDAPCache\LDAPCacheManager::getUserEGroups($username);
 	}
 		
 	public static function createVersion($eosPath) {
@@ -784,7 +750,7 @@ class EosUtil {
 		EosCacheManager::clearFileByEosPath($eosPath);
 		
 		$eosPathEscaped = escapeshellarg($eosPath);
-		list($uid, $gid) = self::getEosRole($eosPath, false);
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 		//$uid = 0; $gid = 0; // root is the only one allowed to change permissions
 		$cmd = "eos -b -r $uid $gid file version $eosPathEscaped";
         list($result, $errcode) = EosCmd::exec($cmd);
@@ -921,7 +887,7 @@ class EosUtil {
 			return $cached;
 		}
 		
-		list($uid, $gid) = self::getEosRole($eosPath, true);
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 		if ($deep === true) {
 			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 10 $eosPathEscaped";
 		} else {
@@ -999,8 +965,9 @@ class EosUtil {
 	
 	public static function statFile($eosPath)
 	{
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 		$eosPathEscaped = escapeshellarg($eosPath);
-		$cmd = "eos -r 0 0 stat $eosPathEscaped";
+		$cmd = "eos -r $uid $gid stat $eosPathEscaped";
 		list($result, $errorCode) = EosCmd::exec($cmd);
 		return $errorCode;
 	}
@@ -1009,11 +976,7 @@ class EosUtil {
 	{
 		if(!$userName)
 		{
-			$userInstance = \OC::$server->getUserSession()->getUser();
-			if($userInstance)
-			{
-				$userName = $userInstance->getUID();
-			}
+			$userName = \OC_User::getUser();
 		}
 		
 		if(!$userName)
@@ -1039,8 +1002,9 @@ class EosUtil {
 	
 	public static function ls($eosPath)
 	{
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 		$eosPath = escapeshellarg($eosPath);
-		$cmd = "eos -r 0 0 ls $eosPath";
+		$cmd = "eos -r $uid $gid ls $eosPath";
 		list($result, $errCode) = EosCmd::exec($cmd);
 		if($errCode === 0)
 		{
