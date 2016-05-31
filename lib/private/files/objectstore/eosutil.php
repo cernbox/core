@@ -841,6 +841,7 @@ class EosUtil {
 	
 	public static function isProjectURIPath($uri_path) {
 		// uri paths always start with leading slash (e.g. ?dir=/bla)
+		$uri_path = trim($uri_path, '/');
 		if (startsWith ( $uri_path, '/' )) {
 			$topdir = explode ( "/", $uri_path ) [1];
 		} else {
