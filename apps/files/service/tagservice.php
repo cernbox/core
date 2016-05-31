@@ -120,39 +120,70 @@ class TagService {
 
 		$fileInfos = [];
 		foreach ($fileIds as $fileId) {
-			$nodes = $this->homeFolder->getById((int) $fileId);
-			foreach ($nodes as $node) {
-				/** @var \OC\Files\Node\Node $node */
-				$fileInfos[] = $node->getFileInfo();
+			/** CERNBOX FAVORITES PATCH */
+			$eosMeta = \OC\Files\ObjectStore\EosUtil::getFileById((int)$fileId);
+			if(!$eosMeta) continue;
+			
+			$eosPath = $eosMeta['eospath'];
+			$owner = \OC\Files\ObjectStore\EosUtil::getOwner($eosPath);
+			
+			// ITS A PROJECT FAVORITE
+			if(($prj = \OC\Files\ObjectStore\EosUtil::getProjectNameForUser($owner)))
+			{
+				$ocPath = '/  project ' . $prj;	
 			}
-		}
-		/** CERNBOX FAVORITES PATCH */
-		//return $fileInfos;
-		// HUGO do here the trick of pointing to versions folder for files tagge
-		$fileInfosConverted = array();
-		foreach($fileInfos as $info) {
-			if($info['type'] === 'file') {
-				\OCP\Util::writeLog('TAG', $info['eospath'] . " must point to its sys folder. This should have been done is creating the FAV", \OCP\Util::ERROR);
-			} else {
-				$basename = basename($info['path']);
-				$dirname = dirname($info['path']);
-				if(strpos($basename, '.sys.v#.') !== false) {
-					\OCP\Util::writeLog('TAG', $info['eospath'] . " is a versions folder, we need to gave the user the real file", \OCP\Util::ERROR);
-					$filename = $basename;
-					$filepath =  substr($dirname, 6) . "/" . substr($filename, 8);
-					\OCP\Util::writeLog('TAG', $filepath, \OCP\Util::ERROR);
-						
-					$newInfo = $node = $this->homeFolder->get($filepath)->getFileInfo();
-					\OCP\Util::writeLog('TAG', $newInfo['eospath'], \OCP\Util::ERROR);
-					$fileInfosConverted[] = $newInfo;
-						
-				} else {
-					$fileInfosConverted[] = $info;
+			// ITS A USER SHARE
+			else if($owner !== \OC_User::getUser())
+			{
+				//$sharedFolderId = $this->getShareInfo($fileTarget, $owner, $sharee)
+				//$versionMeta = 
+				$prefix = \OC\Files\ObjectStore\EosUtil::getEosPrefix();
+				$firstLetter = substr($owner, 0, 1);
+				$ownerHome = rtrim($prefix, '/') . '/' . $firstLetter . '/' . $owner;
+				$homeLen = strlen($ownerHome);
+				$relativeEosPath = ltrim(substr($eosPath, $homeLen), '/');
+				$split = explode('/', $relativeEosPath);
+				$sharedFolderName = $split[0];
+				$versionMeta = \OC\Files\ObjectStore\EosUtil::getFileByEosPath($ownerHome . '/' . $sharedFolderName);
+				
+				$len = count($split);
+				if(strpos($split[$len - 1], '.sys.v#.') !== false)
+				{
+					$split[$len - 1] = substr($split[$len - 1], 8);
 				}
-		
+				
+				$ocPath = $sharedFolderName . ' (#' . $versionMeta['fileid'] . ')/' . implode('/', array_slice($split, 1));
 			}
+			// ITS A USER FILE
+			else
+			{
+				$ocPath = $eosMeta['path'];
+				$ocPath = trim($ocPath, '/');
+				$split = explode('/', $ocPath);
+				$ocPath = implode('/', array_slice($split, 1));
+			}
+			$fileInfos[] = \OC\Files\Filesystem::getFileInfo($ocPath);
 		}
-		return $fileInfosConverted;
+		
+		return $fileInfos;
+	}
+	
+	private function getShareInfo($fileTarget, $owner, $sharee)
+	{
+		$allGroups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($sharee);
+		$placeHolder = str_repeat('?,', count($allGroups));
+		$placeHolder .= '?';
+		$allGroups[] = $sharee;
+		$share = \OC_DB::prepare("SELECT file_source FROM oc_share WHERE uid_owner = ? AND file_target like '/ ?%' AND share_with IN ($placeHolder) LIMIT 1")
+			->execute($allGroups)
+			->fetchAll();
+		
+		if($share && count($share) > 0)
+		{
+			return $share[0]['file_source'];
+		}
+		
+		return false;
 	}
 }
 
