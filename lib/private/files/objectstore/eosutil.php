@@ -105,9 +105,10 @@ class EosUtil {
 				return false;
 			}
 		} else if (strpos($eosPath, $eos_project_prefix) === 0){ // TODO: get the owner of the top level project dir
-		        $rel = substr($eosPath,strlen($eos_project_prefix));
+		    $rel = substr($eosPath,strlen($eos_project_prefix));
 			$prjname = explode("/",$rel)[0];
 			$user=self::getUserForProjectName($prjname);
+			
 			#\OCP\Util::writeLog('KUBA',"prj:" .  __FUNCTION__ . "(user:$user) (prjname:$prjname) (rel:$rel) (eosPath:$eosPath)", \OCP\Util::ERROR);
 			if (!$user) { return false; } # FIXME: does false mean root user?
 			EosCacheManager::setOwner($eosPath, $user);	
@@ -553,7 +554,7 @@ class EosUtil {
 		
 		$eospathEscaped = escapeshellarg($eospath);
 		
-		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
+		list($uid, $gid) = self::getEosRole($eospath, false);
 		$fileinfo = "eos -b -r $uid $gid file info $eospathEscaped -m";
 		list($result, $errcode) = EosCmd::exec($fileinfo);
 		if ($errcode === 0 && $result) {
@@ -887,7 +888,7 @@ class EosUtil {
 			return $cached;
 		}
 		
-		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
+		list($uid, $gid) = self::getEosRole($eosPath, false);
 		if ($deep === true) {
 			$getFolderContents = "eos -b -r $uid $gid  find --fileinfo --maxdepth 10 $eosPathEscaped";
 		} else {
