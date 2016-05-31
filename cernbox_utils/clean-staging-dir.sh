@@ -1,2 +1,2 @@
 #!/bin/bash
-/bin/find /cernbox.local.data/staging -type f -cmin +60 -delete
+/bin/find /data/staging -type f -cmin +60 -delete
