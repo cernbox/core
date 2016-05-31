@@ -34,7 +34,7 @@ class EosProxy {
 		// if the user is a project owner,instead send him to his homedir we send him to the project dir.
 		$project = EosUtil::getProjectNameForUser($username);
 		if($project !== null) {
-			$project_path=  $eos_project_prefix . $project . substr($ocPath,6); #KUBA: added /
+			$project_path=  rtrim($eos_project_prefix, '/') . '/' . rtrim($project, '/') . '/' . ltrim(substr($ocPath,6), '/'); #KUBA: added /
 			return $project_path;
 		}		
 
