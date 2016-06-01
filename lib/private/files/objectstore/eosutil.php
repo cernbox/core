@@ -23,10 +23,25 @@ class EosUtil {
 		}*/
 	}
 	
-	public static function getEosMgmUrl() { 
-		$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
-		return $eos_mgm_url;
+public static function getEosMgmUrl() {
+		
+		$val = EosInstanceManager::getUserInstance();
+		
+		$eosInstance = '';
+		
+		if($val === NULL || !$val || intval($val) < 1)
+		{
+			$eosInstance = \OCP\Config::getSystemValue("eos_mgm_url");
+		}
+		else
+		{
+			$instanceData = EosInstanceManager::getMappingById($val);
+			$eosInstance = $instanceData['mgm_url'];
+		}
+		
+		return $eosInstance;
 	}
+	
 
 	public static function getEosPrefix() { 
 		$eos_prefix = \OCP\Config::getSystemValue("eos_prefix");
@@ -74,6 +89,12 @@ class EosUtil {
 	/eos/devbox/user/.metacernbox/l/labrador/avatar.png ---- labrador
 	*/
 	public static function getOwner($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
+		
+		if(EosInstanceManager::isInGlobalInstance())
+		{
+			return false;
+		}
+		
 		$eos_project_prefix = self::getEosProjectPrefix();
 		$cached = EosCacheManager::getOwner($eosPath);
 		if($cached) {
