@@ -210,11 +210,11 @@ final class EosUtil {
 			$token = $split[2];
 		}
 		
-		$result = \OC_DB::prepare('SELECT token FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
+		$result = \OC_DB::prepare('SELECT uid_owner FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
 		
 		if($result && count($result) > 0)
 		{
-			return true;
+			return self::getUidAndGid($result[0]['uid_owner']);
 		}
 		
 		return false;
@@ -223,7 +223,7 @@ final class EosUtil {
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
 	public static function getUidAndGid($username) { // VERIFIED
 		
-		if(self::$internalScript || self::isSharedLinkGuest())
+		if(self::$internalScript || (!$username && self::isSharedLinkGuest()))
 		{
 			return [0,0];
 		}
