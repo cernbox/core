@@ -15,6 +15,7 @@ class LDAPGroupMappingUpdater extends LDAPUPdater
 			'\OC\LDAPCache\UserFetchers\RedisFetcher',
 			'\OC\LDAPCache\UserFetchers\RedisFetcher',
 			'\OC\LDAPCache\UserFetchers\EosFetcher',
+			'\OC\LDAPCache\UserFetchers\FileFetcher'
 	];
 	
 	private $priority;
@@ -33,7 +34,7 @@ class LDAPGroupMappingUpdater extends LDAPUPdater
 	
 	private function getUsedEGroups()
 	{
-		return \OC_DB::prepare('SELECT share_with FROM oc_share WHERE share_with IN (SELECT cn FROM cernbox_ldap_groups)')->execute()->fetchAll();
+		return \OC_DB::prepare('SELECT DISTINCT share_with FROM oc_share WHERE share_with IN (SELECT cn FROM cernbox_ldap_groups)')->execute()->fetchAll();
 	}
 	
 	private function getUsersToUpdate()
@@ -65,7 +66,6 @@ class LDAPGroupMappingUpdater extends LDAPUPdater
 					$this->ldapData[$user][] = [$group['share_with'], strval(EosUtil::isMemberOfEGroup($user, $group['share_with']))];
 				}
 				
-				Redis::deleteFromCacheMap($this->redisKey, $user);
 				LDAPCacheManager::setUserExpirationTime($user, time());
 			}
 		}
@@ -75,6 +75,7 @@ class LDAPGroupMappingUpdater extends LDAPUPdater
 	{
 		foreach($this->ldapData as $user => $cache)
 		{
+			Redis::deleteFromCacheMap($this->redisKey, $user);
 			LDAPCacheManager::setUserEGroups($user, $cache);
 		}
 	}
