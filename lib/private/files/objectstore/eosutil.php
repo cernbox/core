@@ -223,7 +223,7 @@ final class EosUtil {
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
 	public static function getUidAndGid($username) { // VERIFIED
 		
-		if(self::$internalScript || (!$username && self::isSharedLinkGuest()))
+		if(!$username && (self::$internalScript || self::isSharedLinkGuest()))
 		{
 			return [0,0];
 		}
