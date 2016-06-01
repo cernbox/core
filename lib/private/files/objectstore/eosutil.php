@@ -7,7 +7,7 @@ function startsWith($haystack, $needle) {
 }
 
 
-class EosUtil {
+final class EosUtil {
 
 	private static $internalScript = false;
 	
@@ -16,14 +16,8 @@ class EosUtil {
 		self::$internalScript = $val;
 	}
 	
-	public static function putEnv() { 
-		/*$eos_mgm_url = \OCP\Config::getSystemValue("eos_mgm_url");
-		if (!getenv("EOS_MGM_URL")) {
-			putenv("EOS_MGM_URL=" . $eos_mgm_url);
-		}*/
-	}
-	
-public static function getEosMgmUrl() {
+	public static function getEosMgmUrl() 
+	{
 		
 		$val = EosInstanceManager::getUserInstance();
 		
@@ -130,123 +124,17 @@ public static function getEosMgmUrl() {
 			$prjname = explode("/",$rel)[0];
 			$user=self::getUserForProjectName($prjname);
 			
-			#\OCP\Util::writeLog('KUBA',"prj:" .  __FUNCTION__ . "(user:$user) (prjname:$prjname) (rel:$rel) (eosPath:$eosPath)", \OCP\Util::ERROR);
-			if (!$user) { return false; } # FIXME: does false mean root user?
+			if (!$user) { 
+				return false; 
+			} 
+			
 			EosCacheManager::setOwner($eosPath, $user);	
 			
 			return $user;
-			
-			#return "boxsvc";
 		} else {
 			return false;
 		}
 	}
-	/*
-	public static function getOwnerNEW($eosPath){ // VERIFIED BUT WE ARE ASUMING THAT THE OWNER OF A FILE IS THE ONE INSIDE THE USER ROOT INSTEAD SEEING THE UID AND GID
-		$eosPathEscaped = escapeshellarg($eosPath);
-		$eos_prefix = EosUtil::getEosPrefix();
-		$eos_meta_dir = EosUtil::getEosMetaDir();
-		if (strpos($eosPath, $eos_meta_dir) === 0) { // match eos meta dir like /eos/devbox/user/.metacernbox/...
-			$len_prefix = strlen($eos_meta_dir);
-			$rel        = substr($eosPath, $len_prefix);
-			$splitted   = explode("/", $rel);
-			if (count($splitted >= 2)){
-				// eos stat
-				$get     = "eos -b -r 0 0  file info  $eosPathEscaped -m";
-				\OCP\Util::writeLog('getowner', "$get", \OCP\Util::ERROR);
-
-				$result  = null;
-				$errcode = null;
-				$info    = array();
-				exec($get, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$line_to_parse   = $result[0];
-				$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
-				$uid = $data["uid"];
-				$getusername = "getent passwd $uid";
-				\OCP\Util::writeLog('getusername', "$getusername", \OCP\Util::ERROR);
-
-				$result  = null;
-				$errcode = null;
-				exec($getusername, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$username = $result[0];
-				$username = explode(":", $username);
-				$username = $username[0];
-				\OCP\Util::writeLog('username', "$username", \OCP\Util::ERROR);
-
-				return $username;
-			} else {
-				return false;
-			}
-		} else if (strpos($eosPath, $eos_prefix) === 0){ // match eos prefix like /eos/devbox/user/...
-			$len_prefix = strlen($eos_prefix);
-			$rel        = substr($eosPath, $len_prefix);
-			$splitted = explode("/", $rel);
-			if(count($splitted) >= 2){
-				// eos stat
-				$get     = "eos -b -r 0 0  file info $eosPathEscaped -m";
-				\OCP\Util::writeLog('getowner', "$get", \OCP\Util::ERROR);
-
-				$result  = null;
-				$errcode = null;
-				$info    = array();
-				exec($get, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$line_to_parse   = $result[0];
-				$data            = EosParser::parseFileInfoMonitorMode($line_to_parse);
-				$uid = $data["eosuid"];
-				$getusername = "getent passwd $uid";
-				\OCP\Util::writeLog('getusername', "$getusername", \OCP\Util::ERROR);
-				$result  = null;
-				$errcode = null;
-				exec($getusername, $result, $errcode);
-				if ($errcode !== 0) {
-					return false;
-				}
-				$username = $result[0];
-				$username = explode(":", $username);
-				$username = $username[0];
-				\OCP\Util::writeLog('username', "$username", \OCP\Util::ERROR);
-
-				return $username;
-			} else {
-				return false;
-			}
-		} else {
-			return false;
-		}
-	}
-	
-	public static function getOwner($eosPath) {
-		$cached = EosReqCache::getOwner($eosPath);
-		if($cached) {
-			return $cached;
-		}
-		$data = self::getFileByEosPath($eosPath);
-                if(!$data) {
-                        return false;
-                }
-                $uid = $data["eosuid"];
-                $getusername = "getent passwd $uid";
-                list($result, $errcode) = EosCmd::exec($getusername);
-                if ($errcode !== 0) {
-                       return false;
-                }
-                $username = $result[0];
-                $username = explode(":", $username);
-                $username = $username[0];
-		EosReqCache::setOwner($eosPath, $username);
-                return $username;
-	}
-
-	*/
 
 	// return the uid and gid of the user who should execute the eos command
 	// we have three cases
@@ -281,17 +169,68 @@ public static function getEosMgmUrl() {
 		
 		return false;
 	}
+	
+	private static function isSharedLinkGuest()
+	{
+		$uri = $_SERVER['REQUEST_URI'];
+		$uri = trim($uri, '/');
+		
+		if(strpos($uri, 'token') !== FALSE)
+		{
+			$params = explode('&', explode('?', $uri)[1]);
+			if(count($params) < 1)
+			{
+				return false;
+			}
+			
+			foreach($params as $param)
+			{
+				if(strpos($param, 'token') === 0)
+				{
+					$parts = explode('=', $param);
+					if(count($parts) < 2)
+					{
+						return false;
+					}
+					
+					$token = $parts[1];
+					break;
+				}
+			}
+		}
+		else
+		{
+			$split = explode('/', $uri);
+		
+			if(count($split) < 3)
+			{
+				return false;
+			}
+		
+			$token = $split[2];
+		}
+		
+		$result = \OC_DB::prepare('SELECT token FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
+		
+		if($result && count($result) > 0)
+		{
+			return true;
+		}
+		
+		return false;
+	}
 
 	// it return the id and gid of a normal user or false in other case, including the id is 0 (root) to avoid security leaks
 	public static function getUidAndGid($username) { // VERIFIED
+		
+		if(self::$internalScript || self::isSharedLinkGuest())
+		{
+			return [0,0];
+		}
+		
 		$cached = EosCacheManager::getUidAndGid($username);
 		if($cached) {
 			return $cached;
-		}
-		
-		if(self::$internalScript)
-		{
-			return [0,0];
 		}
 		
 		$cmd     = "id " . $username;
