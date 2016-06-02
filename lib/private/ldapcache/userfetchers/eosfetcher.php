@@ -23,7 +23,12 @@ class EosFetcher implements IUserFetcher
 			$users = EosUtil::ls($tempEosPath);
 			if($users !== FALSE)
 			{
-				$allUsers = array_merge($allUsers, $users);
+				$temp = [];
+				foreach($users as $user)
+				{
+					$temp[$user] = ''; // Dummy val
+				}
+				$allUsers = array_merge($allUsers, $temp);
 			}
 		}
 		

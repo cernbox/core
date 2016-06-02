@@ -19,7 +19,8 @@ final class FileFetcher implements IUserFetcher
 		{
 			while(($user = fgets($handle)) !== FALSE)
 			{
-				$users[] = $user;
+				$user = trim($user);
+				$users[$user] = '';
 			}
 		
 			fclose($handle);
