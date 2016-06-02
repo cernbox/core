@@ -208,6 +208,10 @@ final class EosUtil {
 			}
 		
 			$token = $split[2];
+			if(($pos = strpos($token, '?')) !== FALSE)
+			{
+				$token = substr($token, 0, $pos);
+			}
 		}
 		
 		$result = \OC_DB::prepare('SELECT uid_owner FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
