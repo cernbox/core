@@ -175,30 +175,35 @@ final class EosUtil {
 		$uri = $_SERVER['REQUEST_URI'];
 		$uri = trim($uri, '/');
 		
-		if(strpos($uri, 'token') !== FALSE)
+		$token = false;
+		
+		if(strpos($uri, '?') !== FALSE)
 		{
-			$params = explode('&', explode('?', $uri)[1]);
-			if(count($params) < 1)
+			$paramsRaw = explode('&', explode('?', $uri)[1]);
+			$paramMap = [];
+			foreach($paramsRaw as $pRaw)
 			{
-				return false;
+				$parts = explode('=', $pRaw);
+				if(count($parts) < 2)
+				{
+					continue;
+				}
+				
+				$paramMap[$parts[0]] = $parts[1];
 			}
 			
-			foreach($params as $param)
+			if(isset($paramMap['token']))
 			{
-				if(strpos($param, 'token') === 0)
-				{
-					$parts = explode('=', $param);
-					if(count($parts) < 2)
-					{
-						return false;
-					}
-					
-					$token = $parts[1];
-					break;
-				}
+				$token = $paramMap['token'];
+			}
+			else if(isset($paramMap['t']))
+			{
+				$token = $paramMap['t'];
 			}
 		}
-		else
+		
+		
+		if(!$token)
 		{
 			$split = explode('/', $uri);
 		
