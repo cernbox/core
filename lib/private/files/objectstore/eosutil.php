@@ -235,7 +235,7 @@ final class EosUtil {
 			}
 			else if(($username = self::isSharedLinkGuest()) === false)
 			{
-				return [0, 0];
+				return false;
 			}
 		}
 		
