@@ -202,6 +202,10 @@ final class EosUtil {
 			}
 		}
 		
+		if(!$token && isset($_POST['dirToken']))
+		{
+			$token = $_POST['dirToken'];
+		}
 		
 		if(!$token)
 		{
