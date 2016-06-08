@@ -8,6 +8,8 @@ function startsWith($haystack, $needle) {
 
 
 final class EosUtil {
+	
+	const REDIS_KEY_PROJECT_USER_MAP = 'project_spaces_mapping';
 
 	private static $internalScript = false;
 	
@@ -800,23 +802,74 @@ final class EosUtil {
 		return $realfilemeta;
 	}
 	
+	private static function loadProjectSpaceMappings($userReturn = null)
+	{
+		$data = \OC_DB::prepare('SELECT * FROM cernbox_projectspaces_mapping')->execute()->fetchAll();
+		
+		$result = false;
+		
+		foreach($data as $project)
+		{
+			$user = $project['srvaccount'];
+			$project = $project['project'];
+			
+			if($userReturn && $userReturn === $user)
+			{
+				$result = $project;
+			}
+			
+			Redis::writeToCacheMap(self::REDIS_KEY_PROJECT_USER_MAP, $user, $project);
+		}
+		
+		return $result;
+	}
+	
 	// Given a username, it returns the name of the project the user is the owner.
 	// If the user is not the owner of a project, then it returns null.
 	// Example. given boxscv returns cernbox.
-	public static function getProjectNameForUser($username){
-		$eos_project_mapping = self::getEosProjectMapping();
-		foreach($eos_project_mapping as $user => $project) {
-			if($username === $user) {
-				return $project;
-			}
+	public static function getProjectNameForUser($username) 
+	{
+		
+		$project = Redis::readFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP, $username);
+		
+		if(!$project)
+		{
+			$project = self::loadProjectSpaceMappings($username);
 		}
+		
+		if($project)
+		{
+			return $project;
+		}
+		
 		return null;
 	}
 	
-	public static function getUserForProjectName($prjname) {
-		// return NULL if project not defined
-		$eos_project_mapping = self::getEosProjectMapping ();
-		return array_search ( $prjname, $eos_project_mapping ); // FIXME: linear lookup (potential scaling problem with large arrays with many projects)
+	public static function getUserForProjectName($prjname) 
+	{
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			self::loadProjectSpaceMappings();
+		}
+		
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			return null;
+		}
+		
+		foreach($all as $user => $project)
+		{
+			if($project === $prjname)
+			{
+				return $user;
+			}
+		}
+		
+		return null;
 	}
 	
 	public static function isProjectURIPath($uri_path) {

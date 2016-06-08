@@ -1425,4 +1425,31 @@
 		</declaration>
 	</table>
 	
+	<table>
+		<name>cernbox_projectspaces_mapping</name>
+		<declaration>
+			<field>
+				<name>srvaccount</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>project</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			
+			<index>
+				<primary>true</primary>
+				<unique>true</unique>
+				<name>eos_projectspaces_mapping_index</name>
+				<field>
+					<name>srvaccount</name>
+				</field>
+			</index>			
+		</declaration>
+	</table>
+	
 </database>
