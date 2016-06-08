@@ -998,6 +998,14 @@ final class EosUtil {
 	
 	public static function createVersionFolder($eosPath)
 	{
+		$user = self::getOwner($eosPath);
+		list($uid, $gid) = self::getUidAndGid($user);
+		
+		if(!$uid || !$gid)
+		{
+			return false;
+		}
+		
 		$dir = dirname($eosPath);
 		$file = basename($eosPath);
 		$versionFolder = $dir . "/.sys.v#." . $file;
@@ -1009,20 +1017,48 @@ final class EosUtil {
 		{
 			return false;
 		}
+		
+		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $versionFolder";
+		list($result, $errcode) = EosCmd::exec($cmd2);
+		
+		if($errcode !== 0)
+		{
+			return false;
+		}
 	
 		return $versionFolder;
 	}
 	
 	public static function createSymLink($eosPath)
 	{
+		$user = self::getOwner($eosPath);
+		list($uid, $gid) = self::getUidAndGid($user);
+		
+		if(!$uid || !$gid)
+		{
+			return false;
+		}
+		
 		$file = basename($eosPath);
 		$dir = dirname($eosPath);
 	
 		$linkDst = $dir . "/.sys.v#." . $file . '/' . $file;
 	
-		$cmd = "eos -b -r 0 0 ln $linkDst ..\/$file";
+		$linkDst = escapeshellarg($linkDst);
+		
+		$target = escapeshellarg('../' . $file);
+		
+		$cmd = "eos -b -r 0 0 ln $linkDst $target";
 		list($result, $errorcode) = EosCmd::exec($cmd);
-	
+		
+		if($errorcode !== 0)
+		{
+			return false;
+		}
+		
+		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $linkDst";
+		list($result, $errorcode) = EosCmd::exec($cmd2);
+		
 		return $errorcode === 0;
 	}
 }
