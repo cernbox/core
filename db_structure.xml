@@ -1426,16 +1426,22 @@
 	</table>
 	
 	<table>
-		<name>cernbox_projectspaces_mapping</name>
+		<name>cernbox_project_mapping</name>
 		<declaration>
 			<field>
-				<name>srvaccount</name>
+				<name>project_name</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>50</length>
 			</field>
 			<field>
-				<name>project</name>
+				<name>eos_relative_path</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>project_owner</name>
 				<type>text</type>
 				<notnull>true</notnull>
 				<length>50</length>
@@ -1446,7 +1452,7 @@
 				<unique>true</unique>
 				<name>eos_projectspaces_mapping_index</name>
 				<field>
-					<name>srvaccount</name>
+					<name>project_name</name>
 				</field>
 			</index>			
 		</declaration>

@@ -38,6 +38,8 @@ class EosParser {
 				$indexSysOwnerAuth = $i;
 			}
 		}
+		
+		$info = [];
 
 		foreach ($fields as $value) {
 			$splitted           = explode("=", $value);
