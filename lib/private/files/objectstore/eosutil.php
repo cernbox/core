@@ -8,6 +8,8 @@ function startsWith($haystack, $needle) {
 
 
 final class EosUtil {
+	
+	const REDIS_KEY_PROJECT_USER_MAP = 'project_spaces_mapping';
 
 	private static $internalScript = false;
 	
@@ -800,23 +802,125 @@ final class EosUtil {
 		return $realfilemeta;
 	}
 	
+	private static function loadProjectSpaceMappings($projectReturn = null)
+	{
+		$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
+		
+		$result = false;
+		
+		foreach($data as $projectData)
+		{
+			$project = $projectData['project_name'];
+			$relativePath = $projectData['eos_relative_path'];
+			$owner = $projectData['project_owner'];
+			
+			if($projectReturn && $projectReturn === $project)
+			{
+				$result = $relativePath;
+			}
+			
+			Redis::writeToCacheMap(self::REDIS_KEY_PROJECT_USER_MAP, $project, json_encode(['path' => $relativePath, 'owner' => $owner]));
+		}
+		
+		return $result;
+	}
+	
 	// Given a username, it returns the name of the project the user is the owner.
 	// If the user is not the owner of a project, then it returns null.
 	// Example. given boxscv returns cernbox.
-	public static function getProjectNameForUser($username){
-		$eos_project_mapping = self::getEosProjectMapping();
-		foreach($eos_project_mapping as $user => $project) {
-			if($username === $user) {
-				return $project;
-			}
+	public static function getProjectRelativePath($project) 
+	{
+		
+		$projectPath = json_decode(Redis::readFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP, $project), TRUE);
+		
+		if(!$projectPath)
+		{
+			return self::loadProjectSpaceMappings($project);
 		}
+		
+		if($projectPath)
+		{
+			return $projectPath['path'];
+		}
+		
 		return null;
 	}
 	
-	public static function getUserForProjectName($prjname) {
-		// return NULL if project not defined
-		$eos_project_mapping = self::getEosProjectMapping ();
-		return array_search ( $prjname, $eos_project_mapping ); // FIXME: linear lookup (potential scaling problem with large arrays with many projects)
+	public static function getUserForProjectName($project) 
+	{
+		$projectMapping = json_decode(Redis::readFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP, $project), TRUE);
+		
+		if(!$projectMapping)
+		{
+			self::loadProjectSpaceMappings($project);
+		}
+		
+		$projectMapping = json_decode(Redis::readFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP, $project), TRUE);
+		
+		if(!$projectMapping || !isset($projectMapping['owner']) || $projectMapping['owner'] === 'temp')
+		{
+			return null;
+		}
+		
+		return $projectMapping['owner'];
+	}
+	
+	public static function getProjectNameForPath($relativePath)
+	{
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			self::loadProjectSpaceMappings();
+		}
+		
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			return null;
+		}
+		
+		$relativePath = trim($relativePath, '/');
+		foreach($all as $project => $data)
+		{
+			$data = json_decode($data, TRUE);
+			$t = trim($data['path'], '/');
+			if(strpos($relativePath, $t) === 0)
+			{
+				return ["/  project $project", $data['path']];
+			}
+		}
+		
+		return false;
+	}
+	
+	public static function getProjectNameForUser($user)
+	{
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			self::loadProjectSpaceMappings();
+		}
+		
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			return null;
+		}
+		
+		foreach($all as $project => $data)
+		{
+			$data = json_decode($data, TRUE);
+			if($data['owner'] === $user)
+			{
+				return $project;
+			}
+		}
+		
+		return false;
 	}
 	
 	public static function isProjectURIPath($uri_path) {
@@ -1000,12 +1104,12 @@ final class EosUtil {
 	{
 		$user = self::getOwner($eosPath);
 		list($uid, $gid) = self::getUidAndGid($user);
-		
+	
 		if(!$uid || !$gid)
 		{
 			return false;
 		}
-		
+	
 		$dir = dirname($eosPath);
 		$file = basename($eosPath);
 		$versionFolder = $dir . "/.sys.v#." . $file;
@@ -1017,10 +1121,10 @@ final class EosUtil {
 		{
 			return false;
 		}
-		
+	
 		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $versionFolder";
 		list($result, $errcode) = EosCmd::exec($cmd2);
-		
+	
 		if($errcode !== 0)
 		{
 			return false;
@@ -1033,32 +1137,32 @@ final class EosUtil {
 	{
 		$user = self::getOwner($eosPath);
 		list($uid, $gid) = self::getUidAndGid($user);
-		
+	
 		if(!$uid || !$gid)
 		{
 			return false;
 		}
-		
+	
 		$file = basename($eosPath);
 		$dir = dirname($eosPath);
 	
 		$linkDst = $dir . "/.sys.v#." . $file . '/' . $file;
 	
 		$linkDst = escapeshellarg($linkDst);
-		
+	
 		$target = escapeshellarg('../' . $file);
-		
+	
 		$cmd = "eos -b -r 0 0 ln $linkDst $target";
 		list($result, $errorcode) = EosCmd::exec($cmd);
-		
+	
 		if($errorcode !== 0)
 		{
 			return false;
 		}
-		
+	
 		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $linkDst";
 		list($result, $errorcode) = EosCmd::exec($cmd2);
-		
+	
 		return $errorcode === 0;
 	}
 }

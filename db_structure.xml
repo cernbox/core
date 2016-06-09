@@ -1425,4 +1425,37 @@
 		</declaration>
 	</table>
 	
+	<table>
+		<name>cernbox_project_mapping</name>
+		<declaration>
+			<field>
+				<name>project_name</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>eos_relative_path</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>project_owner</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			
+			<index>
+				<primary>true</primary>
+				<unique>true</unique>
+				<name>eos_projectspaces_mapping_index</name>
+				<field>
+					<name>project_name</name>
+				</field>
+			</index>			
+		</declaration>
+	</table>
+	
 </database>

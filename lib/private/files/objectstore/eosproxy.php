@@ -32,11 +32,39 @@ class EosProxy {
 			//return $eosPath;
 		}
 		// if the user is a project owner,instead send him to his homedir we send him to the project dir.
-		$project = EosUtil::getProjectNameForUser($username);
+		
+		$tempOcPath = $ocPath;
+		if(strpos($ocPath, 'files') === 0)
+		{
+			$tempOcPath = substr($tempOcPath, 5);
+		}
+		
+		$tempOcPath = trim($tempOcPath, '/');
+		
+		if(strpos($tempOcPath, '  project') === 0)
+		{
+			$len = strlen('  project ');
+			$nextSlash = strpos($tempOcPath, '/');
+			if($nextSlash === FALSE)
+			{
+				$nextSlash = strlen($tempOcPath);
+			}
+			
+			$project = substr($tempOcPath, $len, $nextSlash - $len);
+			$pathLeft = substr($tempOcPath, $nextSlash);
+			$relativePath = EosUtil::getProjectRelativePath($project);
+			
+			if($relativePath)
+			{
+				return (rtrim($eos_project_prefix, '/') . '/' . trim($relativePath, '/') . '/' . ltrim($pathLeft));
+			}
+		}
+		
+		/*$project = EosUtil::getProjectNameForUser($username);
 		if($project !== null) {
 			$project_path=  rtrim($eos_project_prefix, '/') . '/' . rtrim($project, '/') . '/' . ltrim(substr($ocPath,6), '/'); #KUBA: added /
 			return $project_path;
-		}		
+		}*/	
 
 		if ($ocPath === "") {
 			$eosPath = $eos_prefix . substr($username, 0, 1) . "/" . $username . "/";
@@ -102,11 +130,23 @@ class EosProxy {
 		} else if (strpos($eosPath, $eos_project_prefix) === 0) {
 			$len_prefix = strlen($eos_project_prefix);
 			$rel        = substr($eosPath, $len_prefix);
-			$splitted   = explode("/", $rel);
+			
+			$projectRelName = EosUtil::getProjectNameForPath($rel);
+			if($projectRelName)
+			{
+				$rel = trim($rel);
+				$pathLeft = substr($rel, strlen($projectRelName[1]));
+				$ocPath = 'files/' . $projectRelName[0] . '/' . $pathLeft;
+				return $ocPath;
+			}
+			\OCP\Util::writeLog('EOSPROXY','Cannot find project mapping for path ' . $eosPath, \OCP\Util::ERROR);
+			return false;
+			
+			/*$splitted   = explode("/", $rel);
 			$projectname     = $splitted[0];
 			$ocPath = "files/" . substr($eosPath, strlen($eos_project_prefix . $projectname));
 			$ocPath = rtrim($ocPath, "/");
-			return $ocPath;
+			return $ocPath;*/
 		} else {
 			\OCP\Util::writeLog("eos", "The eos_prefix,eos_meta_dir,eos_recycle_dir does not match this path: $eosPath", \OCP\Util::ERROR);
 			return false;
