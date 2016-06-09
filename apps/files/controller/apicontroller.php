@@ -134,6 +134,10 @@ class ApiController extends Controller {
 		$files = array();
 		$fileInfos = $this->tagService->getFilesByTag($tagName);
 		foreach ($fileInfos as &$fileInfo) {
+			if(!$fileInfo)
+			{
+				continue;
+			}
 			$file = \OCA\Files\Helper::formatFileInfo($fileInfo);
 			$parts = explode('/', dirname($fileInfo->getPath()), 4);
 			if(isset($parts[3])) {
