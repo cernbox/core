@@ -175,30 +175,39 @@ final class EosUtil {
 		$uri = $_SERVER['REQUEST_URI'];
 		$uri = trim($uri, '/');
 		
-		if(strpos($uri, 'token') !== FALSE)
+		$token = false;
+		
+		if(strpos($uri, '?') !== FALSE)
 		{
-			$params = explode('&', explode('?', $uri)[1]);
-			if(count($params) < 1)
+			$paramsRaw = explode('&', explode('?', $uri)[1]);
+			$paramMap = [];
+			foreach($paramsRaw as $pRaw)
 			{
-				return false;
+				$parts = explode('=', $pRaw);
+				if(count($parts) < 2)
+				{
+					continue;
+				}
+				
+				$paramMap[$parts[0]] = $parts[1];
 			}
 			
-			foreach($params as $param)
+			if(isset($paramMap['token']))
 			{
-				if(strpos($param, 'token') === 0)
-				{
-					$parts = explode('=', $param);
-					if(count($parts) < 2)
-					{
-						return false;
-					}
-					
-					$token = $parts[1];
-					break;
-				}
+				$token = $paramMap['token'];
+			}
+			else if(isset($paramMap['t']))
+			{
+				$token = $paramMap['t'];
 			}
 		}
-		else
+		
+		if(!$token && isset($_POST['dirToken']))
+		{
+			$token = $_POST['dirToken'];
+		}
+		
+		if(!$token)
 		{
 			$split = explode('/', $uri);
 		
@@ -235,7 +244,7 @@ final class EosUtil {
 			}
 			else if(($username = self::isSharedLinkGuest()) === false)
 			{
-				return [0, 0];
+				return false;
 			}
 		}
 		
@@ -989,6 +998,14 @@ final class EosUtil {
 	
 	public static function createVersionFolder($eosPath)
 	{
+		$user = self::getOwner($eosPath);
+		list($uid, $gid) = self::getUidAndGid($user);
+		
+		if(!$uid || !$gid)
+		{
+			return false;
+		}
+		
 		$dir = dirname($eosPath);
 		$file = basename($eosPath);
 		$versionFolder = $dir . "/.sys.v#." . $file;
@@ -1000,20 +1017,48 @@ final class EosUtil {
 		{
 			return false;
 		}
+		
+		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $versionFolder";
+		list($result, $errcode) = EosCmd::exec($cmd2);
+		
+		if($errcode !== 0)
+		{
+			return false;
+		}
 	
 		return $versionFolder;
 	}
 	
 	public static function createSymLink($eosPath)
 	{
+		$user = self::getOwner($eosPath);
+		list($uid, $gid) = self::getUidAndGid($user);
+		
+		if(!$uid || !$gid)
+		{
+			return false;
+		}
+		
 		$file = basename($eosPath);
 		$dir = dirname($eosPath);
 	
 		$linkDst = $dir . "/.sys.v#." . $file . '/' . $file;
 	
-		$cmd = "eos -b -r 0 0 ln $linkDst ..\/$file";
+		$linkDst = escapeshellarg($linkDst);
+		
+		$target = escapeshellarg('../' . $file);
+		
+		$cmd = "eos -b -r 0 0 ln $linkDst $target";
 		list($result, $errorcode) = EosCmd::exec($cmd);
-	
+		
+		if($errorcode !== 0)
+		{
+			return false;
+		}
+		
+		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $linkDst";
+		list($result, $errorcode) = EosCmd::exec($cmd2);
+		
 		return $errorcode === 0;
 	}
 }
