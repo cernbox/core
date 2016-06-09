@@ -623,11 +623,7 @@ class Share extends Constants {
 		/* HUGO try to put here the logic to convert file share via link to version folder share */
 		if($shareType === 3 && $itemType === 'file') {
 			$info = \OC\Files\ObjectStore\EosUtil::getFileById($itemSource);
-			if(\OC\Files\ObjectStore\EosUtil::createVersionFolder($info['eospath']))
-			{
-				\OC\Files\ObjectStore\EosUtil::createSymLink($info['eospath']);	
-			}
-			
+			\OC\Files\ObjectStore\EosUtil::createVersionFolder($info['eospath']);
 			$itemSource = \OC\Files\ObjectStore\EosUtil::getVersionsFolderIDFromFileID($itemSource);
 		}
 		
