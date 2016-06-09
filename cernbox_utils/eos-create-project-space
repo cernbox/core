@@ -1,0 +1,57 @@
+if [ -z "$PROJECT" ]; then
+  echo "ERROR: project not set"
+  echo "syntax: $0 PROJECT OWNER"
+  exit -1
+fi
+
+if [ -z "$OWNER" ]; then
+  echo "ERROR: owner not set"
+  echo "syntax: $0 PROJECT OWNER"
+  exit -1
+fi
+
+echo "CERNBox/EOS Project Name: \"${PROJECT}\""
+
+INITIAL="$(echo ${PROJECT} | head -c 1)"
+
+ADMINS_EGROUP=cernbox-project-$PROJECT-admins
+WRITERS_EGROUP=cernbox-project-$PROJECT-writers
+READERS_EGROUP=cernbox-project-$PROJECT-readers
+PROJECT_DIR=/eos/project/${INITIAL}/${PROJECT}
+
+echo "Project Owner: \"${OWNER}\""
+
+id $OWNER || exit -1
+
+OWNER_GROUP=`id -gn $OWNER`
+
+echo "Make sure the following e-groups are created"
+echo ${ADMINS_EGROUP}
+echo ${WRITERS_EGROUP}
+echo ${READERS_EGROUP}
+
+# not really needed, these egroup can be created after
+read -p "press any key to continue" xxx
+
+eos root://eosuser.cern.ch mkdir ${PROJECT_DIR}
+eos root://eosuser.cern.ch chown ${OWNER}:${OWNER_GROUP} $PROJECT_DIR
+eos root://eosuser.cern.ch chmod -r 700 ${PROJECT_DIR}
+
+# issue with this one.. why??
+eos quota set -u ${OWNER} -p /eos/project -i 5M -v 5T
+
+eos root://eosuser.cern.ch attr set sys.acl=\"egroup:$WRITERS_EGROUP:rwx+d,egroup:$READERS_EGROUP:rx\"  ${PROJECT_DIR}
+eos root://eosuser.cern.ch attr set sys.allow.oc.sync="1" ${PROJECT_DIR}
+eos root://eosuser.cern.ch attr set sys.forced.atomic="1" ${PROJECT_DIR}
+eos root://eosuser.cern.ch attr set sys.mtime.propagation="1" ${PROJECT_DIR}
+eos root://eosuser.cern.ch attr set sys.owner.auth="*" ${PROJECT_DIR}
+
+# Not needed, already set
+# eos root://eosuser.cern.ch attr set sys.versioning="10" ${PROJECT_DIR}
+
+eos root://eosuser.cern.ch mkdir ${PROJECT_DIR}/www/
+eos root://eosuser.cern.ch attr set sys.acl=\"egroup:$WRITERS_EGROUP:rwx+d,egroup:$READERS_EGROUP:rx,u:wwweos:rx\"  ${PROJECT_DIR}/www/
+
+
+# Allow Owner
+eos root://eosuser.cern.ch access allow user ${OWNER}
