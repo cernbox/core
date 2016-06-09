@@ -1104,12 +1104,12 @@ final class EosUtil {
 	{
 		$user = self::getOwner($eosPath);
 		list($uid, $gid) = self::getUidAndGid($user);
-	
+		
 		if(!$uid || !$gid)
 		{
 			return false;
 		}
-	
+		
 		$dir = dirname($eosPath);
 		$file = basename($eosPath);
 		$versionFolder = $dir . "/.sys.v#." . $file;
@@ -1121,10 +1121,10 @@ final class EosUtil {
 		{
 			return false;
 		}
-	
+		
 		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $versionFolder";
 		list($result, $errcode) = EosCmd::exec($cmd2);
-	
+		
 		if($errcode !== 0)
 		{
 			return false;
@@ -1135,34 +1135,56 @@ final class EosUtil {
 	
 	public static function createSymLink($eosPath)
 	{
+		$meta = self::getFileByEosPath($eosPath);
+		
+		if(!$meta)
+		{
+			return false;
+		}
+		
+		$fileId = $meta['fileid']; 
+		
 		$user = self::getOwner($eosPath);
 		list($uid, $gid) = self::getUidAndGid($user);
-	
+		
 		if(!$uid || !$gid)
 		{
 			return false;
 		}
-	
-		$file = basename($eosPath);
-		$dir = dirname($eosPath);
-	
-		$linkDst = $dir . "/.sys.v#." . $file . '/' . $file;
-	
-		$linkDst = escapeshellarg($linkDst);
-	
-		$target = escapeshellarg('../' . $file);
-	
-		$cmd = "eos -b -r 0 0 ln $linkDst $target";
-		list($result, $errorcode) = EosCmd::exec($cmd);
-	
+		
+		$tempMetaFolderPath = rtrim(self::getEosMetaDir(), '/') . '/' . substr($user, 0 , 1) . '/' . $user . '/link_cache';
+		$escapedMetaFolder = escapeshellarg($tempMetaFolderPath);
+		$tempMetaFolder = "eos -b -r $uid $gid mkdir -p $escapedMetaFolder";
+		list($result, $errorcode) = EosCmd::exec($tempMetaFolder);
+		
 		if($errorcode !== 0)
 		{
 			return false;
 		}
+		
+		$file = basename($eosPath);
+		$dir = dirname($eosPath);
 	
-		$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $linkDst";
-		list($result, $errorcode) = EosCmd::exec($cmd2);
-	
+		$linkDst = $tempMetaFolderPath . '/' . $fileId;
+		$escapedlinkDst = escapeshellarg($linkDst);
+		
+		$target = escapeshellarg('../' . $file);
+		
+		$cmd = "eos -b -r $uid $gid ln $escapedlinkDst $target";
+		list($result, $errorcode) = EosCmd::exec($cmd);
+		
+		if($errorcode !== 0)
+		{
+			return false;
+		}
+		
+		/*$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $linkDst";
+		list($result, $errorcode) = EosCmd::exec($cmd2);*/
+		
+		$moveDst = escapeshellarg($dir . "/.sys.v#." . $file . '/' . $file);
+		$moveLink = "eos -b -r $uid $gid mv $escapedlinkDst $moveDst";
+		list($result, $errocode) = EosCmd::exec($moveLink);
+		
 		return $errorcode === 0;
 	}
 }
