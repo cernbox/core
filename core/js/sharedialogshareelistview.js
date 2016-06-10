@@ -39,7 +39,7 @@
 			'        <label for="canEdit-{{cid}}-{{shareWith}}">{{canEditLabel}}</label>' +
 			'        {{/if}}' +
 			'        {{#unless isRemoteShare}}' +
-			'        <a href="#" class="showCruds"><img class="svg" alt="{{crudsLabel}}" src="{{triangleSImage}}"/></a>' +
+			//CERNBOX PATCH'        <a href="#" class="showCruds"><img class="svg" alt="{{crudsLabel}}" src="{{triangleSImage}}"/></a>' +
 			'        <div class="cruds hidden">' +
 			'            {{#if createPermissionPossible}}' +
 			'            <input id="canCreate-{{cid}}-{{shareWith}}" type="checkbox" name="create" class="permissions checkbox" {{#if hasCreatePermission}}checked="checked"{{/if}} data-permissions="{{createPermission}}"/>' +
@@ -169,10 +169,12 @@
 				unshareLabel: t('core', 'Unshare'),
 				unshareImage: OC.imagePath('core', 'actions/delete'),
 				canShareLabel: t('core', 'can share'),
-				canEditLabel: t('core', 'can edit'),
-				createPermissionLabel: t('core', 'create'),
-				updatePermissionLabel: t('core', 'change'),
-				deletePermissionLabel: t('core', 'delete'),
+				/** CERNBOX PATCH ONLY ONE BOX FOR WRITE PERMISSIONS */
+				canEditLabel: t('core', 'write + delete'),
+				//createPermissionLabel: t('core', 'create'),
+				//updatePermissionLabel: t('core', 'change'),
+				//deletePermissionLabel: t('core', 'delete'),
+				/** PATCH END */
 				crudsLabel: t('core', 'access control'),
 				triangleSImage: OC.imagePath('core', 'actions/triangle-s'),
 				isResharingAllowed: this.configModel.get('isResharingAllowed'),
@@ -277,7 +279,7 @@
 			if ($element.attr('name') === 'edit') {
 				checked = $element.is(':checked');
 				// Check/uncheck Create, Update, and Delete checkboxes if Edit is checked/unck
-				$($checkboxes).attr('checked', checked);
+				//$($checkboxes).attr('checked', checked);
 			} else {
 				var numberChecked = $checkboxes.filter(':checked').length;
 				checked = numberChecked > 0;
@@ -285,10 +287,16 @@
 			}
 
 			var permissions = OC.PERMISSION_READ;
+			/** CERNBOX PATCH SHOW ONLY 1 CHECKBOX */
+			if(checked)
+			{
+				permissions = 15;
+			}
+			/*
 			$('.permissions', $li).not('input[name="edit"]').filter(':checked').each(function(index, checkbox) {
 				permissions |= $(checkbox).data('permissions');
-			});
-
+			});*/
+			/** PATCH END */
 			this.model.setPermissions(shareType, shareWith, permissions);
 		},
 
