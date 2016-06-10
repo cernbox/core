@@ -56,7 +56,7 @@ class EosProxy {
 			
 			if($relativePath)
 			{
-				return (rtrim($eos_project_prefix, '/') . '/' . trim($relativePath, '/') . '/' . ltrim($pathLeft));
+				return (rtrim($eos_project_prefix, '/') . '/' . trim($relativePath, '/') . '/' . trim($pathLeft, '/'));
 			}
 		}
 		
