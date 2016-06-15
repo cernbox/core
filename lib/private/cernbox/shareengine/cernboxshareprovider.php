@@ -16,6 +16,13 @@ abstract class CernboxShareProvider
 	}
 	
 	/**
+	 * Creates an IShare object holding all the share information
+	 * @param array $rawData Raw EOS Metadata array
+	 * @return IShare object holding all the information of the share
+	 */
+	public abstract function createShare(array $rawData);
+	
+	/**
 	 * Check if a given file has been already shared. If so, will update the share to
 	 * include the new recipents
 	 * @param IShare $share the data for the new share
@@ -37,7 +44,7 @@ abstract class CernboxShareProvider
 	 * @param IShare $share object holding all share information
 	 * @return bool True if the symlink to the share should be deleted, false otherwise
 	 */
-	public abstract function doShareDelete(IShare $share);
+	public abstract function shouldShareBeDelete(IShare $share);
 	
 	/**
 	 * Peforms the necessary actions to create a share to a new recipent (whether the file

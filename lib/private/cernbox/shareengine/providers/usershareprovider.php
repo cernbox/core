@@ -76,15 +76,20 @@ final class UserShareProvider implements CernboxShareProvider
 		
 		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_type', \OCP\Share::SHARE_TYPE_USER))
 		{
-			throw new \Exception('Could not set custom extended attributes when sharing ' . $symLinkEosPath);
+			throw new \Exception('Could not set custom extended attributes [cernbox.share_type] when sharing ' . $symLinkEosPath);
+		}
+		
+		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_stime', $share->getShareTime()))
+		{
+			throw new \Exception('Could not set custom extended attributes [cernbox.share_stime] when sharing ' . $symLinkEosPath);
 		}
 	}
 
 	/**
 	 * {@inheritDoc}
-	 * @see \OC\Cernbox\ShareEngine\ICernboxProvider::doShareDelete()
+	 * @see \OC\Cernbox\ShareEngine\ICernboxProvider::shouldShareBeDelete()
 	 */
-	public function doShareDelete(IShare $share) 
+	public function shouldShareBeDelete(IShare $share) 
 	{
 		$sharePath = $this->masterProvider->buildShareEosPath($share);
 		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($sharePath) 

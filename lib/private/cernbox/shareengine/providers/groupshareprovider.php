@@ -76,15 +76,20 @@ final class GroupShareProvider extends CernboxShareProvider
 	
 		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_type', \OCP\Share::SHARE_TYPE_GROUP))
 		{
-			throw new \Exception('Could not set custom extended attributes when sharing ' . $symLinkEosPath);
+			throw new \Exception('Could not set custom extended attributes [cernbox.share_type] when sharing ' . $symLinkEosPath);
+		}
+		
+		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_stime', $share->getShareTime()))
+		{
+			throw new \Exception('Could not set custom extended attributes [cernbox.share_stime] when sharing ' . $symLinkEosPath);
 		}
 	}
 	
 	/**
 	 * {@inheritDoc}
-	 * @see \OC\Cernbox\ShareEngine\ICernboxProvider::doShareDelete()
+	 * @see \OC\Cernbox\ShareEngine\ICernboxProvider::shouldShareBeDelete()
 	 */
-	public function doShareDelete(IShare $share)
+	public function shouldShareBeDelete(IShare $share)
 	{
 		$sharePath = $this->buildSharePath($share);
 		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($sharePath) 
@@ -133,8 +138,10 @@ final class GroupShareProvider extends CernboxShareProvider
 	{
 		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
 		$target = $share->getSharedWith();
+		
+		$eGroupsSharesRootDir = trim(\OC::$server->getConfig()->getSystemValue('eos_share_egroups_root_dir', 'egroups'), '/');
 	
-		$targetlinkDst = $sharePrefix . '/' . substr($target, 0, 1) . '/' . $target . '/shared_with_me/' . trim($share->getTarget(), '/');
+		$targetlinkDst = $sharePrefix . '/' . $eGroupsSharesRootDir . '/' . substr($target, 0, 1) . '/' . $target . '/' . trim($share->getTarget(), '/');
 		$srcLink = $this->masterProvider->buildShareEosPath($share);
 	
 		if(!EosUtil::createSymLink($targetlinkDst, $srcLink))
