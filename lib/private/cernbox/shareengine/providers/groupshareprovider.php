@@ -8,6 +8,7 @@ use OC\Cernbox\Storage\EosUtil;
 use OC\Cernbox\Storage\EosParser;
 use OCP\Share\IShare;
 use OC\Cernbox\ShareEngine\ShareUtil;
+use OC\Cernbox\ShareEngine\CernboxShare;
 
 final class GroupShareProvider extends CernboxShareProvider
 {
@@ -18,6 +19,62 @@ final class GroupShareProvider extends CernboxShareProvider
 	public function __construct(AbstractProvider $provider)
 	{
 		parent::__construct($provider);
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Cernbox\ShareEngine\CernboxShareProvider::createShare()
+	 */
+	public function createShare(array $rawData)
+	{
+		$aclMap = ShareUtil::parseAcl($rawData);
+		$shares = [];
+		foreach($aclMap as $user => $data)
+		{
+			// This provider should only return shares to e-groups
+			if($data[1] !== 'egroup')
+			{
+				continue;
+			}
+				
+			$share = new CernboxShare($this->masterProvider->rootFolder);
+			$share->setId((int)$rawData['fileid'])
+			->setShareType(\OCP\Share::SHARE_TYPE_GROUP)
+			->setPermissions((int)EosUtil::toOcPerm($data[0]))
+			->setTarget('/'.trim($rawData['path'], '/') . ' (#' . $rawData['fileid'] . ')')
+			->setMailSend(true);
+	
+			$shareTime = new \DateTime();
+			$shareTime->setTimestamp((int)$rawData['share_stime']);
+			$share->setShareTime($shareTime);
+	
+			$share->setSharedWith($user);
+				
+			if (!isset($rawData['uid_initiator']) || $rawData['uid_initiator'] === null)
+			{
+				//OLD SHARE
+				$share->setSharedBy($rawData['uid_owner']);
+				$path = $this->getNode($share->getSharedBy(), $rawData['fileid']);
+	
+				$owner = $path->getOwner();
+				$share->setShareOwner($owner->getUID());
+			}
+			else
+			{
+				//New share!
+				$share->setSharedBy($rawData['uid_initiator']);
+				$share->setShareOwner($rawData['uid_owner']);
+			}
+	
+			$share->setNodeId($rawData['fileid']);
+			$share->setNodeType($rawData['eostype']);
+	
+			$share->setProviderId($this->masterProvider->identifier());
+				
+			$shares[] = $share;
+		}
+	
+		return $shares;
 	}
 	
 	/**
@@ -104,6 +161,16 @@ final class GroupShareProvider extends CernboxShareProvider
 		}
 	
 		$aclMap = ShareUtil::parseAcl($eosMeta['sys.acl']);
+		$target = $share->getSharedWith();
+		
+		$eGroupsSharesRootDir = trim(\OC::$server->getConfig()->getSystemValue('eos_share_egroups_root_dir', 'egroups'), '/');
+		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
+		$targetlinkDst = $sharePrefix . '/' . $eGroupsSharesRootDir . '/' . substr($target, 0, 1) . '/' . $target . '/' . trim($share->getTarget(), '/');
+		
+		if(!EosUtil::removeSymLink($targetlinkDst))
+		{
+			\OCP\Util::writeLog('SHARE ENGINE', 'Group share: Could not delete group local share link ' . $targetlinkDst, \OCP\Util::ERROR);
+		}
 	
 		// The share does not exist
 		if(!isset($aclMap[$share->getSharedWith()]))

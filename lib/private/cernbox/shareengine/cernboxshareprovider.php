@@ -18,7 +18,8 @@ abstract class CernboxShareProvider
 	/**
 	 * Creates an IShare object holding all the share information
 	 * @param array $rawData Raw EOS Metadata array
-	 * @return IShare object holding all the information of the share
+	 * @return IShare[] object LIST holding all the information of the share 
+	 * 			(1 object per different user/group to which it was shared)
 	 */
 	public abstract function createShare(array $rawData);
 	

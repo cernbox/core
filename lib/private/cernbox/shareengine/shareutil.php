@@ -3,6 +3,7 @@
 namespace OC\Cernbox\ShareEngine;
 
 use OCP\Share\Exceptions\GenericShareException;
+use OC\Cernbox\Storage\EosUtil;
 
 final class ShareUtil 
 {

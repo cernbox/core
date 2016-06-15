@@ -173,6 +173,7 @@ final class AbstractProvider implements IShareProvider
 			$versionMeta = EosUtil::getFileByEosPath($versionFolder);
 			
 			$share->setId($versionMeta['fileid']);
+			$share->setNodeId($versionMeta['fileid']);
 		}
 		
 		/** 3. CREATE SYMLINK IN SHARE OWNER'S SHARED_WITH_OTHER FOLDER AND SET THE NEEDED CUSTOM ATTRIBUTES */
@@ -287,7 +288,7 @@ final class AbstractProvider implements IShareProvider
 			$file = $contents[$i];
 			if(array_search($shareType, $file['share_type']) !== FALSE)
 			{
-				$shares[] = $provider->createShare($file);
+				$shares = array_merge($shares, $provider->createShare($file));
 			}
 				
 			$limitCheck++;
@@ -332,7 +333,7 @@ final class AbstractProvider implements IShareProvider
 		
 		if($provider)
 		{
-			return $provider->createShare($meta);
+			return $provider->createShare($meta)[0];
 		}
 		
 		return null;
@@ -362,12 +363,12 @@ final class AbstractProvider implements IShareProvider
 		
 		if(array_search(\OCP\Share::SHARE_TYPE_USER, $shareTypes) !== FALSE)
 		{
-			$shares[] = $this->providerHandlers[\OCP\Share::SHARE_TYPE_USER]->createShare($meta);
+			$shares = array_merge($shares, $this->providerHandlers[\OCP\Share::SHARE_TYPE_USER]->createShare($meta));
 		}
 		
 		if(array_search(\OCP\Share::SHARE_TYPE_GROUP, $shareTypes) !== FALSE)
 		{
-			$shares[] = $this->providerHandlers[\OCP\Share::SHARE_TYPE_GROUP]->createShare($meta);
+			$shares= array_merge($shares, $this->providerHandlers[\OCP\Share::SHARE_TYPE_GROUP]->createShare($meta));
 		}
 		
 		return $shares;
@@ -451,7 +452,7 @@ final class AbstractProvider implements IShareProvider
 				continue;	
 			}
 			
-			$shares[] = $provider->createShare($file);
+			$shares = array_merge($shares, $provider->createShare($file));
 		}
 		
 		return $shares;
@@ -481,7 +482,7 @@ final class AbstractProvider implements IShareProvider
 			throw new ShareNotFound('Could not locate share with token ' . $token);
 		}
 		
-		return $this->createShare($eosMeta);
+		return $this->createShare($eosMeta)[0];
 	}
 	
 	/**

@@ -66,9 +66,9 @@ final class LinkShareProvider extends CernboxShareProvider
 			$share->setExpirationDate($expiration);
 		}
 		
-		$share->setProviderId($this->identifier());
+		$share->setProviderId($this->masterProvider->identifier());
 		
-		return $share;
+		return [$share];
 	}
 	
 	/**
@@ -161,6 +161,16 @@ final class LinkShareProvider extends CernboxShareProvider
 		{
 			return false;
 		}
+		
+		$globalLinkFolder = \OC::$server->getConfig()->getSystemValue('share_global_link_folder', 'global_links');
+		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
+		$tokenHash = ShareUtil::calcTokenHash($share->getToken());
+		$globalLinkPath = $sharePrefix . '/' . $globalLinkFolder . '/' . $tokenHash . '/' . $share->getToken();
+		
+		if(!EosUtil::removeSymLink($globalLinkPath))
+		{
+			\OCP\Util::writeLog('SHARE ENGINE', 'Link share: Could not delete link global share link ' . $globalLinkPath, \OCP\Util::ERROR);
+		}
 	
 		return true;
 	}
@@ -175,7 +185,6 @@ final class LinkShareProvider extends CernboxShareProvider
 		$folder = ShareUtil::calcTokenHash($token);
 		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
 		$globalLinkFolder = \OC::$server->getConfig()->getSystemValue('share_global_link_folder', 'global_links');
-		
 		
 		$globalLinkPath = $sharePrefix . '/' . $globalLinkFolder . '/' . $folder . '/' . $token;
 		$sharePath = $this->buildSharePath($share);
