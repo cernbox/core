@@ -710,6 +710,8 @@ class OC {
 	 * register hooks for the cache
 	 */
 	public static function registerCacheHooks() {
+		/** CERNBOX STORAGE PLUGIN PATCH */
+		/*
 		//don't try to do this before we are properly setup
 		if (\OC::$server->getSystemConfig()->getValue('installed', false) && !self::checkUpgrade(false)) {
 
@@ -729,6 +731,8 @@ class OC {
 				}
 			});
 		}
+		*/
+		/** PATCH END */
 	}
 
 	private static function registerEncryptionWrapper() {
@@ -771,6 +775,8 @@ class OC {
 	 * register hooks for previews
 	 */
 	public static function registerPreviewHooks() {
+		/** CERNBOX STORAGE PLUGIN PATCH */
+		/*
 		OC_Hook::connect('OC_Filesystem', 'post_write', 'OC\Preview', 'post_write');
 		OC_Hook::connect('OC_Filesystem', 'delete', 'OC\Preview', 'prepare_delete_files');
 		OC_Hook::connect('\OCP\Versions', 'preDelete', 'OC\Preview', 'prepare_delete');
@@ -779,6 +785,8 @@ class OC {
 		OC_Hook::connect('\OCP\Versions', 'delete', 'OC\Preview', 'post_delete_versions');
 		OC_Hook::connect('\OCP\Trashbin', 'delete', 'OC\Preview', 'post_delete');
 		OC_Hook::connect('\OCP\Versions', 'rollback', 'OC\Preview', 'post_delete_versions');
+		*/
+		/** PATCH END */
 	}
 
 	/**
@@ -920,9 +928,6 @@ class OC {
 
 		// Someone is logged in
 		if (OC_User::isLoggedIn()) {
-			OC_App::loadApps();
-			OC_User::setupBackends();
-			OC_Util::setupFS();
 			if (isset($_GET["logout"]) and ($_GET["logout"])) {
 				OC_JSON::callCheck();
 				if (isset($_COOKIE['oc_token'])) {
@@ -932,6 +937,11 @@ class OC {
 				// redirect to webroot and add slash if webroot is empty
 				header("Location: " . \OC::$server->getURLGenerator()->getAbsoluteURL('/'));
 			} else {
+				/** CERNBOX STORAGE PLUGIN PATCH */
+				OC_App::loadApps();
+				OC_User::setupBackends();
+				OC_Util::setupFS();
+				/** END PATCH */
 				// Redirect to default application
 				OC_Util::redirectToDefaultPage();
 			}

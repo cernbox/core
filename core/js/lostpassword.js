@@ -13,8 +13,12 @@ OC.Lostpassword = {
 	resetErrorMsg : t('core', 'Password can not be changed. Please contact your administrator.'),
 
 	init : function() {
+		/** CERNBOX STORAGE PLUGIN PATCH */
+		/*
 		$('#lost-password').click(OC.Lostpassword.resetLink);
 		$('#reset-password #submit').click(OC.Lostpassword.resetPassword);
+		*/
+		/** PATCH END */
 	},
 
 	resetLink : function(event){
