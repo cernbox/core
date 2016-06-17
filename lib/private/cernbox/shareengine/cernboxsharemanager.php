@@ -327,7 +327,7 @@ final class CernboxShareManager implements IManager
 		 */
 		$provider = $this->factory->getProviderForType($share->getShareType());
 		
-		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function () use ($share)
+		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function () use ($share)
 		{
 			return EosUtil::getFileById($share->getNodeId());
 		});
