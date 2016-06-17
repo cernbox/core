@@ -7,17 +7,17 @@ use OC\Cernbox\Storage\EosParsers\ShareEosParser;
 
 final class EosParser
 {
-	const DEFAUL_PARSER = new DefaultEosParser();
-	const SHARE_PARSER = new ShareEosParser();
+	public static $DEFAULT_PARSER = new DefaultEosParser();
+	public static $SHARE_PARSER = new ShareEosParser();
 	
 	/** @var AbstractEosParser */
-	private static $parser = self::DEFAUL_PARSER;
+	private static $parser = self::$DEFAULT_PARSER;
 	
 	public static function executeWithParser(AbstractEosParser $parser, $callback)
 	{
 		if($parser === null)
 		{
-			self::$parser = self::DEFAUL_PARSER;
+			self::$parser = self::$DEFAULT_PARSER;
 		}
 		else
 		{
@@ -26,7 +26,7 @@ final class EosParser
 		
 		$result = $callback();
 		
-		self::$parser = self::DEFAUL_PARSER;
+		self::$parser = self::$DEFAULT_PARSER;
 		
 		return $result;
 	}
