@@ -2,7 +2,7 @@
 
 namespace OCA\user_ldap;
 
-use OC\Cache\LDAPDatabase;
+use OC\Cernbox\LDAP\LDAPDatabase;
 use OCA\user_ldap\lib\LDAPUtil;
 use OCA\user_ldap\lib\Access;
 use OCP\IConfig;

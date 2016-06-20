@@ -51,14 +51,15 @@ class CACHED_GROUP_LDAP extends GROUP_LDAP
 	
 	public function getUserGroups($uid) 
 	{
-		$groups = LDAPDatabase::fetchUserGroups($uid);
+		/*$groups = LDAPDatabase::fetchUserGroups($uid);
 		$all = [];
 		foreach($groups as $group)
 		{
 			$all[] = $group['group_cn'];
 		}
 		
-		return $all;
+		return $all;*/
+		return LDAPCacheManager::getUserEGroups($uid);
 	}
 	
 	public function usersInGroup($gid, $search = '', $limit = -1, $offset = 0) 
