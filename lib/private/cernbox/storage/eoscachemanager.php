@@ -2,8 +2,8 @@
 
 namespace OC\Cernbox\Storage;
 
-use OC\Files\ObjectStore\EosReqCache;
-use OC\Files\ObjectStore\EosMemCache;
+use OC\Cernbox\Storage\EosReqCache;
+use OC\Cernbox\Storage\EosMemCache;
 
 class EosCacheManager
 {

@@ -77,7 +77,6 @@ class EosObjectStoreStorage extends \OC\Files\ObjectStore\ObjectStoreStorage
 	{
 		$path = $this->normalizePath($path);
 		
-		$dirName = $this->normalizePath(dirname($path));
 		return 	$this->objectStore->mkdir(EosProxy::toEos($path, $this->getOwner($path)));
 	}
 	
