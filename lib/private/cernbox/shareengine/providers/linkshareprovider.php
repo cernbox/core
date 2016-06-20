@@ -79,7 +79,7 @@ final class LinkShareProvider extends CernboxShareProvider
 	{
 		$symLinkPath = $this->buildSharePath($share);
 	
-		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use($symLinkPath)
+		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($symLinkPath)
 		{
 			return EosUtil::getFileByEosPath($symLinkPath);
 		});
@@ -151,7 +151,7 @@ final class LinkShareProvider extends CernboxShareProvider
 	public function shouldShareBeDelete(IShare $share)
 	{
 		$sharePath = $this->buildSharePath($share);
-		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($sharePath) 
+		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($sharePath) 
 		{ 
 			return EosUtil::getFileByEosPath($sharePath);
 		});

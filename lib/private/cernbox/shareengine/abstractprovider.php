@@ -258,7 +258,7 @@ final class AbstractProvider implements IShareProvider
 		if($node !== null)
 		{
 			$contents = [];
-			$contents[] = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($node) 
+			$contents[] = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($node) 
 			{
 				return EosUtil::getFileById($node->getId());
 			});
@@ -267,7 +267,7 @@ final class AbstractProvider implements IShareProvider
 		else
 		{
 			$path = rtrim(EosUtil::getEosSharePrefix(), '/') . '/' . substr($userId, 0, 1) . '/' . $userId . '/' . $provider->getShareOwnerDestFolder();
-			$contents = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($path)
+			$contents = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($path)
 			{
 				return EosUtil::getFolderContents($path);
 			});
@@ -305,7 +305,7 @@ final class AbstractProvider implements IShareProvider
 	 */
 	public function getShareById($id, $recipientId = null) 
 	{
-		$meta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($id)
+		$meta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($id)
 		{
 			return EosUtil::getFileById($id);
 		});
@@ -347,7 +347,7 @@ final class AbstractProvider implements IShareProvider
 	 */
 	public function getSharesByPath(Node $path) 
 	{
-		$meta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use($path)
+		$meta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($path)
 		{
 			return EosUtil::getFileById($path->getId());
 		});
@@ -395,7 +395,7 @@ final class AbstractProvider implements IShareProvider
 		if($node !== null)
 		{
 			$contents = [];
-			$contents[] = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($node)
+			$contents[] = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($node)
 			{
 				return EosUtil::getFileById($node->getId());
 			});
@@ -413,7 +413,7 @@ final class AbstractProvider implements IShareProvider
 			foreach($userGroups as $group)
 			{
 				$groupPath = (rtrim(EosUtil::getEosSharePrefix(), '/') . '/groups/' . substr($group, 0, 1) . '/' . $group);
-				$tempGroupShares = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use($groupPath)
+				$tempGroupShares = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($groupPath)
 				{
 					return EosUtil::getFolderContents($groupPath);
 				});
@@ -472,7 +472,7 @@ final class AbstractProvider implements IShareProvider
 		
 		$globalLinkPath = $sharePrefix . '/' . $globalLinkFolder . '/' . $tokenHash . '/' . $token;
 		
-		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($globalLinkPath)
+		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($globalLinkPath)
 		{
 			return EosUtil::getFileByEosPath($globalLinkPath);
 		});
@@ -530,7 +530,7 @@ final class AbstractProvider implements IShareProvider
 	
 	private function getFolderContents($eosPath)
 	{
-		return EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use($eosPath)
+		return EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($eosPath)
 		{
 			return EosUtil::getFolderContents($eosPath);
 		});
