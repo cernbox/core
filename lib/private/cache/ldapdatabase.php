@@ -5,6 +5,7 @@ class LDAPDatabase
 {
 	const GROUPS_TABLE = 'cernbox_ldap_groups';
 	const USERS_TABLE = 'cernbox_ldap_users';
+	const SPECIAL_USERS_TABLE = 'cernbox_ldap_users_special';
 	const GROUP_MAPPINGS = 'cernbox_ldap_group_members';
 	
 	private static $TABLES_SCHEMA =
@@ -123,17 +124,24 @@ class LDAPDatabase
 			$searchOp = self::processQueryArg($count, $searchOp);
 			$logicalOp = self::processQueryArg($count - 1, $logicalOp);
 			
-			$queryStr = 'SELECT '.$jointParams.' FROM '.self::USERS_TABLE.' WHERE ( '.self::buildSelectQuery(self::USERS_TABLE, $searchOp, $searchTokens, $logicalOp).' ) AND employeetype="Primary"';
+			$selectQuery = self::buildSelectQuery(self::USERS_TABLE, $searchOp, $searchTokens, $logicalOp);
+			
+			$queryStr = 'SELECT '.$jointParams.' FROM '.self::USERS_TABLE.' WHERE ( '.$selectQuery.' ) AND employeetype="Primary"';
 			
 			$query = \OC_DB::prepare($queryStr, $limit);
 			$result = $query->execute($search);
 			
 			$data = $result->fetchAll();
-			return $data;
+			
+			
+			$specialQueryStr = 'SELECT ' .$jointParams. 'FROM '.self::SPECIAL_USERS_TABLE.' WHERE ( '.$selectQuery.')';
+			$extraData = \OC_DB::prepare($specialQueryStr)->execute($search)->fetchAll();
+			
+			return array_merge($data, $extraData);
 		}
 		catch(Exception $e)
 		{
-			\OCP\Util::writeLog('user_ldap', 'Could not fetch data from ' . $table . ' from database: ' . $e->getMessage(), \OCP\Util::ERROR);
+			\OCP\Util::writeLog('user_ldap', 'Could not fetch data from ' . self::USERS_TABLE . ' from database: ' . $e->getMessage(), \OCP\Util::ERROR);
 			return false;
 		}
 		

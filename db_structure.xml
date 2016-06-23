@@ -1318,6 +1318,54 @@
 	</table>
 	
 	<table>
+		<name>cernbox_ldap_users_special</name>
+		<declaration>
+			<field>
+				<name>cn</name>
+				<type>text</type>
+				<default></default>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>uidnumber</name>
+				<type>integer</type>
+				<default></default>
+				<notnull>false</notnull>
+				<length>6</length>
+			</field>
+			<field>
+				<name>displayname</name>
+				<type>text</type>
+				<default></default>
+				<notnull>false</notnull>
+				<length>50</length>
+			</field>		
+			<field>
+				<name>employeetype</name>
+				<type>text</type>
+				<default></default>
+				<notnull>false</notnull>
+				<length>10</length>
+			</field>
+			<index>
+				<primary>true</primary>
+				<unique>true</unique>
+				<name>users_index</name>
+				<field>
+					<name>cn</name>
+				</field>
+			</index>			
+			<index>
+				<name>displayname_index</name>
+				<field>
+					<name>displayname</name>
+				</field>
+			</index>
+		</declaration>
+	</table>
+	
+	<table>
 		<name>cernbox_ldap_groups</name>
 		<declaration>
 			<field>
