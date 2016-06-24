@@ -608,7 +608,7 @@ class Server extends ServerContainer implements IServerContainer {
 			/** @var \OC\Share20\IProviderFactory $factory */
 			$factory = new $factoryClass($this);
 
-			$manager = new \OC\Share20\Manager(
+			$manager = new \OC\Cernbox\ShareEngine\CernboxShareManager(
 				$c->getLogger(),
 				$c->getConfig(),
 				$c->getSecureRandom(),

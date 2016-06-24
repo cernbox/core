@@ -22,11 +22,6 @@ use OC\Files\Cache\CacheEntry;
  */
 class EosCache implements ICache 
 {
-	const NOT_FOUND = 0;
-	const PARTIAL   = 1;//only partial data available, file not cached in the database
-	const SHALLOW   = 2;//folder in cache, but not all child files are completely scanned
-	const COMPLETE  = 3;
-	
 	const REDIS_KEY_MIMETYPES = 'eos_cache_mimetypes';
 
 	/**
@@ -210,7 +205,7 @@ class EosCache implements ICache
 			}
 		}
 		
-		return $files[];
+		return $files;
 	}
 
 	/**

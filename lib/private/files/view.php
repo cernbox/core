@@ -47,6 +47,7 @@ use OC\User\User;
 use OCP\Constants;
 use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\InvalidPathException;
+use OCP\Lock\ILockingProvider;
 
 /**
  * Class to provide access to ownCloud filesystem via a "view", and methods for
@@ -66,6 +67,17 @@ use OCP\Files\InvalidPathException;
  */
 class View extends OwncloudView 
 {
+	private $fakeRoot;
+	private $userManager;
+	
+	public function __construct($root = '') 
+	{
+		parent::__construct($root);
+	
+		$this->fakeRoot = $root;
+		$this->userManager = \OC::$server->getUserManager();
+	}
+	
 	private function assertPathLength($path)
 	{
 		$maxLen = min(PHP_MAXPATHLEN, 4000);
@@ -76,6 +88,55 @@ class View extends OwncloudView
 			$pathLen = strlen($path);
 			throw new \OCP\Files\InvalidPathException("Path length($pathLen) exceeds max path length($maxLen): $path");
 		}
+	}
+	
+	/**
+	 * @param string $ownerId
+	 * @return \OC\User\User
+	 */
+	private function getUserObjectForOwner($ownerId) 
+	{
+		$owner = $this->userManager->get($ownerId);
+		if ($owner instanceof IUser) 
+		{
+			return $owner;
+		} 
+		else 
+		{
+			return new User($ownerId, null);
+		}
+	}
+	
+	private function getCacheEntry($storage, $internalPath, $relativePath) 
+	{
+		$cache = $storage->getCache($internalPath);
+		$data = $cache->get($internalPath);
+		$watcher = $storage->getWatcher($internalPath);
+	
+		// if the file is not in the cache or needs to be updated, trigger the scanner and reload the data
+		if (!$data || $data['size'] === -1) 
+		{
+			//$this->lockFile($relativePath, ILockingProvider::LOCK_SHARED);
+			if (!$storage->file_exists($internalPath)) 
+			{
+				$this->unlockFile($relativePath, ILockingProvider::LOCK_SHARED);
+				return false;
+			}
+			$scanner = $storage->getScanner($internalPath);
+			$scanner->scan($internalPath, Cache\Scanner::SCAN_SHALLOW);
+			$data = $cache->get($internalPath);
+			//$this->unlockFile($relativePath, ILockingProvider::LOCK_SHARED);
+		} 
+		else if (!Cache\Scanner::isPartialFile($internalPath) && $watcher->needsUpdate($internalPath, $data)) 
+		{
+			//$this->lockFile($relativePath, ILockingProvider::LOCK_SHARED);
+			$watcher->update($internalPath, $data);
+			$storage->getPropagator()->propagateChange($internalPath, time());
+			$data = $cache->get($internalPath);
+			//$this->unlockFile($relativePath, ILockingProvider::LOCK_SHARED);
+		}
+	
+		return $data;
 	}
 	
 	public function getDirectoryContent($directory, $mimetype_filter = '') 

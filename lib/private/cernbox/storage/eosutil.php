@@ -160,8 +160,10 @@ final class EosUtil
 			return $cached;
 		}
 		
-		$eos_prefix = EosUtil::getEosPrefix();
-		$eos_meta_dir = EosUtil::getEosMetaDir();
+		$eos_prefix = self::getEosPrefix();
+		$eos_meta_dir = self::getEosMetaDir();
+		$eos_share_prefix = self::getEosSharePrefix();
+		
 		if (strpos($eosPath, $eos_meta_dir) === 0) 
 		{
 			$len_prefix = strlen($eos_meta_dir);
@@ -206,7 +208,28 @@ final class EosUtil
 			EosCacheManager::setOwner($eosPath, $user);	
 			
 			return $user;
-		} 
+		}
+		else if (strpos($eosPath, $eos_share_prefix) === 0)
+		{
+			$rel = substr($eosPath, strlen($eos_share_prefix));
+			$rel = trim($rel, '/');
+			$parts = explode('/', $rel);
+			
+			// /eos/share/user/n/nromangu
+			// {stripped}  0   1    2
+			if($parts[0] === 'user')
+			{
+				return $parts[2];
+			}
+			// /eos/share/n/nromangu
+			// {stripped} 0    1
+			else if($parts[0] === substr($parts[1], 0, 1))
+			{
+				return $parts[1];
+			}
+			
+			return false;
+		}
 		else 
 		{
 			return false;
@@ -236,6 +259,7 @@ final class EosUtil
 		}
 		// 1) get owner
 		$owner = self::getOwner($eosPath);
+		
 		if($owner)
 		{
 			$uidAndGid = self::getUidAndGid($owner);
@@ -257,9 +281,9 @@ final class EosUtil
 				}
 				return $uidAndGid;
 			}
-		} 
+		}
 		
-		return false;
+		return self::getUidAndGid(false);
 	}
 	
 	/**
@@ -268,7 +292,7 @@ final class EosUtil
 	 * @return boolean|string Upon success, it will return the username owner of
 	 * 							this anonymous share; Will return false otherwise
 	 */
-	private static function isSharedLinkGuest()
+	public static function isSharedLinkGuest()
 	{
 		$uri = $_SERVER['REQUEST_URI'];
 		$uri = trim($uri, '/');
@@ -321,14 +345,7 @@ final class EosUtil
 			}
 		}
 		
-		$result = \OC_DB::prepare('SELECT uid_owner FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
-		
-		if($result && count($result) > 0)
-		{
-			return $result[0]['uid_owner'];
-		}
-		
-		return false;
+		return \OC\Cernbox\ShareEngine\ShareUtil::getShareByLinkOwner($token);
 	}
 
 	/**
@@ -750,7 +767,6 @@ final class EosUtil
 	 */
 	public static function getFileByEosPath($eospath, $callback = false)
 	{
-		
 		$eospath = rtrim($eospath, "/");
 		
 		$cached = EosCacheManager::getFileByEosPath($eospath);
@@ -778,6 +794,46 @@ final class EosUtil
 			
 			return $data;
 		}
+		return null;
+	}
+	
+	/**
+	 * Retrieves the metadata of the file pointed by the path $eospath using ROOT user. This function is called only
+	 * internally by the Share API to deduce the owner of a share by link
+	 * @param string $eospath The EOS Path to the file
+	 * @param callable $callback A function callback to add extra parameters to the returned metadata.
+	 * 			The function must have the signature function(&$data), where $data is the metadata array
+	 * @return array|bool Upon success, it will return a map array with the file metadata, false otherwise
+	 */
+	public static function getFileByEosPathAsRoot($eospath, $callback = false)
+	{
+		$eospath = rtrim($eospath, "/");
+		
+		$cached = EosCacheManager::getFileByEosPath($eospath);
+		if($cached)
+		{
+			return $cached;
+		}
+		
+		$eospathEscaped = escapeshellarg($eospath);
+		
+		$fileinfo = "eos -b -r 0 0 file info $eospathEscaped -m";
+		list($result, $errcode) = EosCmd::exec($fileinfo);
+		if ($errcode === 0 && $result)
+		{
+			$line_to_parse = $result[0];
+			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
+				
+			if($callback)
+			{
+				$callback($data);
+			}
+				
+			EosCacheManager::setFileByEosPath($eospath, $data);
+				
+			return $data;
+		}
+		
 		return null;
 	}
 	
@@ -908,8 +964,8 @@ final class EosUtil
 
   	    if (!in_array($type, array('u','egroup'))) 
   	    {
-		  \OCP\Util::writeLog("PROGRAMMNG ERROR", "Wrong type passed to propagatePermissionXToParents (".$type.")", \OCP\Util::ERROR);
-		  return false;
+			\OCP\Util::writeLog("PROGRAMMNG ERROR", "Wrong type passed to propagatePermissionXToParents (".$type.")", \OCP\Util::ERROR);
+		  	return false;
 		}
 
 		$eospath = $filedata["eospath"];
@@ -954,7 +1010,7 @@ final class EosUtil
 	 */
 	public static function getEGroups($username) 
 	{
-		return \OC\LDAPCache\LDAPCacheManager::getUserEGroups($username);
+		return \OC\Cernbox\LDAP\LDAPCacheManager::getUserEGroups($username);
 	}
 		
 	/**
@@ -1553,15 +1609,29 @@ final class EosUtil
 	 */
 	public static function createSymLink($destinationEosPath, $linkTargetEosPath)
 	{
-		$uidGid = self::getUidAndGid(\OC_User::getUser());
+		if(strpos($destinationEosPath, self::getEosSharePrefix()) !== 0)
+		{
+			$user = \OC_User::getUser();
+			if($user)
+			{
+				\OCP\Util::writeLog('EOSUTIL', $user . ' tried to create a symlink at ' .$destinationEosPath. ' throught the share symlink system');
+			}
+			else if(($user = self::isSharedLinkGuest()))
+			{
+				\OCP\Util::writeLog('EOSUTIL', 'Anonymous user, throught a share link by ' .$user. ', tried to create a symlink at ' .$destinationEosPath. ' throught the share symlink system');
+			}
+			return false;
+		}
+		
+		/*$uidGid = self::getUidAndGid(\OC_User::getUser());
 	
 		$uid = $uidGid[0];
-		$gid = $uidGid[1];
+		$gid = $uidGid[1];*/
 	
 		$destinationEosPath = escapeshellarg($destinationEosPath);
 		$linkTargetEosPath = escapeshellarg($linkTargetEosPath);
 	
-		$cmd = "eos -b -r $uid $gid ln $destinationEosPath $linkTargetEosPath";
+		$cmd = "eos -b -r 0 0 ln $destinationEosPath $linkTargetEosPath";
 		list(, $errcode) = EosCmd::exec($cmd);
 	
 		return $errcode === 0;
@@ -1575,11 +1645,25 @@ final class EosUtil
 	 */
 	public static function removeSymLink($targetPath)
 	{
-		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
+		if(strpos($targetPath, self::getEosSharePrefix()) !== 0)
+		{
+			$user = \OC_User::getUser();
+			if($user)
+			{
+				\OCP\Util::writeLog('EOSUTIL', $user . ' tried to remove ' .$targetPath. ' throught the share symlink system');
+			}
+			else if(($user = self::isSharedLinkGuest()))
+			{
+				\OCP\Util::writeLog('EOSUTIL', 'Anonymous user, throught a share link by ' .$user. ', tried to remove ' .$targetPath. ' throught the share symlink system');
+			}
+			return false;	
+		}
+		
+		//list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
 
 		$targetPath = escapeshellarg($targetPath);
 	
-		$cmd = "eos -b -r $uid, $gid rm $targetPath";
+		$cmd = "eos -b -r 0 0 rm $targetPath";
 		list(, $errcode) = EosCmd::exec($cmd);
 		return $errcode === 0;
 	}
@@ -1597,9 +1681,27 @@ final class EosUtil
 	
 		$eosPath = escapeshellarg($eosPath);
 	
-		$cmd = "eos -b -r $uid $gid set attr $attributeName=$attributeValue $eosPath";
+		$cmd = "eos -b -r $uid $gid attr set $attributeName=$attributeValue $eosPath";
 		list(, $errcode) = EosCmd::exec($cmd);
 	
+		return $errcode === 0;
+	}
+	
+	/**
+	 * Removes the given attribute from the file specified by its eos path.
+	 * @param string $eosPath path to the file
+	 * @param string $attributeName (xttrn, attribute name)
+	 * @return boolean True upon success, false otherwise
+	 */
+	public static function removeExtendedAttribute($eosPath, $attributeName)
+	{
+		list($uid, $gid) = self::getUidAndGid(\OC_User::getUser());
+		
+		$eosPath = escapeshellarg($eosPath);
+		
+		$cmd = "eos -b -r $uid $gid attr rm $attributeName $eosPath";
+		list(, $errcode) = EosCmd::exec($cmd);
+		
 		return $errcode === 0;
 	}
 }

@@ -284,14 +284,14 @@ class Util {
 	public static function linkToRemote( $service ) {
 		$urlGenerator = \OC::$server->getURLGenerator();
 		/** CERNBOX STORAGE PLUGIN PATCH */
-		/*
+		
 		$remoteBase = $urlGenerator->linkTo('', 'remote.php') . '/' . $service;
 		return $urlGenerator->getAbsoluteURL(
 				$remoteBase . (($service[strlen($service) - 1] != '/') ? '/' : '')
 		);
-		*/
 		
-		$eosWebDavRoot = \OCP\Config::getSystemValue('eoswebdavroot', '/cernbox/webdav');
+		
+		/*$eosWebDavRoot = \OCP\Config::getSystemValue('eoswebdavroot', '/cernbox/webdav');
 		if($service == "webdav"){
 			$service = $eosWebDavRoot . '/home';
 		}
