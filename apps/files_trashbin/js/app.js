@@ -28,7 +28,7 @@ OCA.Trashbin.App = {
 			$('#app-content-trashbin'), {
 				scrollContainer: $('#app-content'),
 				fileActions: this._createFileActions(),
-				detailsViewEnabled: false,
+				detailsViewEnabled: true, /** CERNBOX TRASHBIN PLUGIN PATCH */
 				scrollTo: urlParams.scrollto
 			}
 		);
@@ -65,6 +65,8 @@ OCA.Trashbin.App = {
 			}
 		});
 
+		/** CERNBOX TRASHBIN PLUGIN PATCH - DISABLE DELETE BUTTON FOR SINGLE FILES */
+		/*
 		fileActions.registerAction({
 			name: 'Delete',
 			displayName: t('files', 'Delete'),
@@ -93,6 +95,8 @@ OCA.Trashbin.App = {
 				);
 			}
 		});
+		*/
+		/** PATCH END */
 		return fileActions;
 	}
 };

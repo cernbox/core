@@ -25,7 +25,10 @@ OCP\JSON::checkLoggedIn();
 OCP\JSON::callCheck();
 \OC::$server->getSession()->close();
 
-$trashStatus = OCA\Files_Trashbin\Trashbin::isEmpty(OCP\User::getUser());
+/** CERNBOX TRASHBIN PLUGIN PATCH*/
+//$trashStatus = OCA\Files_Trashbin\Trashbin::isEmpty(OCP\User::getUser());
+$trashStatus = \OCA\Files_Trashbin\EosTrashbin::isEmpty();
+/** PATCH END */
 
 OCP\JSON::success(array("data" => array("isEmpty" => $trashStatus)));
 
