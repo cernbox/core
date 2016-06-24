@@ -21,7 +21,10 @@
 			options = options ? _.clone(options) : {};
 			var model = this;
 			var file = this.getFullPath();
-			var revision = this.get('timestamp');
+			/** CERNBOX FILE VERSION PLUGIN PATCH */
+			//var revision = this.get('timestamp');
+			var revision = this.get('id');
+			/** PATCH END */
 
 			$.ajax({
 				type: 'GET',
@@ -55,7 +58,7 @@
 			var url = OC.generateUrl('/apps/files_versions/preview');
 			var params = {
 				file: this.get('fullPath'),
-				version: this.get('timestamp')
+				version: this.get('id')//this.get('timestamp') /** CERNBOX FILE VERSION PLUGIN PATCH */
 			};
 			return url + '?' + OC.buildQueryString(params);
 		},
@@ -64,7 +67,7 @@
 			var url = OC.generateUrl('/apps/files_versions/download.php');
 			var params = {
 				file: this.get('fullPath'),
-				revision: this.get('timestamp')
+				revision: this.get('id') //this.get('timestamp') /* CERNBOX FILE VERSION PLUGIN PATCH */
 			};
 			return url + '?' + OC.buildQueryString(params);
 		}

@@ -20,4 +20,6 @@
  */
  
 // Cron job for deleting expired trash items
-\OC::$server->getJobList()->add('OCA\Files_Versions\BackgroundJob\ExpireVersions');
+/** CERNBOX FILES VERSION PLUGIN PATCH */
+//\OC::$server->getJobList()->add('OCA\Files_Versions\BackgroundJob\ExpireVersions');
+/** PATCH END */

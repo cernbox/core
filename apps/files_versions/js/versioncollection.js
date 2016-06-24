@@ -75,12 +75,12 @@
 		parse: function(result) {
 			var fullPath = this._fileInfo.getFullPath();
 			var results = _.map(result.data.versions, function(version) {
-				var revision = parseInt(version.version, 10);
+				var revision = version.version; //parseInt(version.version, 10); /* CERNBOX FILE VERSION PLUGIN PATCH */
 				return {
 					id: revision,
 					name: version.name,
 					fullPath: fullPath,
-					timestamp: revision,
+					timestamp: parseInt(revision),//revision, /** CERNBOX FILE VERSION PLUGIN PATCH */
 					size: version.size
 				};
 			});

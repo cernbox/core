@@ -33,6 +33,7 @@
 		/** @lends OCA.Versions.VersionsTabView.prototype */ {
 		id: 'versionsTabView',
 		className: 'tab versionsTabView',
+		order: -10, /** CERNBOX FILE VERSION PLUGIN PATCH */
 
 		_template: null,
 
@@ -174,16 +175,18 @@
 		},
 
 		_formatItem: function(version) {
-			var timestamp = version.get('timestamp') * 1000;
-			return _.extend({
-				formattedTimestamp: OC.Util.formatDate(timestamp),
-				relativeTimestamp: OC.Util.relativeModifiedDate(timestamp),
+			/** CERNBOX FILE VERSION PLUGIN PATCH */
+			var numTimestamp = version.get('timestamp') * 1000;
+			return /*_.extend*/({
+				timestamp: version.get('id'),
+				formattedTimestamp: OC.Util.formatDate(numTimestamp),
+				relativeTimestamp: OC.Util.relativeModifiedDate(numTimestamp),
 				downloadUrl: version.getDownloadUrl(),
 				downloadIconUrl: OC.imagePath('core', 'actions/download'),
 				revertIconUrl: OC.imagePath('core', 'actions/history'),
 				previewUrl: version.getPreviewUrl(),
 				revertLabel: t('files_versions', 'Restore'),
-			}, version.attributes);
+			}/*, version.attributes*/);
 		},
 
 		/**

@@ -48,7 +48,11 @@ if($maxX === 0 || $maxY === 0) {
 
 try {
 	list($user, $file) = \OCA\Files_Versions\Storage::getUidAndFilename($file);
-	$preview = new \OC\Preview($user, 'files_versions', $file.'.v'.$version);
+	/** CERNBOX FILE VERSION PLUGIN PATCH */
+	//$preview = new \OC\Preview($user, 'files_versions', $file.'.v'.$version);
+	$pathinfo = pathinfo($file);
+	$preview = new \OC\Preview($user, 'files/.sys.v#.' . $pathinfo['basename'], $version);
+	/** PATCH END */
 	$mimetype = \OC::$server->getMimeTypeDetector()->detectPath($file);
 	$preview->setMimetype($mimetype);
 	$preview->setMaxX($maxX);
