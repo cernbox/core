@@ -146,6 +146,11 @@ class ApiController extends Controller {
 		$files = array();
 		$nodes = $this->tagService->getFilesByTag($tagName);
 		foreach ($nodes as &$node) {
+			if(!$node)
+			{
+				continue;
+			}
+			
 			$shareTypes = $this->getShareTypes($node);
 			$fileInfo = $node->getFileInfo();
 			$file = \OCA\Files\Helper::formatFileInfo($fileInfo);

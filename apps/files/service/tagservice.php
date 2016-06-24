@@ -26,6 +26,7 @@ namespace OCA\Files\Service;
 
 use OC\Files\FileInfo;
 use OCP\Files\Node;
+use OC\Cernbox\Storage\EosUtil;
 
 /**
  * Service class to manage tags on files.
@@ -68,7 +69,23 @@ class TagService {
 	 * @throws \OCP\Files\NotFoundException if the file does not exist
 	 */
 	public function updateFileTags($path, $tags) {
-		$fileId = $this->homeFolder->get($path)->getId();
+		/** CERNBOX FAVORITES PATCH */
+		//$fileId = $this->homeFolder->get($path)->getId();
+		$fileInfo =  $this->homeFolder->get($path)->getFileInfo();
+		$versionFolderInfo = null;
+		
+		if($fileInfo['type'] === 'file') {
+			$versionFolder = dirname($path) . "/" . ".sys.v#." . basename($path);
+			try {
+				$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
+			} catch (\OCP\Files\NotFoundException $e) {
+				\OC\Cernbox\Storage\EosUtil::createVersion($fileInfo['eospath']);
+				$versionFolderInfo = $this->homeFolder->get($versionFolder)->getFileInfo();
+			}
+		}
+		
+		$fileId = $fileInfo['type'] === 'file' ?  $versionFolderInfo['fileid'] : $fileInfo['fileid'];
+		/** END OF CERNBOX FAVORITES PATCH */
 
 		$currentTags = $this->tagger->getTagsForObjects(array($fileId));
 
@@ -106,8 +123,48 @@ class TagService {
 
 		$allNodes = [];
 		foreach ($fileIds as $fileId) {
-			$allNodes = array_merge($allNodes, $this->homeFolder->getById((int) $fileId));
-		}
+					/** CERNBOX FAVORITES PATCH */
+			$eosMeta = EosUtil::getFileById((int)$fileId);
+			if(!$eosMeta) continue;
+			
+			$eosPath = $eosMeta['eospath'];
+			$owner = EosUtil::getOwner($eosPath);
+			
+			// ITS A PROJECT FAVORITE
+			if(($prj = EosUtil::getProjectNameForUser($owner)))
+			{
+				$ocPath = '/  project ' . $prj;	
+			}
+			// ITS A USER SHARE
+			else if($owner !== \OC_User::getUser())
+			{
+				$prefix = EosUtil::getEosPrefix();
+				$firstLetter = substr($owner, 0, 1);
+				$ownerHome = rtrim($prefix, '/') . '/' . $firstLetter . '/' . $owner;
+				$homeLen = strlen($ownerHome);
+				$relativeEosPath = ltrim(substr($eosPath, $homeLen), '/');
+				$split = explode('/', $relativeEosPath);
+				$sharedFolderName = $split[0];
+				$versionMeta = EosUtil::getFileByEosPath($ownerHome . '/' . $sharedFolderName);
+				
+				$len = count($split);
+				if(strpos($split[$len - 1], '.sys.v#.') !== false)
+				{
+					$split[$len - 1] = substr($split[$len - 1], 8);
+				}
+				
+				$ocPath = $sharedFolderName . ' (#' . $versionMeta['fileid'] . ')/' . implode('/', array_slice($split, 1));
+			}
+			// ITS A USER FILE
+			else
+			{
+				$ocPath = $eosMeta['path'];
+				$ocPath = trim($ocPath, '/');
+				$split = explode('/', $ocPath);
+				$ocPath = implode('/', array_slice($split, 1));
+			}
+			$allNodes[] = \OC\Files\Filesystem::getFileInfo($ocPath);
+ 		}
 		return $allNodes;
 	}
 }
