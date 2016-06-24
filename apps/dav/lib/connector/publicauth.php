@@ -54,7 +54,10 @@ class PublicAuth extends \Sabre\DAV\Auth\Backend\AbstractBasic {
 	 * @return bool
 	 */
 	protected function validateUserPass($username, $password) {
-		$linkItem = \OCP\Share::getShareByToken($username, false);
+		/** CERNBOX SHARE PLUGIN PATCH */
+		$linkItem = \OC::$server->getShareManager()->getShareByToken($username);//\OCP\Share::getShareByToken($username, false);
+		$linkItem = $linkItem->getDataArray();
+		/** PATCH END */
 		\OC_User::setIncognitoMode(true);
 		$this->share = $linkItem;
 		if (!$linkItem) {

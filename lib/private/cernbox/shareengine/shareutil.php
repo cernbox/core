@@ -6,9 +6,7 @@ use OCP\Share\Exceptions\GenericShareException;
 use OC\Cernbox\Storage\EosUtil;
 
 final class ShareUtil 
-{
-	private static $l = \OC::$server->getL10N('core');
-	
+{	
 	public static function calcTokenHash($token)
 	{
 		$hash = 0;
@@ -52,7 +50,7 @@ final class ShareUtil
 	
 	public static function enforceDefaultLinkExpireDate()
 	{
-		return self::shareApiLinkDefaultExpireDate() &&
+		return self::isDefaultLinkExpireDate() &&
 		\OC::$server->getConfig()->getAppValue('core', 'shareapi_enforce_expire_date', 'no') === 'yes';
 	}
 	
@@ -61,8 +59,15 @@ final class ShareUtil
 		return (int)\OC::$server->getConfig()->getAppValue('core', 'shareapi_expire_after_n_days', '7');
 	}
 	
+	public static function getGlobalLinksFolder()
+	{
+		return \OC::$server->getConfig()->getSystemValue('share_global_link_folder', 'global_links');
+	}
+	
 	public static function validateExpirationDate(\OCP\Share\IShare $share) 
 	{
+		$l = \OC::$server->getL10N('core');
+		
 		$expirationDate = $share->getExpirationDate();
 	
 		if ($expirationDate !== null) 
@@ -74,7 +79,7 @@ final class ShareUtil
 			$date->setTime(0, 0, 0);
 			if ($date >= $expirationDate) 
 			{
-				$message = self::$l->t('Expiration date is in the past');
+				$message = $l->t('Expiration date is in the past');
 				throw new GenericShareException($message, $message, 404);
 			}
 		}
@@ -109,7 +114,7 @@ final class ShareUtil
 			$date->add(new \DateInterval('P' . self::getDefaultLinkExpireDate() . 'D'));
 			if ($date < $expirationDate) 
 			{
-				$message = self::$l->t('Cannot set expiration date more than %s days in the future', [self::getDefaultLinkExpireDate()]);
+				$message = $l->t('Cannot set expiration date more than %s days in the future', [self::getDefaultLinkExpireDate()]);
 				throw new GenericShareException($message, $message, 404);
 			}
 		}
@@ -117,5 +122,18 @@ final class ShareUtil
 		$share->setExpirationDate($expirationDate);
 	
 		return $share;
+	}
+	
+	public static function getShareByLinkOwner($token)
+	{
+		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
+		$tokenHash = self::calcTokenHash($token);
+		$globalLinkFolder = trim(self::getGlobalLinksFolder(), '/');
+		
+		$path = $sharePrefix . '/' . $globalLinkFolder . '/' . $tokenHash . '/' . $token;
+		
+		$fileInfo = EosUtil::getFileByEosPathAsRoot($path);
+		
+		return $fileInfo['uid_owner'];
 	}
 }

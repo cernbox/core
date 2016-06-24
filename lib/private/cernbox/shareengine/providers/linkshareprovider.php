@@ -27,7 +27,7 @@ final class LinkShareProvider extends CernboxShareProvider
 	 */
 	public function createShare(array $rawData)
 	{
-		$share = new CernboxShare($this->masterProvider->rootFolder);
+		$share = new CernboxShare($this->masterProvider->getRootFolder());
 		$share->setId((int)$rawData['fileid'])
 		->setShareType(\OCP\Share::SHARE_TYPE_LINK)
 		->setPermissions((int)$rawData['permissions'])
@@ -60,13 +60,16 @@ final class LinkShareProvider extends CernboxShareProvider
 		$share->setNodeId($rawData['fileid']);
 		$share->setNodeType($rawData['eostype']);
 		
-		if ($rawData['expiration'] !== null)
+		if ($rawData['share_expiration'] !== '0')
 		{
-			$expiration = \DateTime::createFromFormat('Y-m-d H:i:s', $rawData['expiration']);
-			$share->setExpirationDate($expiration);
+			$temp = new \DateTime();
+			$temp->setTimestamp($rawData['share_expiration']);
+			$share->setExpirationDate($temp);
 		}
 		
 		$share->setProviderId($this->masterProvider->identifier());
+		
+		$share->setId($this->generateUniqueId($share));
 		
 		return [$share];
 	}
@@ -79,7 +82,7 @@ final class LinkShareProvider extends CernboxShareProvider
 	{
 		$symLinkPath = $this->buildSharePath($share);
 	
-		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use($symLinkPath)
+		$eosMeta = EosParser::parseShare(function() use($symLinkPath)
 		{
 			return EosUtil::getFileByEosPath($symLinkPath);
 		});
@@ -127,7 +130,7 @@ final class LinkShareProvider extends CernboxShareProvider
 			throw new \Exception('Could not set custom extended attributes when sharing ' . $symLinkEosPath);
 		}
 		
-		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_stime', $share->getShareTime()))
+		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_stime', $share->getShareTime()->getTimestamp()))
 		{
 			throw new \Exception('Could not set custom extended attributes [cernbox.share_stime] when sharing ' . $symLinkEosPath);
 		}
@@ -142,6 +145,11 @@ final class LinkShareProvider extends CernboxShareProvider
 		{
 			throw new \Exception('Could not set custom extended attributes [cernbox.share_password] when sharing ' . $symLinkEosPath);
 		}
+		
+		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_token', $share->getToken()))
+		{
+			throw new \Exception('Could not set custom extended attributes [cernbox.share_token] when sharing ' . $symLinkEosPath);
+		}
 	}
 	
 	/**
@@ -151,7 +159,7 @@ final class LinkShareProvider extends CernboxShareProvider
 	public function shouldShareBeDelete(IShare $share)
 	{
 		$sharePath = $this->buildSharePath($share);
-		$eosMeta = EosParser::executeWithParser(EosParser::SHARE_PARSER, function() use ($sharePath) 
+		$eosMeta = EosParser::parseShare(function() use ($sharePath) 
 		{ 
 			return EosUtil::getFileByEosPath($sharePath);
 		});
@@ -162,7 +170,7 @@ final class LinkShareProvider extends CernboxShareProvider
 			return false;
 		}
 		
-		$globalLinkFolder = \OC::$server->getConfig()->getSystemValue('share_global_link_folder', 'global_links');
+		$globalLinkFolder = ShareUtil::getGlobalLinksFolder();
 		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
 		$tokenHash = ShareUtil::calcTokenHash($share->getToken());
 		$globalLinkPath = $sharePrefix . '/' . $globalLinkFolder . '/' . $tokenHash . '/' . $share->getToken();
@@ -184,10 +192,10 @@ final class LinkShareProvider extends CernboxShareProvider
 		$token = $share->getToken();
 		$folder = ShareUtil::calcTokenHash($token);
 		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
-		$globalLinkFolder = \OC::$server->getConfig()->getSystemValue('share_global_link_folder', 'global_links');
+		$globalLinkFolder = ShareUtil::getGlobalLinksFolder();
 		
 		$globalLinkPath = $sharePrefix . '/' . $globalLinkFolder . '/' . $folder . '/' . $token;
-		$sharePath = $this->buildSharePath($share);
+		$sharePath = $this->masterProvider->buildFileEosPath($share);
 		
 		if(!EosUtil::createSymLink($globalLinkPath, $sharePath))
 		{
@@ -204,5 +212,17 @@ final class LinkShareProvider extends CernboxShareProvider
 	public function getShareOwnerDestFolder()
 	{
 		return \OC::$server->getConfig()->getSystemValue('share_type_link_folder', 'link_shares');
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Cernbox\ShareEngine\CernboxShareProvider::generateUniqueId()
+	 */
+	public function generateUniqueId($share)
+	{
+		$fileId = $share->getNodeId();
+		$token = $share->getToken();
+		
+		return $token.':'.$fileId;
 	}
 }

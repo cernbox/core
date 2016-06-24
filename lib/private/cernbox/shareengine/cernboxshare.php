@@ -46,14 +46,30 @@ final class CernboxShare implements \OCP\Share\IShare
 	/** @var IRootFolder */
 	private $rootFolder;
 	
-	public function __construct(IRootFolder $rootFolder) {
+	public function __construct(IRootFolder $rootFolder)
+	{
 		$this->rootFolder = $rootFolder;
+	}
+	
+	public function getDataArray()
+	{
+		$data = [];
+		$data['token'] = $this->token;
+		$data['file_target'] = $this->target;
+		$data['permissions'] = $this->permissions;
+		$data['share_type'] = $this->shareType;
+		$data['uid_owner'] = $this->shareOwner;
+		$data['uid_initiator'] = $this->shareOwner;
+		$data['file_source'] = $this->fileId;
+		
+		return $data;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setId($id) {
+	public function setId($id)
+	{
 		$this->id = $id;
 		return $this;
 	}
@@ -61,16 +77,19 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getId() {
+	public function getId()
+	{
 		return $this->id;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function getFullId() {
-		if ($this->providerId === null || $this->id === null) {
-			throw new \UnexpectedValueException;
+	public function getFullId()
+	{
+		if($this->providerId === null || $this->id === null)
+		{
+			throw new \UnexpectedValueException();
 		}
 		return $this->providerId . ':' . $this->id;
 	}
@@ -78,7 +97,8 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function setProviderId($id) {
+	public function setProviderId($id)
+	{
 		$this->providerId = $id;
 		return $this;
 	}
@@ -86,7 +106,8 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function setNode(Node $node) {
+	public function setNode(Node $node)
+	{
 		$this->fileId = null;
 		$this->nodeType = null;
 		$this->node = $node;
@@ -96,30 +117,35 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getNode() {
-		if ($this->node === null) {
-	
-			if ($this->shareOwner === null || $this->fileId === null) {
+	public function getNode()
+	{
+		if($this->node === null)
+		{
+			
+			if($this->shareOwner === null || $this->fileId === null)
+			{
 				throw new NotFoundException();
 			}
-	
+			
 			$userFolder = $this->rootFolder->getUserFolder($this->shareOwner);
-	
+			
 			$nodes = $userFolder->getById($this->fileId);
-			if (empty($nodes)) {
+			if(empty($nodes))
+			{
 				throw new NotFoundException();
 			}
-	
-			$this->node = $nodes[0];
+			
+			$this->node = $nodes [0];
 		}
-	
+		
 		return $this->node;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setNodeId($fileId) {
+	public function setNodeId($fileId)
+	{
 		$this->node = null;
 		$this->fileId = $fileId;
 		return $this;
@@ -128,22 +154,26 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getNodeId() {
-		if ($this->fileId === null) {
+	public function getNodeId()
+	{
+		if($this->fileId === null)
+		{
 			$this->fileId = $this->getNode()->getId();
 		}
-	
+		
 		return $this->fileId;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setNodeType($type) {
-		if ($type !== 'file' && $type !== 'folder') {
+	public function setNodeType($type)
+	{
+		if($type !== 'file' && $type !== 'folder')
+		{
 			throw new \InvalidArgumentException();
 		}
-	
+		
 		$this->nodeType = $type;
 		return $this;
 	}
@@ -151,19 +181,22 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getNodeType() {
-		if ($this->nodeType === null) {
+	public function getNodeType()
+	{
+		if($this->nodeType === null)
+		{
 			$node = $this->getNode();
-			$this->nodeType = $node instanceof File ? 'file' : 'folder';
+			$this->nodeType = $node instanceof File? 'file' : 'folder';
 		}
-	
+		
 		return $this->nodeType;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setShareType($shareType) {
+	public function setShareType($shareType)
+	{
 		$this->shareType = $shareType;
 		return $this;
 	}
@@ -171,15 +204,18 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getShareType() {
+	public function getShareType()
+	{
 		return $this->shareType;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setSharedWith($sharedWith) {
-		if (!is_string($sharedWith)) {
+	public function setSharedWith($sharedWith)
+	{
+		if(! is_string($sharedWith))
+		{
 			throw new \InvalidArgumentException();
 		}
 		$this->sharedWith = $sharedWith;
@@ -189,16 +225,17 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getSharedWith() {
+	public function getSharedWith()
+	{
 		return $this->sharedWith;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setPermissions($permissions) {
-		//TODO checkes
-	
+	public function setPermissions($permissions)
+	{
+		// TODO checkes
 		$this->permissions = $permissions;
 		return $this;
 	}
@@ -206,16 +243,17 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getPermissions() {
+	public function getPermissions()
+	{
 		return $this->permissions;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setExpirationDate($expireDate) {
-		//TODO checks
-	
+	public function setExpirationDate($expireDate)
+	{
+		// TODO checks
 		$this->expireDate = $expireDate;
 		return $this;
 	}
@@ -223,40 +261,46 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getExpirationDate() {
+	public function getExpirationDate()
+	{
 		return $this->expireDate;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setSharedBy($sharedBy) {
-		if (!is_string($sharedBy)) {
+	public function setSharedBy($sharedBy)
+	{
+		if(! is_string($sharedBy))
+		{
 			throw new \InvalidArgumentException();
 		}
-		//TODO checks
+		// TODO checks
 		$this->sharedBy = $sharedBy;
-	
+		
 		return $this;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function getSharedBy() {
-		//TODO check if set
+	public function getSharedBy()
+	{
+		// TODO check if set
 		return $this->sharedBy;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setShareOwner($shareOwner) {
-		if (!is_string($shareOwner)) {
+	public function setShareOwner($shareOwner)
+	{
+		if(! is_string($shareOwner))
+		{
 			throw new \InvalidArgumentException();
 		}
-		//TODO checks
-	
+		// TODO checks
+		
 		$this->shareOwner = $shareOwner;
 		return $this;
 	}
@@ -264,15 +308,17 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getShareOwner() {
-		//TODO check if set
+	public function getShareOwner()
+	{
+		// TODO check if set
 		return $this->shareOwner;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setPassword($password) {
+	public function setPassword($password)
+	{
 		$this->password = $password;
 		return $this;
 	}
@@ -280,14 +326,16 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getPassword() {
+	public function getPassword()
+	{
 		return $this->password;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setToken($token) {
+	public function setToken($token)
+	{
 		$this->token = $token;
 		return $this;
 	}
@@ -295,18 +343,21 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getToken() {
+	public function getToken()
+	{
 		return $this->token;
 	}
 	
 	/**
 	 * Set the parent of this share
 	 *
-	 * @param int parent
+	 * @param
+	 *        	int parent
 	 * @return \OCP\Share\IShare
 	 * @deprecated The new shares do not have parents. This is just here for legacy reasons.
 	 */
-	public function setParent($parent) {
+	public function setParent($parent)
+	{
 		$this->parent = $parent;
 		return $this;
 	}
@@ -317,14 +368,16 @@ final class CernboxShare implements \OCP\Share\IShare
 	 * @return int
 	 * @deprecated The new shares do not have parents. This is just here for legacy reasons.
 	 */
-	public function getParent() {
+	public function getParent()
+	{
 		return $this->parent;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setTarget($target) {
+	public function setTarget($target)
+	{
 		$this->target = $target;
 		return $this;
 	}
@@ -332,14 +385,16 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getTarget() {
+	public function getTarget()
+	{
 		return $this->target;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setShareTime(\DateTime $shareTime) {
+	public function setShareTime(\DateTime $shareTime)
+	{
 		$this->shareTime = $shareTime;
 		return $this;
 	}
@@ -347,14 +402,16 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getShareTime() {
+	public function getShareTime()
+	{
 		return $this->shareTime;
 	}
 	
 	/**
 	 * @inheritdoc
 	 */
-	public function setMailSend($mailSend) {
+	public function setMailSend($mailSend)
+	{
 		$this->mailSend = $mailSend;
 		return $this;
 	}
@@ -362,7 +419,8 @@ final class CernboxShare implements \OCP\Share\IShare
 	/**
 	 * @inheritdoc
 	 */
-	public function getMailSend() {
+	public function getMailSend()
+	{
 		return $this->mailSend;
 	}
 }
