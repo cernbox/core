@@ -10,7 +10,7 @@ use OC\Cernbox\ShareEngine\AbstractProvider;
 use OC\Cernbox\ShareEngine\ShareUtil;
 use OC\Cernbox\ShareEngine\CernboxShare;
 
-final class UserShareProvider implements CernboxShareProvider
+final class UserShareProvider extends CernboxShareProvider
 {	
 	/**
 	 * {@inheritDoc}
@@ -27,8 +27,12 @@ final class UserShareProvider implements CernboxShareProvider
 	 */
 	public function createShare(array $rawData)
 	{
-		$aclMap = ShareUtil::parseAcl($rawData);
+		$aclMap = ShareUtil::parseAcl($rawData['sys.acl']);
 		$shares = [];
+		
+		$owner = EosUtil::getOwner($rawData['eospath']);
+		unset($aclMap[$owner]);
+		
 		foreach($aclMap as $user => $data)
 		{
 			// This provider should only return shares to users
@@ -37,7 +41,7 @@ final class UserShareProvider implements CernboxShareProvider
 				continue;	
 			}
 			
-			$share = new CernboxShare($this->masterProvider->rootFolder);
+			$share = new CernboxShare($this->masterProvider->getRootFolder());
 			$share->setId((int)$rawData['fileid'])
 			->setShareType(\OCP\Share::SHARE_TYPE_USER)
 			->setPermissions((int)EosUtil::toOcPerm($data[0]))
@@ -70,6 +74,8 @@ final class UserShareProvider implements CernboxShareProvider
 			$share->setNodeType($rawData['eostype']);
 		
 			$share->setProviderId($this->masterProvider->identifier());
+			
+			$share->setId($this->generateUniqueId($share));
 			
 			$shares[] = $share;
 		}
@@ -131,7 +137,11 @@ final class UserShareProvider implements CernboxShareProvider
 			throw new \Exception('Could not add ' .$share->getSharedWith(). ' to file ACL: ' . $symLinkEosPath);	
 		}
 		
-		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_type', \OCP\Share::SHARE_TYPE_USER))
+		$allShareTypes = $eosMeta['share_type'];
+		$allShareTypes[] = \OCP\Share::SHARE_TYPE_USER;
+		$allShareTypes = array_unique($allShareTypes);
+		
+		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_type', implode(',', $allShareTypes)))
 		{
 			throw new \Exception('Could not set custom extended attributes [cernbox.share_type] when sharing ' . $symLinkEosPath);
 		}
@@ -149,7 +159,7 @@ final class UserShareProvider implements CernboxShareProvider
 	public function shouldShareBeDelete(IShare $share) 
 	{
 		$sharePath = $this->masterProvider->buildShareEosPath($share);
-		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($sharePath) 
+		$eosMeta = EosParser::parseShare(function() use ($sharePath) 
 		{ 
 			return EosUtil::getFileByEosPath($sharePath);
 		});
@@ -205,7 +215,7 @@ final class UserShareProvider implements CernboxShareProvider
 		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
 		$target = $share->getSharedWith();
 		
-		$targetlinkDst = $sharePrefix . '/' . substr($target, 0, 1) . '/' . $target . '/shared_with_me/' . trim($share->getTarget(), '/');
+		$targetlinkDst = $sharePrefix . '/user/' . substr($target, 0, 1) . '/' . $target . '/shared_with_me/' . trim($share->getTarget(), '/');
 		$srcLink = $this->masterProvider->buildShareEosPath($share);
 		
 		if(!EosUtil::createSymLink($targetlinkDst, $srcLink))
@@ -224,5 +234,17 @@ final class UserShareProvider implements CernboxShareProvider
 	public function getShareOwnerDestFolder() 
 	{
 		return \OC::$server->getConfig()->getSystemValue('share_type_user_folder', 'user_shares');
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Cernbox\ShareEngine\CernboxShareProvider::generateUniqueId()
+	 */
+	public function generateUniqueId($share)
+	{
+		$fileId = $share->getNodeId();
+		$user = $share->getSharedWith();
+	
+		return $user.':'.$fileId;
 	}
 }

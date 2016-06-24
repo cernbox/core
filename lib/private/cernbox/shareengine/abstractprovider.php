@@ -18,7 +18,7 @@ final class AbstractProvider implements IShareProvider
 	/** @var ICernboxProvider */
 	private $providerHandlers = null;
 	
-	protected $rootFolder;
+	private $rootFolder;
 	
 	public function __construct($userRootFolder)
 	{
@@ -59,62 +59,14 @@ final class AbstractProvider implements IShareProvider
 		return $shareProvider->buildSharePath($share);
 	}
 	
-	/**
-	 * Build up a \OC\Cernbox\ShareEngine\CernboxShare object that holds all the share information
-	 * @param array $rawData
-	 */
-	private function createShare(array $rawData)
+	function buildFileEosPath(IShare $share)
 	{
-		$share = new CernboxShare($this->rootFolder);
-		$share->setId((int)$rawData['fileid'])
-		->setShareType((int)$rawData['share_type'])
-		->setPermissions((int)$rawData['permissions'])
-		->setTarget('/' . trim($rawData['path'], '/') . ' (#' . $rawData['fileid'] . ')')
-		->setMailSend(true);
-		
-		$shareTime = new \DateTime();
-		$shareTime->setTimestamp((int)$rawData['share_stime']);
-		$share->setShareTime($shareTime);
-		
-		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER
-				|| $share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP) 
-		{
-			$share->setSharedWith($rawData['share_with']);
-		} 
-		else if ($share->getShareType() === \OCP\Share::SHARE_TYPE_LINK) 
-		{
-			$share->setPassword($rawData['share_password']);
-			$share->setToken($rawData['token']);
-		}
-		
-		if (!isset($rawData['uid_initiator']) || $rawData['uid_initiator'] === null) 
-		{
-			//OLD SHARE
-			$share->setSharedBy($rawData['uid_owner']);
-			$path = $this->getNode($share->getSharedBy(), (int)$rawData['file_source']);
-		
-			$owner = $path->getOwner();
-			$share->setShareOwner($owner->getUID());
-		} 
-		else 
-		{
-			//New share!
-			$share->setSharedBy($rawData['uid_initiator']);
-			$share->setShareOwner($rawData['uid_owner']);
-		}
-		
-		$share->setNodeId((int)$rawData['file_source']);
-		$share->setNodeType($rawData['item_type']);
-		
-		if ($rawData['expiration'] !== null) 
-		{
-			$expiration = \DateTime::createFromFormat('Y-m-d H:i:s', $rawData['expiration']);
-			$share->setExpirationDate($expiration);
-		}
-		
-		$share->setProviderId($this->identifier());
-		
-		return $share;
+		return rtrim(EosProxy::toEos($share->getNode()->getInternalPath(), 'object::user:'.$share->getShareOwner()), '/');
+	}
+	
+	function getRootFolder()
+	{
+		return $this->rootFolder;
 	}
 	
 	/**
@@ -134,7 +86,7 @@ final class AbstractProvider implements IShareProvider
 			return $share;
 		}
 		
-		$sharePath = rtrim(EosProxy::toEos($share->getTarget(), 'object::user:'.$share->getShareOwner()), '/');
+		$sharePath = $this->buildFileEosPath($share);
 		$eosMeta = EosUtil::getFileByEosPath($sharePath);
 		
 		/** 2. IF SHARED FILE IS A FILE, CHECK FOR VERSION FOLDER. IF NOT THERE, CREATE IT */
@@ -158,10 +110,10 @@ final class AbstractProvider implements IShareProvider
 					}
 					
 					// PLACE A SYMLINK INSIDE VERSION FOLDER
-					if(!EosUtil::createSymLinkInVersionFolder($sharePath))
+					/*if(!EosUtil::createSymLinkInVersionFolder($sharePath))
 					{
 						throw new \Exception('Failed creating symlink inside version folder ' . $versionMeta . ' for user ' . $share->getShareOwner());
-					}
+					}*/
 				}
 				catch(Exception $e)
 				{
@@ -176,17 +128,19 @@ final class AbstractProvider implements IShareProvider
 			$share->setNodeId($versionMeta['fileid']);
 		}
 		
+		$share->setShareTime(new \DateTime());
+		$share->setTarget('/' . trim(basename($share->getNode()->getInternalPath()), '/') . '_' . $share->getNodeId());
+		
 		/** 3. CREATE SYMLINK IN SHARE OWNER'S SHARED_WITH_OTHER FOLDER AND SET THE NEEDED CUSTOM ATTRIBUTES */
 		$ownerLinkFolder = $this->buildShareEosPath($share);
-		$ownerShareLinkPath = EosUtil::createSymLink($ownerLinkFolder, $sharePath);
 		
-		if(!$ownerShareLinkPath)
+		if(!EosUtil::createSymLink($ownerLinkFolder, $sharePath))
 		{
 			$this->log('Unable to create symlink in owner share_with_other folders. FileId='.$share->getNodeId().';User='.$share->getShareOwner());
 			throw new \Exception('Unable to access share owner filesystem');
 		}
 		
-		$provider->setShareAttributes($share, $ownerShareLinkPath);
+		$provider->setShareAttributes($share, $ownerLinkFolder);
 		
 		/** 4. CREATE SYMLINK IN RECIPENT SHARED_WITH_YOU FOLDER AND SET THE NEEDED CUSTOM ATTRIBUTES */
 		if(!$provider->shareeTargetCreation($share))
@@ -196,6 +150,14 @@ final class AbstractProvider implements IShareProvider
 				
 			throw new \Exception('Unable to access share target filesystem');
 		}
+		
+		// SET THE SHARE OWNER FOR FAST USER RETRIVAL WHEN RESOLVING USERS FOR SHARES BY LINK
+		EosUtil::setExtendedAttribute($ownerLinkFolder, 'cernbox.share_owner', $share->getShareOwner());
+		
+		$share->setId($provider->generateUniqueId($share));
+		
+		\OC\Cernbox\Storage\EosCacheManager::clearFileByEosPath($ownerLinkFolder);
+		\OC\Cernbox\Storage\EosCacheManager::clearFileById($share->getNodeId());
 		
 		return $share;
 	}
@@ -251,14 +213,21 @@ final class AbstractProvider implements IShareProvider
 	 */
 	public function getSharesBy($userId, $shareType, $node, $reshares, $limit, $offset) 
 	{
-		/** @var ICernboxProvider */
-		$provider = $this->getShareProvider($shareType);
+		try
+		{
+			/** @var ICernboxProvider */
+			$provider = $this->getShareProvider($shareType);
+		}
+		catch(\Exception $e)
+		{
+			return [];
+		}
 		
 		// If a node (path) is specified, we only retrieve the shares for that file
 		if($node !== null)
 		{
 			$contents = [];
-			$contents[] = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($node) 
+			$contents[] = EosParser::parseShare(function() use ($node) 
 			{
 				return EosUtil::getFileById($node->getId());
 			});
@@ -266,8 +235,8 @@ final class AbstractProvider implements IShareProvider
 		// Otherwise, we get all the shares of the user
 		else
 		{
-			$path = rtrim(EosUtil::getEosSharePrefix(), '/') . '/' . substr($userId, 0, 1) . '/' . $userId . '/' . $provider->getShareOwnerDestFolder();
-			$contents = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($path)
+			$path = rtrim(EosUtil::getEosSharePrefix(), '/') . '/user/' . substr($userId, 0, 1) . '/' . $userId . '/' . $provider->getShareOwnerDestFolder();
+			$contents = EosParser::parseShare(function() use ($path)
 			{
 				return EosUtil::getFolderContents($path);
 			});
@@ -282,16 +251,19 @@ final class AbstractProvider implements IShareProvider
 		// Build the share object
 		$filesLen = count($contents);
 		$shares = [];
-		$limitCheck = 0;
-		for($i = $offset; $limitCheck >= $limit && $i < $filesLen; $i++)
-		{	
-			$file = $contents[$i];
-			if(array_search($shareType, $file['share_type']) !== FALSE)
-			{
-				$shares = array_merge($shares, $provider->createShare($file));
+		if($filesLen > 0 && $offset < $filesLen)
+		{
+			$limit = $limit <= 0? $filesLen : $limit;
+			$limitCheck = 0;
+			for($i = $offset; $limitCheck <= $limit && $i < $filesLen; $i++)
+			{	
+				$file = $contents[$i];
+				if(array_search($shareType, $file['share_type']) !== FALSE)
+				{
+					$shares = array_merge($shares, $provider->createShare($file));
+					$limitCheck++;
+				}
 			}
-				
-			$limitCheck++;
 		}
 		
 		return $shares;
@@ -305,7 +277,11 @@ final class AbstractProvider implements IShareProvider
 	 */
 	public function getShareById($id, $recipientId = null) 
 	{
-		$meta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($id)
+		$provider = array_values($this->providerHandlers)[0];
+		
+		$id = $provider->getFileIdFromShareId($id);
+		
+		$meta = EosParser::parseShare(function() use ($id)
 		{
 			return EosUtil::getFileById($id);
 		});
@@ -347,7 +323,7 @@ final class AbstractProvider implements IShareProvider
 	 */
 	public function getSharesByPath(Node $path) 
 	{
-		$meta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($path)
+		$meta = EosParser::parseShare(function() use($path)
 		{
 			return EosUtil::getFileById($path->getId());
 		});
@@ -395,7 +371,7 @@ final class AbstractProvider implements IShareProvider
 		if($node !== null)
 		{
 			$contents = [];
-			$contents[] = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($node)
+			$contents[] = EosParser::parseShare(function() use ($node)
 			{
 				return EosUtil::getFileById($node->getId());
 			});
@@ -403,17 +379,17 @@ final class AbstractProvider implements IShareProvider
 		// For the files shared with the specified user
 		else if($shareType === \OCP\Share::SHARE_TYPE_USER)
 		{
-			$userPath = rtrim(EosUtil::getEosSharePrefix(), '/') . '/' . substr($userId, 0, 1) . '/' . $userId . '/' . 'shared_with_me';
+			$userPath = rtrim(EosUtil::getEosSharePrefix(), '/') . '/user/' . substr($userId, 0, 1) . '/' . $userId . '/' . 'shared_with_me';
 			$contents = $this->getFolderContents($userPath);
 		}
 		// For the files shared with the e-groups to which the specified user belongs
 		else if($shareType === \OCP\Share::SHARE_TYPE_GROUP)
 		{
-			$userGroups = \OC\Cernbox\LDAPCache\LDAPCacheManager::getUserGroups($userId);
+			$userGroups = \OC\Cernbox\LDAP\LDAPCacheManager::getUserGroups($userId);
 			foreach($userGroups as $group)
 			{
 				$groupPath = (rtrim(EosUtil::getEosSharePrefix(), '/') . '/groups/' . substr($group, 0, 1) . '/' . $group);
-				$tempGroupShares = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($groupPath)
+				$tempGroupShares = EosParser::parseShare(function() use($groupPath)
 				{
 					return EosUtil::getFolderContents($groupPath);
 				});
@@ -468,11 +444,11 @@ final class AbstractProvider implements IShareProvider
 	{
 		$tokenHash = ShareUtil::calcTokenHash($token);
 		$sharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
-		$globalLinkFolder = \OC::$server->getConfig()->getSystemValue('share_global_link_folder', 'global_links');
+		$globalLinkFolder = ShareUtil::getGlobalLinksFolder();
 		
 		$globalLinkPath = $sharePrefix . '/' . $globalLinkFolder . '/' . $tokenHash . '/' . $token;
 		
-		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($globalLinkPath)
+		$eosMeta = EosParser::parseShare(function() use ($globalLinkPath)
 		{
 			return EosUtil::getFileByEosPath($globalLinkPath);
 		});
@@ -482,7 +458,7 @@ final class AbstractProvider implements IShareProvider
 			throw new ShareNotFound('Could not locate share with token ' . $token);
 		}
 		
-		return $this->createShare($eosMeta)[0];
+		return $this->getShareProvider(\OCP\Share::SHARE_TYPE_LINK)->createShare($eosMeta)[0];
 	}
 	
 	/**
@@ -525,12 +501,25 @@ final class AbstractProvider implements IShareProvider
 			{
 				$this->log('AbstractProvider.delete(): Failed to delete symlink ' . $sharePath);
 			}
+			
+			$this->removeShareAttributes($share);
 		}
+	}
+	
+	private function removeShareAttributes($share)
+	{
+		$sharePath = $this->buildFileEosPath($share);
+		
+		EosUtil::removeExtendedAttribute($sharePath, 'cernbox.share_type');
+		EosUtil::removeExtendedAttribute($sharePath, 'cernbox.share_stime');
+		EosUtil::removeExtendedAttribute($sharePath, 'cernbox.share_expiration');
+		EosUtil::removeExtendedAttribute($sharePath, 'cernbox.share_password');
+		EosUtil::removeExtendedAttribute($sharePath, 'cernbox.share_token');
 	}
 	
 	private function getFolderContents($eosPath)
 	{
-		return EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use($eosPath)
+		return EosParser::parseShare(function() use($eosPath)
 		{
 			return EosUtil::getFolderContents($eosPath);
 		});

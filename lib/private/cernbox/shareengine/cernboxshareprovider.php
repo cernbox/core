@@ -62,6 +62,30 @@ abstract class CernboxShareProvider
 	public abstract function getShareOwnerDestFolder();
 	
 	/**
+	 * Creates an unique ID to be used to uniquely identify the share
+	 * @param IShare $share the share object for which we have to generate an ID
+	 * @return string the share id
+	 */
+	public abstract function generateUniqueId($share);
+	
+	/**
+	 * Returns the file inode id that belongs to the file whose share
+	 * is given as parameter
+	 * @param string $id of the share
+	 * @return string|int file id of the share
+	 */
+	public function getFileIdFromShareId($id)
+	{
+		$parts = explode(':', $id);
+		if(count($parts) < 2)
+		{
+			return false;
+		}
+		
+		return $parts[1];
+	}
+	
+	/**
 	 * Builds the EOS path to this share owner's symlink on EOS
 	 * @param IShare $share object holding all share information
 	 * @return string the EOS path to the owner's share symlink
@@ -71,7 +95,7 @@ abstract class CernboxShareProvider
 		$eosSharePrefix = rtrim(EosUtil::getEosSharePrefix(), '/');
 		$owner = $share->getShareOwner();
 				
-		return ($eosSharePrefix . '/' . substr($owner, 0, 1) . '/' . $owner . '/'
-				. $this->getShareOwnerDestFolder() . '/' . trim($share->getTarget(), '/'));
+		return ($eosSharePrefix . '/user/' . substr($owner, 0, 1) . '/' . $owner . '/'
+				. $this->getShareOwnerDestFolder() . '/' . basename(trim($share->getNode()->getInternalPath()), '/'));
 	}
 }

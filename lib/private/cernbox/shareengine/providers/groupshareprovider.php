@@ -27,7 +27,7 @@ final class GroupShareProvider extends CernboxShareProvider
 	 */
 	public function createShare(array $rawData)
 	{
-		$aclMap = ShareUtil::parseAcl($rawData);
+		$aclMap = ShareUtil::parseAcl($rawData['sys.acl']);
 		$shares = [];
 		foreach($aclMap as $user => $data)
 		{
@@ -37,9 +37,8 @@ final class GroupShareProvider extends CernboxShareProvider
 				continue;
 			}
 				
-			$share = new CernboxShare($this->masterProvider->rootFolder);
-			$share->setId((int)$rawData['fileid'])
-			->setShareType(\OCP\Share::SHARE_TYPE_GROUP)
+			$share = new CernboxShare($this->masterProvider->getRootFolder());
+			$share->setShareType(\OCP\Share::SHARE_TYPE_GROUP)
 			->setPermissions((int)EosUtil::toOcPerm($data[0]))
 			->setTarget('/'.trim($rawData['path'], '/') . ' (#' . $rawData['fileid'] . ')')
 			->setMailSend(true);
@@ -71,6 +70,8 @@ final class GroupShareProvider extends CernboxShareProvider
 	
 			$share->setProviderId($this->masterProvider->identifier());
 				
+			$share->setId($this->generateUniqueId($share));
+			
 			$shares[] = $share;
 		}
 	
@@ -131,7 +132,11 @@ final class GroupShareProvider extends CernboxShareProvider
 			throw new \Exception('Could not add ' .$share->getSharedWith(). ' to file ACL: ' . $symLinkEosPath);
 		}
 	
-		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_type', \OCP\Share::SHARE_TYPE_GROUP))
+		$allShareTypes = $eosMeta['share_type'];
+		$allShareTypes[] = \OCP\Share::SHARE_TYPE_GROUP;
+		$allShareTypes = array_unique($allShareTypes);
+		
+		if(!EosUtil::setExtendedAttribute($symLinkEosPath, 'cernbox.share_type', implode(',', $allShareTypes)))
 		{
 			throw new \Exception('Could not set custom extended attributes [cernbox.share_type] when sharing ' . $symLinkEosPath);
 		}
@@ -149,7 +154,7 @@ final class GroupShareProvider extends CernboxShareProvider
 	public function shouldShareBeDelete(IShare $share)
 	{
 		$sharePath = $this->buildSharePath($share);
-		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function() use ($sharePath) 
+		$eosMeta = EosParser::parseShare(function() use ($sharePath) 
 		{ 
 			return EosUtil::getFileByEosPath($sharePath);
 		});
@@ -227,5 +232,17 @@ final class GroupShareProvider extends CernboxShareProvider
 	public function getShareOwnerDestFolder()
 	{
 		return \OC::$server->getConfig()->getSystemValue('share_type_group_folder', 'user_shares');
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 * @see \OC\Cernbox\ShareEngine\CernboxShareProvider::generateUniqueId()
+	 */
+	public function generateUniqueId($share)
+	{
+		$fileId = $share->getNodeId();
+		$group = $share->getSharedWith();
+	
+		return $group.':'.$fileId;
 	}
 }

@@ -16,8 +16,8 @@ use OCP\IUserManager;
 use OCP\Files\IRootFolder;
 use OCP\Share\Exceptions\GenericShareException;
 use OC\Cernbox\Storage\EosParser;
+use OC\Cernbox\Storage\EosUtil;
 use OCP\Share\Exceptions\ShareNotFound;
-use OCP\IGroup;
 
 final class CernboxShareManager implements IManager
 {
@@ -283,8 +283,8 @@ final class CernboxShareManager implements IManager
 			
 			$date = new \DateTime();
 			$date->setTime(0, 0, 0);
-			$date->add(new \DateInterval('P' . $this->shareApiLinkDefaultExpireDays() . 'D'));
-			if ($date < ($expirationDate + 1)) // CERNBOX: +1 To prevent midnight glitch
+			$date->add(new \DateInterval('P' . ($this->shareApiLinkDefaultExpireDays() + 1) . 'D'));
+			if ($date < $expirationDate) // CERNBOX: +1 To prevent midnight glitch
 			{
 				$message = $this->l->t('Cannot set expiration date more than %s days in the future', [ 
 						$this->shareApiLinkDefaultExpireDays() 
@@ -327,18 +327,18 @@ final class CernboxShareManager implements IManager
 		 */
 		$provider = $this->factory->getProviderForType($share->getShareType());
 		
-		$eosMeta = EosParser::executeWithParser(EosParser::$SHARE_PARSER, function () use ($share)
+		$eosMeta = EosParser::parseShare(function () use ($share)
 		{
 			return EosUtil::getFileById($share->getNodeId());
 		});
 		
-		if (! eosMeta)
+		if (!$eosMeta)
 		{
 			throw new ShareNotFound('Could not locate the file with inode ' . $share->getNodeId());
 		}
 		
-		$aclMap = ShareUtil::parseAcl($eosMeta ['sys.acl']);
-		$groups = $this->groupManager->getUserGroupIds($share->getSharedWith());
+		$userObject = $this->userManager->get($share->getSharedWith());
+		$groups = $this->groupManager->getUserGroupIds($userObject);
 		// $groups
 		
 		$existingShares = $provider->getSharesByPath($share->getNode());
@@ -486,7 +486,6 @@ final class CernboxShareManager implements IManager
 				$share->setParent($storage->getShareId());
 			}
 		}
-		;
 	}
 	
 	/**
@@ -950,7 +949,15 @@ final class CernboxShareManager implements IManager
 			throw new \InvalidArgumentException('invalid path');
 		}
 		
-		$provider = $this->factory->getProviderForType($shareType);
+		try
+		{
+			$provider = $this->factory->getProviderForType($shareType);
+		}
+		catch(\Exception $e)
+		{
+			\OCP\Util::writeLog('SHARE ENGINE', 'Exception while addressing a share provider: ' . $e->getMessage(), \OCP\Util::ERROR);
+			return [];
+		}
 		
 		$shares = $provider->getSharesBy($userId, $shareType, $path, $reshares, $limit, $offset);
 		
@@ -973,7 +980,7 @@ final class CernboxShareManager implements IManager
 					{
 						try
 						{
-							$this->deleteShare($share);
+							$this->deleteShare($share);	
 						}
 						catch ( NotFoundException $e )
 						{
@@ -1010,6 +1017,14 @@ final class CernboxShareManager implements IManager
 			$shares = $shares2;
 		}
 		
+		$handle = fopen('shares_'.$shareType.'.txt', 'w');
+		foreach($shares as $share)
+		{
+			fwrite($handle, 'ID: '.$share->getId().';TAGET: '.$share->getTarget() . PHP_EOL);
+		}
+		fflush($handle);
+		fclose($handle);
+		
 		return $shares;
 	}
 	
@@ -1033,8 +1048,7 @@ final class CernboxShareManager implements IManager
 			throw new ShareNotFound();
 		}
 		
-		list ( $providerId, $id ) = $this->splitFullId($id);
-		$provider = $this->factory->getProvider($providerId);
+		$provider = $this->factory->getProvider('');
 		
 		$share = $provider->getShareById($id, $recipient);
 		

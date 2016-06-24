@@ -34,7 +34,7 @@ final class CernboxProviderFactory implements IProviderFactory
 	 */
 	public function getProviderForType($shareType) 
 	{
-		if($shareType == \OCP\Share::SHARE_TYPE_REMOTE)
+		if($shareType === \OCP\Share::SHARE_TYPE_REMOTE)
 		{
 			throw new \Exception('Remote shares are not allowed');
 		}
