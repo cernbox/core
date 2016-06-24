@@ -595,6 +595,10 @@ class OC_Helper {
 	 * @throws \OCP\Files\NotFoundException
 	 */
 	public static function getStorageInfo($path, $rootInfo = null) {
+		/** CERNBOX STORAGE PLUGIN PATCH */
+		return \OC\Cernbox\Storage\EosUtil::getUserQuota();
+		/** PATCH END */
+		
 		// return storage info without adding mount points
 		$includeExtStorage = \OC::$server->getSystemConfig()->getValue('quota_include_external_storage', false);
 

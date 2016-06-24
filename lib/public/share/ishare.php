@@ -35,6 +35,12 @@ use OCP\Files\NotFoundException;
 interface IShare {
 
 	/**
+	 * THIS METHOD IS INTRODUCED ON OWNCLOUD 9.1
+	 * @param unknown $id
+	 */
+	public function setId($id);
+	
+	/**
 	 * Get the internal id of the share.
 	 *
 	 * @return string

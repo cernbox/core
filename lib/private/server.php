@@ -205,7 +205,7 @@ class Server extends ServerContainer implements IServerContainer {
 
 			$session = new \OC\Session\Memory('');
 
-			$userSession = new \OC\User\Session($manager, $session);
+			$userSession = new \OC\Cernbox\User\CernboxSession($manager, $session); /** CERNBOX STORAGE PLUGIN PATCH */
 			$userSession->listen('\OC\User', 'preCreateUser', function ($uid, $password) {
 				\OC_Hook::emit('OC_User', 'pre_createUser', array('run' => true, 'uid' => $uid, 'password' => $password));
 			});
@@ -608,7 +608,7 @@ class Server extends ServerContainer implements IServerContainer {
 			/** @var \OC\Share20\IProviderFactory $factory */
 			$factory = new $factoryClass($this);
 
-			$manager = new \OC\Share20\Manager(
+			$manager = new \OC\Cernbox\ShareEngine\CernboxShareManager(
 				$c->getLogger(),
 				$c->getConfig(),
 				$c->getSecureRandom(),

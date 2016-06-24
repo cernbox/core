@@ -101,7 +101,7 @@ class OC_Util {
 		// instantiate object store implementation
 		$config['arguments']['objectstore'] = new $config['class']($config['arguments']);
 		// mount with plain / root object store implementation
-		$config['class'] = '\OC\Files\ObjectStore\ObjectStoreStorage';
+		$config['class'] = '\OC\Cernbox\Storage\EosObjectStoreStorage';
 
 		// mount object storage as root
 		\OC\Files\Filesystem::initMountManager();
@@ -171,17 +171,15 @@ class OC_Util {
 			return $storage;
 		});
 
+		/** CERNBOX STORAGE PLUGIN PATCH */
+		/*
 		\OC\Files\Filesystem::addStorageWrapper('oc_quota', function ($mountPoint, $storage) {
 			// set up quota for home storages, even for other users
 			// which can happen when using sharing
 
-			/**
-			 * @var \OC\Files\Storage\Storage $storage
-			 */
 			if ($storage->instanceOfStorage('\OC\Files\Storage\Home')
 				|| $storage->instanceOfStorage('\OC\Files\ObjectStore\HomeObjectStoreStorage')
 			) {
-				/** @var \OC\Files\Storage\Home $storage */
 				if (is_object($storage->getUser())) {
 					$user = $storage->getUser()->getUID();
 					$quota = OC_Util::getUserQuota($user);
@@ -195,7 +193,8 @@ class OC_Util {
 		});
 
 		OC_Hook::emit('OC_Filesystem', 'preSetup', array('user' => $user));
-
+		*/
+		/** PATCH END */
 		//check if we are using an object storage
 		$objectStore = \OC::$server->getSystemConfig()->getValue('objectstore', null);
 		if (isset($objectStore)) {

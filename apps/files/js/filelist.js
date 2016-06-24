@@ -808,14 +808,15 @@
 		elementToFile: function($el){
 			$el = $($el);
 			var data = {
-				id: parseInt($el.attr('data-id'), 10),
+				id: $el.attr('data-id'), //parseInt($el.attr('data-id'), 10), /** CERNBOX STORAGE PLUGIN PATCH */
 				name: $el.attr('data-file'),
 				mimetype: $el.attr('data-mime'),
 				mtime: parseInt($el.attr('data-mtime'), 10),
 				type: $el.attr('data-type'),
 				size: parseInt($el.attr('data-size'), 10),
 				etag: $el.attr('data-etag'),
-				permissions: parseInt($el.attr('data-permissions'), 10)
+				permissions: parseInt($el.attr('data-permissions'), 10),
+				eospath: $el.attr('data-eospath') /** CERNBOX STORAGE PLUGIN PATCH */
 			};
 			var icon = $el.attr('data-icon');
 			if (icon) {
@@ -976,6 +977,7 @@
 				mime = fileData.mimetype,
 				path = fileData.path,
 				dataIcon = null,
+				eospath = fileData.eospath, /** CERNBOX STORAGE PLUGIN PATCH */
 				linkUrl;
 			options = options || {};
 
@@ -1001,7 +1003,8 @@
 				"data-mime": mime,
 				"data-mtime": mtime,
 				"data-etag": fileData.etag,
-				"data-permissions": fileData.permissions || this.getDirectoryPermissions()
+				"data-permissions": fileData.permissions || this.getDirectoryPermissions(),
+				"data-eospath": eospath /** CERNBOX STORAGE PLUGIN PATCH */
 			});
 
 			if (dataIcon) {
