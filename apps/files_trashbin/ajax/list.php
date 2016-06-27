@@ -31,7 +31,10 @@ $data = array();
 
 // make filelist
 try {
-	$files = \OCA\Files_Trashbin\Helper::getTrashFiles($dir, \OCP\User::getUser(), $sortAttribute, $sortDirection);
+	/** CERNBOX TRASHBIN PLUGIN PATCH */
+	//$files = \OCA\Files_Trashbin\Helper::getTrashFiles($dir, \OCP\User::getUser(), $sortAttribute, $sortDirection);
+	$files = \OCA\Files_Trashbin\EosTrashbin::getTrashFiles($dir);
+	/** PATCH END */
 } catch (Exception $e) {
 	header("HTTP/1.0 404 Not Found");
 	exit();
@@ -41,7 +44,10 @@ $encodedDir = \OCP\Util::encodePath($dir);
 
 $data['permissions'] = 0;
 $data['directory'] = $dir;
-$data['files'] = \OCA\Files_Trashbin\Helper::formatFileInfos($files);
+/** CERNBOX TRASHBIN PLUGIN PATCH */
+//$data['files'] = \OCA\Files_Trashbin\Helper::formatFileInfos($files);
+$data['files'] = \OCA\Files_Trashbin\EosTrashbin::sortFiles($files, $sortAttribute, $sortDirection);
+/** PATCH END */
 
 OCP\JSON::success(array('data' => $data));
 

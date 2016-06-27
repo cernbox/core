@@ -31,6 +31,8 @@ $folder = isset($_POST['dir']) ? $_POST['dir'] : '/';
 
 // "empty trash" command
 if (isset($_POST['allfiles']) && (string)$_POST['allfiles'] === 'true'){
+	/** CERNBOX TRASHBIN PLUGIN PATCH */
+	/*
 	$deleteAll = true;
 	if ($folder === '/' || $folder === '') {
 		OCA\Files_Trashbin\Trashbin::deleteAll();
@@ -39,13 +41,20 @@ if (isset($_POST['allfiles']) && (string)$_POST['allfiles'] === 'true'){
 		$list[] = $folder;
 		$folder = dirname($folder);
 	}
+	*/
+	\OCA\Files_Trashbin\EosTrashbin::deleteAll();
+	OCP\JSON::success(array("data" => array("success" => array())));
 }
 else {
+	/*
 	$deleteAll = false;
 	$files = (string)$_POST['files'];
 	$list = json_decode($files);
+	*/
+	OCP\JSON::error(array("data" => array("message" => "Single file deletion is not allowed", "success" => array(), "error" => array())));
 }
 
+/*
 $folder = rtrim($folder, '/') . '/';
 $error = array();
 $success = array();
@@ -86,4 +95,4 @@ if ( $error ) {
 			                               "success" => $success, "error" => $error)));
 } else {
 	OCP\JSON::success(array("data" => array("success" => $success)));
-}
+}*/

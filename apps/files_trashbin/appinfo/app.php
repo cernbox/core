@@ -26,8 +26,10 @@
 
 $l = \OC::$server->getL10N('files_trashbin');
 
+/** CERNBOX TRASHBIN PLUGIN PATCH*/
 // register hooks
-\OCA\Files_Trashbin\Trashbin::registerHooks();
+//\OCA\Files_Trashbin\Trashbin::registerHooks();
+/** PATCH END */
 
 \OCA\Files\App::getNavigationManager()->add(
 array(
