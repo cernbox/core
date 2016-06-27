@@ -108,18 +108,26 @@ class LDAPCacheManager
 	
 	public static function addGroup($gid)
 	{
-		Redis::writeToCacheMap(self::REDIS_KEY_ALL_GROUPS, $gid, '');
+		if(!self::groupExists($gid))
+		{
+			Redis::writeToCacheMap(self::REDIS_KEY_ALL_GROUPS, $gid, '');
+		}
 	}
 	
 	public static function groupExists($gid)
 	{
-		return (Redis::readFromCacheMap(self::REDIS_KEY_ALL_GROUPS, $gid));
+		if(Redis::readFromCacheMap(self::REDIS_KEY_ALL_GROUPS, $gid))
+		{
+			return true;
+		}
+		
+		return count(LDAPDatabase::getGroupData($gid)) > 0;
 	}
 	
 	public static function getAllCachedGroups()
 	{
 		$result = [];
-		$raw = json_decode(Redis::readHashFromCacheMap(self::REDIS_KEY_ALL_GROUPS));
+		$raw = Redis::readHashFromCacheMap(self::REDIS_KEY_ALL_GROUPS);
 		if($raw)
 		{
 			foreach($raw as $group => $dummy)

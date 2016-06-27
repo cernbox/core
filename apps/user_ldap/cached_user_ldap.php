@@ -32,7 +32,7 @@ class CACHED_USER_LDAP extends USER_LDAP
 		
 		if(strpos($searchParams, 'a') !== FALSE)
 		{
-			$ldap_users = LDAPDatabase::fetchUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn'], $limit);
+			$ldap_users = LDAPDatabase::fetchUsersData('%'.$search.'%', ['cn', 'displayname'], ['cn', 'displayname'], $limit);
 		}
 		else 
 		{

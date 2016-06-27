@@ -4,9 +4,10 @@ namespace OC\Cernbox\LDAP;
 
 use \OC\Cernbox\Storage\EosUtil;
 use \OC\Cernbox\Storage\Redis;
-use \OC\LDAPCache\LDAPCacheManager;
+use \OC\Cernbox\LDAP\LDAPCacheManager;
+use \OC\Cernbox\LDAP\LDAPUpdater;
 
-class LDAPGroupMappingUpdater extends LDAPUPdater
+class LDAPGroupMappingUpdater extends LDAPUpdater
 {
 	const CACHE_VALIDITY_TIME = 1800; // Half a hour
 	
@@ -34,7 +35,7 @@ class LDAPGroupMappingUpdater extends LDAPUPdater
 	
 	private function getUsedEGroups()
 	{
-		return \OC_DB::prepare('SELECT DISTINCT share_with FROM oc_share WHERE share_with IN (SELECT cn FROM cernbox_ldap_groups)')->execute()->fetchAll();
+		return LDAPCacheManager::getAllCachedGroups();
 	}
 	
 	private function getUsersToUpdate()
