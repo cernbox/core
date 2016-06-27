@@ -887,6 +887,10 @@ class OC {
 				}
 				self::checkSingleUserMode();
 				OC_Util::setupFS();
+				
+				/** CERNBOX LDAP CACHE PATCH */
+				\OC\Cernbox\LDAP\LDAPCacheManager::updateUserCacheRefresh();
+				
 				OC::$server->getRouter()->match(\OC::$server->getRequest()->getRawPathInfo());
 				return;
 			} catch (Symfony\Component\Routing\Exception\ResourceNotFoundException $e) {

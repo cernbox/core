@@ -44,10 +44,18 @@ if(count($configPrefixes) === 1) {
 	$connector = new OCA\user_ldap\lib\Connection($ldapWrapper, $configPrefixes[0]);
 	$ldapAccess = new OCA\user_ldap\lib\Access($connector, $ldapWrapper, $userManager);
 
+	/** CERNBOX LDAP CACHE PATCH*/
+	/*
 	$ldapAccess->setUserMapper(new OCA\User_LDAP\Mapping\UserMapping($dbc));
 	$ldapAccess->setGroupMapper(new OCA\User_LDAP\Mapping\GroupMapping($dbc));
 	$userBackend  = new OCA\user_ldap\USER_LDAP($ldapAccess, $ocConfig);
 	$groupBackend = new OCA\user_ldap\GROUP_LDAP($ldapAccess);
+	*/
+	$ldapAccess->setUserMapper(new OCA\User_LDAP\Mapping\CustomUserMapping($dbc));
+	$ldapAccess->setGroupMapper(new OCA\User_LDAP\Mapping\CustomGroupMapping($dbc));
+	$userBackend  = new OCA\user_ldap\CACHED_USER_LDAP($ldapAccess, $ocConfig);
+	$groupBackend = new OCA\user_ldap\CACHED_GROUP_LDAP($ldapAccess);
+	/** PATCH END */
 } else if(count($configPrefixes) > 1) {
 	$userBackend  = new OCA\user_ldap\User_Proxy(
 		$configPrefixes, $ldapWrapper, $ocConfig
