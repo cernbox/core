@@ -1870,5 +1870,95 @@
 			</index>
 		</declaration>
 	</table>
+	
+		<table>
+		<name>cernbox_eos_instances_mapping</name>
+		<declaration>
+			<field>
+				<name>id</name>
+				<autoincrement>1</autoincrement>
+				<type>integer</type>
+				<default>0</default>
+				<notnull>true</notnull>
+				<length>4</length>
+			</field>
+			<field>
+				<name>name</name>
+				<type>text</type>
+				<default></default>
+				<notnull>true</notnull>
+				<length>100</length>
+			</field>
+			<field>
+				<name>mgm_url</name>
+				<type>text</type>
+				<default></default>
+				<notnull>true</notnull>
+				<length>100</length>
+			</field>
+			
+			<field>
+				<name>user_root_dir</name>
+				<type>text</type>
+				<default>NULL</default>
+				<length>100</length>
+			</field>
+			<field>
+				<name>project_root_dir</name>
+				<type>text</type>
+				<default>NULL</default>
+				<length>100</length>
+			</field>
+			<field>
+				<name>trashbin_root_dir</name>
+				<type>text</type>
+				<default>NULL</default>
+				<length>100</length>
+			</field>
+			
+			<index>
+				<primary>true</primary>
+				<unique>true</unique>
+				<name>eos_instances_index</name>
+				<field>
+					<name>id</name>
+				</field>
+			</index>			
+		</declaration>
+	</table>
+	
+	<table>
+		<name>cernbox_project_mapping</name>
+		<declaration>
+			<field>
+				<name>project_name</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>eos_relative_path</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			<field>
+				<name>project_owner</name>
+				<type>text</type>
+				<notnull>true</notnull>
+				<length>50</length>
+			</field>
+			
+			<index>
+				<primary>true</primary>
+				<unique>true</unique>
+				<name>eos_projectspaces_mapping_index</name>
+				<field>
+					<name>project_name</name>
+				</field>
+			</index>			
+		</declaration>
+	</table>
+	
 
 </database>
