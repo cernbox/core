@@ -48,36 +48,13 @@ use OCA\Files_Versions\Command\Expire;
 use OCP\Files\NotFoundException;
 use OCP\Lock\ILockingProvider;
 use OCP\User;
+use OC\Cernbox\Storage\EosUtil;
+use OC\Cernbox\Storage\EosProxy;
+use OC\Cernbox\Storage\EosCmd;
 
 class Storage {
 
 	const DEFAULTENABLED=true;
-	const DEFAULTMAXSIZE=50; // unit: percentage; 50% of available disk space/quota
-	const VERSIONS_ROOT = 'files_versions/';
-
-	const DELETE_TRIGGER_MASTER_REMOVED = 0;
-	const DELETE_TRIGGER_RETENTION_CONSTRAINT = 1;
-	const DELETE_TRIGGER_QUOTA_EXCEEDED = 2;
-
-	// files for which we can remove the versions after the delete operation was successful
-	private static $deletedFiles = array();
-
-	private static $sourcePathAndUser = array();
-
-	private static $max_versions_per_interval = array(
-		//first 10sec, one version every 2sec
-		1 => array('intervalEndsAfter' => 10,      'step' => 2),
-		//next minute, one version every 10sec
-		2 => array('intervalEndsAfter' => 60,      'step' => 10),
-		//next hour, one version every minute
-		3 => array('intervalEndsAfter' => 3600,    'step' => 60),
-		//next 24h, one version every hour
-		4 => array('intervalEndsAfter' => 86400,   'step' => 3600),
-		//next 30days, one version per day
-		5 => array('intervalEndsAfter' => 2592000, 'step' => 86400),
-		//until the end one version per week
-		6 => array('intervalEndsAfter' => -1,      'step' => 604800),
-	);
 	
 	/** @var \OCA\Files_Versions\AppInfo\Application */
 	private static $application;
@@ -121,8 +98,12 @@ class Storage {
 	 * @param string $source source path
 	 */
 	public static function setSourcePathAndUser($source) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		list($uid, $path) = self::getUidAndFilename($source);
 		self::$sourcePathAndUser[$source] = array('uid' => $uid, 'path' => $path);
+		*/
+		return ['uid' => '-1', 'path' => ''];
 	}
 
 	/**
@@ -132,7 +113,8 @@ class Storage {
 	 * @return array with user id and path
 	 */
 	public static function getSourcePathAndUser($source) {
-
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		if (isset(self::$sourcePathAndUser[$source])) {
 			$uid = self::$sourcePathAndUser[$source]['uid'];
 			$path = self::$sourcePathAndUser[$source]['path'];
@@ -141,6 +123,8 @@ class Storage {
 			$uid = $path = false;
 		}
 		return array($uid, $path);
+		*/
+		return [-1, -1];
 	}
 
 	/**
@@ -150,15 +134,20 @@ class Storage {
 	 * @return int versions size
 	 */
 	private static function getVersionsSize($user) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$view = new View('/' . $user);
 		$fileInfo = $view->getFileInfo('/files_versions');
 		return isset($fileInfo['size']) ? $fileInfo['size'] : 0;
+		*/
 	}
 
 	/**
 	 * store a new version of a file.
 	 */
 	public static function store($filename) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		if(\OCP\Config::getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true') {
 
 			// if the file gets streamed we need to remove the .part extension
@@ -194,6 +183,7 @@ class Storage {
 			// call getFileInfo to enforce a file cache entry for the new version
 			$users_view->getFileInfo('files_versions/' . $filename . '.v' . $mtime);
 		}
+		*/
 	}
 
 
@@ -202,10 +192,13 @@ class Storage {
 	 * @param string $path
 	 */
 	public static function markDeletedFile($path) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		list($uid, $filename) = self::getUidAndFilename($path);
 		self::$deletedFiles[$path] = array(
 			'uid' => $uid,
 			'filename' => $filename);
+		*/
 	}
 
 	/**
@@ -215,21 +208,25 @@ class Storage {
 	 * @param string $path
 	 */
 	protected static function deleteVersion($view, $path) {
-		$view->unlink($path);
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		//$view->unlink($path);
 		/**
 		 * @var \OC\Files\Storage\Storage $storage
 		 * @var string $internalPath
 		 */
+		/*
 		list($storage, $internalPath) = $view->resolvePath($path);
 		$cache = $storage->getCache($internalPath);
 		$cache->remove($internalPath);
+		*/
 	}
 
 	/**
 	 * Delete versions of a file
 	 */
 	public static function delete($path) {
-
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$deletedFile = self::$deletedFiles[$path];
 		$uid = $deletedFile['uid'];
 		$filename = $deletedFile['filename'];
@@ -248,6 +245,7 @@ class Storage {
 			}
 		}
 		unset(self::$deletedFiles[$path]);
+		*/
 	}
 
 	/**
@@ -260,6 +258,8 @@ class Storage {
 	 * @param string $operation can be 'copy' or 'rename'
 	 */
 	public static function renameOrCopy($sourcePath, $targetPath, $operation) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		list($sourceOwner, $sourcePath) = self::getSourcePathAndUser($sourcePath);
 
 		// it was a upload of a existing file if no old path exists
@@ -306,7 +306,7 @@ class Storage {
 		if (!$rootView->is_dir('/' . $targetOwner . '/files/' . $targetPath)) {
 			self::scheduleExpire($targetOwner, $targetPath);
 		}
-
+		*/
 	}
 
 	/**
@@ -316,46 +316,25 @@ class Storage {
 	 * @param int $revision revision timestamp
 	 */
 	public static function rollback($file, $revision) {
-
-		if(\OCP\Config::getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true') {
-			// add expected leading slash
-			$file = '/' . ltrim($file, '/');
-			list($uid, $filename) = self::getUidAndFilename($file);
-			$users_view = new View('/'.$uid);
-			$files_view = new View('/'. User::getUser().'/files');
-			$versionCreated = false;
-
-			//first create a new version
-			$version = 'files_versions'.$filename.'.v'.$users_view->filemtime('files'.$filename);
-			if (!$users_view->file_exists($version)) {
-				$users_view->copy('files'.$filename, 'files_versions'.$filename.'.v'.$users_view->filemtime('files'.$filename));
-				$versionCreated = true;
-			}
-
-			$fileToRestore =  'files_versions' . $filename . '.v' . $revision;
-
-			// Restore encrypted version of the old file for the newly restored file
-			// This has to happen manually here since the file is manually copied below
-			$oldVersion = $users_view->getFileInfo($fileToRestore)->getEncryptedVersion();
-			$newFileInfo = $files_view->getFileInfo($filename);
-			$cache = $newFileInfo->getStorage()->getCache();
-			$cache->update($newFileInfo->getId(), ['encrypted' => $oldVersion, 'encryptedVersion' => $oldVersion]);
-
-			// rollback
-			if (self::copyFileContents($users_view, $fileToRestore, 'files' . $filename)) {
-				$files_view->touch($file, $revision);
-				Storage::scheduleExpire($uid, $file);
-				\OC_Hook::emit('\OCP\Versions', 'rollback', array(
-					'path' => $filename,
-					'revision' => $revision,
-				));
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		$file = "files" . $file;// we need to add the files prefix to send EOS to user root and not to m.etacernbox
+		$username   = \OCP\User::getUser();
+		$uidAndGid  = EosUtil::getUidAndGid($username);
+		if (!$uidAndGid) {
+			return false;
+		}
+		list($uid, $gid) = $uidAndGid;
+		if (\OCP\Config::getSystemValue('files_versions', Storage::DEFAULTENABLED) == 'true') {
+			$eosPath = EosProxy::toEos($file, "object::user:$username");
+			$eosPathEscaped = escapeshellarg($eosPath);
+			$cmd     = "eos -b -r $uid $gid file versions $eosPathEscaped $revision";
+			list(, $errcode) = EosCmd::exec($cmd);
+			if ($errcode === 0) {
 				return true;
-			} else if ($versionCreated) {
-				self::deleteVersion($users_view, $version);
+			} else {
+				return false;
 			}
 		}
-		return false;
-
 	}
 
 	/**
@@ -368,11 +347,12 @@ class Storage {
 	 * @return bool true for success, false otherwise
 	 */
 	private static function copyFileContents($view, $path1, $path2) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
 		/** @var \OC\Files\Storage\Storage $storage1 */
-		list($storage1, $internalPath1) = $view->resolvePath($path1);
+		//list($storage1, $internalPath1) = $view->resolvePath($path1);
 		/** @var \OC\Files\Storage\Storage $storage2 */
-		list($storage2, $internalPath2) = $view->resolvePath($path2);
-
+		//list($storage2, $internalPath2) = $view->resolvePath($path2);
+		/*
 		$view->lockFile($path1, ILockingProvider::LOCK_EXCLUSIVE);
 		$view->lockFile($path2, ILockingProvider::LOCK_EXCLUSIVE);
 
@@ -395,6 +375,8 @@ class Storage {
 		$view->unlockFile($path2, ILockingProvider::LOCK_EXCLUSIVE);
 
 		return ($result !== false);
+		*/
+		return true;
 	}
 
 	/**
@@ -405,6 +387,8 @@ class Storage {
 	 * @return array versions newest version first
 	 */
 	public static function getVersions($uid, $filename, $userFullPath = '') {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$versions = array();
 		if (empty($filename)) {
 			return $versions;
@@ -456,6 +440,30 @@ class Storage {
 		krsort($versions);
 
 		return $versions;
+		*/
+		$uid      = \OCP\User::getUser();
+		$pathinfo = pathinfo($filename);// information about the file
+		$view     = new \OC\Files\View($uid . '/files');
+		// versions folder in the same dir as the file
+		$versionsFolder = $pathinfo['dirname'] . '/.sys.v#.' . $pathinfo['basename'];
+		$files          = $view->getDirectoryContent($versionsFolder);
+		$versions       = array();
+		foreach ($files as $file) {
+			if ($file['type'] === 'file') {
+				$version                                  = $file['name'];
+				$key                                      = $version . '#' . $filename;
+				$versions[$key]['cur']                    = 0;
+				$versions[$key]['version']                = $version;
+				$versions[$key]['humanReadableTimestamp'] = self::getHumanReadableTimestamp($version);
+				$versions[$key]['preview']                = '';
+				$versions[$key]['preview']                = \OCP\Util::linkToRoute('core_ajax_versions_preview', array('file' => $userFullPath, 'version' => $version));
+				$versions[$key]['path']                   = $filename;
+				$versions[$key]['name']                   = $file['name'];
+				$versions[$key]['size']                   = $file['size'];
+			}
+		}
+		krsort($versions);
+		return $versions;
 	}
 
 	/**
@@ -463,6 +471,8 @@ class Storage {
 	 * @param string $uid
 	 */
 	public static function expireOlderThanMaxForUser($uid){
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$expiration = self::getExpiration();
 		$threshold = $expiration->getMaxAgeAsTimestamp();
 		$versions = self::getAllVersions($uid);
@@ -488,6 +498,7 @@ class Storage {
 				\OC_Hook::emit('\OCP\Versions', 'delete', array('path' => $version['path'].'.v'.$version['version'], 'trigger' => self::DELETE_TRIGGER_RETENTION_CONSTRAINT));
 			}
 		}
+		*/
 	}
 
 	/**
@@ -496,8 +507,11 @@ class Storage {
 	 * @return string for example "5 days ago"
 	 */
 	private static function getHumanReadableTimestamp($timestamp) {
-
-		$diff = time() - $timestamp;
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		//$diff = time() - $timestamp;
+		$version = explode(".", $timestamp)[0];
+		$diff = time() - $version;
+		/** PATCH END */
 
 		if ($diff < 60) { // first minute
 			return  $diff . " seconds ago";
@@ -523,6 +537,8 @@ class Storage {
 	 * @return array with contains two arrays 'all' which contains all versions sorted by age and 'by_file' which contains all versions sorted by filename
 	 */
 	private static function getAllVersions($uid) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$view = new View('/' . $uid . '/');
 		$dirs = array(self::VERSIONS_ROOT);
 		$versions = array();
@@ -564,6 +580,8 @@ class Storage {
 		}
 
 		return $result;
+		*/
+		return [];
 	}
 
 	/**
@@ -574,6 +592,8 @@ class Storage {
 	 * @return array containing the list of to deleted versions and the size of them
 	 */
 	protected static function getExpireList($time, $versions, $quotaExceeded = false) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$expiration = self::getExpiration();
 
 		if ($expiration->shouldAutoExpire()) {
@@ -589,8 +609,10 @@ class Storage {
 				$toDelete[$key] = $version['path'] . '.v' . $version['version'];
 			}
 		}
-
+		
 		return [$toDelete, $size];
+		*/
+		return [];
 	}
 
 	/**
@@ -600,6 +622,8 @@ class Storage {
 	 * @return array containing the list of to deleted versions and the size of them
 	 */
 	protected static function getAutoExpireList($time, $versions) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$size = 0;
 		$toDelete = array();  // versions we want to delete
 
@@ -646,6 +670,8 @@ class Storage {
 		}
 
 		return array($toDelete, $size);
+		*/
+		return [];
 	}
 
 	/**
@@ -655,12 +681,15 @@ class Storage {
 	 * @param string $fileName file/folder for which to schedule expiration
 	 */
 	private static function scheduleExpire($uid, $fileName) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		// let the admin disable auto expire
 		$expiration = self::getExpiration();
 		if ($expiration->isEnabled()) {
 			$command = new Expire($uid, $fileName);
 			\OC::$server->getCommandBus()->push($command);
 		}
+		*/
 	}
 
 	/**
@@ -670,6 +699,8 @@ class Storage {
 	 * @return bool|int|null
 	 */
 	public static function expire($filename) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$config = \OC::$server->getConfig();
 		$expiration = self::getExpiration();
 		
@@ -771,7 +802,7 @@ class Storage {
 
 			return $versionsSize; // finally return the new size of the version history
 		}
-
+		*/
 		return false;
 	}
 
@@ -784,6 +815,8 @@ class Storage {
 	 * @param View $view view on data/user/
 	 */
 	private static function createMissingDirectories($filename, $view) {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		$dirname = Filesystem::normalizePath(dirname($filename));
 		$dirParts = explode('/', $dirname);
 		$dir = "/files_versions";
@@ -793,6 +826,7 @@ class Storage {
 				$view->mkdir($dir);
 			}
 		}
+		*/
 	}
 
 	/**
@@ -800,10 +834,14 @@ class Storage {
 	 * @return Expiration
 	 */
 	protected static function getExpiration(){
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		if (is_null(self::$application)) {
 			self::$application = new Application();
 		}
 		return self::$application->getContainer()->query('Expiration');
+		*/
+		return false;
 	}
 
 }

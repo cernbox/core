@@ -28,11 +28,18 @@ OCP\JSON::checkAppEnabled('files_versions');
 OCP\JSON::checkLoggedIn();
 
 $file = $_GET['file'];
-$revision=(int)$_GET['revision'];
+/** CERNBOX FILE VERSION PLUGIN PATCH */
+//$revision=(int)$_GET['revision'];
+$revision = $_GET['revision'];
+/** PATCH END */
 
 list($uid, $filename) = OCA\Files_Versions\Storage::getUidAndFilename($file);
 
-$versionName = '/'.$uid.'/files_versions/'.$filename.'.v'.$revision;
+/** CERNBOX FILE VERSION PLUGIN PATCH */
+//$versionName = '/'.$uid.'/files_versions/'.$filename.'.v'.$revision;
+$pathinfo = pathinfo($filename);
+$versionName = '/'. $uid .'/files/' .$pathinfo['dirname'] . '/.sys.v#.'.$pathinfo['basename'].'/'. $revision;
+/** PATCH END */
 
 $view = new OC\Files\View('/');
 

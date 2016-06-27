@@ -35,6 +35,8 @@ namespace OCA\Files_Versions;
 class Hooks {
 
 	public static function connectHooks() {
+		/** CERNBOX FILE VERSION PLUGIN PATCH */
+		/*
 		// Listen to write signals
 		\OCP\Util::connectHook('OC_Filesystem', 'write', 'OCA\Files_Versions\Hooks', 'write_hook');
 		// Listen to delete and rename signals
@@ -44,7 +46,9 @@ class Hooks {
 		\OCP\Util::connectHook('OC_Filesystem', 'post_copy', 'OCA\Files_Versions\Hooks', 'copy_hook');
 		\OCP\Util::connectHook('OC_Filesystem', 'rename', 'OCA\Files_Versions\Hooks', 'pre_renameOrCopy_hook');
 		\OCP\Util::connectHook('OC_Filesystem', 'copy', 'OCA\Files_Versions\Hooks', 'pre_renameOrCopy_hook');
-
+		*/
+		/** PATCH END */
+		
 		$eventDispatcher = \OC::$server->getEventDispatcher();
 		$eventDispatcher->addListener('OCA\Files::loadAdditionalScripts', ['OCA\Files_Versions\Hooks', 'onLoadFilesAppScripts']);
 	}
