@@ -240,8 +240,22 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			if (isset($_GET['search'])) {
 				$shareWithinGroupOnly = OC\Share\Share::shareWithGroupMembersOnly();
 				$shareWith = array();
-				$groups = OC_Group::getGroups((string)$_GET['search']);
-				if ($shareWithinGroupOnly) {
+				
+				$searchForGroups = true;
+				if(($colonPos = strpos($_GET['search'], ':')) != FALSE) 
+				{
+					\OCA\user_ldap\lib\LDAPUtil::setSearchParams('a');
+					$searchStr = substr($_GET['search'], $colonPos + 1);
+					$searchForGroups = false;
+				} 
+				else 
+				{
+					$searchStr = $_GET['search'];
+				}
+				
+				$groups = [];
+				if ($searchForGroups && $shareWithinGroupOnly) {
+					$groups = OC_Group::getGroups($searchStr);
 					$usergroups = OC_Group::getUserGroups(OC_User::getUser());
 					$groups = array_intersect($groups, $usergroups);
 				}
@@ -254,7 +268,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 						$sharedUsers = $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER];
 					}
 
-					if (isset($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP]) &&
+					if ($searchForGroups && isset($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP]) &&
 					    is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])) {
 						$sharedGroups = $_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP];
 					}
@@ -268,10 +282,10 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				$request_limit = min((int)$_GET['limit'] ?: 15, 500);
 				while ($count < $request_limit && count($users) == $limit) {
 					$limit = $request_limit - $count;
-					if ($shareWithinGroupOnly) {
-						$users = OC_Group::displayNamesInGroups($usergroups, (string)$_GET['search'], $limit, $offset);
+					if ($searchForGroups && $shareWithinGroupOnly) {
+						$users = OC_Group::displayNamesInGroups($usergroups, $searchStr, $limit, $offset);
 					} else {
-						$users = OC_User::getDisplayNames((string)$_GET['search'], $limit, $offset);
+						$users = OC_User::getDisplayNames($searchStr, $limit, $offset);
 					}
 
 					$offset += $limit;
@@ -285,7 +299,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							|| !in_array($uid, $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER]))
 							&& $uid != OC_User::getUser()) {
 							$shareWith[] = array(
-								'label' => $displayName,
+								'label' => $displayName . ' (' . $uid . ')' ,
 								'value' => array(
 									'shareType' => OCP\Share::SHARE_TYPE_USER,
 									'shareWith' => $uid)
