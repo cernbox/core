@@ -230,7 +230,7 @@
 			// Default permissions are Edit (CRUD) and Share
 			// Check if these permissions are possible
 			var permissions = OC.PERMISSION_READ;
-			if (this.updatePermissionPossible()) {
+			/*if (this.updatePermissionPossible()) {
 				permissions = permissions | OC.PERMISSION_UPDATE;
 			}
 			if (this.createPermissionPossible()) {
@@ -241,7 +241,7 @@
 			}
 			if (this.configModel.get('isResharingAllowed') && (this.sharePermissionPossible())) {
 				permissions = permissions | OC.PERMISSION_SHARE;
-			}
+			}*/
 
 			var model = this;
 			var itemType = this.get('itemType');
