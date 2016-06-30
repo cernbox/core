@@ -262,7 +262,7 @@
 			var permissions = OC.PERMISSION_READ;
 			if (shareType === OC.Share.SHARE_TYPE_REMOTE) {
 				permissions = OC.PERMISSION_CREATE | OC.PERMISSION_UPDATE | OC.PERMISSION_READ;
-			} else {
+			} /*else { // CERNBOX PATCH: DEFAULT READ PERMISIONS WHEN SHARING 
 				if (this.updatePermissionPossible()) {
 					permissions = permissions | OC.PERMISSION_UPDATE;
 				}
@@ -275,7 +275,7 @@
 				if (this.configModel.get('isResharingAllowed') && (this.sharePermissionPossible())) {
 					permissions = permissions | OC.PERMISSION_SHARE;
 				}
-			}
+			}*/
 
 			var model = this;
 			var itemType = this.get('itemType');
