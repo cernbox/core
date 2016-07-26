@@ -1228,7 +1228,8 @@
 				aLink.addClass('shared-style');
 				var img = aLink.find('img').first();
 				var span = $('<span></span>');
-				span.text(' Shared');
+				var sharedPlaceHolder = OC.L10N.translate('core', 'Shared');
+				span.text(' ' + sharedPlaceHolder);
 				
 				switch(share_type)
 				{
