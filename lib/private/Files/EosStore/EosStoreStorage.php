@@ -547,7 +547,7 @@ class EosStoreStorage implements \OCP\Files\Storage
      */
     public function verifyPath($path, $fileName)
     {
-        // TODO: Implement verifyPath() method.
+	returns;
     }
 
     /**
