@@ -1,6 +1,6 @@
 ## EOS Store Storage
 
-To enable EOS Storga as primary storage for ownCloud you need to add this
+To enable EOS Storge as primary storage for ownCloud you need to add this
 configuration option to your configuration file.
 
 ```
@@ -11,4 +11,5 @@ configuration option to your configuration file.
         'instanceurl' => 'eosexample.example.com',
         'homeprefix' => '/eos/example',
     ],
+  ],
 ```
