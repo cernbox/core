@@ -85,7 +85,9 @@ class EosCache implements ICache
         $files = scandir($fullpath);
         $entries = array();
         foreach ($files as $file) {
-            $entries[] = $this->get($folder . '/' . $file);
+	    if($file !== '.' && $file !== '..') { 
+		    $entries[] = $this->get($folder . '/' . $file);
+            }
         }
         return $entries;
     }
