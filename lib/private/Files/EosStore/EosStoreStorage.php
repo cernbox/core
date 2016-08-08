@@ -288,7 +288,6 @@ class EosStoreStorage implements \OCP\Files\Storage
     public function file_exists($path)
     {
         $fullpath = join('/', array($this->userhome, trim($path, '/')));
-
         return @file_exists($fullpath);
     }
 
@@ -329,6 +328,7 @@ class EosStoreStorage implements \OCP\Files\Storage
      */
     public function file_put_contents($path, $data)
     {
+		\OC::$server->getLogger()->info("file_put_contents $path");
         $fullpath = join('/', array($this->userhome, trim($path, '/')));
         @file_put_contents($fullpath, $data);
         return true;
@@ -390,8 +390,9 @@ class EosStoreStorage implements \OCP\Files\Storage
      */
     public function fopen($path, $mode)
     {
+		\OC::$server->getLogger()->info("fopen $path $mode");
         $fullpath = join('/', array($this->userhome, trim($path, '/')));
-        return @fopen($fullpath, 'r');
+        return fopen($fullpath, $mode);
     }
 
     /**
@@ -408,7 +409,7 @@ class EosStoreStorage implements \OCP\Files\Storage
         if($this->is_dir($path)) {
             return 'httpd/unix-directory';
         } else {
-            \OC::$server->getMimeTypeDetector()->detectPath($path);
+            return \OC::$server->getMimeTypeDetector()->detectPath($path);
         }
     }
 
@@ -547,7 +548,7 @@ class EosStoreStorage implements \OCP\Files\Storage
      */
     public function verifyPath($path, $fileName)
     {
-	returns;
+		return;
     }
 
     /**
