@@ -48,7 +48,16 @@ class EosStoreStorage implements \OCP\Files\Storage
         if (!isset($params['user'])) {
             throw  new StorageNotAvailableException('eos storage instantiated without user');
         }
-        $this->user = $params['user'];
+        $user = $params['user'];
+		if(is_string($user)) {
+			// convert user string to user object
+			$user = \OC::$server->getUserManager()->get($user);
+		}
+
+		if (!$user) {
+			throw  new StorageNotAvailableException("eos storage instantiated with unknown user: $user");
+		}
+		$this->user = $user;
 
         if (!isset($params['homeprefix'])) {
             throw  new StorageNotAvailableException('home prefix has been not defined for eos storage');
