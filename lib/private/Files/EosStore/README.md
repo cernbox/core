@@ -19,4 +19,6 @@ configuration option to your configuration file.
 - After uploading a file, a FileInfo is returned. This FileInfo is created from the metadata returned from ICache:get(),
   but is does not call ICacheEntry methods, but relies on \ArrayAccess. Even more, it relies in returning a parent filed in the 
   array that is not declated in ICacheEntry.
+- Common adds a getMetaData method that is used for example when accessing a public link containing a file to download.
+  The getMetaData method is not defined on any interface.
 
