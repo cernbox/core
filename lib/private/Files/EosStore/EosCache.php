@@ -52,21 +52,25 @@ class EosCache implements ICache
     public function get($file)
     {
         $fullpath = join('/', array($this->userhome, trim($file, '/')));
-        \OC::$server->getLogger()->info("get $file");
-        $meta = array();
-        $meta['fileid'] = fileinode($fullpath);
-        $meta['path'] = $file;
-        $meta['name'] = basename($file);
-        $meta['mtime'] = $this->storage->filemtime($file);
-        $meta['storage_mtime'] = $this->storage->filemtime($file);
-        $meta['size'] = $this->storage->filesize($file);
-        $meta['permissions'] = 31;
-        $meta['storage'] = $this->storage->getId();
-        $meta['etag'] = $this->storage->getETag($file);
-        $meta['encrypted'] = false;
-        $meta['mimetype'] = $this->storage->getMimeType($file);
-        $entry = new EosCacheEntry($meta);
-        return $entry;
+        \OC::$server->getLogger()->info("get $file => $fullpath");
+		if(!$this->storage->file_exists($file)) {
+			return false;
+		} else {
+			$meta = array();
+			$meta['fileid'] = fileinode($fullpath);
+			$meta['path'] = $file;
+			$meta['name'] = basename($file);
+			$meta['mtime'] = $this->storage->filemtime($file);
+			$meta['storage_mtime'] = $this->storage->filemtime($file);
+			$meta['size'] = $this->storage->filesize($file);
+			$meta['permissions'] = 31;
+			$meta['storage'] = $this->storage->getId();
+			$meta['etag'] = $this->storage->getETag($file);
+			$meta['encrypted'] = false;
+			$meta['mimetype'] = $this->storage->getMimeType($file);
+			$entry = new EosCacheEntry($meta);
+			return $entry;
+		}
     }
 
     /**
@@ -121,7 +125,7 @@ class EosCache implements ICache
         // scan for files directory
         $files = @scandir($this->userhome . '/files');
         foreach ($files as $file) {
-            if (fileinode($this->userhome . '/' . $file) === $inode) {
+            if (fileinode($this->userhome . '/files/' . $file) === $inode) {
                 return 'files/' . $file;
             }
         }
