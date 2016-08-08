@@ -18,4 +18,9 @@ class HomeEosStoreStorage extends \OC\Files\EosStore\EosStoreStorage implements 
     public function getStorageCache() {
         return $this->namespace;
     }
+
+	// TODO(labkode) This method is not defined on any interface. Ask ocdevs.
+	public function getMetaData($path) {
+		return parent::getCache()->get($path);
+	}
 }
