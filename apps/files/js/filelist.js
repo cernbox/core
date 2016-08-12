@@ -309,6 +309,21 @@
 				});
 			}
 			
+			this.fileActions.registerAction(
+			{
+				name: 'OpenInSWAN',
+				displayName: 'Open in SWAN',
+				mime: 'application/pynb',
+				order: -50,
+				icon: OC.imagePath('core', 'actions/external'),
+				permissions: OC.PERMISSION_READ,
+				actionHandler: function(fileName, context) 
+				{
+					var eosPath = context.$file.attr('data-eospath');
+					window.open('https://cern.ch/swanserver/cgi-bin/go?projurl=file:/' + eosPath, '_blank');
+				}
+			});
+			
 			this._onFileActionsUpdated = _.debounce(_.bind(this._onFileActionsUpdated, this), 100);
 			this.fileActions.on('registerAction', this._onFileActionsUpdated);
 			this.fileActions.on('setDefault', this._onFileActionsUpdated);

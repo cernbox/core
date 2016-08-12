@@ -610,4 +610,195 @@ class CustomLocal
 	}
 	
 	// ####################################################################################################################
+	
+	private static function checkPOSTVar($name)
+	{
+		if(!isset($_POST[$name]))
+		{
+			throw new \Exception($name . ' paramter not setted');
+		}
+	
+		if(empty($_POST[$name]))
+		{
+			throw new \Exception($name . ' parameter has no value associated');
+		}
+	}
+	
+	private static function getPostVar($name, $defaultValue = '')
+	{
+		try
+		{
+			self::checkPOSTVar($name);
+			return $_POST[$name];
+		}
+		catch(\Exception $e)
+		{
+		}
+	
+		return $defaultValue;
+	}
+	
+	private static function resolveFile($file)
+	{
+		if(is_numeric($file))
+		{
+			return EosUtil::getFileById($file);
+		}
+		else if(strpos($file, '/eos') === 0)
+		{
+			return EosUtil::getFileByEosPath($file);
+		}
+		else
+		{
+			$fullPath = 'files/' . $file;
+			return \OC\Files\FileSystem::getFileInfo($fullPath);
+		}
+	}
+	
+	private static function checkSWANShareParameters()
+	{
+		self::checkPOSTVar('owner');
+		self::checkPOSTVar('file');
+	
+		try
+		{
+			self::checkPOSTVar('share_type');
+			$shareTypeSet = true;
+		}
+		catch(\Exception $e)
+		{
+			$shareTypeSet = false;
+		}
+	
+		if($shareTypeSet)
+		{
+			$shareType = $_POST['share_type'];
+				
+			switch($shareType)
+			{
+				case 'user':
+				case 'group':
+					self::checkPOSTVar('sharees');
+					break;
+			}
+		}
+	}
+	
+	public static function handleSWANShare($urlParams)
+	{
+		// CHECK THAT THE HEADERS INCLUDE THE SECRET
+		$headers = getallheaders();
+		if(!isset($headers['SWAN_SECRET']))
+		{
+			return new \OC_OCS_Result(null, 403, '1:Invalid request headers');
+		}
+	
+		// CHECK IS A VALID SECRET
+		$secret = $headers['SWAN_SECRET'];
+		if(!$secret || empty($secret) || strcmp($secret, \OC::$server->getConfig()->getSystemValue('swan_secret', '')) !== 0)
+		{
+			return new \OC_OCS_Result(null, 403, '2:Invalid request');
+		}
+	
+		// CHECK SHARE PARAMETERS
+		try
+		{
+			self::checkSWANShareParameters();
+		}
+		catch(\Exception $e)
+		{
+			return new \OC_OCS_Result(null, 403, '3:Invalid request parameters: ' . $e->getMessage());
+		}
+	
+		// CHECK THE SHARE OWNER IS VALID
+		$owner = self::getPostVar('owner');
+		if(!\OC::$server->getUserManager()->userExists($owner))
+		{
+			return new \OC_OCS_Result(null, 404, '4:User ' . $owner . ' (share owner) does not exist');
+		}
+	
+		// SET UP OWNER EVIROMENT
+		\OC_User::setUserId($owner);
+		\OC_Util::setupFS($_POST['owner']);
+	
+		// CHECK THE NOTEBOOK FILE IS VALID
+		$file = self::getPostVar('file');
+		if($file === '')
+		{
+			return new \OC_OCS_Result(null, 404, '5:Invalid file specified. Received file parameter value: ' . $file);
+		}
+	
+		// CHECK THE SHARE OWNER HAS RIGHTS TO SHARE THE FILE
+		$fileMeta = self::resolveFile($file);
+		if(!($fileMeta['permissions'] & \OCP\Constants::PERMISSION_SHARE))
+		{
+			return new \OC_OCS_Result(null, 404, '6:User '.$owner.' has not enough permission to share the file');
+		}
+	
+		$shareTypeStr = self::getPostVar('share_type', 'link');
+	
+		switch($shareTypeStr)
+		{
+			case 'user':
+				$shareType = 0;
+				break;
+			case 'group':
+				$shareType = 1;
+				break;
+			case 'link':
+				$shareType = 3;
+				break;
+			default:
+				return new \OC_OCS_Result(null, 404, '7:Invalid share type specified: ' . $shareTypeStr);
+		}
+	
+		$passwordChanged = false;
+		switch($shareType)
+		{
+			case 0:
+			case 1:
+				$userList = self::getPostVar('sharees');
+				$list = explode(',', $userList);
+				break;
+			case 3:
+				$password = self::getPostVar('password');
+				if($password && !empty($password))
+				{
+					$list = [$password];
+					$passwordChanged = true;
+				}
+		}
+	
+		$token = true;
+		foreach($list as $sharee)
+		{
+			$token = \OCP\Share::shareItem(
+					$fileMeta['eostype'],
+					$fileMeta['fileid'],
+					$shareType,
+					$sharee,
+					$_POST['permissions'],
+					$fileMeta['name'],
+					null, // Default expiration date
+					$passwordChanged
+					);
+		}
+	
+		if(!$token)
+		{
+			return new \OC_OCS_Result(null, 500, '8:Internal CERNBox server error');
+		}
+		else
+		{
+			$data = [];
+			if(is_string($token))
+			{
+				$url = \OCP\Util::linkToPublic('files&t='.$token);
+				$data['url'] = $url; // '&' gets encoded to $amp;
+				$data['token'] = $token;
+			}
+				
+			return new \OC_OCS_Result($data);
+		}
+	}
 }

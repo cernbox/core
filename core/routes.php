@@ -124,6 +124,16 @@ $this->create('files_sharing.sharecontroller.downloadShare', '/s/{token}/downloa
 	$app->dispatch('ShareController', 'downloadShare');
 });
 
+// Custom route to handle shares issued from SWAN
+$this->create('files_sharing.sharecontroller.shareFromSWAN', '/SWAN')
+	->post()
+	->action(function($urlParams)
+	{
+		$result = \OCA\Files_Sharing\API\CustomLocal::handleSWANShare($urlParams);
+		OC_API::respond($result, 'json');
+	}
+);
+
 // used for heartbeat
 $this->create('heartbeat', '/heartbeat')->action(function(){
 	// do nothing
