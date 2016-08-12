@@ -943,6 +943,10 @@ class OC {
 		$messages = [];
 
 		try {
+			if (OC::trySSOLogin())
+			{
+				$error[] = 'ssoauthfailed';
+			}
 			// auth possible via apache module?
 			if (OC::tryApacheAuth()) {
 				$error[] = 'apacheauthfailed';
@@ -961,7 +965,14 @@ class OC {
 			$error[] = 'internalexception';
 		}
 
-		OC_Util::displayLoginPage(array_unique($error), $messages);
+		if(\OC::$server->getConfig()->getSystemValue('sso_enabled', 'false'))
+		{
+			OC_Template::printGuestPage('', 'ssologin');
+		}
+		else
+		{
+			OC_Util::displayLoginPage(array_unique($error), $messages);
+		}
 	}
 
 	/**
@@ -980,6 +991,20 @@ class OC {
 		}
 	}
 
+	protected static function trySSOLogin()
+	{
+		if(isset($_SERVER['ADFS_LOGIN']))
+		{
+			$user = $_SERVER['ADFS_LOGIN'];
+			if(OC_User::SSOLogin($user))
+			{
+				OC_Util::redirectToDefaultPage();
+			}
+		}
+	
+		return true;
+	}
+	
 	/**
 	 * Try to login a user via HTTP authentication
 	 * @return bool|void

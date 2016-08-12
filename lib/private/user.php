@@ -255,6 +255,30 @@ class OC_User {
 		}
 		return $result;
 	}
+	
+	public static function SSOLogin($loginname)
+	{
+		session_regenerate_id(true);
+		// Check that the user exists
+		$userObject = self::getManager()->get($loginname);
+		/** @var ISession */
+		$userSession = self::getUserSession();
+		if (!is_null($userObject) && $userObject->isEnabled())
+		{
+			$userSession->setUser($userObject);
+			$userSession->setLoginName($loginname);
+	
+			//we need to pass the user name, which may differ from login name
+			$user = $userSession->getUser()->getUID();
+			OC_Util::setupFS($user);
+			//trigger creation of user home and /files folder
+			\OC::$server->getUserFolder($user);
+	
+			return true;
+		}
+	
+		return false;
+	}
 
 	/**
 	 * Try to login a user using the magic cookie (remember login)
