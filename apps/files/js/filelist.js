@@ -308,7 +308,7 @@
 					}
 				});
 			}
-
+			
 			this._onFileActionsUpdated = _.debounce(_.bind(this._onFileActionsUpdated, this), 100);
 			this.fileActions.on('registerAction', this._onFileActionsUpdated);
 			this.fileActions.on('setDefault', this._onFileActionsUpdated);
@@ -482,9 +482,11 @@
 				delete this._selectedFiles[$tr.data('id')];
 				this._selectionSummary.remove(data);
 			}
+			/*
 			if (this._detailsView && this._selectionSummary.getTotal() === 1 && !this._detailsView.$el.hasClass('disappear')) {
 				this._updateDetailsView(_.values(this._selectedFiles)[0].name);
 			}
+			*/
 			this.$el.find('.select-all').prop('checked', this._selectionSummary.getTotal() === this.files.length);
 		},
 
@@ -563,9 +565,9 @@
 			this._selectFileEl($tr, state);
 			this._lastChecked = $tr;
 			this.updateSelectionSummary();
-			if (state) {
+			/*if (state) {
 				this._updateDetailsView($tr.attr('data-file'));
-			}
+			}*/
 		},
 
 		/**

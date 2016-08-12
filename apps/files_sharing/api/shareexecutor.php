@@ -29,14 +29,27 @@ abstract class ShareExecutor
 	
 	public function __construct($path)
 	{
-		$view = new \OC\Files\View('/'.\OCP\User::getUser().'/files');
+		$view = new \OC\Files\View('/'.\OC_User::getUser().'/files');
+		
+		$tempEosPath = \OC\Files\ObjectStore\EosProxy::toEos($path, 'object::user:'.\OC_User::getUser());
+		
+		\OCP\Util::writeLog('CUSTOM', 'OCS SHARE API OCPATH TO EOSPATH: ' . $tempEosPath, \OCP\Util::ERROR);
+		
 		$this->meta = $view->getFileInfo($path);
+		
+		if(!$this->meta)
+		{
+			throw new \Exception('Could not find the file ' . $path . ' for user ' . \OC_User::getUser());
+		}
 		
 		$this->itemType = $this->meta['mimetype'] === 'httpd/unix-directory' ? 'folder' : 'file';
 		
 		if($this->itemType === 'file')
 		{
-			$this->versionMeta = \OC\Files\ObjectStore\EosUtil::getVersionFolderFromFileId($this->meta['fileid']);
+			if(\OC\Files\ObjectStore\EosUtil::createVersionFolder($this->meta['eospath']))
+			{
+				$this->versionMeta = \OC\Files\ObjectStore\EosUtil::getVersionFolderFromFileId($this->meta['fileid']);
+			}
 		}
 		else
 		{
