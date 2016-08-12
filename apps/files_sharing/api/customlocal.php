@@ -14,6 +14,43 @@ class CustomLocal
 		return FALSE;
 	}
 	
+	private static function getCleanPathParameter($path)
+	{
+		$headers = getallheaders();
+		if(isset($headers['CBOX_CLIENT_MAPPING_ENABLED']))
+		{
+			if(strpos($path, '/home') === 0)
+			{
+				$_SESSION['DESKTOP_MAPPING_PREFIX'] = '/home';
+				$path = substr($path, 5);
+			}
+			else if(strpos($path, '/eos') === 0)
+			{
+				$split = explode('/', $path);
+				$tempPath = implode('/', array_slice($split, 4));
+				$prefix = substr($path, 0, strpos($path, $tempPath));
+				$path = $tempPath;
+				$_SESSION['DESKTOP_MAPPING_PREFIX'] = $prefix;
+			}
+		}
+		else
+		{
+			unset($_SESSION['DESKTOP_MAPPING_PREFIX']);
+		}
+		
+		return $path;
+	}
+	
+	private static function addPrefix($result)
+	{
+		if(isset($_SESSION['DESKTOP_MAPPING_PREFIX']))
+		{
+			return $_SESSION['DESKTOP_MAPPING_PREFIX'] . $result;
+		}
+		
+		return $result;
+	}
+	
 	/**
 	 * OCS API Entry to get information about shares
 	 * https://doc.owncloud.org/server/8.0/developer_manual/core/ocs-share-api.html
@@ -31,6 +68,10 @@ class CustomLocal
 		// If a path is specified, get information about specific shares
 		if($path !== FALSE)
 		{
+			/** HARDCODED DESKTOP CLIENT MAPPING */
+			$path = self::getCleanPathParameter($path);
+			/** ---- */
+			
 			// Get all shared files from a specific folder. 'path' points to the folder
 			if(self::param('subfiles') === 'true')
 			{
@@ -58,7 +99,7 @@ class CustomLocal
 		$id = isset($params['id'])? $params['id'] : null;
 		if($id !== null)
 		{
-			$username = \OCP\User::getUser();
+			$username = \OC_User::getUser();
 			try
 			{
 				// CACHE STORAGE ID
@@ -90,7 +131,7 @@ class CustomLocal
 						return new \OC_OCS_Result(null, 404, 'the requested file has been deleted');
 					}
 					
-					$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
+					$row['path'] = self::addPrefix(substr(EosProxy::toOc($eosMeta['eospath']), 5));
 					$row['file_target'] = $row['item_type'] === 'file' ? $eosMeta['name'] : "/" . $eosMeta['name'];
 					$row['storage'] = $storageId;
 					unset($row['accepted']);
@@ -121,6 +162,9 @@ class CustomLocal
 		if($path === null) {
 			return new \OC_OCS_Result(null, 400, "please specify a file or folder path");
 		}
+		
+		/** HARDCODED DESKTOP CLIENT MAPPING **/
+		$path = self::getCleanPathParameter($path);
 		
 		$shareType = isset($_POST['shareType']) ? (int)$_POST['shareType'] : null;
 		
@@ -193,7 +237,7 @@ class CustomLocal
 	 */
 	private static function getAllFilesSharedByMe()
 	{
-		$username = \OCP\User::getUser();
+		$username = \OC_User::getUser();
 		try
 		{
 			// CACHE STORAGE ID
@@ -248,7 +292,7 @@ class CustomLocal
 				
 				//$row['item_source'] = $eosMeta['fileid'];
 				//$row['file_source'] = $eosMeta['fileid'];
-				$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
+				$row['path'] = self::addPrefix(substr(EosProxy::toOc($eosMeta['eospath']), 5));
 				if(!$row['path'])
 				{
 					unset($rows[$key]);
@@ -277,7 +321,7 @@ class CustomLocal
 	
 	private static function getAllFilesSharedWithMe()
 	{
-		$username = \OCP\User::getUser();
+		$username = \OC_User::getUser();
 		try
 		{	
 			$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($username);//OC_Group::getUserGroups($username);
@@ -348,7 +392,7 @@ class CustomLocal
 				
 				//$row['item_source'] = $eosMeta['fileid'];
 				//$row['file_source'] = $eosMeta['fileid'];
-				$row['path'] = EosProxy::toOc($eosMeta['eospath']);
+				$row['path'] = self::addPrefix(EosProxy::toOc($eosMeta['eospath']));
 				$row['storage'] = (int)$storageId;
 				$row['eospath'] = $eosMeta['eospath'];
 				unset($row['accepted']);
@@ -399,7 +443,7 @@ class CustomLocal
 	 */
 	private static function getSharedFilesInFolder($path)
 	{
-		$username = \OCP\User::getUser();
+		$username = \OC_User::getUser();
 		$view = new \OC\Files\View('/'.$username.'/files');
 		
 		if(!$view->is_dir($path)) 
@@ -462,7 +506,7 @@ class CustomLocal
 				
 				//$row['item_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 				//$row['file_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
-				$row['path'] = substr(EosProxy::toOc($eosMeta['eospath']), 5);
+				$row['path'] = self::addPrefix(substr(EosProxy::toOc($eosMeta['eospath']), 5));
 				$row['file_target'] = $eosMeta['name'];
 				$row['storage'] = $storageId;
 				unset($row['accepted']);
@@ -489,12 +533,13 @@ class CustomLocal
 	 */
 	private static function getSharedFileInfo($path)
 	{
-		$username = \OCP\User::getUser();
+		$username = \OC_User::getUser();
 		$view = new \OC\Files\View('/'.$username.'/files');
+		
 		$fileInfo = $view->getFileInfo($path);
 		
-		$eosPath = EosProxy::toEos('files' . $path, 'object::user:'.$username);
-		$originalEosMeta = EosUtil::getFileByEosPath($eosPath);
+		$eosPath = EosProxy::toEos('files/' . trim($path, '/'), 'object::user:'.$username);
+		//$originalEosMeta = EosUtil::getFileByEosPath($eosPath);
 		
 		try
 		{
@@ -513,7 +558,8 @@ class CustomLocal
 			
 			if($eosMeta === null)
 			{
-				return new \OC_OCS_Result(null, 400, 'the file is not shared ' .$eosPath);
+				return new \OC_OCS_Result([]);
+				//return new \OC_OCS_Result(null, 400, 'the file is not shared ' .$eosPath);
 			}
 			
 			if(strpos($eosMeta['eospath'], EosUtil::getEosRecycleDir()) !== FALSE)
@@ -530,30 +576,37 @@ class CustomLocal
 			$result = $query->execute([$eosMeta['fileid']]);
 				
 			$rows = $result->fetchAll();
-				
-			foreach($rows as $key => $row)
-			{	
-				//$row['item_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
-				//$row['file_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
-				$row['path'] = $path;
-				$row['file_target'] = $basename;
-				$row['storage'] = $storageId;
-				unset($row['accepted']);
-				unset($row['item_target']);
-				$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
-				$row['share_with_displayname'] = (isset($row['share_with']) && !empty($row['share_with'])) ? \OCP\User::getDisplayName($row['share_with']) : '';
-				
-				$rows[$key] = $row;
+			
+			if(count($rows) > 0)
+			{
+				foreach($rows as $key => $row)
+				{	
+					//$row['item_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
+					//$row['file_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
+					$row['path'] = self::addPrefix($path);
+					$row['file_target'] = $basename;
+					$row['storage'] = $storageId;
+					unset($row['accepted']);
+					unset($row['item_target']);
+					$row['displayname_owner'] = \OCP\User::getDisplayName($row['uid_owner']);
+					$row['share_with_displayname'] = (isset($row['share_with']) && !empty($row['share_with'])) ? \OCP\User::getDisplayName($row['share_with']) : '';
+					
+					$rows[$key] = $row;
+				}
+					
+				return new \OC_OCS_Result($rows);
 			}
-				
-			return new \OC_OCS_Result($rows);
+			else
+			{
+				return new \OC_OCS_Result(null, 404, 'share doesn\'t exist');
+			}
 		}
 		catch(Exception $e)
 		{
 			\OCP\Util::writeLog('files_sharing', 'OCS API: Failed to get all files shared by the user ' .$username . ' in the folder ' . $path .': ' . $e->getMessage(), \OCP\Util::ERROR);
 		}
 		
-		return new \OC_OCS_Result([]);
+		return new \OC_OCS_Result(null, 404, 'share doesn\'t exist');
 	}
 	
 	// ####################################################################################################################
