@@ -1467,6 +1467,22 @@ class Share extends Constants {
 		if ($shareType !== \OCP\Share::SHARE_TYPE_LINK) {
 			$shareWith = $item['share_with'];
 		}
+		
+		/** CERNBOX PATCH - TEMPORARY PROTOTYPE OF SHARE BY SYMLINK FOR SWAN INTEGRATION */
+		if($shareType === 0)
+		{
+			$eosMeta = EosUtil::getFileById($item['file_source']);
+			$fakeName = basename(trim($eosMeta['eospath'], '/')) . ' (#'.$item['file_source'].')';
+			$metaDir = rtrim(EosUtil::getEosMetaDir(), '/');
+			$fullPath = $metaDir . '/' . substr($item['share_with'], 0, 1) . '/' . $item['share_with'] . '/Shared/' . $fakeName;
+				
+			if(EosUtil::getFileByEosPath($fullPath))
+			{
+				EosUtil::removeSymLink($fullPath);
+				\OCP\Util::writeLog('EOSSYMLINK', 'Removed symlink from ' . $item['share_with'], \OCP\Util::ERROR);
+			}
+		}
+		/** PATCH END */
 
 		// Pass all the vars we have for now, they may be useful
 		$hookParams = array(
@@ -2493,8 +2509,30 @@ class Share extends Constants {
 		/** CERNBOX SHARE PLUGIN PATCH */
 		// HUGO when inserting a share we append to the item_target (like a symlink, the one the user sees in Shared with me) the inode to keep it unique
 		// LUCA propossed to put the owner of the share as well like "root_js_sample_files (#ourense.1397353)" instead "just root_js_sample_files (#1397353)"
+		
 		if($shareData['shareType'] == 0 || $shareData['shareType'] == 1) {
-			$shareData['fileTarget'] = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+			
+			/** CERNBOX PATCH: ADD FULL OC PATH TO ALLOW SHARED BENEATH TOP LEVEL DIRECTORY */
+			$eosMeta = EosUtil::getFileById($shareData['itemSource']);
+			$parentPath = dirname(rtrim($eosMeta['eospath'], '/'));
+			$ocParentPath = \OC\Files\ObjectStore\EosProxy::toOc($parentPath);
+			$ocParentPath = substr($ocParentPath, 5); // remove "files" from the beggining of the path
+			
+			$shareData['fileTarget'] = $ocParentPath . $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+			
+			/** CERNBOX TEMPORAL PATCH: SHARE WITH SYMLINKS FOR SWAN PROTOTYPE */
+			if($shareData['shareType'] == 0)
+			{
+				$metaDir = EosUtil::getEosMetaDir();
+				$sharee = $shareData['shareWith'];
+				$symlinkPath = rtrim($metaDir) . "/" . substr($sharee, 0, 1) . "/" . $sharee . "/Shared/" . $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+			
+				if(EosUtil::createSymLink($symlinkPath, $eosMeta['eospath']))
+				{
+					\OCP\Util::writeLog('EOSSYMLINK', 'Created share link for user '.$sharee.' pointing to '.$eosMeta['eospath'], \OCP\Util::ERROR);
+				}
+			}
+			/** PATCH END */
 		}
 		
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
