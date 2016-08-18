@@ -1135,6 +1135,8 @@ final class EosUtil {
 	
 	public static function createSymLink($linkDestination, $linkSource)
 	{
+		$linkDestination = escapeshellarg($linkDestination);
+		$linkSource = escapeshellarg($linkSource);
 		$cmd = "eos -b -r 0 0 ln $linkDestination $linkSource";
 		list(, $errcode) = EosCmd::exec($cmd);
 		
@@ -1143,6 +1145,7 @@ final class EosUtil {
 	
 	public static function removeSymLink($link)
 	{
+		$link = escapeshellarg($link);
 		$cmd = "eos -b -r 0 0 rm $link";
 		list(, $errcode) = EosCmd::exec($cmd);
 		return $errcode === 0;

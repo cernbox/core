@@ -1469,7 +1469,7 @@ class Share extends Constants {
 		}
 		
 		/** CERNBOX PATCH - TEMPORARY PROTOTYPE OF SHARE BY SYMLINK FOR SWAN INTEGRATION */
-		if($shareType === 0)
+		if($shareType == \OCP\Share::SHARE_TYPE_USER)
 		{
 			$eosMeta = EosUtil::getFileById($item['file_source']);
 			$fakeName = basename(trim($eosMeta['eospath'], '/')) . ' (#'.$item['file_source'].')';
@@ -2518,14 +2518,15 @@ class Share extends Constants {
 			$ocParentPath = \OC\Files\ObjectStore\EosProxy::toOc($parentPath);
 			$ocParentPath = substr($ocParentPath, 5); // remove "files" from the beggining of the path
 			
-			$shareData['fileTarget'] = $ocParentPath . $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+			$tempFileTarget = $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+			$shareData['fileTarget'] = $ocParentPath . $tempFileTarget;
 			
 			/** CERNBOX TEMPORAL PATCH: SHARE WITH SYMLINKS FOR SWAN PROTOTYPE */
 			if($shareData['shareType'] == 0)
 			{
 				$metaDir = EosUtil::getEosMetaDir();
 				$sharee = $shareData['shareWith'];
-				$symlinkPath = rtrim($metaDir) . "/" . substr($sharee, 0, 1) . "/" . $sharee . "/Shared/" . $shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")";
+				$symlinkPath = rtrim($metaDir, '/') . "/" . substr($sharee, 0, 1) . "/" . $sharee . "/Shared/" . $tempFileTarget;
 			
 				if(EosUtil::createSymLink($symlinkPath, $eosMeta['eospath']))
 				{
