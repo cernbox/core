@@ -49,6 +49,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					$shareWith = $_POST['shareWith'];
 					$itemSourceName = isset($_POST['itemSourceName']) ? (string)$_POST['itemSourceName'] : null;
 
+					/*
 					if($shareType !== OCP\Share::SHARE_TYPE_LINK)
 					{
 						$meta = OC\Files\ObjectStore\EosUtil::getFileById($_POST['itemSource']);
@@ -59,6 +60,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							break;
 						}
 					}
+					*/
 					
 					/*
 					 * Nasty nasty fix for https://github.com/owncloud/core/issues/19950
@@ -83,6 +85,10 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 
  					$itemSourceName=(isset($_POST['itemSourceName'])) ? (string)$_POST['itemSourceName']:'';
 
+					/** CERNBOX PATCH - DONT ALLOW SHARING ON FOLDERS WHOSE PARENTS HAVE BEEN SHARED ALREADY */
+ 					\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource']);
+ 					/** END PATCH */
+ 					
 					$token = OCP\Share::shareItem(
 						$_POST['itemType'],
 						$_POST['itemSource'],
@@ -116,17 +122,26 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 						$shareWithArray = (is_array($_POST['shareWith'])? $_POST['shareWith'] : [$_POST['shareWith']]);
 						
 						$meta = OC\Files\ObjectStore\EosUtil::getFileById($_POST['itemSource']);
-						$baseOCPath = dirname($meta['path']);
+						
+						if(!$meta)
+						{
+							OC_JSON::error(array('data' => array('message' => 'The file could not be found')));
+							exit();
+						}
+						
+						/** CERNBOX PATCH - DONT ALLOW SHARING ON FOLDERS WHOSE PARENTS HAVE BEEN SHARED ALREADY */
+						\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource']);
+						/** END PATCH */
 						
 						foreach($shareWithArray as $share)
 						{
 							$shareWith = $share['uid'];
 							$shareType = (int)$share['type'];
 							
-							if($shareType !== OCP\Share::SHARE_TYPE_LINK && $baseOCPath !== 'files')
+							/*if($shareType !== OCP\Share::SHARE_TYPE_LINK && $baseOCPath !== 'files')
 							{
 								continue;
-							}
+							}*/
 			
 							OCP\Share::shareItem(
 									$_POST['itemType'],

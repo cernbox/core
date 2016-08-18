@@ -21,12 +21,14 @@ class GroupShareExecutor extends ShareExecutor
 		return true;//parent::checkFileIntegrity();
 	}
 	
-	public abstract function checkForPreviousShares()
+	public function checkForPreviousShares()
 	{
+		\OC\ShareUtil::checkParentDirShared($this->meta);
+		
 		return true;
 	}
 	
-	public abstract function checkShareTarget()
+	public function checkShareTarget()
 	{
 		$ocBasePath = dirname($this->meta['path']);
 		if($ocBasePath !== 'files')
@@ -36,7 +38,7 @@ class GroupShareExecutor extends ShareExecutor
 		return true;
 	}
 	
-	public abstract function insertShare()
+	public function insertShare()
 	{
 		$this->token = \OCP\Share::shareItem(
 			 $this->itemType,
