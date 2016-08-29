@@ -1133,58 +1133,21 @@ final class EosUtil {
 		return $versionFolder;
 	}
 	
-	public static function createSymLink($eosPath)
+	public static function createSymLink($linkDestination, $linkSource)
 	{
-		$meta = self::getFileByEosPath($eosPath);
+		$linkDestination = escapeshellarg($linkDestination);
+		$linkSource = escapeshellarg($linkSource);
+		$cmd = "eos -b -r 0 0 ln $linkDestination $linkSource";
+		list(, $errcode) = EosCmd::exec($cmd);
 		
-		if(!$meta)
-		{
-			return false;
-		}
-		
-		$fileId = $meta['fileid']; 
-		
-		$user = self::getOwner($eosPath);
-		list($uid, $gid) = self::getUidAndGid($user);
-		
-		if(!$uid || !$gid)
-		{
-			return false;
-		}
-		
-		$tempMetaFolderPath = rtrim(self::getEosMetaDir(), '/') . '/' . substr($user, 0 , 1) . '/' . $user . '/link_cache';
-		$escapedMetaFolder = escapeshellarg($tempMetaFolderPath);
-		$tempMetaFolder = "eos -b -r $uid $gid mkdir -p $escapedMetaFolder";
-		list($result, $errorcode) = EosCmd::exec($tempMetaFolder);
-		
-		if($errorcode !== 0)
-		{
-			return false;
-		}
-		
-		$file = basename($eosPath);
-		$dir = dirname($eosPath);
+		return $errcode === 0;
+	}
 	
-		$linkDst = $tempMetaFolderPath . '/' . $fileId;
-		$escapedlinkDst = escapeshellarg($linkDst);
-		
-		$target = escapeshellarg('../' . $file);
-		
-		$cmd = "eos -b -r $uid $gid ln $escapedlinkDst $target";
-		list($result, $errorcode) = EosCmd::exec($cmd);
-		
-		if($errorcode !== 0)
-		{
-			return false;
-		}
-		
-		/*$cmd2 = "eos -b -r 0 0 chown -r $uid:$gid $linkDst";
-		list($result, $errorcode) = EosCmd::exec($cmd2);*/
-		
-		$moveDst = escapeshellarg($dir . "/.sys.v#." . $file . '/' . $file);
-		$moveLink = "eos -b -r $uid $gid mv $escapedlinkDst $moveDst";
-		list($result, $errocode) = EosCmd::exec($moveLink);
-		
-		return $errorcode === 0;
+	public static function removeSymLink($link)
+	{
+		$link = escapeshellarg($link);
+		$cmd = "eos -b -r 0 0 rm $link";
+		list(, $errcode) = EosCmd::exec($cmd);
+		return $errcode === 0;
 	}
 }
