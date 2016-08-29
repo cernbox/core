@@ -2608,7 +2608,7 @@ class Share extends Constants {
 			}
 			// FIXME: KUBA
 			// FIXME: after next client release we shouldnot need this anymore (no need to navigate to subdrectory as users may type the path directly into a text field since 1.8)
-			EosUtil::propagatePermissionXToParents($filedata, $to,$type);
+			// EosUtil::propagatePermissionXToParents($filedata, $to,$type);
 		}
 
 		return $id;
