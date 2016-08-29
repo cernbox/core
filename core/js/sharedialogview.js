@@ -16,7 +16,6 @@
 	var TEMPLATE_BASE =
 		'<div class="resharerInfoView subView"></div>' +
 		'{{#if isSharingAllowed}}' +
-		'{{#if canShareWithUsers}}' +
 		'<label for="shareWith-{{cid}}" class="hidden-visually">{{shareLabel}}</label>' +
 		'<div class="oneline">' +
 		'    <input id="shareWith-{{cid}}" class="shareWithField" type="text" placeholder="{{sharePlaceholder}}" />' +
@@ -26,7 +25,6 @@
 		'<div id="recipentList" class="shareRecipentListView hidden"><p>Share item to the following users/groups:</p><ul></ul>' +
 		'<input id="shareListButton" class="emailButton" type="submit" value="Confirm">' +
 		'</div>' +
-		'{{/if}}' +
 		'{{/if}}' +
 		'<div class="shareeListView subView"></div>' +
 		'<div class="linkShareView subView"></div>' +
@@ -269,7 +267,6 @@
 				sharePlaceholder: this._renderSharePlaceholderPart(),
 				remoteShareInfo: this._renderRemoteShareInfoPart(),
 				isSharingAllowed: this.model.sharePermissionPossible(),
-				canShareWithUsers: this.model.isFolder() && this.model.fileInfoModel.get('path') == '/'
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
