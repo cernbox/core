@@ -60,6 +60,10 @@ class EosInstanceManager
 				$instance = $temp[$id];
 			}
 		}
+		else
+		{
+			\OCP\Util::writeLog('EOS INSTANCES', 'Could not find instance with id ' . $id, \OCP\Util::ERROR);
+		}
 	
 		return $instance;
 	}
