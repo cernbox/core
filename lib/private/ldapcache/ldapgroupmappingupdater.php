@@ -64,6 +64,7 @@ class LDAPGroupMappingUpdater extends LDAPUPdater
 				foreach($groups as $group)
 				{
 					$this->ldapData[$user][] = [$group['share_with'], strval(EosUtil::isMemberOfEGroup($user, $group['share_with']))];
+					usleep(15000); // Sleep to prevent request peak on EOS
 				}
 				
 				LDAPCacheManager::setUserExpirationTime($user, time());

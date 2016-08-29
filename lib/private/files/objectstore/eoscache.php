@@ -156,7 +156,7 @@ class EosCache {
 				return false;
 			}
 			$data["storage"] = $this->storageId;
-			$data["permissions"] = 31;
+			//$data["permissions"] = 31;
 			EosCacheManager::setFileByEosPath($eosPath, $data);
 			return $data;
 		}
