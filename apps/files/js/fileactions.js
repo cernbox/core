@@ -359,6 +359,27 @@
 		_renderMenuTrigger: function($tr, context) {
 			// remove previous
 			$tr.find('.action-menu').remove();
+			
+			/*if(context.$file.attr('data-mime') == 'application/pynb')
+			{
+				var $elSwan = this._renderInlineAction({
+					name: 'openinswan',
+					displayName: '',
+					icon: OC.imagePath('core', 'actions/badge_swan_white_150'),
+					altText: t('files', 'Open this notebook in SWAN'),
+					action: function() 
+					{
+						var eosPath = context.$file.attr('data-eospath');
+						window.open('https://swan-virtual3.cern.ch?projurl=file:/' + eosPath, '_blank');
+					}
+				}, false, context);
+				
+				var img = $elSwan.find('img');
+				img.css('max-width', 'none');
+				img.css('vertical-align', 'baseline');
+				$elSwan.addClass('permanent');
+				$elSwan.css('opacity', '1')
+			}*/
 
 			var $el = this._renderInlineAction({
 				name: 'menu',
@@ -543,6 +564,30 @@
 				fileActions: this,
 				fileList: fileList
 			};
+			
+			var mountType = context.$file.attr('data-mounttype');
+			
+			if(context.$file.attr('data-mime') == 'application/pynb' 
+				&& !context.$file.attr('data-file').startsWith('.')
+				&& (mountType === undefined || (mountType && mountType !== 'shared')))
+			{
+				var $elSwan = this._renderInlineAction({
+					name: 'openinswan',
+					displayName: '',
+					icon: OC.imagePath('core', 'actions/badge_swan_white_150'),
+					altText: t('files', 'Open this notebook in SWAN'),
+					action: function() 
+					{
+						var eosPath = context.$file.attr('data-eospath');
+						window.open('https://swan-virtual3.cern.ch?projurl=file:/' + eosPath, '_blank');
+					}
+				}, false, context);
+				
+				var img = $elSwan.find('img');
+				img.css('max-width', 'none');
+				$elSwan.addClass('permanent');
+				$elSwan.css('opacity', '1')
+			}
 
 			$.each(actions, function (name, actionSpec) {
 				if (actionSpec.type === FileActions.TYPE_INLINE) {

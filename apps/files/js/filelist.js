@@ -320,7 +320,7 @@
 				actionHandler: function(fileName, context) 
 				{
 					var eosPath = context.$file.attr('data-eospath');
-					window.open('https://cern.ch/swanserver/cgi-bin/go?projurl=file:/' + eosPath, '_blank');
+					window.open('https://swan-virtual3.cern.ch?projurl=file:/' + eosPath, '_blank');
 				}
 			});
 			
