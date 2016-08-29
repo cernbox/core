@@ -309,7 +309,7 @@
 				});
 			}
 			
-			this.fileActions.registerAction(
+			/*this.fileActions.registerAction(
 			{
 				name: 'OpenInSWAN',
 				displayName: 'Open in SWAN',
@@ -322,7 +322,7 @@
 					var eosPath = context.$file.attr('data-eospath');
 					window.open('https://swan-virtual3.cern.ch?projurl=file:/' + eosPath, '_blank');
 				}
-			});
+			});*/
 			
 			this._onFileActionsUpdated = _.debounce(_.bind(this._onFileActionsUpdated, this), 100);
 			this.fileActions.on('registerAction', this._onFileActionsUpdated);

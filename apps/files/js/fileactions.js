@@ -567,7 +567,7 @@
 			
 			var mountType = context.$file.attr('data-mounttype');
 			
-			if(context.$file.attr('data-mime') == 'application/pynb' 
+			/*if(context.$file.attr('data-mime') == 'application/pynb' 
 				&& !context.$file.attr('data-file').startsWith('.')
 				&& (mountType === undefined || (mountType && mountType !== 'shared')))
 			{
@@ -587,7 +587,7 @@
 				img.css('max-width', 'none');
 				$elSwan.addClass('permanent');
 				$elSwan.css('opacity', '1')
-			}
+			}*/
 
 			$.each(actions, function (name, actionSpec) {
 				if (actionSpec.type === FileActions.TYPE_INLINE) {
