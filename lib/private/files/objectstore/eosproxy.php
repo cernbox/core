@@ -19,9 +19,31 @@ class EosProxy {
 		}
 
 	}
+	
+	private static function toGlobalEos($ocPath)
+	{
+		$instanceId = EosInstanceManager::getUserInstance();
+		$instanceData = EosInstanceManager::getMappingById($instanceId);
+		
+		if(strpos($ocPath, 'files') === 0)
+		{
+			$ocPath = substr($ocPath, 5);
+		}
+		
+		$ocPath = trim($ocPath, '/');
+		
+		return rtrim($instanceData['user_root_dir'], '/') . '/' . $ocPath;
+	}
+	
 	// ocPath is local oc like "" or "files" or "files/A/B/test_file./txt"
 	// storageId is object::store:/eos/dev/user/ or object::user:labrador
 	public static function toEos($ocPath, $storageId) {//ocPath like files/abc.txt or cache/557 or files or ""
+		
+		if(EosInstanceManager::isInGlobalInstance())
+		{
+			return self::toGlobalEos($ocPath);
+		}
+		
 		$eos_project_prefix = EosUtil::getEosProjectPrefix();
 		$eos_prefix   = EosUtil::getEosPrefix();
 		$eos_meta_dir = EosUtil::getEosMetaDir();
@@ -94,9 +116,36 @@ class EosProxy {
 		}
 
 	}
+	
+	private static function toGlobalOc($eosPath)
+	{
+		$instanceId = EosInstanceManager::getUserInstance();
+		$instanceData = EosInstanceManager::getMappingById($instanceId);
+		$userRootDir = $instanceData['user_root_dir'];
+		
+		if(strpos($eosPath, $userRootDir) !== 0)
+		{
+			\OCP\Util::writeLog('EOS PROXY', 
+					"The requested EOS Path ($eosPath) does not match the user's current instance: $userRootDir",
+					\OCP\Util::ERROR);
+			
+			return "files/"; //Redirect to instance's home directory
+		}
+		
+		$prefixLen = strlen($userRootDir);
+		$ocPath = trim(substr($eosPath, $prefixLen), '/');
+		
+		return 'files/' . $ocPath;
+	}
 
 	// EOS give us the path ended with a / so perfect
 	public static function toOc($eosPath) {//eosPath like /eos/dev/user/ or /eos/dev/user/l/labrador/abc.txt or /eos/dev/user/.metacernbox/l/labrador/cache/abc.txt or /eos/dev/user/.metacernbox/thumbnails/abc.txt
+		
+		if(EosInstanceManager::isInGlobalInstance())
+		{
+			return self::toGlobalOc($eosPath);
+		}
+		
 		$eos_project_prefix = EosUtil::getEosProjectPrefix();
 		$eos_prefix   = EosUtil::getEosPrefix();
 		$eos_meta_dir = EosUtil::getEosMetaDir();
