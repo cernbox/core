@@ -206,7 +206,7 @@ class CustomLocal
 			$token = $executor->getInsertResult();
 			
 		} catch (\Exception $e) {
-			return new \OC_OCS_Result(null, 403, $e->getMessage());
+			return new \OC_OCS_Result([], 403, $e->getMessage());
 		}
 		
 		if($token)

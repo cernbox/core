@@ -527,10 +527,11 @@ html.ie8 #fileList tr.selected td.filename>.selectCheckBox {
 	cursor: default !important;
 }
 
+/* CERNBOX PATCH TO DISPLAY FULL SWAN LOGO */
 a.action > img {
 	max-height: 16px;
-	max-width: 16px;
-	vertical-align: text-bottom;
+	/*max-width: 16px;
+	vertical-align: text-bottom;*/
 }
 
 /* Actions for selected files */
