@@ -542,7 +542,7 @@ final class EosUtil {
 		if ($errcode === 0 && $result) {
 			$line_to_parse = $result[0];
 			$data          = EosParser::parseFileInfoMonitorMode($line_to_parse);
-			$data['permissions'] = 31;
+			//$data['permissions'] = 31;
 			EosCacheManager::setFileByEosPath($eospath, $data);
 			
 			return $data;
@@ -1005,7 +1005,7 @@ final class EosUtil {
 				}
 				
 				//$data["storage"] = $this->storageId;
-				$data["permissions"] = 31;
+				//$data["permissions"] = 31;
 		
 				// HUGO  we need to be careful of not showing .sys.v#. folders when the folder asked to show the contents is a non sys folder.
 				if (!$hiddenFolder && preg_match("|".$eos_hide_regex."|", $data["eospath"]) ) { // the folder asked to list is not a sys folder, i.e does not have the hide_regex.

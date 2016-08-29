@@ -86,6 +86,43 @@ class EosParser {
 		} else {
 			$data["sys.acl"] = "";
 		}
+		
+		$currentUser = \OC_User::getUser();
+		$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
+		$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
+		
+		$isInACL = false;
+		$aclMember = '';
+		if(isset($ocPerm[$currentUser]))
+		{
+			$isInACL = true;
+			$aclMember = $currentUser;
+		}
+		else
+		{
+			$highestOcPerm = 0;
+			foreach($groups as $group)
+			{
+				if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
+				{
+					$isInACL = true;
+					$aclMember = $group;
+					$highestOcPerm = $ocPerm[$group]['ocperm'];
+				}
+			}
+		}
+		
+		if($isInACL)
+		{
+			$permissions = $ocPerm[$aclMember]['ocperm'];
+			if(EosUtil::getOwner($data['eospath']) === $aclMember) //is the owner, so give share permissions
+			{
+				$permissions = 31;
+			}
+			
+			$data['permissions'] = $permissions;
+		}
+		
 		if($indexSysOwnerAuth !== -1) {
 			$xattrv = explode("=",$fields[$indexSysOwnerAuth+1]);
 			$data["sys.owner.auth"] = $xattrv[1];
