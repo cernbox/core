@@ -902,8 +902,14 @@ class OC {
 				}
 				OC_User::logout();
 				// redirect to webroot and add slash if webroot is empty
-				//header("Location: " . OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
-				header('Location: https://login.cern.ch/adfs/ls/?wa=wsignout1.0');
+				if(\OC::$server->getConfig()->getSystemValue('sso_enabled', 'false') === 'true')
+				{
+					header('Location: https://login.cern.ch/adfs/ls/?wa=wsignout1.0');
+				}
+				else
+				{
+					header("Location: " . OC::$WEBROOT.(empty(OC::$WEBROOT) ? '/' : ''));
+				}
 			} else {
 				OC_App::loadApps();
 				OC_User::setupBackends();
