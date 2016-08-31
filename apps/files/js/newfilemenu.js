@@ -184,34 +184,96 @@
 					this._fileList.createFile(name);
 					break;
 				case 'folder':
-					this._fileList.createDirectory(name);
+					if($('#isPublic').attr('value') === '1')
+					{
+						this._createFolderOnPublicLink(name);
+					}
+					else
+					{
+						this._fileList.createDirectory(name);
+					}
 					break;
 				default:
 					console.warn('Unknown file type "' + fileType + '"');
 			}
+		},
+		
+		_createFolderOnPublicLink: function(name)
+		{
+			var self = this._fileList;
+			var deferred = $.Deferred();
+			var promise = deferred.promise();
+
+			OCA.Files.Files.isFileNameValid(name);
+			name = self.getUniqueName(name);
+
+			if (this.lastAction) {
+				this.lastAction();
+			}
+
+			$.post(
+				OC.generateUrl('/apps/files/ajax/newfolder.php'),
+				{
+					dir: self.getCurrentDirectory(),
+					foldername: name,
+					token: $('#sharingToken').attr('value')
+				},
+				function(result) {
+					if (result.status === 'success') {
+						self.add(result.data, {animate: true, scrollTo: true});
+						deferred.resolve(result.status, result.data);
+					} else {
+						if (result.data && result.data.message) {
+							OC.Notification.showTemporary(result.data.message);
+						} else {
+							OC.Notification.showTemporary(t('core', 'Could not create folder'));
+						}
+						deferred.reject(result.status);
+					}
+				}
+			);
 		},
 
 		/**
 		 * Renders the menu with the currently set items
 		 */
 		render: function() {
-			this.$el.html(this.template({
-				uploadMaxHumanFileSize: 'TODO',
-				uploadLabel: t('files', 'Upload'),
-				items: [{
-					id: 'file',
-					displayName: t('files', 'Text file'),
-					templateName: t('files', 'New text file.txt'),
-					iconClass: 'icon-filetype-text',
-					fileType: 'file'
-				}, {
-					id: 'folder',
-					displayName: t('files', 'Folder'),
-					templateName: t('files', 'New folder'),
-					iconClass: 'icon-folder',
-					fileType: 'folder'
-				}]
-			}));
+			
+			if($('#isPublic').attr('value') === '1')
+			{
+				this.$el.html(this.template({
+					uploadMaxHumanFileSize: 'TODO',
+					uploadLabel: t('files', 'Upload'),
+					items: [{
+						id: 'folder',
+						displayName: t('files', 'Folder'),
+						templateName: t('files', 'New folder'),
+						iconClass: 'icon-folder',
+						fileType: 'folder'
+					}]
+				}));
+			}
+			else
+			{
+				this.$el.html(this.template({
+					uploadMaxHumanFileSize: 'TODO',
+					uploadLabel: t('files', 'Upload'),
+					items: [{
+						id: 'file',
+						displayName: t('files', 'Text file'),
+						templateName: t('files', 'New text file.txt'),
+						iconClass: 'icon-filetype-text',
+						fileType: 'file'
+					}, {
+						id: 'folder',
+						displayName: t('files', 'Folder'),
+						templateName: t('files', 'New folder'),
+						iconClass: 'icon-folder',
+						fileType: 'folder'
+					}]
+				}));
+			}
+			
 			OC.Util.scaleFixForIE8(this.$('.svg'));
 		},
 

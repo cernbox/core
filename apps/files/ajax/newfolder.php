@@ -29,13 +29,13 @@
 // Init owncloud
 
 
-OCP\JSON::checkLoggedIn();
 OCP\JSON::callCheck();
 \OC::$server->getSession()->close();
 
 // Get the params
 $dir = isset($_POST['dir']) ? (string)$_POST['dir'] : '';
 $folderName = isset($_POST['foldername']) ?(string) $_POST['foldername'] : '';
+$token = isset($_POST['token']) ? (string) $_POST['token'] : false;
 
 $l10n = \OC::$server->getL10N('files');
 
@@ -43,6 +43,56 @@ $result = array(
 	'success' 	=> false,
 	'data'		=> NULL
 	);
+
+if($token)
+{
+	\OC_User::setIncognitoMode(true);
+	
+	// return only read permissions for public upload
+	//$allowedPermissions = \OCP\Constants::PERMISSION_READ;
+	//$publicDirectory = !empty($_POST['subdir']) ? (string)$_POST['subdir'] : '/';
+	
+	$linkItem = OCP\Share::getShareByToken($token);
+	if ($linkItem === false) {
+		OCP\JSON::error(array('data' => array_merge(array('message' => $l10n->t('Invalid Token')))));
+		die();
+	}
+	
+	if (!($linkItem['permissions'] & \OCP\Constants::PERMISSION_CREATE)) {
+		OCP\JSON::checkLoggedIn();
+	} else {
+		// resolve reshares
+		$rootLinkItem = OCP\Share::resolveReShare($linkItem);
+	
+		OCP\JSON::checkUserExists($rootLinkItem['uid_owner']);
+		// Setup FS with owner
+		OC_Util::tearDownFS();
+		OC_Util::setupFS($rootLinkItem['uid_owner']);
+	
+		// The token defines the target directory (security reasons)
+		$path = \OC\Files\Filesystem::getPath($linkItem['file_source']);
+		if($path === null) {
+			OCP\JSON::error(array('data' => array_merge(array('message' => $l10n->t('Unable to set upload directory.')))));
+			die();
+		}
+		$dir = sprintf(
+				"/%s/%s",
+				$path,
+				$dir
+				);
+	
+		if (!$dir || empty($dir) || $dir === false) {
+			OCP\JSON::error(array('data' => array_merge(array('message' => $l10n->t('Unable to set upload directory.')))));
+			die();
+		}
+	
+		$dir = rtrim($dir, '/');
+	}
+}
+else
+{
+	OCP\JSON::checkLoggedIn();
+}
 
 try {
 	\OC\Files\Filesystem::getView()->verifyPath($dir, $folderName);
