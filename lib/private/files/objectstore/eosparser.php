@@ -88,44 +88,50 @@ class EosParser {
 		}
 		
 		$currentUser = \OC_User::getUser();
+		$linkShare = false;
 		if(!$currentUser)
 		{
 			$currentUser = EosUtil::isSharedLinkGuest();
+			$linkShare = true;
+			$data['permissions'] = 31;
 		}
 		
 		$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
 		$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
 		
-		$isInACL = false;
-		$aclMember = '';
-		if(isset($ocPerm[$currentUser]))
+		if(!$linkShare)
 		{
-			$isInACL = true;
-			$aclMember = $currentUser;
-		}
-		else
-		{
-			$highestOcPerm = 0;
-			foreach($groups as $group)
+			$isInACL = false;
+			$aclMember = '';
+			if(isset($ocPerm[$currentUser]))
 			{
-				if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
+				$isInACL = true;
+				$aclMember = $currentUser;
+			}
+			else
+			{
+				$highestOcPerm = 0;
+				foreach($groups as $group)
 				{
-					$isInACL = true;
-					$aclMember = $group;
-					$highestOcPerm = $ocPerm[$group]['ocperm'];
+					if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
+					{
+						$isInACL = true;
+						$aclMember = $group;
+						$highestOcPerm = $ocPerm[$group]['ocperm'];
+					}
 				}
 			}
-		}
-		
-		if($isInACL)
-		{
-			$permissions = $ocPerm[$aclMember]['ocperm'];
-			if(EosUtil::getOwner($data['eospath']) === $aclMember) //is the owner, so give share permissions
-			{
-				$permissions = 31;
-			}
 			
-			$data['permissions'] = $permissions;
+			if($isInACL)
+			{
+				$permissions = $ocPerm[$aclMember]['ocperm'];
+				if(EosUtil::getOwner($data['eospath']) === $aclMember) //is the owner, so give share permissions
+				{
+					$permissions = 31;
+				}
+				
+				$data['permissions'] = $permissions;
+			}
 		}
 		
 		if($indexSysOwnerAuth !== -1) {
