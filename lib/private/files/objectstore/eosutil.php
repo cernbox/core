@@ -172,7 +172,7 @@ final class EosUtil {
 		return false;
 	}
 	
-	private static function isSharedLinkGuest()
+	public static function isSharedLinkGuest()
 	{
 		$uri = $_SERVER['REQUEST_URI'];
 		$uri = trim($uri, '/');

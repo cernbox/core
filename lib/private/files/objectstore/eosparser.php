@@ -88,6 +88,11 @@ class EosParser {
 		}
 		
 		$currentUser = \OC_User::getUser();
+		if(!$currentUser)
+		{
+			$currentUser = EosUtil::isSharedLinkGuest();
+		}
+		
 		$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
 		$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
 		
