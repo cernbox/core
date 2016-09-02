@@ -96,41 +96,58 @@ class EosParser {
 			$data['permissions'] = 31;
 		}
 		
-		$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
-		$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
-		
 		if(!$linkShare)
 		{
-			$isInACL = false;
-			$aclMember = '';
-			if(isset($ocPerm[$currentUser]))
+			$isOwner = EosUtil::getOwner($data['eospath']) === $currentUser;
+			if($data['eostype'] === 'file' || strpos($data['eospath'], '.sys.v#') !== FALSE) //Files and sys folder
 			{
-				$isInACL = true;
-				$aclMember = $currentUser;
-			}
-			else
-			{
-				$highestOcPerm = 0;
-				foreach($groups as $group)
+				if($isOwner)
 				{
-					if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
+					$data['permissions'] = 31; // Read + write + share
+				}
+				else
+				{
+					$data['permissions'] = 15; // Read + write
+				}
+			}
+			else // Folders
+			{
+				$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
+				$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
+				
+				$isInACL = false;
+				$aclMember = '';
+				if(isset($ocPerm[$currentUser]))
+				{
+					$isInACL = true;
+					$aclMember = $currentUser;
+				}
+				else
+				{
+					$highestOcPerm = 0;
+					foreach($groups as $group)
 					{
-						$isInACL = true;
-						$aclMember = $group;
-						$highestOcPerm = $ocPerm[$group]['ocperm'];
+						if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
+						{
+							$isInACL = true;
+							$aclMember = $group;
+							$highestOcPerm = $ocPerm[$group]['ocperm'];
+						}
 					}
 				}
-			}
-			
-			if($isInACL)
-			{
-				$permissions = $ocPerm[$aclMember]['ocperm'];
-				if(EosUtil::getOwner($data['eospath']) === $aclMember) //is the owner, so give share permissions
+					
+				if($isInACL)
 				{
-					$permissions = 31;
+					if($isOwner) //is the owner, so give share permissions
+					{
+						$permissions = 31;
+					}
+					else
+					{
+						$permissions = $ocPerm[$aclMember]['ocperm'];
+					}
+					$data['permissions'] = $permissions;
 				}
-				
-				$data['permissions'] = $permissions;
 			}
 		}
 		
