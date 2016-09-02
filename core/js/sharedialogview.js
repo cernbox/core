@@ -266,7 +266,7 @@
 				shareLabel: t('core', 'Share'),
 				sharePlaceholder: this._renderSharePlaceholderPart(),
 				remoteShareInfo: this._renderRemoteShareInfoPart(),
-				isSharingAllowed: this.model.sharePermissionPossible(),
+				isSharingAllowed: this.model.sharePermissionPossible() && this.model.isFolder(),
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
