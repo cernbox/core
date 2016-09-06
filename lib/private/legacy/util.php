@@ -109,31 +109,32 @@ class OC_Util {
 		}
 	}
 
-        /**
-         * mounting an Eos store as the root fs will in essence remove the
-         * necessity of a data folder being present and a SQL cache.
-         *
-         * @param array $config containing 'class' and optional 'arguments'
-         */
-        private static function initEosStoreRootFS($config, $user) {
-            // check misconfiguration
-            if (empty($config['class'])) {
-            \OCP\Util::writeLog('files', 'No class given for eosstore', \OCP\Util::ERROR);
-            }
-            if (!isset($config['arguments'])) {
-                $config['arguments'] = array();
-            }
 
-            // add user to arguments array
-            $config['arguments']['user'] = $user;
+	/**
+	 * mounting an Eos store as the root fs will in essence remove the
+	 * necessity of a data folder being present and a SQL cache.
+	 *
+	 * @param array $config containing 'class' and optional 'arguments'
+	 */
+	private static function initEosStoreRootFS($config, $user) {
+		// check misconfiguration
+		if (empty($config['class'])) {
+			\OCP\Util::writeLog('files', 'No class given for eosstore', \OCP\Util::ERROR);
+		}
+		if (!isset($config['arguments'])) {
+			$config['arguments'] = array();
+		}
 
-            // mount eos storage as root
-            \OC\Files\Filesystem::initMountManager();
-            if (!self::$rootMounted) {
-                \OC\Files\Filesystem::mount($config['class'], $config['arguments'], '/');
-                self::$rootMounted = true;
-            }
-        }
+		// add user to arguments array
+		$config['arguments']['user'] = $user;
+
+		// mount eos storage as root
+		\OC\Files\Filesystem::initMountManager();
+		if (!self::$rootMounted) {
+			\OC\Files\Filesystem::mount($config['class'], $config['arguments'], '/');
+			self::$rootMounted = true;
+		}
+	}
 
 	/**
 	 * Can be set up
@@ -213,7 +214,7 @@ class OC_Util {
 			 */
 			if ($storage->instanceOfStorage('\OC\Files\Storage\Home')
 				|| $storage->instanceOfStorage('\OC\Files\ObjectStore\HomeObjectStoreStorage')
-                		|| $storage->instanceOfStorage('\OCA\EosStore\HomeEosStoreStorage')
+                || $storage->instanceOfStorage('\OC\CernBox\Storage\Eos\HomeStorage')
 			) {
 				/** @var \OC\Files\Storage\Home $storage */
 				if (is_object($storage->getUser())) {
@@ -235,12 +236,12 @@ class OC_Util {
 		$objectStore = \OC::$server->getSystemConfig()->getValue('objectstore', null);
         	$eosStore = \OC::$server->getSystemConfig()->getValue('eosstore', null);
 		if (isset($eosStore)) {
-            		self::initEosStoreRootFS($eosStore, $user);
+		    self::initEosStoreRootFS($eosStore, $user);
 		} else if (isset($objectStore)){
-            		self::initObjectStoreRootFS($objectStore);
+		    self::initObjectStoreRootFS($objectStore);
 		} else {
-           		 self::initLocalStorageRootFS();
-        	}
+            self::initLocalStorageRootFS();
+        }
 
 		if ($user != '' && !OCP\User::userExists($user)) {
 			\OC::$server->getEventLogger()->end('setup_fs');

@@ -489,7 +489,7 @@ class Server extends ServerContainer implements IServerContainer {
 			$manager->registerProvider(new CacheMountProvider($config));
 			$manager->registerHomeProvider(new LocalHomeMountProvider());
 			$manager->registerHomeProvider(new ObjectHomeMountProvider($config));
-            		$manager->registerHomeProvider(new \OC\Files\EosStore\EosHomeMountProvider($config));
+            $manager->registerHomeProvider(new \OC\CernBox\Storage\Eos\HomeMountProvider($config));
 
 			return $manager;
 		});
