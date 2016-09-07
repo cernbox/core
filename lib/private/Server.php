@@ -41,6 +41,13 @@ use bantu\IniGetWrapper\IniGetWrapper;
 use OC\AppFramework\Http\Request;
 use OC\AppFramework\Db\Db;
 use OC\AppFramework\Utility\TimeFactory;
+use OC\CernBox\Storage\Drivers\Redis;
+use OC\CernBox\Storage\Eos\Command;
+use OC\CernBox\Storage\Eos\InstanceManager;
+use OC\CernBox\Storage\Eos\Parser;
+use OC\CernBox\Storage\Eos\Translator;
+use OC\CernBox\Storage\Eos\Util;
+use OC\CernBox\Storage\MetaDataCache\RequestCache;
 use OC\Command\AsyncBus;
 use OC\Diagnostics\EventLogger;
 use OC\Diagnostics\NullEventLogger;
@@ -680,6 +687,51 @@ class Server extends ServerContainer implements IServerContainer {
 
 			return $manager;
 		});
+
+		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
+			return new RequestCache();
+		});
+
+
+		$this->registerService('CernBoxEosUtil', function (Server $c) {
+			return new Util($c->getCernBoxMetaDataCache());
+		});
+
+		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
+			return new InstanceManager();
+		});
+
+		/*
+		$this->registerService('CernBoxCommander', function (Server $c) {
+			return new Command();
+		});
+
+		$this->registerService('CernBoxPathTranslator', function (Server $c) {
+			return new Translator();
+		});
+
+		$this->registerService('CernBoxEosUtil', function (Server $c) {
+			public function __construct(\OCP\IConfig $config,
+										InstanceManager $instanceManager,
+										IMetaDataCache $metaDataCache,
+										Commander $commander,
+										Parser $parser,
+										\OCP\IDBConnection $dbConnection,
+										LDAPCacheManager $ldapCacheManager,
+										Redis $redis)
+
+			$config = $c->getConfig();
+			$instanceManager = $c->getCernBoxEosInstanceManager();
+			$metaDataCache = $c->getCernBoxMetaDataCache();
+			$commander = $c->getCernBoxCommander();
+			$parser = $c->getCernBoxParser();
+			$dbConnection = $c->getDatabaseConnection();
+			$ldapCacheManager = $c->getCernBoxLDAPCacheManager();
+			$redis = new Redis();
+			return new Util($config, $instanceManager, $metaDataCache, $commander, $parser, $dbConnection, $ldapCacheManager, $redis);
+		});
+		*/
+
 	}
 
 	/**
@@ -1359,5 +1411,32 @@ class Server extends ServerContainer implements IServerContainer {
 	public function getShareManager() {
 		return $this->query('ShareManager');
 	}
+
+
+	/**
+	 * @return \OC\CernBox\Storage\MetaDataCache\IMetaDataCache
+	 */
+	public function getCernBoxMetaDataCache() {
+		return $this->query('CernBoxMetaDataCache');
+	}
+
+	// Add getters for CernBox services
+	public function getCernBoxEosUtil() {
+		return $this->query('CernBoxEosUtil');
+	}
+
+	public function getCernBoxEosInstanceManager() {
+		return $this->query('CernBoxEosInstanceManager');
+	}
+
+	/*
+	public function getCernBoxCommander() {
+		return $this->query('CernBoxCommander');
+	}
+
+	public function getCernBoxPathTranslator() {
+		return $this->query('CernBoxPathTranslator');
+	}
+	*/
 
 }

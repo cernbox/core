@@ -1,15 +1,34 @@
 <?php
 
 namespace OC\CernBox\Storage\Eos;
+use OC\CernBox\Share\Util as ShareUtil;
 
-final class Parser
+/**
+ * Class Parser
+ *
+ * @package OC\CernBox\Storage\Eos
+ */
+class Parser
 {
+	private $util;
+	private $translator;
+	private $username;
+
+	/**
+	 * Parser constructor.
+	 */
+	public function __construct($username) {
+		$this->username = $username;
+		$this->util = \OC::$server->getCernBoxEosUtil();
+		$this->translator = \OC::$server->getCernBoxEosTranslator();
+	}
+
 	/**
 	 * Parses the raw data from EOS into a map useable by owncloud core
 	 * @param string $data The output line given by EOS
 	 * @return array map of attributes => values
 	 */
-	public static function parseFileInfoMonitorMode($line)
+	public function parseFileInfoMonitorMode($line)
 	{
 		$rawMap = explode(' ', $line);
 
@@ -25,7 +44,7 @@ final class Parser
 		$data['size']             = self::parseField($map, 'size', 0);
 		$data['name']             = $pathinfo['basename'];
 		// if the path is in the trashbin we return false
-		$data['path']             = strpos($name, Util::getEosRecycleDir()) === 0 ? false:  Translator::toOc($name);
+		$data['path']             = strpos($name, $this->util->getEosRecycleDir()) === 0 ? false:$this->translator->toOc($name);
 		$data['path_hash']        = md5($data["path"]);
 		$data['parent']           = self::parseField($map, 'pid', 0);//KUBA: needed?
 		$data['encrypted']        = 0;
@@ -34,7 +53,7 @@ final class Parser
 		$data["eosuid"]			  = self::parseField($map, 'uid', 0);
 		$data["eosmode"]		  = self::parseField($map, 'mode', '');
 		$data["eostype"]		  = isset($map["container"]) ? 'folder' : 'file';
-		$data['mimetype']         = Util::getMimeType($data["eospath"],$data["eostype"]);
+		$data['mimetype']         = $this->util->getMimeType($data["eospath"],$data["eostype"]);
 		$data["sys.acl"]		  = self::parseField($map, 'sys.acl', '');
 		$data["sys.owner.auth"]   = self::parseField($map, 'sys.owner.auth', '');
 
@@ -42,13 +61,12 @@ final class Parser
 		//default to 0 to avoid security leaks.
 		$data['permissions'] = 0;
 
-		$aclMap = Util::toOcAcl($data['sys.acl']);
-		$currentUser = \OC_User::getUser();
-		$pathOwner = Util::getOwner($data['eospath']);
+		$aclMap = $this->util->toOcAcl($data['sys.acl']);
+		$pathOwner = $this->util->getOwner($data['eospath']);
 
 		if(!$currentUser)
 		{
-			$currentUser = Util::isSharedLinkGuest();
+			$currentUser = $this->shareUtil->isSharedLinkGuest();
 		}
 
 		if($currentUser)
@@ -71,7 +89,7 @@ final class Parser
 	 * @param string $data The output line given by EOS
 	 * @return array map of attributes => values
 	 */
-	public static function parseMember($line)
+	public function parseMember($line)
 	{
 		$fields = explode(" ", $line);
 		$info = [];
@@ -95,7 +113,7 @@ final class Parser
 	 * @param stirng $data The output line answered by EOS
 	 * @return true|false whether the user is member or not of the e-group
 	 */
-	public static function parseQuota($line)
+	public function parseQuota($line)
 	{
 		if(is_array($line) && count($line) > 0)
 		{
@@ -157,7 +175,7 @@ final class Parser
 	 * @param string $data The output line given by EOS
 	 * @return array map of attributes => values
 	 */
-	public static function parseRecycleLsMonitorMode($line)
+	public function parseRecycleLsMonitorMode($line)
 	{
 		// we need to be careful with extra whitespace after recyle=ls
 		/*
@@ -216,7 +234,7 @@ final class Parser
 	 * @param array $rawMap array of EOS data splitted by white space
 	 * @return string the name (full eos path) of the file
 	 */
-	private static function extractFileName(&$rawMap)
+	private function extractFileName(&$rawMap)
 	{
 		$keyLen = $rawMap[0];
 		array_shift($rawMap);
@@ -244,7 +262,7 @@ final class Parser
 	 * @param array $rawMap Raw EOS data splitted by white space
 	 * @return array $map A map
 	 */
-	private static function buildAttributeMap($rawMap)
+	private function buildAttributeMap($rawMap)
 	{
 		$map = [];
 		$arrayLen = count($rawMap);
@@ -277,7 +295,7 @@ final class Parser
 	 * @param mixed $defaultValue The default value it should return in case the property is not found in the map
 	 * @return mixed The property value or $defaultValue if the property could not be found in the map
 	 */
-	private static function parseField(array $haystack, $propertyName, $defaultValue = NULL)
+	private function parseField(array $haystack, $propertyName, $defaultValue = NULL)
 	{
 		if(isset($haystack[$propertyName]))
 		{
@@ -287,7 +305,7 @@ final class Parser
 		return $defaultValue;
 	}
 
-	private static function getCorrectMTime($map)
+	private function getCorrectMTime($map)
 	{
 		$mtimeTest = self::parseField($map, 'mtime', 0);
 		if($mtimeTest === '0.0')
