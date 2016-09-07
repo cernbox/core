@@ -22,14 +22,16 @@ class Cache implements ICache
 	 */
 	private $storage;
 	private $userHome;
+	private $parser;
 
     /**
-     * @param \OC\CernBox\Storage\Eos $storage
+     * @param \OC\CernBox\Storage\Eos\Storage $storage
      */
     public function __construct($storage)
     {
         $this->userHome = $storage->userHome;
         $this->storage = $storage;
+		$this->parser = new Parser();
     }
 
     /**
@@ -55,11 +57,13 @@ class Cache implements ICache
      */
     public function get($file)
     {
-        $fullpath = join('/', array($this->userHome, trim($file, '/')));
-        \OC::$server->getLogger()->info("get $file => $fullpath");
 		if(!$this->storage->file_exists($file)) {
 			return false;
+
 		} else {
+			$eosPath = $this->translator->toEos($file);
+			\OC::$server->getLogger()->debug("get oc:$file => eos:$eosPath");
+
 			$meta = array();
 			$meta['fileid'] = fileinode($fullpath);
 			$meta['path'] = $file;

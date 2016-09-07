@@ -11,9 +11,18 @@ namespace OC\CernBox\Storage\Eos;
 
 class Translator {
 
+	private $util;
+
 	// if the storageId is a user storage we return the username else false (object::store:$eos_prefix)
 	// when we are creating files (the storage id is still not defined) we receive the username of logged user
-	public static function getUsernameFromStorageId($storageId) {
+	/**
+	 * Translator constructor.
+	 */
+	public function __construct(Util $util) {
+		$this->util = $util;
+	}
+
+	public function getUsernameFromStorageId($storageId) {
 		$splitted = explode(":", $storageId);
 		$differenciator = isset($splitted[2]) ? $splitted[2] : "";
 		if ($differenciator === "store") {
@@ -29,10 +38,10 @@ class Translator {
 	}
 	// ocPath is local oc like "" or "files" or "files/A/B/test_file./txt"
 	// storageId is object::store:/eos/dev/user/ or object::user:labrador
-	public static function toEos($ocPath, $storageId) {//ocPath like files/abc.txt or cache/557 or files or ""
-		$eos_project_prefix = EosUtil::getEosProjectPrefix();
-		$eos_prefix = EosUtil::getEosPrefix();
-		$eos_meta_dir = EosUtil::getEosMetaDir();
+	public function toEos($ocPath, $storageId) {//ocPath like files/abc.txt or cache/557 or files or ""
+		$eos_project_prefix = $this->util->getEosProjectPrefix();
+		$eos_prefix = $this->util->getEosPrefix();
+		$eos_meta_dir = $this->util->getEosMetaDataDir();
 		$username = self::getUsernameFromStorageId($storageId);
 		if ($username === false) {
 			return false;
@@ -57,14 +66,14 @@ class Translator {
 
 			$project = substr($tempOcPath, $len, $nextSlash - $len);
 			$pathLeft = substr($tempOcPath, $nextSlash);
-			$relativePath = EosUtil::getProjectRelativePath($project);
+			$relativePath = $this->util->getProjectRelativePath($project);
 
 			if ($relativePath) {
 				return (rtrim($eos_project_prefix, '/') . '/' . trim($relativePath, '/') . '/' . trim($pathLeft, '/'));
 			}
 		}
 
-		/*$project = EosUtil::getProjectNameForUser($username);
+		/*$project = $this->util->getProjectNameForUser($username);
 		if($project !== null) {
 			$project_path=  rtrim($eos_project_prefix, '/') . '/' . rtrim($project, '/') . '/' . ltrim(substr($ocPath,6), '/'); #KUBA: added /
 			return $project_path;
@@ -100,11 +109,11 @@ class Translator {
 	}
 
 	// EOS give us the path ended with a / so perfect
-	public static function toOc($eosPath) {//eosPath like /eos/dev/user/ or /eos/dev/user/l/labrador/abc.txt or /eos/dev/user/.metacernbox/l/labrador/cache/abc.txt or /eos/dev/user/.metacernbox/thumbnails/abc.txt
-		$eos_project_prefix = EosUtil::getEosProjectPrefix();
-		$eos_prefix = EosUtil::getEosPrefix();
-		$eos_meta_dir = EosUtil::getEosMetaDir();
-		$eos_recycle_dir = EosUtil::getEosRecycleDir();
+	public function toOc($eosPath) {//eosPath like /eos/dev/user/ or /eos/dev/user/l/labrador/abc.txt or /eos/dev/user/.metacernbox/l/labrador/cache/abc.txt or /eos/dev/user/.metacernbox/thumbnails/abc.txt
+		$eos_project_prefix = $this->util->getEosProjectPrefix();
+		$eos_prefix = $this->util->getEosPrefix();
+		$eos_meta_dir = $this->util->getEosMetaDataDir();
+		$eos_recycle_dir = $this->util->getEosRecycleDir();
 		if ($eosPath == $eos_prefix) {
 			return "";
 		}
@@ -135,14 +144,14 @@ class Translator {
 			$len_prefix = strlen($eos_project_prefix);
 			$rel = substr($eosPath, $len_prefix);
 
-			$projectRelName = EosUtil::getProjectNameForPath($rel);
+			$projectRelName = $this->util->getProjectNameForPath($rel);
 			if ($projectRelName) {
 				$rel = trim($rel);
 				$pathLeft = substr($rel, strlen($projectRelName[1]));
 				$ocPath = 'files/' . $projectRelName[0] . '/' . $pathLeft;
 				return $ocPath;
 			}
-			\OCP\Util::writeLog('EOSPROXY', 'Cannot find project mapping for path ' . $eosPath, \OCP\Util::ERROR);
+			\OC::$server->getLogger()->warning('Cannot find project mapping for path ' . $eosPath);
 			return false;
 
 			/*$splitted   = explode("/", $rel);
@@ -151,7 +160,7 @@ class Translator {
 			$ocPath = rtrim($ocPath, "/");
 			return $ocPath;*/
 		} else {
-			\OCP\Util::writeLog("eos", "The eos_prefix,eos_meta_dir,eos_recycle_dir does not match this path: $eosPath", \OCP\Util::ERROR);
+			\OC::$server->getLogger()->warning("The eos_prefix,eos_meta_dir,eos_recycle_dir does not match this path: $eosPath");
 			return false;
 		}
 	}

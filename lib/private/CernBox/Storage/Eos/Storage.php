@@ -9,7 +9,8 @@
 
 namespace OC\CernBox\Storage\Eos;
 
-use OCP\Files\StorageInvalidException;
+use Icewind\Streams\IteratorDirectory;
+use League\Flysystem\FileNotFoundException;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 
@@ -27,27 +28,30 @@ class Storage implements \OCP\Files\Storage
      * @var string
      */
     private $storageId;
+
     /**
      * @var Cache
      */
     protected $namespace;
-    private $user;
-    private $homeprefix;
-    public  $userHome;
 
-    /**
-     * $parameters is a free form array with the configuration options needed to construct the storage
-     *
-     * @param array $parameters
-     * @since 9.0.0
-     */
+	private $util;
+
+	private $user;
+	private $userUID;
+	private $userGID;
+	private $instanceManager;
+	private $eosHomeDirectory;
+
+
     public function __construct($params)
     {
+    	$this->logger = \OC::$server->getLogger();
+    	$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
+    	$this->util = \OC::$server->getCernBoxEosUtil();
 
         // instantiate Cache
         if (!isset($params['user'])) {
             throw  new StorageNotAvailableException('eos storage instantiated without user');
-            return;
         }
 
         // sometime the user is passed as a string instead of a full User object
@@ -60,27 +64,37 @@ class Storage implements \OCP\Files\Storage
 
 		if (!$user) {
 			throw  new StorageNotAvailableException("eos storage instantiated with unknown user: $user");
-            return;
 		}
+
+		// obtain uid and guid for user
+		list ($userID, $userGroupID) = $this->util->getUidAndGid($user->getUID());
+		if (!$userID || !$userGroupID) {
+			throw  new StorageNotAvailableException('user does not have an uid or gid');
+		}
+
 		$this->user = $user;
+		$this->userUID = $userID;
+		$this->userGID = $userGroupID;
 
-        if (!isset($params['homeprefix'])) {
-            throw  new StorageNotAvailableException('home prefix has been not defined for eos storage');
-        }
-        $this->homeprefix= $params['homeprefix'];
+		// $eosHomeDirectory is a full EOS path
+		// ex: '/eos/user/l/labrador'
+		$eosHomeDirectory = $this->instanceManager->getHomeDirectoryForUser($user->getUID());
+		if (!$eosHomeDirectory) {
+			throw  new StorageNotAvailableException('user does not have a valid home directory on EOS');
+		}
 
-        $this->userHome = join("/", array($this->homeprefix, $this->user->getUID()));
+        \OC::$server->getLogger()->info("eos storage instantiated for user:$user->getUID() with home:$eosHomeDirectory");
 
-        \OC::$server->getLogger()->info('eos storage instantiated', array('user'=> $this->user->getUID()));
-        \OC::$server->getLogger()->info('eos home is '. $this->userHome, array('home'=> $this->userHome));
-
-        if (!isset($params['storageid'])) {
-            $this->storageId= 'eos::store:' . $params['storageid'];
-        } else {
-            $this->storageId= 'eos::store:' . 'eosdefault';
-        }
+		// $eosInstance is the EOS instance that has the user home directory.
+		// ex: eosuser or eosbackup
+		$eosInstanceForThisUser = $this->instanceManager->getEosInstanceForUser($user->getUID());
+		if (!$eosInstanceForThisUser) {
+			throw  new StorageNotAvailableException('user is not assigned to any EOS instance');
+		}
+		$this->storageId= 'eos::store:' . $eosInstanceForThisUser . "-" . $user->getUID();
 
         // create user home directory if it does not exist
+		/*
         if (!$this->is_dir('/')) {
             $this->mkdir('/');
         }
@@ -89,6 +103,7 @@ class Storage implements \OCP\Files\Storage
         if (!$this->is_dir('/files')) {
             $this->mkdir('/files');
         }
+		*/
 
         // instantiate the namespace
         $this->namespace= new Cache($this);
@@ -118,9 +133,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function mkdir($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        @mkdir($fullpath);
-        return true;
+    	return $this->instanceManager->mkdir($this->user->getUID(), $path);
     }
 
     /**
@@ -132,9 +145,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function rmdir($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        @rmdir($fullpath);
-        return true;
+    	return $this->instanceManager->rmdir($this->user->getUID(), $path);
     }
 
     /**
@@ -146,9 +157,17 @@ class Storage implements \OCP\Files\Storage
      */
     public function opendir($path)
     {
-        \OC::$server->getLogger()->info("opendir $path");
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @opendir($fullpath);
+		try {
+			$files = array();
+			$folderContents = $this->getCache()->getFolderContents($path);
+			foreach ($folderContents as $file) {
+				$files[] = $file['name'];
+			}
+			return IteratorDirectory::wrap($files);
+		} catch (\Exception $e) {
+			$this->logger->error($e);
+			return false;
+		}
     }
 
     /**
@@ -160,8 +179,12 @@ class Storage implements \OCP\Files\Storage
      */
     public function is_dir($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @is_dir($fullpath);
+    	$entry = $this->getCache()->get($path);
+		if (!$entry) {
+			return false;
+		}
+
+		return $entry->getMimeType() === 'http/unix-directory';
     }
 
     /**
@@ -173,8 +196,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function is_file($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @is_file($fullpath);
+		$entry = $this->getCache()->get($path);
+		if (!$entry) {
+			return false;
+		}
+		return $entry->getMimeType() !== 'httpd/unix-directory';
     }
 
     /**
@@ -187,8 +213,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function stat($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @stat($fullpath);
+		$entry = $this->getCache()->get($path);
+		if (!$entry) {
+			return false;
+		}
+		return ["size" => $entry->getSize(), "mtime" => $entry->getMTime()];
     }
 
     /**
@@ -200,8 +229,12 @@ class Storage implements \OCP\Files\Storage
      */
     public function filetype($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @filetype($fullpath);
+    	$isDir = $this->is_dir($path);
+		if ($isDir) {
+			return 'dir';
+		} else {
+			return 'file';
+		}
     }
 
     /**
@@ -214,10 +247,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function filesize($path)
     {
-        \OC::$server->getLogger()->info("filesize $path");
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        \OC::$server->getLogger()->info("filesize fullpath $fullpath");
-        return @filesize($fullpath);
+    	$entry = $this->getCache()->get($path);
+		if (!$entry) {
+			throw  new FileNotFoundException($path);
+		}
+		return $entry->getMimeType() === 'httpd/unix-directory' ? 0 : $entry->getSize();
     }
 
     /**
@@ -229,7 +263,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function isCreatable($path)
     {
-        return true;
+    	if ($this->is_dir($path) && $this->isUpdatable($path)) {
+    		return true;
+		} else {
+			return false;
+		}
     }
 
     /**
@@ -241,7 +279,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function isReadable($path)
     {
-        return true;
+    	return $this->file_exists($path);
     }
 
     /**
@@ -253,7 +291,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function isUpdatable($path)
     {
-        return true;
+    	return $this->file_exists($path);
     }
 
     /**
@@ -265,7 +303,13 @@ class Storage implements \OCP\Files\Storage
      */
     public function isDeletable($path)
     {
-        return true;
+    	// home directories cannot be deleted
+    	if ($path === '' || $path === '/' || $path === '.') {
+    		return false;
+		}
+
+		$parent = dirname($path);
+		return $this->isUpdatable($parent) && $this->isUpdatable($path);
     }
 
     /**
@@ -277,7 +321,8 @@ class Storage implements \OCP\Files\Storage
      */
     public function isSharable($path)
     {
-        return true;
+    	// FIXME: plug here custom logic to say if a file can be shared or not.
+		return $this->isReadable($path);
     }
 
     /**
@@ -290,8 +335,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function getPermissions($path)
     {
-        // TODO: Implement getPermissions() method.
-        return 31;
+    	$entry = $this->getCache()->get($path);
+		if(!$entry) {
+			return false;
+		}
+		return $entry['permissions'];
     }
 
     /**
@@ -303,8 +351,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function file_exists($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @file_exists($fullpath);
+    	return $this->getCache()->get($path);
     }
 
     /**
@@ -316,9 +363,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function filemtime($path)
     {
-        \OC::$server->getLogger()->info("filemtime $path");
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @filemtime($fullpath);
+    	$entry = $this->getCache()->get($path);
+		if (!$entry) {
+			return false;
+		}
+		return $entry->getMTime();
     }
 
     /**
@@ -359,9 +408,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function unlink($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        @unlink($fullpath);
-        return true;
+    	return $this->instanceManager->remove($this->user->getUID(), $path);
     }
 
     /**
@@ -374,10 +421,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function rename($path1, $path2)
     {
-        $fullpath1 = join('/', array($this->userHome, trim($path1, '/')));
-        $fullpath2 = join('/', array($this->userHome, trim($path2, '/')));
-        @rename($fullpath1, $fullpath2);
-        return true;
+		return $this->instanceManager->rename($this->user->getUID(), $path1, $path2);
     }
 
     /**
@@ -390,10 +434,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function copy($path1, $path2)
     {
-        $fullpath1 = join('/', array($this->userHome, trim($path1, '/')));
-        $fullpath2 = join('/', array($this->userHome, trim($path2, '/')));
-        @copy($fullpath1, $fullpath2);
-        return true;
+		return $this->instanceManager->copy($this->user->getUID(), $path1, $path2);
     }
 
     /**
@@ -421,12 +462,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function getMimeType($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        if($this->is_dir($path)) {
-            return 'httpd/unix-directory';
-        } else {
-            return \OC::$server->getMimeTypeDetector()->detectPath($path);
-        }
+    	$entry = $this->getCache()->get($path);
+		if ($entry) {
+			return false;
+		}
+    	return \OC::$server->getMimeTypeDetector()->detectString($path);
     }
 
     /**
@@ -437,11 +477,15 @@ class Storage implements \OCP\Files\Storage
      * @param bool $raw
      * @return string|false
      * @since 9.0.0
+	 * FIXME: this function is completely no sense, fclose really?
      */
     public function hash($type, $path, $raw = false)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @hash($type, $fullpath, $raw);
+		$fh = $this->fopen($path, 'rb');
+		$ctx = hash_init($type);
+		hash_update_stream($ctx, $fh);
+		fclose($fh);
+		return hash_final($ctx, $raw);
     }
 
     /**
@@ -453,7 +497,8 @@ class Storage implements \OCP\Files\Storage
      */
     public function free_space($path)
     {
-        return '102423949239';
+    	// FIXME: check really free space on EOS
+    	return \OCP\Files\FileInfo::SPACE_UNLIMITED;
     }
 
     /**
@@ -496,9 +541,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function hasUpdated($path, $time)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        $mtime = $this->filemtime($path);
-        return $mtime > $time;
+    	return $this->filemtime($path) > $time;
     }
 
     /**
@@ -510,8 +553,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function getETag($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return (string)($this->filemtime($path));
+    	$entry = $this->getCache()->get($path);
+		if(!$entry) {
+			return false;
+		}
+		return $entry->getEtag();
     }
 
     /**
@@ -538,7 +584,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function instanceOfStorage($class)
     {
-        return false;
+    	return is_a($this, $class);
     }
 
     /**
@@ -561,6 +607,8 @@ class Storage implements \OCP\Files\Storage
      * @return void
      * @throws \OCP\Files\InvalidPathException
      * @since 9.0.0
+	 * FIXME: here we can put forbidden names that go to EOS
+	 * FIXME: or call put this behaviour on Eos instance;
      */
     public function verifyPath($path, $fileName)
     {
@@ -576,7 +624,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function copyFromStorage(\OCP\Files\Storage $sourceStorage, $sourceInternalPath, $targetInternalPath)
     {
-        return true;
+        return false;
     }
 
     /**
@@ -588,7 +636,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function moveFromStorage(\OCP\Files\Storage $sourceStorage, $sourceInternalPath, $targetInternalPath)
     {
-        return true;
+        return false;
     }
 
     /**
@@ -596,6 +644,8 @@ class Storage implements \OCP\Files\Storage
      *
      * @since 9.0.0
      * @return bool
+	 * FIXME: here we can put our SLA conditions for EOS to be in
+	 * FIXME: a working condition
      */
     public function test()
     {
@@ -605,6 +655,8 @@ class Storage implements \OCP\Files\Storage
     /**
      * @since 9.0.0
      * @return array [ available, last_checked ]
+	 * FIXME: here we can put our SLA conditions for EOS to be in
+	 * FIXME: a working condition
      */
     public function getAvailability()
     {
@@ -614,6 +666,7 @@ class Storage implements \OCP\Files\Storage
     /**
      * @since 9.0.0
      * @param bool $isAvailable
+	 * @return bool
      */
     public function setAvailability($isAvailable)
     {
@@ -626,6 +679,8 @@ class Storage implements \OCP\Files\Storage
      */
     public function getOwner($path)
     {
+    	// all files that come are relative to user storage
+		// so the user will always be the owner of its own files.
         return $this->user->getUID();
     }
 
