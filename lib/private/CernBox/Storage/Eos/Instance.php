@@ -109,7 +109,6 @@ class Instance {
 
 		$tempFileForLocalWriting = tempnam($this->stagingDir, "eostempwrite");
 		$handle = fopen($tempFileForLocalWriting, 'w');
-		$data = '';
 
 		while(!feof($stream)){
 			$data = fread($stream, self::READ_BUFFER_SIZE);
@@ -194,7 +193,7 @@ class Instance {
 				$eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
 				if($eosMap['eos.file']) {
 					$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
-					$entries = new CacheEntry($ownCloudMap);
+					$entries[] = new CacheEntry($ownCloudMap);
 				}
 			}
 			return $entries;
@@ -202,19 +201,19 @@ class Instance {
 	}
 
 	public function getFolderContentsById($username, $id) {
-		$entry = $this->getById($id);
+		$entry = $this->getById($username, $id);
 		return $this->getFolderContents($username, $entry->getPath());
 	}
 
 	public function getPathById($username, $id) {
-		$entry = $this->getById($id);
+		$entry = $this->getById($username, $id);
 		if (!$entry) {
 			return false;
 		}
 		return $entry->getPath();
 	}
 
-	private function getById($id) {
+	private function getById($username, $id) {
 		$command = "file info inode:$id -m";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
