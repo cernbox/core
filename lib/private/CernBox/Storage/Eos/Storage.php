@@ -10,8 +10,8 @@
 namespace OC\CernBox\Storage\Eos;
 
 use Icewind\Streams\IteratorDirectory;
-use League\Flysystem\FileNotFoundException;
 use OC\Files\Filesystem;
+use OCP\Files\NotFoundException;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 
@@ -257,7 +257,7 @@ class Storage implements \OCP\Files\Storage
     {
     	$entry = $this->getCache()->get($path);
 		if (!$entry) {
-			throw  new FileNotFoundException($path);
+			throw  new NotFoundException($path);
 		}
 		return $entry->getMimeType() === 'httpd/unix-directory' ? 0 : $entry->getSize();
     }
@@ -846,7 +846,7 @@ class Storage implements \OCP\Files\Storage
 	 * @see \OC\Files\ObjectStore\ObjectStoreStorage::writeBack()
 		 * FIXME: can we avoid this?
 	 */
-	private function writeBack($tmpFile)
+	public function writeBack($tmpFile)
 	{
 		if (!isset(self::$tmpFiles[$tmpFile]))
 		{

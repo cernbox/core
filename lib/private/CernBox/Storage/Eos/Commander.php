@@ -65,9 +65,9 @@ class  Commander{
 		while($errorCode === 22 && $counter !== $this->retrievalAttempts);
 
 		if($errorCode === 0) {
-			$this->logger->warning("$cmd=> $errorCode");
+			$this->logger->warning("$cmd => $errorCode");
 		} else {
-			$this->logger->error("$cmd=> $errorCode");
+			$this->logger->error("$cmd => $errorCode");
 		}
 		return array($result, $errorCode);
 	}
