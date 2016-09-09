@@ -11,6 +11,7 @@ namespace OC\CernBox\Storage\Eos;
 
 use Icewind\Streams\IteratorDirectory;
 use League\Flysystem\FileNotFoundException;
+use OC\Files\Filesystem;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 
@@ -22,6 +23,11 @@ use OCP\Lock\ILockingProvider;
  */
 // TODO(labkode) it should be EosStoreStorage implements \OCP\Files\Storage\IStorage
 // but ownCloud is not flexible enough to handle it.
+/**
+ * Class Storage
+ *
+ * @package OC\CernBox\Storage\Eos
+ */
 class Storage implements \OCP\Files\Storage
 {
     /**
@@ -34,16 +40,45 @@ class Storage implements \OCP\Files\Storage
      */
     protected $namespace;
 
+	/**
+	 * @var Util
+	 */
 	private $util;
 
-	private $user;
+	/**
+	 * @var null|\OC\User\User
+	 */
+	public $user;
+	/**
+	 * @var int
+	 */
 	private $userUID;
+	/**
+	 * @var int
+	 */
 	private $userGID;
-	private $instanceManager;
-	private $eosHomeDirectory;
+	/**
+	 * @var InstanceManager
+	 */
+	public $instanceManager;
+
+	/**
+	 * @var array string
+	 */
+	private static $tmpFiles;
+	/**
+	 * @var \OCP\ILogger
+	 */
+	private $logger;
 
 
-    public function __construct($params)
+	/**
+	 * Storage constructor.
+	 *
+	 * @param array $params
+	 * @throws StorageNotAvailableException
+	 */
+	public function __construct($params)
     {
     	$this->logger = \OC::$server->getLogger();
     	$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
@@ -67,7 +102,7 @@ class Storage implements \OCP\Files\Storage
 		}
 
 		// obtain uid and guid for user
-		list ($userID, $userGroupID) = $this->util->getUidAndGid($user->getUID());
+		list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
 		if (!$userID || !$userGroupID) {
 			throw  new StorageNotAvailableException('user does not have an uid or gid');
 		}
@@ -76,34 +111,7 @@ class Storage implements \OCP\Files\Storage
 		$this->userUID = $userID;
 		$this->userGID = $userGroupID;
 
-		// $eosHomeDirectory is a full EOS path
-		// ex: '/eos/user/l/labrador'
-		$eosHomeDirectory = $this->instanceManager->getHomeDirectoryForUser($user->getUID());
-		if (!$eosHomeDirectory) {
-			throw  new StorageNotAvailableException('user does not have a valid home directory on EOS');
-		}
-
-        \OC::$server->getLogger()->info("eos storage instantiated for user:$user->getUID() with home:$eosHomeDirectory");
-
-		// $eosInstance is the EOS instance that has the user home directory.
-		// ex: eosuser or eosbackup
-		$eosInstanceForThisUser = $this->instanceManager->getEosInstanceForUser($user->getUID());
-		if (!$eosInstanceForThisUser) {
-			throw  new StorageNotAvailableException('user is not assigned to any EOS instance');
-		}
-		$this->storageId= 'eos::store:' . $eosInstanceForThisUser . "-" . $user->getUID();
-
-        // create user home directory if it does not exist
-		/*
-        if (!$this->is_dir('/')) {
-            $this->mkdir('/');
-        }
-
-        // create files directory if it does not exists
-        if (!$this->is_dir('/files')) {
-            $this->mkdir('/files');
-        }
-		*/
+		$this->storageId= 'eos::store:' . $this->instanceManager->getInstanceId() . "-" . $user->getUID();
 
         // instantiate the namespace
         $this->namespace= new Cache($this);
@@ -133,7 +141,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function mkdir($path)
     {
-    	return $this->instanceManager->mkdir($this->user->getUID(), $path);
+    	return $this->instanceManager->createDir($this->user->getUID(), $path);
     }
 
     /**
@@ -145,7 +153,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function rmdir($path)
     {
-    	return $this->instanceManager->rmdir($this->user->getUID(), $path);
+    	return $this->instanceManager->remove($this->user->getUID(), $path);
     }
 
     /**
@@ -379,8 +387,13 @@ class Storage implements \OCP\Files\Storage
      */
     public function file_get_contents($path)
     {
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return @file_get_contents($fullpath);
+    	$handle = $this->fopen($path, 'r');
+		if($handle) {
+			return false;
+		}
+		$data = stream_get_contents($handle);
+		fclose($handle);
+		return $data;
     }
 
     /**
@@ -393,10 +406,10 @@ class Storage implements \OCP\Files\Storage
      */
     public function file_put_contents($path, $data)
     {
-		\OC::$server->getLogger()->info("file_put_contents $path");
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        @file_put_contents($fullpath, $data);
-        return true;
+    	$handle = $this->fopen($path, 'w');
+		$count = fwrite($handle, $data);
+		fclose($handle);
+		return $count;
     }
 
     /**
@@ -434,7 +447,25 @@ class Storage implements \OCP\Files\Storage
      */
     public function copy($path1, $path2)
     {
-		return $this->instanceManager->copy($this->user->getUID(), $path1, $path2);
+		if ($this->is_dir($path1)) {
+			$this->instanceManager->remove($this->user->getUID(), $path2);
+			$dir = $this->opendir($path1);
+			$this->mkdir($path2);
+			while ($file = readdir($dir)) {
+				if (!Filesystem::isIgnoredDir($file)) {
+					if (!$this->copy($path1 . '/' . $file, $path2 . '/' . $file)) {
+						return false;
+					}
+				}
+			}
+			closedir($dir);
+			return true;
+		} else {
+			$source = $this->fopen($path1, 'r');
+			$target = $this->fopen($path2, 'w');
+			list(, $result) = \OC_Helper::streamCopy($source, $target);
+			return $result;
+		}
     }
 
     /**
@@ -447,9 +478,42 @@ class Storage implements \OCP\Files\Storage
      */
     public function fopen($path, $mode)
     {
-		\OC::$server->getLogger()->info("fopen $path $mode");
-        $fullpath = join('/', array($this->userHome, trim($path, '/')));
-        return fopen($fullpath, $mode);
+		switch ($mode)
+		{
+			case 'r':
+			case 'rb':
+				return $this->instanceManager->read($this->user->getUID(), $path);
+			case 'w':
+			case 'wb':
+			case 'a':
+			case 'ab':
+			case 'r+':
+			case 'w+':
+			case 'wb+':
+			case 'a+':
+			case 'x':
+			case 'x+':
+			case 'c':
+			case 'c+':
+				if (strrpos($path, '.') !== false)
+				{
+					$ext = substr($path, strrpos($path, '.'));
+				} else
+				{
+					$ext = '';
+				}
+				$tmpFile = \OC::$server->getTempManager()->getTemporaryFile($ext);
+				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
+				if ($this->file_exists($path))
+				{
+					$source = $this->fopen($path, 'r');
+					file_put_contents($tmpFile, $source);
+				}
+				self::$tmpFiles[$tmpFile] = $path;
+
+				return fopen('close://' . $tmpFile, $mode);
+		}
+		return false;
     }
 
     /**
@@ -512,7 +576,8 @@ class Storage implements \OCP\Files\Storage
      */
     public function touch($path, $mtime = null)
     {
-        return false;
+    	$stream = fopen('php://memory', 'r');
+		return $this->instanceManager->write($this->user->getUID(), $path, $stream);
     }
 
     /**
@@ -776,4 +841,29 @@ class Storage implements \OCP\Files\Storage
         // TODO: Implement changeLock() method.
     }
 
+    	/**
+	 * {@inheritDoc}
+	 * @see \OC\Files\ObjectStore\ObjectStoreStorage::writeBack()
+		 * FIXME: can we avoid this?
+	 */
+	private function writeBack($tmpFile)
+	{
+		if (!isset(self::$tmpFiles[$tmpFile]))
+		{
+			return;
+		}
+
+		$path = self::$tmpFiles[$tmpFile];
+		//$path = $this->normalizePath($path);
+		$stat = $this->stat($path);
+		try
+		{
+			$this->instanceManager->write($this->user->getUID(), $path, fopen($tmpFile, 'r'));
+		}
+		catch (\Exception $ex)
+		{
+			\OC::$server->getLogger()->error('could not write back: ' . $ex->getMessage());
+			return false;
+		}
+	}
 }

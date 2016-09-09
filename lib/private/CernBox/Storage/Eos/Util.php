@@ -23,7 +23,7 @@ class Util {
 		$this->metaDataCache = $metaDataCache;
 	}
 
-	public function getUidAndGid($username) {
+	public function getUidAndGidForUsername($username) {
 		$cached = $this->metaDataCache->getUidAndGid($username);
 		if($cached)
 		{

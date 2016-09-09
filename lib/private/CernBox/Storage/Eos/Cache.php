@@ -16,22 +16,21 @@ use OCP\Files\NotFoundException;
 class Cache implements ICache
 {
 
-
 	/**
 	 * @var \OC\CernBox\Storage\Eos\Storage
 	 */
+	private $instanceManager;
 	private $storage;
-	private $userHome;
-	private $parser;
+	private $user;
 
     /**
      * @param \OC\CernBox\Storage\Eos\Storage $storage
      */
     public function __construct($storage)
     {
-        $this->userHome = $storage->userHome;
-        $this->storage = $storage;
-		$this->parser = new Parser();
+    	$this->storage = $storage;
+		$this->user =  $storage->user;
+		$this->instanceManager = $storage->instanceManager;
     }
 
     /**
@@ -57,28 +56,7 @@ class Cache implements ICache
      */
     public function get($file)
     {
-		if(!$this->storage->file_exists($file)) {
-			return false;
-
-		} else {
-			$eosPath = $this->translator->toEos($file);
-			\OC::$server->getLogger()->debug("get oc:$file => eos:$eosPath");
-
-			$meta = array();
-			$meta['fileid'] = fileinode($fullpath);
-			$meta['path'] = $file;
-			$meta['name'] = basename($file);
-			$meta['mtime'] = $this->storage->filemtime($file);
-			$meta['storage_mtime'] = $this->storage->filemtime($file);
-			$meta['size'] = $this->storage->filesize($file);
-			$meta['permissions'] = 31;
-			$meta['storage'] = $this->storage->getId();
-			$meta['etag'] = $this->storage->getETag($file);
-			$meta['encrypted'] = false;
-			$meta['mimetype'] = $this->storage->getMimeType($file);
-			$entry = new CacheEntry($meta);
-			return $entry;
-		}
+    	return $this->instanceManager->get($this->user->getUID(), $file);
     }
 
     /**
@@ -92,16 +70,7 @@ class Cache implements ICache
      */
     public function getFolderContents($folder)
     {
-        \OC::$server->getLogger()->info("getFolderContents $folder");
-        $fullpath = join('/', array($this->userHome, trim($folder, '/')));
-        $files = scandir($fullpath);
-        $entries = array();
-        foreach ($files as $file) {
-	    if($file !== '.' && $file !== '..') { 
-		    $entries[] = $this->get($folder . '/' . $file);
-            }
-        }
-        return $entries;
+		return $this->instanceManager->getFolderContents($this->user->getUID(), $folder);
     }
 
     /**
@@ -115,30 +84,9 @@ class Cache implements ICache
      */
     public function getFolderContentsById($fileId)
     {
-        \OC::$server->getLogger()->info("getFolderContentsById $fileId");
-        $path= $this->findByInode($fileId);
-        return $this->getFolderContents($path);
+		return $this->instanceManager->getFolderContentsById($this->user->getUID(), $fileId);
     }
 
-    private function findByInode($inode) {
-        $inode = (int)$inode;
-        // scan for home directory
-        $files = @scandir($this->userHome);
-        foreach ($files as $file) {
-            if (fileinode($this->userHome . "/". $file) === $inode) {
-                return $file;
-            }
-        }
-
-        // scan for files directory
-        $files = @scandir($this->userHome . '/files');
-        foreach ($files as $file) {
-            if (fileinode($this->userHome . '/files/' . $file) === $inode) {
-                return 'files/' . $file;
-            }
-        }
-        throw new NotFoundException("file with inode $inode not found");
-    }
     /**
      * store meta data for a file or folder
      * This will automatically call either insert or update depending on if the file exists
@@ -195,8 +143,7 @@ class Cache implements ICache
      */
     public function getId($file)
     {
-        \OC::$server->getLogger()->info("getId $file");
-        return $this->get($file)->getId();
+    	return $this->get($file)->getId();
     }
 
     /**
@@ -208,9 +155,11 @@ class Cache implements ICache
      */
     public function getParentId($file)
     {
-        \OC::$server->getLogger()->info("getParentId $file");
         $parent = dirname($file);
         $entry = $this->get($parent);
+		if(!$entry) {
+			throw new NotFoundException($file);
+		}
         return $entry->getId();
     }
 
@@ -352,7 +301,7 @@ class Cache implements ICache
      */
     public function getPathById($id)
     {
-        return $this->findByInode($id);
+        return $this->instanceManager->getPathById($this->user->getUID(), $id);
     }
 
     /**
