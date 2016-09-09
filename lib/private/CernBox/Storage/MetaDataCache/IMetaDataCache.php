@@ -139,7 +139,7 @@ interface IMetaDataCache
 	 * Stores the User Id and Group Id to which the given user identified by it's username
 	 * belongs to
 	 * @param string $username User's username
-	 * @param array containing the uid and gid of the given user
+	 * @param array $data containing the uid and gid of the given user
 	 */
 	public function setUidAndGid($username, $data);
 }

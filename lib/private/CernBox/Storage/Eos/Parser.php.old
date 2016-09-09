@@ -10,25 +10,13 @@ use OC\CernBox\Share\Util as ShareUtil;
  */
 class Parser
 {
-	private $util;
-	private $translator;
-	private $username;
 
 	/**
-	 * Parser constructor.
-	 */
-	public function __construct($username) {
-		$this->username = $username;
-		$this->util = \OC::$server->getCernBoxEosUtil();
-		$this->translator = \OC::$server->getCernBoxEosTranslator();
-	}
-
-	/**
-	 * Parses the raw data from EOS into a map useable by owncloud core
+	 * Parses the raw data from EOS into a map usable by owncloud core
 	 * @param string $data The output line given by EOS
 	 * @return array map of attributes => values
 	 */
-	public function parseFileInfoMonitorMode($line)
+	public static function parseFileInfoMonitorMode($line)
 	{
 		$rawMap = explode(' ', $line);
 
@@ -44,7 +32,8 @@ class Parser
 		$data['size']             = self::parseField($map, 'size', 0);
 		$data['name']             = $pathinfo['basename'];
 		// if the path is in the trashbin we return false
-		$data['path']             = strpos($name, $this->util->getEosRecycleDir()) === 0 ? false:$this->translator->toOc($name);
+		//$data['path']             = strpos($name, $this->util->getEosRecycleDir()) === 0 ? false:$this->translator->toOc($name);
+		/$data['path']             = strpos($name, $this->util->getEosRecycleDir()) === 0 ? false:$this->translator->toOc($name);
 		$data['path_hash']        = md5($data["path"]);
 		$data['parent']           = self::parseField($map, 'pid', 0);//KUBA: needed?
 		$data['encrypted']        = 0;

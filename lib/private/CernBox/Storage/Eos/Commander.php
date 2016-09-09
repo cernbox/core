@@ -9,47 +9,66 @@
 namespace OC\CernBox\Storage\Eos;
 
 
-use OC\OCS\Config;
-
 class  Commander{
 
 
 	private $retrievalAttempts;
-	private $util;
+	private $eosMgmUrl;
+	private $username;
+	private $uid;
+	private $gid;
+	private $logger;
 
 	/**
 	 * Commander constructor.
 	 */
-	public function __construct(\OCP\IConfig $config, \OC\CernBox\Storage\Eos\Util $util) {
-		$this->util = $util;
-		$this->retrievalAttempts = $config->getSystemValue('cernboxcliretryattempts');
+	public function __construct($eosMgmUrl, $username) {
+		$this->logger = \OC::$server->getLogger();
+		$this->username = $username;
+		if(!$eosMgmUrl) {
+			$eosMgmUrl = "root://localhost";
+		}
+		$this->eosMgmUrl = $eosMgmUrl;
+
+		$value = \OC::$server->getConfig()->getSystemValue("eoscliretryattempts", 2);
+		$this->retrievalAttempts = $value;
+
+		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
+		if(!$uid || !$gid) {
+			throw new \Exception("could not instantiate commander because username:$username does not have a valid uid and gid");
+		}
+		$this->uid = $uid;
+		$this->gid = $gid;
 	}
 
-	public function exec($cmd, $eosMGMURL = false) {
+	public function exec($cmd) {
+		// we load the env variable EOS_MGM_URL to perform the command
+		// with that variable in its context.
+		$uid = $this->uid;
+		$gid = $this->gid;
+		$cmd = "eos -b -r $uid $gid " . $cmd;
+		$fullCmd = 'EOS_MGM_URL=' . $this->eosMgmUrl . " " . $cmd;
+		return $this->execRaw($fullCmd);
 
-		if($eosMGMURL === false)
-		{
-			$eosMGMURL = $this->util->getEosMgmUrl();
-		}
+	}
 
-		$fullCmd = 'EOS_MGM_URL='.$eosMGMURL.' '.$cmd;
-
+	public function execRaw($cmd) {
 		// Keep requesting EOS while we get a 22 error code
 		$counter = 0;
 		do
 		{
 			$result = null;
-			$errcode = null;
-			exec($fullCmd, $result, $errcode);
+			$errorCode = null;
+			exec($cmd, $result, $errorCode);
 			$counter++;
 		}
-		while($errcode === 22 && $counter !== $this->retrievalAttempts);
+		while($errorCode === 22 && $counter !== $this->retrievalAttempts);
 
-		if($errcode === 0) {
-			\OCP\Util::writeLog('EOSCMD', "cmd:$cmd errcode:$errcode", \OCP\Util::WARN);
+		if($errorCode === 0) {
+			$this->logger->warning("$cmd=> $errorCode");
 		} else {
-			\OCP\Util::writeLog('EOSCMD', "cmd:$cmd errcode:$errcode", \OCP\Util::ERROR);
+			$this->logger->error("$cmd=> $errorCode");
 		}
-		return array($result, $errcode);
+		return array($result, $errorCode);
 	}
 }

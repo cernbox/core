@@ -23,4 +23,10 @@ class HomeStorage extends Storage  implements IHomeStorage
 	public function getMetaData($path) {
 		return parent::getCache()->get($path);
 	}
+
+	// TODO(labkode) This method is not defined on any interface. Ask ocdevs.
+	// It is called on legacy Util
+	public function getUser() {
+		return $this->user;
+	}
 }
