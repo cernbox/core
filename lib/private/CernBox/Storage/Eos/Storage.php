@@ -12,6 +12,7 @@ namespace OC\CernBox\Storage\Eos;
 use Icewind\Streams\IteratorDirectory;
 use OC\Files\Filesystem;
 use OCP\Files\NotFoundException;
+use OCP\Files\Storage\IStorage;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 
@@ -28,7 +29,7 @@ use OCP\Lock\ILockingProvider;
  *
  * @package OC\CernBox\Storage\Eos
  */
-class Storage implements \OCP\Files\Storage
+class Storage implements IStorage
 {
     /**
      * @var string
@@ -80,31 +81,37 @@ class Storage implements \OCP\Files\Storage
 	 */
 	public function __construct($params)
     {
+
     	$this->logger = \OC::$server->getLogger();
     	$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
     	$this->util = \OC::$server->getCernBoxEosUtil();
 
-        // instantiate Cache
-        if (!isset($params['user'])) {
-            throw  new StorageNotAvailableException('eos storage instantiated without user');
+		$user = $params['user'];
+
+		// if the username is not passed it means the
+		// request is pointing to shared by link resource, thus
+		// we don't have user context.
+        if (!$user) {
+			$user = 'gonzalhu';
         }
 
         // sometime the user is passed as a string instead of a full User object
         // so we check it and convert the string to User object if needed.
-        $user = $params['user'];
 		if(is_string($user)) {
+			$this->logger->debug("username is $user");
 			// convert user string to user object
 			$user = \OC::$server->getUserManager()->get($user);
 		}
 
+		$this->logger->debug("user has been casted to user object");
 		if (!$user) {
-			throw  new StorageNotAvailableException("eos storage instantiated with unknown user: $user");
+			throw  new \Exception("eos storage instantiated with unknown user: $user");
 		}
 
 		// obtain uid and guid for user
 		list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
 		if (!$userID || !$userGroupID) {
-			throw  new StorageNotAvailableException('user does not have an uid or gid');
+			throw  new \Exception('user does not have an uid or gid');
 		}
 
 		$this->user = $user;
