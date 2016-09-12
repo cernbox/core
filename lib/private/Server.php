@@ -700,6 +700,10 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
 			return new InstanceManager();
 		});
+
+		$this->registerService('CernBoxShareUtil', function (Server $c) {
+			return new \OC\CernBox\Share\Util();
+		});
 	}
 
 	/**
@@ -1395,6 +1399,10 @@ class Server extends ServerContainer implements IServerContainer {
 
 	public function getCernBoxEosInstanceManager() {
 		return $this->query('CernBoxEosInstanceManager');
+	}
+
+	public function getCernBoxShareUtil() {
+		return $this->query('CernBoxShareUtil');
 	}
 
 	/*

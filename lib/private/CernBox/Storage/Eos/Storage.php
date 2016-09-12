@@ -10,8 +10,10 @@
 namespace OC\CernBox\Storage\Eos;
 
 use Icewind\Streams\IteratorDirectory;
+use OC\CernBox\Share\Util as ShareUtil;
 use OC\Files\Filesystem;
 use OCP\Files\NotFoundException;
+use OCP\Files\Storage\IStorage;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 
@@ -44,6 +46,11 @@ class Storage implements \OCP\Files\Storage
 	 * @var Util
 	 */
 	private $util;
+
+	/**
+	 * @var ShareUtil
+	 */
+	private $shareUtil;
 
 	/**
 	 * @var null|\OC\User\User
@@ -84,17 +91,27 @@ class Storage implements \OCP\Files\Storage
     	$this->logger = \OC::$server->getLogger();
     	$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
     	$this->util = \OC::$server->getCernBoxEosUtil();
+		$this->shareUtil= \OC::$server->getCernBoxShareUtil();
 
 		$user = $params['user'];
 
 		// if the username is not passed it means the
 		// request is pointing to shared by link resource, thus
-		// we don't have user context.
+		// we don't have user context but we can extract it querying the
+		// share database and in the future EOS.
         if (!$user) {
-			$user = 'gonzalhu';
+        	$user = $this->shareUtil->getUsernameFromSharedToken();
         }
 
-        // sometime the user is passed as a string instead of a full User object
+        if(!$user) {
+			// if at this point we do not have an username
+			// we abort the operation.
+			$ex = new \Exception("impossible to get username");
+			$this->logger->error($ex->getMessage());
+			throw $ex;
+		}
+
+        // sometimes the user is passed as a string instead of a full User object
         // so we check it and convert the string to User object if needed.
 		if(is_string($user)) {
 			$this->logger->debug("username is $user");
@@ -102,9 +119,8 @@ class Storage implements \OCP\Files\Storage
 			$user = \OC::$server->getUserManager()->get($user);
 		}
 
-		$this->logger->debug("user has been casted to user object");
 		if (!$user) {
-			throw  new \Exception("eos storage instantiated with unknown user: $user");
+			throw  new \Exception("eos storage instantiated with unknown user");
 		}
 
 		// obtain uid and guid for user
