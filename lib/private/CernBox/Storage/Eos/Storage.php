@@ -12,7 +12,6 @@ namespace OC\CernBox\Storage\Eos;
 use Icewind\Streams\IteratorDirectory;
 use OC\Files\Filesystem;
 use OCP\Files\NotFoundException;
-use OCP\Files\Storage\IStorage;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Lock\ILockingProvider;
 
@@ -29,7 +28,7 @@ use OCP\Lock\ILockingProvider;
  *
  * @package OC\CernBox\Storage\Eos
  */
-class Storage implements IStorage
+class Storage implements \OCP\Files\Storage
 {
     /**
      * @var string
