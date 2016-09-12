@@ -700,38 +700,6 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
 			return new InstanceManager();
 		});
-
-		/*
-		$this->registerService('CernBoxCommander', function (Server $c) {
-			return new Command();
-		});
-
-		$this->registerService('CernBoxPathTranslator', function (Server $c) {
-			return new Translator();
-		});
-
-		$this->registerService('CernBoxEosUtil', function (Server $c) {
-			public function __construct(\OCP\IConfig $config,
-										InstanceManager $instanceManager,
-										IMetaDataCache $metaDataCache,
-										Commander $commander,
-										Parser $parser,
-										\OCP\IDBConnection $dbConnection,
-										LDAPCacheManager $ldapCacheManager,
-										Redis $redis)
-
-			$config = $c->getConfig();
-			$instanceManager = $c->getCernBoxEosInstanceManager();
-			$metaDataCache = $c->getCernBoxMetaDataCache();
-			$commander = $c->getCernBoxCommander();
-			$parser = $c->getCernBoxParser();
-			$dbConnection = $c->getDatabaseConnection();
-			$ldapCacheManager = $c->getCernBoxLDAPCacheManager();
-			$redis = new Redis();
-			return new Util($config, $instanceManager, $metaDataCache, $commander, $parser, $dbConnection, $ldapCacheManager, $redis);
-		});
-		*/
-
 	}
 
 	/**
