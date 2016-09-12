@@ -259,11 +259,12 @@ class Instance {
 		$eosMap['parent'] = $eosMap['eos.pid'];
 		$eosMap['encrypted'] = 0;
 		$eosMap['unencrypted_size'] = $eosMap['size'];
+		$eosMap['name'] = basename($eosMap['path']);
 
 		if(isset($eosMap['eos.container'])) {
 			$eosMap['mimetype'] = "httpd/unix-directory";
 		} else {
-			$eosMap['mimetype'] = \OC::$server->getMimeTypeDetector()->detectString($eosMap['file']);
+			$eosMap['mimetype'] = \OC::$server->getMimeTypeDetector()->detectString($eosMap['eos.file']);
 		}
 
 		//$eosMap['permissions'] = \OC::$server->getCernBoxEosUtil()->convertEosACLToOwnCloudACL($eosMap['eos.sys.acl']);

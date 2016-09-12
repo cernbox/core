@@ -157,6 +157,7 @@ class Translator {
 			$ocPath = implode("/", array_slice($splitted, 3));
 			return $ocPath;
 		} else if (strpos($eosPath, $this->eosPrefix) === 0) {
+			return "files/" . substr($eosPath, strlen($this->eosPrefix));
 			$len_prefix = strlen($this->eosPrefix);
 			$rel = substr($eosPath, $len_prefix);
 			$splitted = explode("/", $rel);
