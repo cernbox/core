@@ -9,74 +9,41 @@
 namespace OC\CernBox\Storage\MetaDataCache;
 
 
+/**
+ * Class MultiCache
+ *
+ * @package OC\CernBox\Storage\MetaDataCache
+ * This cache takes an array of IMetaDataCache and
+ * manage them.
+ */
 class MultiCache implements IMetaDataCache {
 
 	/** @var IMetaDataCache[] list of enabled caches */
-	private static $caches;
-	/** @var bool flag to indicate the cache is initialized */
-	private static $initialized;
-
-	public static function shouldAvoidCache()
-	{
-		$avoid_paths = \OCP\Config::getSystemValue("avoid_req_cache_paths", array());
-		foreach($avoid_paths as $path)
-		{
-			if(strpos($_SERVER['REQUEST_URI'], $path) !== false)
-			{
-				return TRUE;
-			}
-		}
-		return FALSE;
-	}
-
-	private static function getEosInstanceId()
-	{
-		$id = EosInstanceManager::getUserInstance();
-		if($id === NULL || !$id)
-		{
-			$id = '-1';
-		}
-
-		return $id;
-	}
+	private $caches;
 
 	/**
-	 * Initializes the different cache levels and returns the current
-	 * cache status
+	 * MultiCache constructor.
 	 */
-	public static function init()
-	{
-		if(!self::$initialized)
-		{
-			self::$caches = [];
-			self::$caches[] = new EosReqCache();
-			self::$caches[] = new EosMemCache();
-			self::$initialized = true;
-		}
-
-		return self::$initialized;
+	public function __construct($caches) {
+		$this->caches = $caches;
 	}
+
 
 	/**
 	 * Attempts to retrieve a file data stored by its inode id.
 	 * @param string|int $id file inode id
-	 * @return The file data as an associative array or null if the file
+	 * @return mixed | null The file data as an associative array or null if the file
 	 * 			was not found
 	 */
-	public static function getFileById($id)
+	public function getFileById($id)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $id;
-			$data = NULL;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getFileById($key)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -85,16 +52,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string|int $id file inode id
 	 * @param array $data file data as an associative array
 	 */
-	public static function setFileById($id, $data)
+	public function setFileById($id, $data)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $id;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setFileById($key, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -102,17 +64,11 @@ class MultiCache implements IMetaDataCache {
 	 * Invalidates the data of a file stored in the cache by it's id (if any)
 	 * @param string|int $id file inode id
 	 */
-	public static function clearFileById($id)
+	public function clearFileById($id)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $id;
-
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->clearFileById($key);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -122,20 +78,15 @@ class MultiCache implements IMetaDataCache {
 	 * @return array|null An associatve array containing the file data or null if
 	 * 			the given eosPath key as not found in the cache
 	 */
-	public static function getFileByEosPath($eosPath)
+	public function getFileByEosPath($eosPath)
 	{
-		if(self::init())
-		{
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$key = self::getEosInstanceId() . '-' . $eosPath;
-
-				if(($data = $cache->getFileByEosPath($key)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -147,24 +98,15 @@ class MultiCache implements IMetaDataCache {
 	 * @return array|null An associatve array containing the file data or null if
 	 * 			the given eosPath key as not found in the cache
 	 */
-	public static function getSecureFileByEosPath($eosPath)
+	public function getSecureFileByEosPath($eosPath)
 	{
-		if(self::shouldAvoidCache())
-		{
-			return null;
-		}
-
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getFileByEosPath($key)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -173,16 +115,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $eosPath file path within EOS
 	 * @param array $data of the file as an associative array
 	 */
-	public static function setFileByEosPath($eosPath, $data)
+	public function setFileByEosPath($eosPath, $data)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setFileByEosPath($key, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -190,16 +127,11 @@ class MultiCache implements IMetaDataCache {
 	 * Invalidates the data stored in the cache identified by it's EOS Path
 	 * @param string $eosPath path within EOS
 	 */
-	public static function clearFileByEosPath($eosPath)
+	public function clearFileByEosPath($eosPath)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->clearFileByEosPath($key);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -211,19 +143,15 @@ class MultiCache implements IMetaDataCache {
 	 * @return array|null The list of information of the given file, or null if it wasn't present
 	 * 						or valid in the cache
 	 */
-	public static function getFileInfoByEosPath($depth, $eosPath)
+	public function getFileInfoByEosPath($depth, $eosPath)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getFileInfoByEosPath($depth, $key)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -233,16 +161,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $eosPath file path within EOS
 	 * @param array $data containing all the information to store
 	 */
-	public static function setFileInfoByEosPath($depth, $eosPath, $data)
+	public function setFileInfoByEosPath($depth, $eosPath, $data)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setFileInfoByEosPath($depth, $key, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -252,19 +175,15 @@ class MultiCache implements IMetaDataCache {
 	 * @return array|null An associative array containting the file metadata or
 	 * 			null if the key was not found in the cache
 	 */
-	public static function getMeta($ocPath)
+	public function getMeta($ocPath)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $ocPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getMeta($key)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -273,16 +192,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $ocPath file's path within ownCloud
 	 * @param array $data An associative array containing the file metadata
 	 */
-	public static function setMeta($ocPath, $data)
+	public function setMeta($ocPath, $data)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $ocPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setMeta($key, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -292,18 +206,15 @@ class MultiCache implements IMetaDataCache {
 	 * @return array a list of all EGreoups to which the user belongs and are relevant
 	 * 			to sharing module
 	 */
-	public static function getEGroups($user)
+	public function getEGroups($user)
 	{
-		if(self::init())
-		{
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getEGroups($user)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -312,15 +223,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $user user's username within CERN/LDAP
 	 * @param array $data a list of EGroups
 	 */
-	public static function setEGroups($user, $data)
+	public function setEGroups($user, $data)
 	{
-		if(self::init())
-		{
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setEGroups($user, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -329,19 +236,15 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $eosPath file's path within EOS namespace
 	 * @return string owner's username within EOS/LDAP
 	 */
-	public static function getOwner($eosPath)
+	public function getOwner($eosPath)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getOwner($key)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -350,16 +253,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $eosPath file's EOS path
 	 * @param string $data owner's username
 	 */
-	public static function setOwner($eosPath, $data)
+	public function setOwner($eosPath, $data)
 	{
-		if(self::init())
-		{
-			$key = self::getEosInstanceId() . '-' . $eosPath;
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setOwner($key, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 
@@ -368,18 +266,15 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $user user's username within CERN/LDAP
 	 * @return array an associative array containing the uid and gid
 	 */
-	public static function getUidAndGid($user)
+	public function getUidAndGid($user)
 	{
-		if(self::init())
-		{
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				if(($data = $cache->getUidAndGid($user)) !== FALSE)
-					return $data;
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			$data = call_user_func_array(array($cache, __FUNCTION__), $args);
+			if ($data) {
+				return $data;
 			}
 		}
-
 		return null;
 	}
 
@@ -388,15 +283,11 @@ class MultiCache implements IMetaDataCache {
 	 * @param string $user user's username within CERN/LDAP
 	 * @param array $data containing the uid and gid
 	 */
-	public static function setUidAndGid($user, $data)
+	public function setUidAndGid($user, $data)
 	{
-		if(self::init())
-		{
-			/** @var IMetaDataCache $cache */
-			foreach(self::$caches as &$cache)
-			{
-				$cache->setUidAndGid($user, $data);
-			}
+		$args = func_get_args();
+		foreach($this->caches as $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
 		}
 	}
 }

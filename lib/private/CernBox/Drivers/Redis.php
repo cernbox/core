@@ -4,106 +4,51 @@ namespace OC\CernBox\Storage\Drivers;
 
 class Redis
 {
-	private static $redisInstance;
+	private $redisInstance;
+	private $logger;
 
-	private static function init()
-	{
-		if(self::$redisInstance == null)
+	public function __construct() {
+		$this->redisInstance = new \Redis();
+		$this->logger = \OC::$server->getLogger();
+
+		if(!$this->redisInstance->connect('127.0.0.1', 6379))
 		{
-			self::$redisInstance = new \Redis();
-
-			if(!self::$redisInstance->connect('127.0.0.1', 6379))
-			{
-				\OCP\Util::writeLog('EOS MEMCACHE', 'Unable to connect to redis server on 127.0.0.1:6379', \OCP\Util::ERROR);
-				self::$redisInstance = null;
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	public static function writeToCache($key, $value)
-	{
-		if(self::init())
-		{
-			self::$redisInstance->set($key, $value);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access redis server', \OCP\Util::ERROR);
+			$this->logger->error('Unable to connect to redis server on 127.0.0.1:6379');
 		}
 	}
 
-	public static function readFromCache($key)
+	public function writeToCache($key, $value)
 	{
-		if(self::init())
-		{
-			self::$redisInstance->get($key);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access redis server', \OCP\Util::ERROR);
-		}
+		$this->redisInstance->set($key, $value);
 	}
 
-	public static function deleteFromCache($key)
+	public function readFromCache($key)
 	{
-		if(self::init())
-		{
-			self::$redisInstance->del($key);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access redis server', \OCP\Util::ERROR);
-		}
+		$this->redisInstance->get($key);
 	}
 
-	public static function writeToCacheMap($hash, $key, $value)
+	public function deleteFromCache($key)
 	{
-		if(self::init())
-		{
-			self::$redisInstance->hSet($hash, $key, $value);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access redis server', \OCP\Util::ERROR);
-		}
+		$this->redisInstance->del($key);
 	}
 
-	public static function readHashFromCacheMap($hash)
+	public function writeToCacheMap($hash, $key, $value)
 	{
-		if(self::init())
-		{
-			return self::$redisInstance->hGetAll($hash);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
-		}
+		$this->redisInstance->hSet($hash, $key, $value);
 	}
 
-	public static function readFromCacheMap($hash, $key)
+	public function readHashFromCacheMap($hash)
 	{
-		if(self::init())
-		{
-			return self::$redisInstance->hGet($hash, $key);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
-		}
+		return $this->redisInstance->hGetAll($hash);
 	}
 
-	public static function deleteFromCacheMap($hash, $key)
+	public function readFromCacheMap($hash, $key)
 	{
-		if(self::init())
-		{
-			self::$redisInstance->hDel($hash, $key);
-		}
-		else
-		{
-			\OCP\Util::writeLog('REDIS MEMCACHE', 'Unable to access memcache', \OCP\Util::ERROR);
-		}
+		return $this->redisInstance->hGet($hash, $key);
+	}
+
+	public function deleteFromCacheMap($hash, $key)
+	{
+		$this->redisInstance->hDel($hash, $key);
 	}
 }
