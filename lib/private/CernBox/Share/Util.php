@@ -18,14 +18,14 @@ class Util {
 	}
 
 
-	/**
-	 * Attempts to get the user owner of a share by link using
-	 * the token provided in the request.
-	 * @return boolean|string Upon success, it will return the username owner of
-	 * 							this anonymous share; Will return false otherwise
-	 */
-	public function isSharedLinkGuest()
+	public function getShareByLinkOwner($token) {
+		// TODO:copy from Nadir share on Eos implementation
+	}
+
+	public function getUsernameFromSharedToken()
 	{
+		/*
+
 		$uri = $_SERVER['REQUEST_URI'];
 		$uri = trim($uri, '/');
 
@@ -77,12 +77,23 @@ class Util {
 			}
 		}
 
-		return $this->getShareByLinkOwner($token);
+		*/
+
+		// the token comes as the username in Basic Auth.
+		// so we avoid URL matching.
+		// Is stil URL matching needed for some corner cases ? Ask Nadir.
+		$token = $_SERVER['PHP_AUTH_USER'];
+		\OC::$server->getLogger()->debug("token is $token");
+		$result = \OC_DB::prepare('SELECT uid_owner FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
+
+		if($result && count($result) > 0)
+		{
+			return $result[0]['uid_owner'];
+		}
+
+		return false;
 	}
 
-	public function getShareByLinkOwner($token) {
-		// TODO:copy from Nadir
-	}
 
 	// return the list of EGroups this member is part of, but NOT all, just the ones that appear in share database.
 	/**
