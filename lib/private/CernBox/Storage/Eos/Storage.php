@@ -11,6 +11,7 @@ namespace OC\CernBox\Storage\Eos;
 
 use Icewind\Streams\IteratorDirectory;
 use OC\CernBox\Share\Util as ShareUtil;
+use OC\CernBox\Storage\MetaDataCache\IMetaDataCache;
 use OC\Files\Filesystem;
 use OCP\Files\NotFoundException;
 use OCP\Files\Storage\IStorage;
@@ -38,9 +39,9 @@ class Storage implements \OCP\Files\Storage
     private $storageId;
 
     /**
-     * @var Cache
+     * @var Catalog
      */
-    protected $namespace;
+    protected $catalog;
 
 	/**
 	 * @var Util
@@ -78,6 +79,11 @@ class Storage implements \OCP\Files\Storage
 	 */
 	private $logger;
 
+	/**
+	 * @var IMetaDataCache
+	 */
+	private $metaDataCache;
+
 
 	/**
 	 * Storage constructor.
@@ -92,6 +98,7 @@ class Storage implements \OCP\Files\Storage
     	$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
     	$this->util = \OC::$server->getCernBoxEosUtil();
 		$this->shareUtil= \OC::$server->getCernBoxShareUtil();
+		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 
 		$user = $params['user'];
 
@@ -123,11 +130,19 @@ class Storage implements \OCP\Files\Storage
 			throw  new \Exception("eos storage instantiated with unknown user");
 		}
 
-		// obtain uid and guid for user
-		list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
+		// obtain uid and gid for user
+		// try first in the cache
+		list($userID, $userGroupID) = $this->metaDataCache->getUidAndGid($user);
+		if (!$userID && !$userGroupID) {
+			list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
+		}
+
 		if (!$userID || !$userGroupID) {
 			throw  new \Exception('user does not have an uid or gid');
 		}
+
+		// save UID and GID into the cache.
+		$this->metaDataCache->setUidAndGid($user->getUID(), array($userID, $userGroupID));
 
 		$this->user = $user;
 		$this->userUID = $userID;
@@ -135,8 +150,8 @@ class Storage implements \OCP\Files\Storage
 
 		$this->storageId= 'eos::store:' . $this->instanceManager->getInstanceId() . "-" . $user->getUID();
 
-        // instantiate the namespace
-        $this->namespace= new Cache($this);
+        // instantiate the catalog
+        $this->catalog= new Catalog($this);
 
     }
 
@@ -777,7 +792,7 @@ class Storage implements \OCP\Files\Storage
      */
     public function getCache()
     {
-        return $this->namespace;
+        return $this->catalog;
     }
 
     /**
