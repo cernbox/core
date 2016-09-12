@@ -12,16 +12,14 @@ namespace OC\CernBox\Storage\MetaDataCache;
 class RequestCache implements  IMetaDataCache {
 
 	public function __construct() {
-		if (!isset($GLOBALS['cernbox'])) {
-			$GLOBALS['cernbox'] = array();
-			$GLOBALS['cernbox']['idresolution'] = array();
-			$GLOBALS['cernbox']['getfilebyid'] = array();
-			$GLOBALS['cernbox']['getmeta'] = array();
-			$GLOBALS['cernbox']['fileinfo'] = array();
-			$GLOBALS['cernbox']['getfilebyeospath'] = array();
-			$GLOBALS['cernbox']['getowner'] = array();
-			$GLOBALS['cernbox']['getegroups'] = array();
-		}
+		$GLOBALS['cernbox'] = array();
+		$GLOBALS['cernbox']['idresolution'] = array();
+		$GLOBALS['cernbox']['getfilebyid'] = array();
+		$GLOBALS['cernbox']['getmeta'] = array();
+		$GLOBALS['cernbox']['fileinfo'] = array();
+		$GLOBALS['cernbox']['getfilebyeospath'] = array();
+		$GLOBALS['cernbox']['getowner'] = array();
+		$GLOBALS['cernbox']['getegroups'] = array();
 	}
 
 	public function clearFileById($id)
@@ -36,7 +34,7 @@ class RequestCache implements  IMetaDataCache {
 		if(isset($GLOBALS['cernbox']['idresolution'][$username])) {
 			return $GLOBALS['cernbox']['idresolution'][$username];
 		}
-		return FALSE;
+		return false;
 	}
 
 	public function setUidAndGid($username, $data) {
@@ -47,7 +45,7 @@ class RequestCache implements  IMetaDataCache {
         if(isset($GLOBALS['cernbox']['getfilebyid'][$id])) {
         	return $GLOBALS['cernbox']['getfilebyid'][$id];
         }
-        return FALSE;
+        return false;
 	}
 
 	public function setFileById($id, $data) {
@@ -58,7 +56,7 @@ class RequestCache implements  IMetaDataCache {
 		if (isset ( $GLOBALS ['cernbox'] ['getmeta'] [$ocPath] )) {
 			return $GLOBALS ['cernbox'] ['getmeta'] [$ocPath];
 		}
-		return FALSE;
+		return false;
 	}
 
 	public function setMeta($ocPath, $data) {
@@ -69,7 +67,7 @@ class RequestCache implements  IMetaDataCache {
 		if (isset ( $GLOBALS ['cernbox'] ['getfilebyeospath'] [$eosPath] )) {
 			return $GLOBALS ['cernbox'] ['getfilebyeospath'] [$eosPath];
 		}
-		return FALSE;
+		return false;
 	}
 
 	public function setFileByEosPath($eosPath, $data) {
@@ -84,7 +82,7 @@ class RequestCache implements  IMetaDataCache {
 		if (isset ( $GLOBALS ['cernbox'] ['getowner'] [$eosPath] )) {
 			return $GLOBALS ['cernbox'] ['getowner'] [$eosPath];
 		}
-		return FALSE;
+		return false;
 	}
 
 	public function setOwner($eosPath, $data) {
@@ -95,7 +93,7 @@ class RequestCache implements  IMetaDataCache {
 		if (isset ( $GLOBALS ['cernbox'] ['getegroups'] [$username] )) {
 			return $GLOBALS ['cernbox'] ['getegroups'] [$username];
 		}
-		return FALSE;
+		return false;
 	}
 
 	public function setEGroups($username, $data) {
@@ -115,6 +113,6 @@ class RequestCache implements  IMetaDataCache {
 		{
 			return $GLOBALS['cernbox']['getFileInfoByEosPath'][$key];
 		}
-		return FALSE;
+		return false;
 	}
 }
