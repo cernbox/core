@@ -1,6 +1,8 @@
 <?php
 
-namespace OC\CernBox\Storage\Drivers;
+namespace OC\CernBox\Drivers;
+
+use \Redis as NativeRedis;
 
 class Redis
 {
@@ -8,7 +10,7 @@ class Redis
 	private $logger;
 
 	public function __construct() {
-		$this->redisInstance = new \Redis();
+		$this->redisInstance = new NativeRedis();
 		$this->logger = \OC::$server->getLogger();
 
 		if(!$this->redisInstance->connect('127.0.0.1', 6379))

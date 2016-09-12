@@ -11,7 +11,7 @@ namespace OC\CernBox\Storage\Eos;
 
 use OCP\Files\Cache\ICacheEntry;
 
-class Instance {
+class Instance implements IInstance {
 
 	const READ_BUFFER_SIZE = 8192;
 
@@ -159,6 +159,15 @@ class Instance {
 	public function get($username, $ocPath) {
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
+
+		// check if it is in the cache
+		$cachedData = $this->metaDataCache->getFileByEosPath($eosPath);
+		if ($cachedData) {
+			$this->logger->info('HIT');
+			return $cachedData;
+		}
+		$this->logger->info('MISS');
+
 		$eosPath = escapeshellarg($eosPath);
 		$command = "file info $eosPath -m";
 		$commander = $this->getCommander($username);

@@ -18,7 +18,7 @@ class InstanceManager {
 
 
 	/**
-	 * @var Instance
+	 * @var IInstance
 	 */
 	private $currentInstance;
 

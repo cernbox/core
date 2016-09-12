@@ -9,7 +9,7 @@
 namespace OC\CernBox\Storage\MetaDataCache;
 
 
-use OC\CernBox\Storage\Drivers\Redis;
+use OC\CernBox\Drivers\Redis;
 
 /**
  * Class RedisCache
