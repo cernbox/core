@@ -23,7 +23,7 @@ class UserShareExecutor extends ShareExecutor
 	
 	public function checkForPreviousShares()
 	{
-		\OC\ShareUtil::checkParentDirShared($this->meta);
+		\OC\ShareUtil::checkParentDirShared($this->meta, false);
 		
 		return true;
 	}
