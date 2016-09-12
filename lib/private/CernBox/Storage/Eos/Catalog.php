@@ -13,7 +13,7 @@ use OCP\Files\Cache\ICache;
 use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\NotFoundException;
 
-class Cache implements ICache
+class Catalog implements ICache
 {
 
 	/**

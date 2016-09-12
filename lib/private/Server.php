@@ -47,6 +47,7 @@ use OC\CernBox\Storage\Eos\InstanceManager;
 use OC\CernBox\Storage\Eos\Parser;
 use OC\CernBox\Storage\Eos\Translator;
 use OC\CernBox\Storage\Eos\Util;
+use OC\CernBox\Storage\MetaDataCache\NullCache;
 use OC\CernBox\Storage\MetaDataCache\RequestCache;
 use OC\Command\AsyncBus;
 use OC\Diagnostics\EventLogger;
@@ -689,7 +690,7 @@ class Server extends ServerContainer implements IServerContainer {
 		});
 
 		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
-			return new RequestCache();
+			return new NullCache();
 		});
 
 
