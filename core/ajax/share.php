@@ -86,7 +86,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
  					$itemSourceName=(isset($_POST['itemSourceName'])) ? (string)$_POST['itemSourceName']:'';
 
 					/** CERNBOX PATCH - DONT ALLOW SHARING ON FOLDERS WHOSE PARENTS HAVE BEEN SHARED ALREADY */
- 					\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource']);
+ 					\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource'], $shareType === OCP\Share::SHARE_TYPE_LINK);
  					/** END PATCH */
  					
 					$token = OCP\Share::shareItem(
@@ -130,7 +130,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 						}
 						
 						/** CERNBOX PATCH - DONT ALLOW SHARING ON FOLDERS WHOSE PARENTS HAVE BEEN SHARED ALREADY */
-						\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource']);
+						\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource'], false);
 						/** END PATCH */
 						
 						foreach($shareWithArray as $share)

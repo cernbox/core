@@ -6,13 +6,18 @@ use \OC\Files\ObjectStore\EosUtil;
 
 class ShareUtil
 {
-	public static function checkParentDirSharedById($fileId)
+	public static function checkParentDirSharedById($fileId, $isShareByLink)
 	{
-		self::checkParentDirShared(EosUtil::getFileById($fileId));
+		self::checkParentDirShared(EosUtil::getFileById($fileId), $isShareByLink);
 	}	
 	
-	public static function checkParentDirShared(array $eosMeta)
+	public static function checkParentDirShared(array $eosMeta, $isShareByLink)
 	{
+		if($isShareByLink)
+		{
+			return;
+		}
+		
 		if(!$eosMeta)
 		{
 			throw \Exception('The file does not exist');
