@@ -130,19 +130,22 @@ class Storage implements \OCP\Files\Storage
 			throw  new \Exception("eos storage instantiated with unknown user");
 		}
 
+		$userID = null;
+		$userGroupID = null;
 		// obtain uid and gid for user
 		// try first in the cache
-		list($userID, $userGroupID) = $this->metaDataCache->getUidAndGid($user);
-		if (!$userID && !$userGroupID) {
+		list($userID, $userGroupID) = $this->metaDataCache->getUidAndGid($user->getUID());
+		if($userID && $userGroupID) {
+			$this->logger->info("HIT for " . $user->getUID());
+		} else {
+			$this->logger->info("MISS for " . $user->getUID());
 			list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
+			$this->metaDataCache->setUidAndGid($user->getUID(), array($userID, $userGroupID));
 		}
-
+		$this->logger->debug("uid is $userID and gid is $userGroupID");
 		if (!$userID || !$userGroupID) {
 			throw  new \Exception('user does not have an uid or gid');
 		}
-
-		// save UID and GID into the cache.
-		$this->metaDataCache->setUidAndGid($user->getUID(), array($userID, $userGroupID));
 
 		$this->user = $user;
 		$this->userUID = $userID;
