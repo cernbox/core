@@ -73,9 +73,6 @@ class Translator {
 		$this->eosMetaDataPrefix = $eosMetaDataPrefix;
 		$this->eosProjectPrefix;
 		$this->username = $username;
-
-		$this->logger->debug("eos prefix: " . $this->eosPrefix);
-		$this->logger->debug("eos metadata prefix: ". $this->eosMetaDataPrefix);
 	}
 
 	// ocPath is a local owncloud path like "" or "files" or "files/A/B/test_file./txt"

@@ -10,6 +10,7 @@ namespace OC\CernBox\Storage\MetaDataCache;
 
 
 use OC\CernBox\Drivers\Redis;
+use OC\CernBox\Storage\Eos\CacheEntry;
 
 /**
  * Class RedisCache
@@ -24,26 +25,11 @@ class RedisCache  implements  IMetaDataCache {
 	/** @var int Cached uid and gid validity time */
 	const EXPIRE_UID_GID_TIME_SECONDS = 3600;
 
-	/** @var string Cache key for files stored by inode id */
-	const KEY_FILE_BY_ID = 'getFileById';
-
-	/** @var string Cache key for files stored by eos path */
-	const KEY_FILE_BY_PATH = 'getFileByEosPath';
-
-	/** @var string Cache key for files metadata stored by oc path */
-	const KEY_META = 'getMeta';
-
-	/** @var string Cache key for e-group lists stored by username */
-	const KEY_EGROUPS = 'getEGroups';
-
-	/** @var string Cache key for owner of files stored by those files path */
-	const KEY_OWNER = 'getOwner';
-
-	/** @var string Cache key for user id and group id stored by username */
-	const KEY_UID_GID = 'getUidAndGid';
-
-	/** @var string Cache key for files identified by eospath and a given depth */
-	const KEY_FILEINFO_BY_PATH = 'getFileInfoByEosPath';
+	const KEY_GET_UID_AND_GID = 'getUidAndGid';
+	const KEY_GET_CACHE_ENTRY = 'getCacheEntry';
+	const KEY_GET_PATH_BY_ID = 'getPathById';
+	const KEY_GET_FOLDER_CONTENTS = 'getFolderContents';
+	const KEY_GET_FOLDER_CONTENTS_BY_ID = 'getFolderContentsById';
 
 	/**
 	 * @var Redis
@@ -55,86 +41,32 @@ class RedisCache  implements  IMetaDataCache {
 		$this->driver = $redisDriver;
 	}
 
-	public function setFileById($id, $value)
-	{
-		$this->writeToCache(self::KEY_FILE_BY_ID, $id, json_encode($value));
+	public function getUidAndGid($key) {
+		return json_decode($this->readFromCache(self::KEY_GET_UID_AND_GID, $key, self::EXPIRE_UID_GID_TIME_SECONDS), true);
 	}
 
-	public function getFileById($id)
-	{
-		return json_decode($this->readFromCache(self::KEY_FILE_BY_ID, $id), TRUE);
+	public function setUidAndGid($key, $data) {
+		$this->writeToCache(self::KEY_GET_UID_AND_GID, $key, json_encode($data));
 	}
 
-	public function clearFileById($id)
-	{
-		$this->deleteFromCache(self::KEY_FILE_BY_ID, $id);
+	public function getCacheEntry($key) {
+		$val = $this->readFromCache(self::KEY_GET_CACHE_ENTRY, $key);
+		if ($val) {
+			return new CacheEntry(json_decode($val, true));
+		}
 	}
 
-	public function setFileByEosPath($path, $value)
-	{
-		$this->writeToCache(self::KEY_FILE_BY_PATH, $path, json_encode($value));
+	public function setCacheEntry($key, $data) {
+		$array = json_encode($data);
+		$this->writeToCache(self::KEY_GET_CACHE_ENTRY, $key, $array);
 	}
 
-	public function getFileByEosPath($path)
-	{
-		return json_decode($this->readFromCache(self::KEY_FILE_BY_PATH, $path), TRUE);
+	public function getPathById($key) {
+		return json_decode($this->readFromCache(self::KEY_GET_PATH_BY_ID, $key), true);
 	}
 
-	public function clearFileByEosPath($eosPath)
-	{
-		$this->deleteFromCache(self::KEY_FILE_BY_PATH, $eosPath);
-	}
-
-	public function setMeta($ocPath, $value)
-	{
-		$this->writeToCache(self::KEY_META, $ocPath, json_encode($value));
-	}
-
-	public function getMeta($ocPath)
-	{
-		return json_decode($this->readFromCache(self::KEY_META, $ocPath), TRUE);
-	}
-
-	public function setEGroups($user, $value)
-	{
-		$this->writeToCache(self::KEY_EGROUPS, $user, json_encode($value));
-	}
-
-	public function getEGroups($user)
-	{
-		return json_decode($this->readFromCache(self::KEY_EGROUPS, $user), TRUE);
-	}
-
-	public function setOwner($path, $value)
-	{
-		$this->writeToCache(self::KEY_OWNER, $path, $value);
-	}
-
-	public function getOwner($path)
-	{
-		return $this->readFromCache(self::KEY_OWNER, $path);
-	}
-
-	public function setUidAndGid($user, $data)
-	{
-		$this->writeToCache(self::KEY_UID_GID, $user, json_encode($data));
-	}
-
-	public function getUidAndGid($user)
-	{
-		return json_decode($this->readFromCache(self::KEY_UID_GID, $user, self::EXPIRE_UID_GID_TIME_SECONDS), TRUE);
-	}
-
-	public function setFileInfoByEosPath($depth, $eosPath, $data)
-	{
-		$key = $depth . '-' . $eosPath;
-		$this->writeToCache(self::KEY_FILEINFO_BY_PATH, $key, json_encode($data));
-	}
-
-	public function getFileInfoByEosPath($depth, $eosPath)
-	{
-		$key = $depth . '-' . $eosPath;
-		return json_decode($this->readFromCache(self::KEY_FILEINFO_BY_PATH, $key), TRUE);
+	public function setPathById($key, $data) {
+		$this->writeToCache(self::KEY_GET_PATH_BY_ID, $key, json_encode($data));
 	}
 
 	private function writeToCache($outerKey, $key, $value)
@@ -150,7 +82,7 @@ class RedisCache  implements  IMetaDataCache {
 	private function readFromCache($outerKey, $key, $validTime = false)
 	{
 		$value = $this->driver->readFromCacheMap($outerKey, $key);
-		if($value !== FALSE)
+		if($value !== false)
 		{
 			if(!$validTime)
 			{
@@ -158,12 +90,12 @@ class RedisCache  implements  IMetaDataCache {
 			}
 
 			// Check for expire date
-			$value = json_decode($value, TRUE);
+			$value = json_decode($value, true);
 			$elapsed = time() - (int)$value[0];
 
 			if($elapsed > $validTime)
 			{
-				$value = FALSE;
+				$value = false;
 			}
 			else
 			{
