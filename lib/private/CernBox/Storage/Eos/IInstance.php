@@ -21,7 +21,5 @@ interface IInstance {
 
 	public function getFolderContents($username, $ocPath);
 
-	public function getFolderContentsById($username, $id);
-
 	public function getPathById($username, $id);
 }

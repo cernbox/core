@@ -10,8 +10,7 @@ namespace OC\CernBox\Storage\Eos;
 
 
 use OCP\Files\Cache\ICacheEntry;
-
-class CacheEntry implements ICacheEntry, \ArrayAccess
+class CacheEntry implements ICacheEntry, \ArrayAccess, \JsonSerializable
 {
 
     /**
@@ -94,4 +93,8 @@ class CacheEntry implements ICacheEntry, \ArrayAccess
     public function isEncrypted() {
         return isset($this->data['encrypted']) && $this->data['encrypted'];
     }
+
+	public function jsonSerialize() {
+		return $this->data;
+	}
 }

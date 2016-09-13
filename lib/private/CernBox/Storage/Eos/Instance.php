@@ -35,7 +35,7 @@ class Instance implements IInstance {
 		$this->eosMetaDataPrefix = $instanceConfig['metadatadir'];
 		$this->eosRecycleDir = $instanceConfig['recycledir'];
 		$this->eosProjectPrefix = $instanceConfig['projectprefix'];
-		$this->stagingDir = $instanceConfig['stagingdir'];
+		$this->stagingDir = $instanceConfig;
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
@@ -202,11 +202,6 @@ class Instance implements IInstance {
 			}
 			return $entries;
 		}
-	}
-
-	public function getFolderContentsById($username, $id) {
-		$entry = $this->getById($username, $id);
-		return $this->getFolderContents($username, $entry->getPath());
 	}
 
 	public function getPathById($username, $id) {

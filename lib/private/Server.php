@@ -45,6 +45,7 @@ use OC\CernBox\Drivers\Redis;
 use OC\CernBox\Storage\Eos\InstanceManager;
 use OC\CernBox\Storage\Eos\Translator;
 use OC\CernBox\Storage\Eos\Util;
+use OC\CernBox\Storage\MetaDataCache\MultiCache;
 use OC\CernBox\Storage\MetaDataCache\NullCache;
 use OC\CernBox\Storage\MetaDataCache\RedisCache;
 use OC\CernBox\Storage\MetaDataCache\RequestCache;
@@ -689,7 +690,10 @@ class Server extends ServerContainer implements IServerContainer {
 		});
 
 		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
-			return new RequestCache();
+			$requestCache = new RequestCache();
+			$redisCache = new RedisCache(new Redis());
+			$multiCache = new MultiCache(array($requestCache, $redisCache));
+			return $multiCache;
 		});
 
 

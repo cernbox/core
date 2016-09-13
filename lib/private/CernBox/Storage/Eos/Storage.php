@@ -136,17 +136,18 @@ class Storage implements \OCP\Files\Storage
 		// try first in the cache
 		list($userID, $userGroupID) = $this->metaDataCache->getUidAndGid($user->getUID());
 		if($userID && $userGroupID) {
-			$this->logger->info("HIT for " . $user->getUID());
+			$this->logger->info("cache hit for " . $user->getUID());
 		} else {
-			$this->logger->info("MISS for " . $user->getUID());
+			$this->logger->info("cache miss for " . $user->getUID());
 			list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
 			$this->metaDataCache->setUidAndGid($user->getUID(), array($userID, $userGroupID));
 		}
-		$this->logger->debug("uid is $userID and gid is $userGroupID");
+		$this->logger->debug("username " . $user->getUID() . " has uid:$userID and gid:$userGroupID");
 		if (!$userID || !$userGroupID) {
 			throw  new \Exception('user does not have an uid or gid');
 		}
 
+		$this->logger->debug("eos storage instantiated for user " . $user->getUID());
 		$this->user = $user;
 		$this->userUID = $userID;
 		$this->userGID = $userGroupID;
@@ -375,7 +376,7 @@ class Storage implements \OCP\Files\Storage
 
     /**
      * get the full permissions of a path.
-     * Should return a combination of the PERMISSION_ constants defined in lib/public/constants.php
+     * Should return a combination of the PERcache missION_ constants defined in lib/public/constants.php
      *
      * @param string $path
      * @return int

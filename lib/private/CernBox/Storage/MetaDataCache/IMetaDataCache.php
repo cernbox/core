@@ -150,8 +150,4 @@ interface IMetaDataCache
 	public function setCacheEntry($key, $data);
 	public function getPathById($key);
 	public function setPathById($key, $data);
-	public function getFolderContents($key);
-	public function setFolderContents($key, $data);
-	public function getFolderContentsById($key);
-	public function setFolderContentsById($key, $data);
 }
