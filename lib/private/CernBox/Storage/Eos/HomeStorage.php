@@ -16,7 +16,7 @@ class HomeStorage extends Storage  implements IHomeStorage
     // TODO(labkode) This method is called by storage Wrapper class thus making the ICache and IStorage useless.
     // Ask ocdevs to fix this and to not depend on this.
     public function getStorageCache() {
-        return $this->namespace;
+        return $this->catalog;
     }
 
 	// TODO(labkode) This method is not defined on any interface. Ask ocdevs.

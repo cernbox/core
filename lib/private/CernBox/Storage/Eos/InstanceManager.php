@@ -7,6 +7,7 @@
  */
 
 namespace OC\CernBox\Storage\Eos;
+use OC\CernBox\Storage\MetaDataCache\IMetaDataCache;
 
 
 /**
@@ -16,17 +17,41 @@ namespace OC\CernBox\Storage\Eos;
  */
 class InstanceManager {
 
+	private $instances;
+
+	private $logger;
 
 	/**
 	 * @var IInstance
 	 */
 	private $currentInstance;
 
+	private $homeDirectoryInstance;
+	/**
+	 * @var IMetaDataCache
+	 */
+	private $metaDataCache;
+
 	/**
 	 * InstanceManager constructor.
 	 */
 	public function __construct() {
-		$this->currentInstance = new Instance();
+		$this->logger = \OC::$server->getLogger();
+		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
+
+		// instantiate all the eos instances defined on the configuration file.
+		$eosInstances = \OC::$server->getConfig()->getSystemValue("eosinstances");
+		foreach($eosInstances as $instanceId => $instanceConfig) {
+			$instance = new Instance($instanceId, $instanceConfig);
+			$this->instances[$instance->getId()] = $instance;
+		}
+
+		// register instance for home directories
+		$homeDirectoryInstance = \OC::$server->getConfig()->getSystemValue("eoshomedirectoryinstance");
+		$this->homeDirectoryInstance = $this->instances[$homeDirectoryInstance];
+
+		// TODO: load current instance based on URI or Redis Cache.
+		$this->currentInstance = $this->homeDirectoryInstance;
 	}
 
 	/**
@@ -63,7 +88,16 @@ class InstanceManager {
 	 * Namespace functions
 	 */
 	public function get($username, $ocPath) {
-		return $this->currentInstance->get($username, $ocPath);
+		$key = $this->currentInstance->getId() . ":" . $username . ":" . $ocPath;
+		$cachedData = $this->metaDataCache->getCacheEntry($key);
+		if($cachedData) {
+			$this->logger->info("HIT for $key");
+			return $cachedData;
+		}
+		$this->logger->info("MISS for $key");
+		$data = $this->currentInstance->get($username, $ocPath);
+		$this->metaDataCache->setCacheEntry($key, $data);
+		return $data;
 	}
 
 	public function getFolderContents($username, $ocPath) {
@@ -75,6 +109,15 @@ class InstanceManager {
 	}
 
 	public function getPathById($username, $id) {
-		return $this->currentInstance->getPathById($username, $id);
+		$key = $this->currentInstance->getId() . ":" . $username . ":" . $id;
+		$cachedData = $this->metaDataCache->getPathById($key);
+		if($cachedData) {
+			$this->logger->info("HIT for $key");
+			return $cachedData;
+		}
+		$this->logger->info("MISS for $key");
+		$data = $this->currentInstance->getPathById($username, $id);
+		$this->metaDataCache->setPathById($key, $data);
+		return $data;
 	}
 }

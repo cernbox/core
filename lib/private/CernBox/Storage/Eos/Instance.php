@@ -26,16 +26,16 @@ class Instance implements IInstance {
 
 	private $logger;
 
-	public function __construct() {
+	public function __construct($id, $instanceConfig) {
 		$this->logger = \OC::$server->getLogger();
 
-		$this->id = "eosbackup";
-		$this->eosMgmUrl = "root://eosbackup.cern.ch";
-		$this->eosPrefix = "/eos/scratch/user/<letter>/<username>/";
-		$this->eosMetaDataPrefix = "/eos/scratch/user/.sys.dav.hide#.user.metadata/<letter>/<username>/";
-		$this->eosRecycleDir = "/eos/backup/proc/recycle/";
-		$this->eosProjectPrefix = "/eos/scratch/project";
-		$this->stagingDir = "/tmp/";
+		$this->id = $id;
+		$this->eosMgmUrl = $instanceConfig['mgmurl'];
+		$this->eosPrefix = $instanceConfig['prefix'];
+		$this->eosMetaDataPrefix = $instanceConfig['metadatadir'];
+		$this->eosRecycleDir = $instanceConfig['recycledir'];
+		$this->eosProjectPrefix = $instanceConfig['projectprefix'];
+		$this->stagingDir = $instanceConfig['stagingdir'];
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
@@ -70,7 +70,6 @@ class Instance implements IInstance {
 		if($errorCode !== 0) {
 			return false;
 		} else {
-			$this->metaDataCache->clearFileByEosPath($eosPath);
 			return true;
 		}
 	}
@@ -117,7 +116,7 @@ class Instance implements IInstance {
 		fclose($stream);
 		fclose($handle);
 
-		$xrdTarget = $this->eosMgmUrl . "//" . $eosPath;
+		$xrdTarget = escapeshellarg($this->eosMgmUrl . "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
@@ -159,15 +158,6 @@ class Instance implements IInstance {
 	public function get($username, $ocPath) {
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
-
-		// check if it is in the cache
-		$cachedData = $this->metaDataCache->getFileByEosPath($eosPath);
-		if ($cachedData) {
-			$this->logger->info('HIT');
-			return $cachedData;
-		}
-		$this->logger->info('MISS');
-
 		$eosPath = escapeshellarg($eosPath);
 		$command = "file info $eosPath -m";
 		$commander = $this->getCommander($username);
@@ -190,19 +180,24 @@ class Instance implements IInstance {
 	public function getFolderContents($username, $ocPath) {
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
-		$eosPath = escapeshellarg($eosPath);
-		$command = "find --fileinfo --maxdepth 1 $eosPath";
+		$eosPathEscaped = escapeshellarg($eosPath);
+		$command = "find --fileinfo --maxdepth 1 $eosPathEscaped";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
 		if($errorCode !== 0) {
 			return false;
 		} else {
 			$entries = array();
+			$this->logger->debug("eospath=$eosPath");
 			foreach($result as $lineToParse) {
 				$eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
 				if($eosMap['eos.file']) {
-					$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
-					$entries[] = new CacheEntry($ownCloudMap);
+					// find also returns the directory
+					// asked to be listed, so we filter it.
+					if($eosMap['eos.file'] !== $eosPath) {
+						$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
+						$entries[] = new CacheEntry($ownCloudMap);
+					}
 				}
 			}
 			return $entries;

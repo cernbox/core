@@ -12,6 +12,15 @@ namespace OC\CernBox\Storage\MetaDataCache;
 class RequestCache implements  IMetaDataCache {
 
 	public function __construct() {
+		$GLOBALS['cernbox'] = array(
+			'username_to_uidgid' => array(),
+			'cacheentry' => array(),
+			'idresolution' => array(),
+			'foldercontents' => array(),
+			'foldercontentsbyid' => array(),
+		);
+
+		/*
 		$GLOBALS['cernbox'] = array();
 		$GLOBALS['cernbox']['idresolution'] = array();
 		$GLOBALS['cernbox']['getfilebyid'] = array();
@@ -20,7 +29,60 @@ class RequestCache implements  IMetaDataCache {
 		$GLOBALS['cernbox']['getfilebyeospath'] = array();
 		$GLOBALS['cernbox']['getowner'] = array();
 		$GLOBALS['cernbox']['getegroups'] = array();
+		*/
 	}
+
+	public function getCacheEntry($key) {
+		if(isset($GLOBALS['cernbox']['cacheentry'][$key])) {
+			return $GLOBALS['cernbox']['cacheentry'][$key];
+		}
+		return null;
+	}
+
+	public function setCacheEntry($key, $data) {
+		$GLOBALS['cernbox']['cacheentry'][$key] = $data;
+	}
+
+	public function getPathById($key) {
+		if(isset($GLOBALS['cernbox']['pathbyid'][$key])) {
+			return $GLOBALS['cernbox']['pathbyid'][$key];
+		}
+		return $data? $data: null;
+	}
+
+	public function setPathById($key, $data) {
+		$GLOBALS['cernbox']['pathbyid'][$key] = $data;
+	}
+
+	public function getUidAndGid($key) {
+		if (isset($GLOBALS['cernbox']['username_to_uidgid'][$key])) {
+			return $GLOBALS['cernbox']['username_to_uidgid'][$key];
+		}
+		return null;
+	}
+
+	public function setUidAndGid($key, $data) {
+		$GLOBALS['cernbox']['username_to_uidgid'][$key] = $data;
+	}
+
+	public function getFolderContents($key) {
+		$data= isset($GLOBALS['cernbox']['foldercontents'][$key]);
+		return $data? $data: null;
+	}
+
+	public function setFolderContents($key, $data) {
+		$GLOBALS['cernbox']['foldercontents'][$key] = $data;
+	}
+
+	public function getFolderContentsById($key) {
+		$data= isset($GLOBALS['cernbox']['foldercontentsbyid'][$key]);
+		return $data? $data: null;
+	}
+
+	public function setFolderContentsById($key, $data) {
+		$GLOBALS['cernbox']['foldercontentsbyid'][$key] = $data;
+	}
+
 
 	public function clearFileById($id)
 	{
@@ -30,17 +92,7 @@ class RequestCache implements  IMetaDataCache {
 		}
 	}
 
-	public function getUidAndGid($username) {
-		if(isset($GLOBALS['cernbox']['idresolution'][$username])) {
-			return $GLOBALS['cernbox']['idresolution'][$username];
-		}
-		return false;
-	}
-
-	public function setUidAndGid($username, $data) {
-		$GLOBALS['cernbox']['idresolution'][$username] = $data;
-	}
-
+	/*
 	public function getFileById($id) {
         if(isset($GLOBALS['cernbox']['getfilebyid'][$id])) {
         	return $GLOBALS['cernbox']['getfilebyid'][$id];
@@ -115,4 +167,5 @@ class RequestCache implements  IMetaDataCache {
 		}
 		return false;
 	}
+	*/
 }

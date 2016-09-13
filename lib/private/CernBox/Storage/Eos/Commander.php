@@ -12,7 +12,7 @@ namespace OC\CernBox\Storage\Eos;
 class  Commander{
 
 
-	private $retrievalAttempts;
+	private $retryAttempts;
 	private $eosMgmUrl;
 	private $username;
 	private $uid;
@@ -31,7 +31,7 @@ class  Commander{
 		$this->eosMgmUrl = $eosMgmUrl;
 
 		$value = \OC::$server->getConfig()->getSystemValue("eoscliretryattempts", 2);
-		$this->retrievalAttempts = $value;
+		$this->retryAttempts = $value;
 
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		if(!$uid || !$gid) {
@@ -62,7 +62,7 @@ class  Commander{
 			exec($cmd, $result, $errorCode);
 			$counter++;
 		}
-		while($errorCode === 22 && $counter !== $this->retrievalAttempts);
+		while($errorCode === 22 && $counter !== $this->retryAttempts);
 
 		if($errorCode === 0) {
 			$this->logger->warning("$cmd => $errorCode");

@@ -143,7 +143,11 @@ class Catalog implements ICache
      */
     public function getId($file)
     {
-    	return $this->get($file)->getId();
+    	$entry = $this->get($file);
+		if (!$entry) {
+			return null;
+		}
+    	return $entry->getId();
     }
 
     /**
