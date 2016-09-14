@@ -8,6 +8,8 @@
 
 namespace OC\CernBox\Storage\MetaDataCache;
 
+use OCP\Files\Cache\ICacheEntry;
+
 interface IMetaDataCache
 {
 //
@@ -145,9 +147,9 @@ interface IMetaDataCache
 //	public function setUidAndGid($username, $data);
 
 	public function getUidAndGid($key);
-	public function setUidAndGid($key, $data);
+	public function setUidAndGid($key, array $data);
 	public function getCacheEntry($key);
-	public function setCacheEntry($key, $data);
+	public function setCacheEntry($key, ICacheEntry $data);
 	public function getPathById($key);
 	public function setPathById($key, $data);
 }

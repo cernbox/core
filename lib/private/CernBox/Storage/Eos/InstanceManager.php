@@ -90,18 +90,27 @@ class InstanceManager {
 	public function get($username, $ocPath) {
 		$key = $this->currentInstance->getId() . ":" . $username . ":" . $ocPath;
 		$cachedData = $this->metaDataCache->getCacheEntry($key);
-		if($cachedData) {
+		if($cachedData !== null) {
 			$this->logger->info("cache hit for $key");
 			return $cachedData;
 		}
 		$this->logger->info("cache miss for $key");
-		$data = $this->currentInstance->get($username, $ocPath);
-		$this->metaDataCache->setCacheEntry($key, $data);
-		return $data;
+		$entry = $this->currentInstance->get($username, $ocPath);
+		if(!$entry) {
+			return null;
+		} else {
+			$this->metaDataCache->setCacheEntry($key, $entry);
+			return $entry;
+		}
 	}
 
 	public function getFolderContents($username, $ocPath) {
-		return $this->currentInstance->getFolderContents($username, $ocPath);
+		$data = $this->currentInstance->getFolderContents($username, $ocPath);
+		if(!$data) {
+			return null;
+		} else {
+			return $data;
+		}
 	}
 
 	public function getFolderContentsById($username, $id) {
@@ -109,25 +118,34 @@ class InstanceManager {
 		$ocPath = $this->metaDataCache->getPathById($key);
 		if($ocPath !== null) {
 			$this->logger->info("cache hit for $key");
+			return $this->currentInstance->getFolderContents($username, $ocPath);
 		} else {
 			$this->logger->info("cache miss for $key");
 			$ocPath = $this->currentInstance->getPathById($username, $id);
-			$this->logger->debug("going to insert key $key with value $ocPath");
-			$this->metaDataCache->setPathById($key, $ocPath);
+			if($ocPath !== null) {
+				$this->logger->debug("going to insert key $key with value $ocPath");
+				$this->metaDataCache->setPathById($key, $ocPath);
+				return $this->currentInstance->getFolderContents($username, $ocPath);
+			} else {
+				return null;
+			}
 		}
-		return $this->currentInstance->getFolderContents($username, $ocPath);
 	}
 
 	public function getPathById($username, $id) {
 		$key = $this->currentInstance->getId() . ":" . $username . ":" . $id;
 		$cachedData = $this->metaDataCache->getPathById($key);
-		if($cachedData) {
+		if($cachedData !== null) {
 			$this->logger->info("cache hit for $key");
 			return $cachedData;
 		}
 		$this->logger->info("cache miss for $key");
 		$data = $this->currentInstance->getPathById($username, $id);
-		$this->metaDataCache->setPathById($key, $data);
-		return $data;
+		if($data !== null) {
+			$this->metaDataCache->setPathById($key, $data);
+			return $data;
+		} else {
+			return null;
+		}
 	}
 }
