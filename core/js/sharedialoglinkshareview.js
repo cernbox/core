@@ -77,7 +77,7 @@
 
 		events: {
 			'submit .emailPrivateLinkForm': '_onEmailPrivateLink',
-			'focusout input.linkPassText': 'onPasswordEntered',
+			//'focusout input.linkPassText': 'onPasswordEntered',
 			'keyup input.linkPassText': 'onPasswordKeyUp',
 			'click .linkCheckbox': 'onLinkCheckBoxChange',
 			'click .linkText': 'onLinkTextClick',
@@ -200,10 +200,42 @@
 				}
 			});
 		},
+		
+		onPasswordEnteredSilentUpdate: function() {
+			var self = this;
+			var $loading = this.$el.find('.linkPass .icon-loading-small');
+			if (!$loading.hasClass('hidden')) {
+				// still in process
+				return;
+			}
+			var $input = this.$el.find('.linkPassText');
+			$input.removeClass('error');
+			var password = $input.val();
+			// in IE9 the password might be the placeholder due to bugs in the placeholders polyfill
+			if(password === '' || password === PASSWORD_PLACEHOLDER || password === PASSWORD_PLACEHOLDER_MESSAGE) {
+				return;
+			}
+
+			$loading
+				.removeClass('hidden')
+				.addClass('inlineblock');
+
+			this.model.setPassword(password);
+			/*this.model.saveLinkShare({}, {
+				error: function(model, msg) {
+					$loading.removeClass('inlineblock').addClass('hidden');
+					$input.addClass('error');
+					$input.attr('title', msg);
+					$input.tooltip({placement: 'bottom', trigger: 'manual'});
+					$input.tooltip('show');
+				}
+			});*/
+		},
 
 		onAllowPublicUploadChange: function() {
 			var $checkbox = this.$('.publicUploadCheckbox');
 			$checkbox.siblings('.icon-loading-small').removeClass('hidden').addClass('inlineblock');
+			this.onPasswordEnteredSilentUpdate();
 			this.model.setPublicUpload($checkbox.is(':checked'));
 			this.model.saveLinkShare();
 		},
