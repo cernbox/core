@@ -11,6 +11,7 @@ namespace OC\CernBox\Storage\MetaDataCache;
 
 use OC\CernBox\Drivers\Redis;
 use OC\CernBox\Storage\Eos\CacheEntry;
+use OCP\Files\Cache\ICacheEntry;
 
 /**
  * Class RedisCache
@@ -45,7 +46,7 @@ class RedisCache  implements  IMetaDataCache {
 		return json_decode($this->readFromCache(self::KEY_GET_UID_AND_GID, $key, self::EXPIRE_UID_GID_TIME_SECONDS), true);
 	}
 
-	public function setUidAndGid($key, $data) {
+	public function setUidAndGid($key, array $data) {
 		$this->writeToCache(self::KEY_GET_UID_AND_GID, $key, json_encode($data));
 	}
 
@@ -56,7 +57,7 @@ class RedisCache  implements  IMetaDataCache {
 		}
 	}
 
-	public function setCacheEntry($key, $data) {
+	public function setCacheEntry($key, ICacheEntry $data) {
 		$array = json_encode($data);
 		$this->writeToCache(self::KEY_GET_CACHE_ENTRY, $key, $array);
 	}

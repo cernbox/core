@@ -7,6 +7,7 @@
  */
 
 namespace OC\CernBox\Storage\MetaDataCache;
+use OCP\Files\Cache\ICacheEntry;
 
 
 /**
@@ -52,7 +53,7 @@ class MultiCache implements IMetaDataCache {
 		return null;
 	}
 
-	public function setCacheEntry($ocPath, $data)
+	public function setCacheEntry($ocPath, ICacheEntry $data)
 	{
 		$args = func_get_args();
 		foreach($this->caches as $priority => $cache) {
@@ -75,7 +76,7 @@ class MultiCache implements IMetaDataCache {
 		return null;
 	}
 
-	public function setUidAndGid($key, $data)
+	public function setUidAndGid($key, array $data)
 	{
 		$args = func_get_args();
 		foreach($this->caches as $priority => $cache) {
@@ -105,13 +106,15 @@ class MultiCache implements IMetaDataCache {
 	}
 
 	private function propagateToHigherCaches($foundAtPriority, $functionName, $key, $data) {
+		/*
 		\OC::$server->getLogger()->debug("cache propagation => foundprio:$foundAtPriority func:$functionName key:$key");
-		foreach($this->caches as $priority=> $cache) {
+		foreach($this->caches as $priority => $cache) {
 			if($priority < $foundAtPriority) {
 				call_user_func_array(array($cache, $functionName), array($key, $data));
 			} else {
 				return;
 			}
 		}
+		*/
 	}
 }

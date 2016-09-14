@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: labkode
- * Date: 9/9/16
- * Time: 9:00 AM
- */
 
 namespace OC\CernBox\Storage\Eos;
 
@@ -35,7 +29,7 @@ class Instance implements IInstance {
 		$this->eosMetaDataPrefix = $instanceConfig['metadatadir'];
 		$this->eosRecycleDir = $instanceConfig['recycledir'];
 		$this->eosProjectPrefix = $instanceConfig['projectprefix'];
-		$this->stagingDir = $instanceConfig;
+		$this->stagingDir = $instanceConfig['stagingdir'];
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
@@ -43,6 +37,7 @@ class Instance implements IInstance {
 	public function getId() {
 		return $this->id;
 	}
+
 	/*
 	 * Storage functions
 	 */
@@ -249,6 +244,8 @@ class Instance implements IInstance {
 	private function getOwnCloudMapFromEosMap($username, $eosMap) {
 		$translator = $this->getTranslator($username);
 
+		$eosMap['etag'] = $eosMap['eos.etag'];
+		$eosMap['fileid'] = $eosMap['eos.ino'];
 		$eosMap['fileid'] = $eosMap['eos.ino'];
 		$eosMap['mtime'] = $eosMap['eos.mtime'];
 		$eosMap['size'] = isset($eosMap['eos.size']) ? $eosMap['eos.size'] : 0;

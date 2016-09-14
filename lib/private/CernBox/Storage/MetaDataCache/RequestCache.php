@@ -9,6 +9,8 @@
 namespace OC\CernBox\Storage\MetaDataCache;
 
 
+use OCP\Files\Cache\ICacheEntry;
+
 class RequestCache implements  IMetaDataCache {
 
 	public function __construct() {
@@ -26,7 +28,7 @@ class RequestCache implements  IMetaDataCache {
 		return null;
 	}
 
-	public function setCacheEntry($key, $data) {
+	public function setCacheEntry($key, ICacheEntry $data) {
 		$GLOBALS['cernbox']['getCacheEntry'][$key] = $data;
 	}
 
@@ -48,7 +50,7 @@ class RequestCache implements  IMetaDataCache {
 		return null;
 	}
 
-	public function setUidAndGid($key, $data) {
+	public function setUidAndGid($key, array $data) {
 		$GLOBALS['cernbox']['getUidAndGid'][$key] = $data;
 	}
 }
