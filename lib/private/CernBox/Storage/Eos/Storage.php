@@ -233,7 +233,7 @@ class Storage implements \OCP\Files\Storage
 			return false;
 		}
 
-		return $entry->getMimeType() === 'http/unix-directory';
+		return $entry->getMimeType() === 'httpd/unix-directory';
     }
 
     /**

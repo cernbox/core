@@ -10,6 +10,7 @@ class Instance implements IInstance {
 	const READ_BUFFER_SIZE = 8192;
 
 	private $id;
+	private $name;
 	private $eosMgmUrl;
 	private $eosPrefix;
 	private $eosMetaDataPrefix;
@@ -24,6 +25,7 @@ class Instance implements IInstance {
 		$this->logger = \OC::$server->getLogger();
 
 		$this->id = $id;
+		$this->name= $instanceConfig['name'];
 		$this->eosMgmUrl = $instanceConfig['mgmurl'];
 		$this->eosPrefix = $instanceConfig['prefix'];
 		$this->eosMetaDataPrefix = $instanceConfig['metadatadir'];
@@ -36,6 +38,10 @@ class Instance implements IInstance {
 
 	public function getId() {
 		return $this->id;
+	}
+
+	public function getName() {
+		return $this->name;
 	}
 
 	/*

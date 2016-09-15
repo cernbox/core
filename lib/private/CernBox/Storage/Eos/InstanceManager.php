@@ -54,6 +54,39 @@ class InstanceManager {
 		$this->currentInstance = $this->homeDirectoryInstance;
 	}
 
+	public function loadInstancesFromDataBase() {
+		$instanceConfigs = \OC_DB::prepare('SELECT * FROM cernbox_eos_instances_mapping')->execute()->fetchAll();
+		foreach($instanceConfigs as $instanceConfig) {
+			$instance = new Instance($instanceConfig['id'], $instanceConfig);
+			$this->addInstance($instance);
+		}
+	}
+
+	public function addInstance(IInstance $instance) {
+		$this->instances[] = $instance;
+	}
+
+	public function getAllInstances() {
+		return $this->instances;
+	}
+
+	public function getInstanceById($id) {
+		if(isset($this->instances[$id])) {
+			return $this->instances[$id];
+		} else {
+			return null;
+		}
+	}
+
+	public function setCurrentInstance($id) {
+		if(!$id) { // default to home directory instance
+			$this->currentInstance = $this->homeDirectoryInstance;
+		} else {
+			$this->currentInstance = $this->instances[$id];
+			$this->logger->info("current instance is $id");
+		}
+	}
+
 	/**
 	 * @return string
 	 */
