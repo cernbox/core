@@ -1396,15 +1396,23 @@ class Server extends ServerContainer implements IServerContainer {
 		return $this->query('CernBoxMetaDataCache');
 	}
 
-	// Add getters for CernBox services
+	/**
+	 * @return Util
+	 */
 	public function getCernBoxEosUtil() {
 		return $this->query('CernBoxEosUtil');
 	}
 
+	/**
+	 * @return InstanceManager
+	 */
 	public function getCernBoxEosInstanceManager() {
 		return $this->query('CernBoxEosInstanceManager');
 	}
 
+	/**
+	 * @return \OC\CernBox\Share\Util
+	 */
 	public function getCernBoxShareUtil() {
 		return $this->query('CernBoxShareUtil');
 	}
