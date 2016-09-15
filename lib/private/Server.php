@@ -43,6 +43,7 @@ use OC\AppFramework\Db\Db;
 use OC\AppFramework\Utility\TimeFactory;
 use OC\CernBox\Drivers\Redis;
 use OC\CernBox\Storage\Eos\InstanceManager;
+use OC\CernBox\Storage\Eos\NullProjectMapper;
 use OC\CernBox\Storage\Eos\Translator;
 use OC\CernBox\Storage\Eos\Util;
 use OC\CernBox\Storage\MetaDataCache\MultiCache;
@@ -706,6 +707,10 @@ class Server extends ServerContainer implements IServerContainer {
 		});
 
 		$this->registerService('CernBoxShareUtil', function (Server $c) {
+			return new \OC\CernBox\Share\Util();
+		});
+
+		$this->registerService('CernBoxProjectMapper', function (Server $c) {
 			return new \OC\CernBox\Share\Util();
 		});
 	}
@@ -1415,6 +1420,10 @@ class Server extends ServerContainer implements IServerContainer {
 	 */
 	public function getCernBoxShareUtil() {
 		return $this->query('CernBoxShareUtil');
+	}
+
+	public function getCernBoxProjectMapper() {
+		return $this->query('CernBoxProjectMapper');
 	}
 
 	/*
