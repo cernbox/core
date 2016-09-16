@@ -209,6 +209,17 @@ final class EosUtil {
 			$token = $_POST['dirToken'];
 		}
 		
+		if(!$token && strpos($uri, 'galleryplus') !== FALSE)
+		{
+			$parts = explode('/', $uri);
+			if(count($parts) < 5)
+			{
+				return false;
+			}
+			
+			$token = $parts[4]; // Although in the web browser it appears as token#, the request sends just the token
+		}
+		
 		if(!$token)
 		{
 			$split = explode('/', $uri);
