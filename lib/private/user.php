@@ -262,8 +262,10 @@ class OC_User {
 		// Check that the user exists
 		$userObject = self::getManager()->get($loginname);
 		/** @var ISession */
+		self::setUserId($loginname);
 		$userSession = self::getUserSession();
 		$userSession->setUpNewUser($loginname);
+		//\OC::$server->getSesssion()->
 		if (!is_null($userObject) && $userObject->isEnabled())
 		{
 			$userSession->setUser($userObject);
