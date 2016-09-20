@@ -974,7 +974,13 @@ class OC {
 
 		if(\OC::$server->getConfig()->getSystemValue('sso_enabled', 'false') === 'true')
 		{
-			OC_Template::printGuestPage('', 'ssologin');
+			// the user can arrive to cernbox copy pasting some links
+			// so instead arriving at the home page, their urls can 
+			// already being pointing to some path or application, so 
+			// to not disturbe them, after SSO we redirect users back 
+			// to its initial URL.
+			$redirectURL = urlencode(\OC::$server->getRequest()->getParam('redirect_url', ''));
+			OC_Template::printGuestPage('', 'ssologin', array('redirect_url' => $redirectURL));
 		}
 		else
 		{
