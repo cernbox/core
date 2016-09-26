@@ -41,6 +41,17 @@ use bantu\IniGetWrapper\IniGetWrapper;
 use OC\AppFramework\Http\Request;
 use OC\AppFramework\Db\Db;
 use OC\AppFramework\Utility\TimeFactory;
+use OC\CernBox\Drivers\Redis;
+use OC\CernBox\Storage\Eos\DBProjectMapper;
+use OC\CernBox\Storage\Eos\InstanceManager;
+use OC\CernBox\Storage\Eos\IProjectMapper;
+use OC\CernBox\Storage\Eos\NullProjectMapper;
+use OC\CernBox\Storage\Eos\Translator;
+use OC\CernBox\Storage\Eos\Util;
+use OC\CernBox\Storage\MetaDataCache\MultiCache;
+use OC\CernBox\Storage\MetaDataCache\NullCache;
+use OC\CernBox\Storage\MetaDataCache\RedisCache;
+use OC\CernBox\Storage\MetaDataCache\RequestCache;
 use OC\Command\AsyncBus;
 use OC\Diagnostics\EventLogger;
 use OC\Diagnostics\NullEventLogger;
@@ -489,6 +500,7 @@ class Server extends ServerContainer implements IServerContainer {
 			$manager->registerProvider(new CacheMountProvider($config));
 			$manager->registerHomeProvider(new LocalHomeMountProvider());
 			$manager->registerHomeProvider(new ObjectHomeMountProvider($config));
+			$manager->registerHomeProvider(new \OC\CernBox\Storage\Eos\HomeMountProvider($config));
 
 			return $manager;
 		});
@@ -678,6 +690,30 @@ class Server extends ServerContainer implements IServerContainer {
 			);
 
 			return $manager;
+		});
+
+		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
+			$requestCache = new RequestCache();
+			$redisCache = new RedisCache(new Redis());
+			$multiCache = new MultiCache(array($requestCache, $redisCache));
+			return $multiCache;
+		});
+
+
+		$this->registerService('CernBoxEosUtil', function (Server $c) {
+			return new Util($c->getCernBoxMetaDataCache());
+		});
+
+		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
+			return new InstanceManager();
+		});
+
+		$this->registerService('CernBoxShareUtil', function (Server $c) {
+			return new \OC\CernBox\Share\Util();
+		});
+
+		$this->registerService('CernBoxProjectMapper', function (Server $c) {
+			return new DBProjectMapper();
 		});
 	}
 
@@ -1358,5 +1394,51 @@ class Server extends ServerContainer implements IServerContainer {
 	public function getShareManager() {
 		return $this->query('ShareManager');
 	}
+
+
+	/**
+	 * @return \OC\CernBox\Storage\MetaDataCache\IMetaDataCache
+	 */
+	public function getCernBoxMetaDataCache() {
+		return $this->query('CernBoxMetaDataCache');
+	}
+
+	/**
+	 * @return Util
+	 */
+	public function getCernBoxEosUtil() {
+		return $this->query('CernBoxEosUtil');
+	}
+
+	/**
+	 * @return InstanceManager
+	 */
+	public function getCernBoxEosInstanceManager() {
+		return $this->query('CernBoxEosInstanceManager');
+	}
+
+	/**
+	 * @return \OC\CernBox\Share\Util
+	 */
+	public function getCernBoxShareUtil() {
+		return $this->query('CernBoxShareUtil');
+	}
+
+	/**
+	 * @return IProjectMapper
+	 */
+	public function getCernBoxProjectMapper() {
+		return $this->query('CernBoxProjectMapper');
+	}
+
+	/*
+	public function getCernBoxCommander() {
+		return $this->query('CernBoxCommander');
+	}
+
+	public function getCernBoxPathTranslator() {
+		return $this->query('CernBoxPathTranslator');
+	}
+	*/
 
 }
