@@ -20,6 +20,8 @@ class Util {
 
 	public function getUsernameFromSharedToken()
 	{
+		// TODO(labkode): Double-check that the token is always send in that Header
+		// and not in the URL as Nadir was doing before.
 		// so we avoid URL matching.
 		// Is still this URL matching needed for some corner cases ? Ask Nadir.
 		$token = $_SERVER['PHP_AUTH_USER'];

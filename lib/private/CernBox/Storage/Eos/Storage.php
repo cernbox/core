@@ -209,8 +209,10 @@ class Storage implements \OCP\Files\Storage
 		try {
 			$files = array();
 			$folderContents = $this->getCache()->getFolderContents($path);
-			foreach ($folderContents as $file) {
-				$files[] = $file['name'];
+			if($folderContents) {
+				foreach ($folderContents as $file) {
+					$files[] = $file['name'];
+				}
 			}
 			return IteratorDirectory::wrap($files);
 		} catch (\Exception $e) {
