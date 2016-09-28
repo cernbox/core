@@ -9,6 +9,7 @@ interface IInstance {
 	public function getName();
 	public function getPrefix();
 	public function getProjectPrefix();
+	public function getMGMURL();
 
 	public function createDir($username, $ocPath);
 	public function remove($username, $ocPath);
