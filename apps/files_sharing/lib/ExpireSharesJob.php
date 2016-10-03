@@ -42,6 +42,11 @@ class ExpireSharesJob extends TimedJob {
 	 * @param array $argument unused argument
 	 */
 	public function run($argument) {
+		$logger = \OC::$server->getLogger();
+		$shareManager = \OC::$server->getShareManager();
+		$deletedEntries = $shareManager->deleteExpiredShares();
+		$logger->debug("$deletedEntries orphaned share(s) deleted", ['app' => 'DeleteOrphanedSharesJob']);
+
 		$connection = \OC::$server->getDatabaseConnection();
 		$logger = \OC::$server->getLogger();
 
