@@ -84,6 +84,12 @@ class Translator {
 	 * @return string
 	 */
 	public function toEos($ocPath) {
+		$eosPath = $this->_toEos($ocPath);
+		$this->logger->debug("TRANSLATOR OC('$ocPath') => EOS('$eosPath')");
+		return $eosPath;
+	}
+
+	private function _toEos($ocPath) {
 
 		$tempOcPath = $ocPath;
 
@@ -92,7 +98,6 @@ class Translator {
 		if(strpos($ocPath, 'projects') === 0) {
 			$tempOcPath = substr($tempOcPath, strlen('projects'));
 			$eosPath =  rtrim($this->eosProjectPrefix, '/') . '/' . $tempOcPath;
-			$this->logger->debug("$ocPath => $eosPath");
 			return $eosPath;
 		}
 

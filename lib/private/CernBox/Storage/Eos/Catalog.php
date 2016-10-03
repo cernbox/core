@@ -21,7 +21,7 @@ class Catalog implements ICache
 	 */
 	private $instanceManager;
 	private $storage;
-	private $user;
+	private $username;
 
     /**
      * @param \OC\CernBox\Storage\Eos\Storage $storage
@@ -29,7 +29,7 @@ class Catalog implements ICache
     public function __construct($storage)
     {
     	$this->storage = $storage;
-		$this->user =  $storage->user;
+		$this->username =  $storage->username;
 		$this->instanceManager = $storage->instanceManager;
     }
 
@@ -56,7 +56,10 @@ class Catalog implements ICache
      */
     public function get($file)
     {
-    	return $this->instanceManager->get($this->user->getUID(), $file);
+		if($this->username === Storage::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+    	return $this->instanceManager->get($this->username, $file);
     }
 
     /**
@@ -70,7 +73,10 @@ class Catalog implements ICache
      */
     public function getFolderContents($folder)
     {
-		return $this->instanceManager->getFolderContents($this->user->getUID(), $folder);
+		if($this->username === Storage::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return array();
+		}
+		return $this->instanceManager->getFolderContents($this->username, $folder);
     }
 
     /**
@@ -84,7 +90,10 @@ class Catalog implements ICache
      */
     public function getFolderContentsById($fileId)
     {
-		return $this->instanceManager->getFolderContentsById($this->user->getUID(), $fileId);
+		if($this->username === Storage::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+		return $this->instanceManager->getFolderContentsById($this->username, $fileId);
     }
 
     /**
@@ -143,6 +152,9 @@ class Catalog implements ICache
      */
     public function getId($file)
     {
+		if($this->username === Storage::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$entry = $this->get($file);
 		if (!$entry) {
 			return null;
@@ -159,6 +171,9 @@ class Catalog implements ICache
      */
     public function getParentId($file)
     {
+		if($this->username === Storage::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
         $parent = dirname($file);
         $entry = $this->get($parent);
 		if(!$entry) {
@@ -305,7 +320,7 @@ class Catalog implements ICache
      */
     public function getPathById($id)
     {
-        return $this->instanceManager->getPathById($this->user->getUID(), $id);
+        return $this->instanceManager->getPathById($this->username, $id);
     }
 
     /**

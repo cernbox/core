@@ -33,6 +33,13 @@ use OCP\Lock\ILockingProvider;
  */
 class Storage implements \OCP\Files\Storage
 {
+	const USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT = 'nobody';
+
+	/**
+	 * @var string it must be public so the file catalog can use it
+	 */
+	public $username;
+
     /**
      * @var string
      */
@@ -56,7 +63,7 @@ class Storage implements \OCP\Files\Storage
 	/**
 	 * @var null|\OC\User\User
 	 */
-	public $user;
+	private $user;
 	/**
 	 * @var int
 	 */
@@ -65,6 +72,8 @@ class Storage implements \OCP\Files\Storage
 	 * @var int
 	 */
 	private $userGID;
+
+
 	/**
 	 * @var InstanceManager
 	 */
@@ -89,7 +98,7 @@ class Storage implements \OCP\Files\Storage
 	 * Storage constructor.
 	 *
 	 * @param array $params
-	 * @throws StorageNotAvailableException
+	 * @throws \Exception
 	 */
 	public function __construct($params)
     {
@@ -100,59 +109,79 @@ class Storage implements \OCP\Files\Storage
 		$this->shareUtil= \OC::$server->getCernBoxShareUtil();
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 
-		$user = $params['user'];
+		$userObjectOrString = $params['user'];
 
 		// if the username is not passed it means the
 		// request is pointing to shared by link resource, thus
 		// we don't have user context but we can extract it querying the
 		// share database and in the future EOS.
-        if (!$user) {
-        	$user = $this->shareUtil->getUsernameFromSharedToken();
+        if (!$userObjectOrString) {
+        	$userObjectOrString = $this->shareUtil->getUsernameFromSharedToken();
         }
 
-        if(!$user) {
+        if(!$userObjectOrString) {
+			// FIXME(labkode): There are routes that does not have user context,
+			// like when you click on add to your ownCloud in the link preview page.
+			// This button will trigger a request to ../apps/files_sharing/testremote...
+			// and it will mount the storage. As we do not have any user context,
+			// we would have thrown an Exception, but if we do that, we will not be
+			// able to fulfill the request. The dirty solution is to initiate the storage
+			// with a default/dummy/non-privileged user.
+			$userObjectOrString = self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT;
+
 			// if at this point we do not have an username
-			// we abort the operation.
-			$ex = new \Exception("impossible to get username");
-			$this->logger->error($ex->getMessage());
-			throw $ex;
+			// we abort the operation. We cannot mount the storage
+			// without username as that will require root privileges
+			// to all the namespace :(
+			// $ex = new \Exception("cannot get username from request context");
+			// $this->logger->error($ex->getMessage());
+			// throw $ex;
 		}
 
         // sometimes the user is passed as a string instead of a full User object
         // so we check it and convert the string to User object if needed.
-		if(is_string($user)) {
-			$this->logger->debug("username is $user");
-			// convert user string to user object
-			$user = \OC::$server->getUserManager()->get($user);
-		}
-
-		if (!$user) {
-			throw  new \Exception("eos storage instantiated with unknown user");
-		}
-
-		$userID = null;
-		$userGroupID = null;
-		// obtain uid and gid for user
-		// try first in the cache
-		list($userID, $userGroupID) = $this->metaDataCache->getUidAndGid($user->getUID());
-		if($userID && $userGroupID) {
-			$this->logger->info("cache hit for " . $user->getUID());
+		if(is_string($userObjectOrString)) {
+			$this->username = $userObjectOrString;
+			$this->logger->debug("username is $userObjectOrString");
 		} else {
-			$this->logger->info("cache miss for " . $user->getUID());
-			list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($user->getUID());
-			$this->metaDataCache->setUidAndGid($user->getUID(), array($userID, $userGroupID));
-		}
-		$this->logger->debug("username " . $user->getUID() . " has uid:$userID and gid:$userGroupID");
-		if (!$userID || !$userGroupID) {
-			throw  new \Exception('user does not have an uid or gid');
+			$this->username = $userObjectOrString->getUID();
 		}
 
-		$this->logger->debug("eos storage instantiated for user " . $user->getUID());
-		$this->user = $user;
-		$this->userUID = $userID;
-		$this->userGID = $userGroupID;
+		// real user => request with user context
+		if($this->username !== self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			// convert user string to user object
+			$this->user = \OC::$server->getUserManager()->get($this->username);
+			if (!$this->user) {
+				$ex = new \Exception("eos user manager cannot find $this->username");
+				$this->logger->error($ex->getMessage());
+				throw $ex;
+			}
 
-		$this->storageId= 'eos::store:' . $this->instanceManager->getInstanceId() . "-" . $user->getUID();
+			$userID = null;
+			$userGroupID = null;
+			// obtain uid and gid for user
+			// try first in the cache
+			list($userID, $userGroupID) = $this->metaDataCache->getUidAndGid($this->username);
+			if($userID && $userGroupID) {
+				$this->logger->info("cache hit for " . $this->username);
+			} else {
+				$this->logger->info("cache miss for " . $this->username);
+				list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($this->username);
+				$this->metaDataCache->setUidAndGid($this->username, array($userID, $userGroupID));
+			}
+			$this->logger->debug("username " . $this->username . " has uid:$userID and gid:$userGroupID");
+			if (!$userID || !$userGroupID) {
+				throw  new \Exception('user does not have a valid uid or gid');
+			}
+
+			$this->userUID = $userID;
+			$this->userGID = $userGroupID;
+			$this->logger->debug("eos storage instantiated for user " . $this->username);
+		} else {
+			$this->logger->warning("owncloud url without user context mounting fs");
+		}
+
+		$this->storageId= 'eos::store:' . $this->instanceManager->getInstanceId() . "-" . $this->username;
 
         // instantiate the catalog
         $this->catalog= new Catalog($this);
@@ -182,7 +211,10 @@ class Storage implements \OCP\Files\Storage
      */
     public function mkdir($path)
     {
-    	return $this->instanceManager->createDir($this->user->getUID(), $path);
+    	if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+    	return $this->instanceManager->createDir($this->username, $path);
     }
 
     /**
@@ -194,7 +226,10 @@ class Storage implements \OCP\Files\Storage
      */
     public function rmdir($path)
     {
-    	return $this->instanceManager->remove($this->user->getUID(), $path);
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+    	return $this->instanceManager->remove($this->username, $path);
     }
 
     /**
@@ -206,6 +241,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function opendir($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		try {
 			$files = array();
 			$folderContents = $this->getCache()->getFolderContents($path);
@@ -230,6 +268,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function is_dir($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$entry = $this->getCache()->get($path);
 		if (!$entry) {
 			return false;
@@ -247,6 +288,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function is_file($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		$entry = $this->getCache()->get($path);
 		if (!$entry) {
 			return false;
@@ -264,6 +308,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function stat($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		$entry = $this->getCache()->get($path);
 		if (!$entry) {
 			return false;
@@ -280,6 +327,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function filetype($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$isDir = $this->is_dir($path);
 		if ($isDir) {
 			return 'dir';
@@ -298,6 +348,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function filesize($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$entry = $this->getCache()->get($path);
 		if (!$entry) {
 			throw  new NotFoundException($path);
@@ -314,6 +367,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function isCreatable($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	if ($this->is_dir($path) && $this->isUpdatable($path)) {
     		return true;
 		} else {
@@ -330,6 +386,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function isReadable($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	return $this->file_exists($path);
     }
 
@@ -342,6 +401,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function isUpdatable($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	return $this->file_exists($path);
     }
 
@@ -354,6 +416,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function isDeletable($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	// home directories cannot be deleted
     	if ($path === '' || $path === '/' || $path === '.') {
     		return false;
@@ -372,6 +437,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function isSharable($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	// FIXME: plug here custom logic to say if a file can be shared or not.
 		return $this->isReadable($path);
     }
@@ -386,6 +454,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function getPermissions($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return 0;
+		}
     	$entry = $this->getCache()->get($path);
 		if(!$entry) {
 			return false;
@@ -402,6 +473,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function file_exists($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	return $this->getCache()->get($path);
     }
 
@@ -414,6 +488,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function filemtime($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$entry = $this->getCache()->get($path);
 		if (!$entry) {
 			return false;
@@ -430,6 +507,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function file_get_contents($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$handle = $this->fopen($path, 'r');
 		if($handle) {
 			return false;
@@ -449,6 +529,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function file_put_contents($path, $data)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$handle = $this->fopen($path, 'w');
 		$count = fwrite($handle, $data);
 		fclose($handle);
@@ -464,7 +547,10 @@ class Storage implements \OCP\Files\Storage
      */
     public function unlink($path)
     {
-    	return $this->instanceManager->remove($this->user->getUID(), $path);
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+    	return $this->instanceManager->remove($this->username, $path);
     }
 
     /**
@@ -477,7 +563,10 @@ class Storage implements \OCP\Files\Storage
      */
     public function rename($path1, $path2)
     {
-		return $this->instanceManager->rename($this->user->getUID(), $path1, $path2);
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+		return $this->instanceManager->rename($this->username, $path1, $path2);
     }
 
     /**
@@ -490,8 +579,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function copy($path1, $path2)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		if ($this->is_dir($path1)) {
-			$this->instanceManager->remove($this->user->getUID(), $path2);
+			$this->instanceManager->remove($this->username, $path2);
 			$dir = $this->opendir($path1);
 			$this->mkdir($path2);
 			while ($file = readdir($dir)) {
@@ -521,11 +613,14 @@ class Storage implements \OCP\Files\Storage
      */
     public function fopen($path, $mode)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		switch ($mode)
 		{
 			case 'r':
 			case 'rb':
-				return $this->instanceManager->read($this->user->getUID(), $path);
+				return $this->instanceManager->read($this->username, $path);
 			case 'w':
 			case 'wb':
 			case 'a':
@@ -569,6 +664,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function getMimeType($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$entry = $this->getCache()->get($path);
 		if ($entry) {
 			return false;
@@ -588,6 +686,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function hash($type, $path, $raw = false)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		$fh = $this->fopen($path, 'rb');
 		$ctx = hash_init($type);
 		hash_update_stream($ctx, $fh);
@@ -604,6 +705,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function free_space($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	// FIXME: check really free space on EOS
     	return \OCP\Files\FileInfo::SPACE_UNLIMITED;
     }
@@ -619,8 +723,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function touch($path, $mtime = null)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$stream = fopen('php://memory', 'r');
-		return $this->instanceManager->write($this->user->getUID(), $path, $stream);
+		return $this->instanceManager->write($this->username, $path, $stream);
     }
 
     /**
@@ -633,6 +740,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function getLocalFile($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
         return false;
     }
 
@@ -649,6 +759,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function hasUpdated($path, $time)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	return $this->filemtime($path) > $time;
     }
 
@@ -661,6 +774,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function getETag($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	$entry = $this->getCache()->get($path);
 		if(!$entry) {
 			return false;
@@ -757,6 +873,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function test()
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
         return true;
     }
 
@@ -787,9 +906,12 @@ class Storage implements \OCP\Files\Storage
      */
     public function getOwner($path)
     {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
     	// all files that come are relative to user storage
 		// so the user will always be the owner of its own files.
-        return $this->user->getUID();
+        return $this->username;
     }
 
     /**
@@ -891,6 +1013,9 @@ class Storage implements \OCP\Files\Storage
 	 */
 	public function writeBack($tmpFile)
 	{
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
 		if (!isset(self::$tmpFiles[$tmpFile]))
 		{
 			return;
@@ -901,7 +1026,7 @@ class Storage implements \OCP\Files\Storage
 		$stat = $this->stat($path);
 		try
 		{
-			$this->instanceManager->write($this->user->getUID(), $path, fopen($tmpFile, 'r'));
+			$this->instanceManager->write($this->username, $path, fopen($tmpFile, 'r'));
 		}
 		catch (\Exception $ex)
 		{
