@@ -979,4 +979,15 @@ class DefaultShareProvider implements IShareProvider {
 			}
 		}
 	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function deleteOrphanedShares() {
+		$sql =
+			'DELETE FROM `*PREFIX*share` ' .
+			'WHERE `item_type` in (\'file\', \'folder\') ' .
+			'AND NOT EXISTS (SELECT `fileid` FROM `*PREFIX*filecache` WHERE `file_source` = `fileid`)';
+		return $this->dbConn->executeUpdate($sql);
+	}
 }

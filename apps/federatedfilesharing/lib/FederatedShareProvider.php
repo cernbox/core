@@ -877,4 +877,15 @@ class FederatedShareProvider implements IShareProvider {
 		$result = $this->config->getAppValue('files_sharing', 'incoming_server2server_share_enabled', 'yes');
 		return ($result === 'yes') ? true : false;
 	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function deleteOrphanedShares() {
+		$sql =
+			'DELETE FROM `*PREFIX*share` ' .
+			'WHERE `item_type` in (\'file\', \'folder\') ' .
+			'AND NOT EXISTS (SELECT `fileid` FROM `*PREFIX*filecache` WHERE `file_source` = `fileid`)';
+		return $this->dbConnection->executeUpdate($sql);
+	}
 }
