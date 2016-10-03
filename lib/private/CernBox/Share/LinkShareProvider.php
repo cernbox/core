@@ -24,7 +24,7 @@ class LinkShareProvider implements IShareProvider {
 	}
 
 	public function identifier() {
-		return "cernbox-linkshare-provider";
+		return "ocinternal";
 	}
 
 	public function create(\OCP\Share\IShare $share) {

@@ -22,9 +22,9 @@ class MultiShareProvider implements  IShareProvider {
 	private $logger;
 	private $providerHandlers = array();
 
-	public function __construct($userRootFoder) { $this->logger = \OC::$server->getLogger();
-
-		$this->rootFolder = $userRootFoder;
+	public function __construct($userRootFolder) {
+		$this->logger = \OC::$server->getLogger();
+		$this->rootFolder = $userRootFolder;
 		$this->providerHandlers = [
 			Share::SHARE_TYPE_USER => new UserShareProvider($this->rootFolder),
 			Share::SHARE_TYPE_GROUP => new GroupShareProvider($this->rootFolder),
@@ -33,7 +33,8 @@ class MultiShareProvider implements  IShareProvider {
 	}
 
 	public function identifier() {
-		return "cernbox-multishare-provider";
+		//return "cernbox-multishare-provider";
+		return "ocinternal";
 	}
 
 	public function create(\OCP\Share\IShare $share) {
@@ -101,7 +102,7 @@ class MultiShareProvider implements  IShareProvider {
 	}
 
 	public function getShareByToken($token) {
-		$provider = $this->getShareProvider($this->providerHandlers[Share::SHARE_TYPE_LINK]);
+		$provider = $this->getShareProvider(Share::SHARE_TYPE_LINK);
 		$args = func_get_args();
 		return call_user_func_array(array($provider, __FUNCTION__), $args);
 	}
@@ -131,6 +132,15 @@ class MultiShareProvider implements  IShareProvider {
 	}
 
 	/**
+	 *FIXME(labkode): ownCloud adds this method to its provider despite not being
+	 * listed in the IProvider.
+	 * @return array
+	 */
+	public function getChildren() {
+		return array();
+	}
+
+	/**
 	 * @param $shareType
 	 * @return IShareProvider
 	 * @throws \Exception
@@ -140,7 +150,7 @@ class MultiShareProvider implements  IShareProvider {
 		$provider = isset($this->providerHandlers[$shareType]) ? $this->providerHandlers[$shareType] : false;
 
 		if(!$provider) {
-			$this->logger(\OC_User::getUser() . ' tried to share using an unknown share type : ' . $shareType);
+			$this->logger->error(\OC_User::getUser() . ' tried to share using an unknown share type : ' . $shareType);
 			throw new \Exception('Share type not supported');
 		}
 

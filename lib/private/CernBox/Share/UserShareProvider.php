@@ -15,7 +15,7 @@ use OCP\Share\IShareProvider;
 
 class UserShareProvider implements IShareProvider {
 	public function identifier() {
-		// TODO: Implement identifier() method.
+		return "ocinternal";
 	}
 
 	public function create(\OCP\Share\IShare $share) {
@@ -43,19 +43,19 @@ class UserShareProvider implements IShareProvider {
 	}
 
 	public function getShareById($id, $recipientId = null) {
-		// TODO: Implement getShareById() method.
+		return array();
 	}
 
 	public function getSharesByPath(Node $path) {
-		// TODO: Implement getSharesByPath() method.
+		return array();
 	}
 
 	public function getSharedWith($userId, $shareType, $node, $limit, $offset) {
-		// TODO: Implement getSharedWith() method.
+		return array();
 	}
 
 	public function getShareByToken($token) {
-		// TODO: Implement getShareByToken() method.
+		return null;
 	}
 
 	public function userDeleted($uid, $shareType) {
