@@ -398,6 +398,7 @@ class Instance implements IInstance {
 
 		if(isset($eosMap['eos.container'])) {
 			$eosMap['mimetype'] = "httpd/unix-directory";
+			$eosMap['size'] = $eosMap['eos.treesize'];
 		} else {
 			$eosMap['mimetype'] = \OC::$server->getMimeTypeDetector()->detectPath($eosMap['eos.file']);
 		}
