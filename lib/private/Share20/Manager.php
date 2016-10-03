@@ -1259,5 +1259,16 @@ class Manager implements IManager {
 		return $total;
 	}
 
+	/**
+	 * @inheritdoc
+	 */
+	public function deleteExpiredShares() {
+		$total = 0;
+		$providers = $this->factory->getProviders();
+		foreach($providers as $provider) {
+			$total += $provider->deleteExpiredShares();
+		}
+		return $total;
+	}
 
 }
