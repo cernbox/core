@@ -20,6 +20,7 @@ class ProviderFactory implements IProviderFactory {
 
 	/** @var IServerContainer */
 	private $serverContainer;
+	private $logger;
 
 	private $provider;
 	private $federatedProvider;
@@ -32,16 +33,20 @@ class ProviderFactory implements IProviderFactory {
 		$this->serverContainer = $serverContainer;
 		$this->provider = new MultiShareProvider($this->serverContainer->getRootFolder());
 		$this->federatedProvider = $this->getOwnCloudFederatedShareProvider();
+		$this->logger = \OC::$server->getLogger();
 	}
 
 	/**
 	 * @inheritdoc
 	 */
 	public function getProvider($id) {
-		if($id === $this->provider->identifier()) {
+		$this->logger->debug("sharing getProvider:$id");
+		if($id === "ocinternal") {
 			return $this->provider;
+		} else if ($id === "ocFederatedSharing") {
+			return $this->federatedProvider;
 		} else {
-			throw new ProviderException('No provider with id:' . $id . ' found.');
+				throw new ProviderException('No provider with id:' . $id . ' found.');
 		}
 	}
 
@@ -49,6 +54,7 @@ class ProviderFactory implements IProviderFactory {
 	 * @inheritdoc
 	 */
 	public function getProviderForType($shareType) {
+		$this->logger->debug("sharing getProviderForType:$shareType");
 		if ($shareType === Share::SHARE_TYPE_USER  ||
 			$shareType === Share::SHARE_TYPE_GROUP ||
 			$shareType === Share::SHARE_TYPE_LINK) {

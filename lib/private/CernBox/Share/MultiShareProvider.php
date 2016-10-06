@@ -9,6 +9,7 @@
 namespace OC\CernBox\Share;
 
 
+use OCP\Files\IRootFolder;
 use OCP\Files\Node;
 use OCP\Share;
 use OCP\Share\Exceptions\ShareNotFound;
@@ -22,13 +23,18 @@ class MultiShareProvider implements  IShareProvider {
 	private $logger;
 	private $providerHandlers = array();
 
+	/**
+	 * MultiShareProvider constructor.
+	 *
+	 * @param $userRootFolder IRootFolder
+	 */
 	public function __construct($userRootFolder) {
 		$this->logger = \OC::$server->getLogger();
 		$this->rootFolder = $userRootFolder;
 		$this->providerHandlers = [
 			Share::SHARE_TYPE_USER => new UserShareProvider($this->rootFolder),
-			Share::SHARE_TYPE_GROUP => new GroupShareProvider($this->rootFolder),
-			Share::SHARE_TYPE_LINK => new LinkShareProvider($this->rootFolder)
+			Share::SHARE_TYPE_LINK => new LinkShareProvider($this->rootFolder),
+			Share::SHARE_TYPE_GROUP => new GroupShareProvider($this->rootFolder)
 		];
 	}
 
@@ -74,9 +80,16 @@ class MultiShareProvider implements  IShareProvider {
 	}
 
 	public function getShareById($id, $recipientId = null) {
+		$this->logger->info("getShareById id:$id recipientId:$recipientId");
 		foreach($this->providerHandlers as $type => $provider) {
+			$share = null;
 			$args = func_get_args();
-			$share = call_user_func_array(array($provider, __FUNCTION__), $args);
+			try {
+				$share = call_user_func_array(array($provider, __FUNCTION__), $args);
+			} catch (ShareNotFound $e) {
+				$this->logger->debug("share id:$id not found on provider:$type");
+			}
+
 			if($share) {
 				return $share;
 			}
@@ -96,6 +109,7 @@ class MultiShareProvider implements  IShareProvider {
 	}
 
 	public function getSharedWith($userId, $shareType, $node, $limit, $offset) {
+		$this->logger->info("getSharedWith id:$userId shareType:$shareType");
 		$provider = $this->getShareProvider($shareType);
 		$args = func_get_args();
 		return call_user_func_array(array($provider, __FUNCTION__), $args);

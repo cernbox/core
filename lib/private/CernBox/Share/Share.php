@@ -105,13 +105,15 @@ class Share implements IShare {
 	public function getNode() {
 		if($this->node === null) {
 			if($this->shareOwner === null || $this->fileId === null) {
-				throw new NotFoundException();
+				throw new NotFoundException('shareOwner and fileId are null');
 			}
 
+			$fileId = $this->fileId;
 			$userFolder = $this->rootFolder->getUserFolder($this->shareOwner);
+			var_dump($userFolder->getPath());
 			$nodes = $userFolder->getById($this->fileId);
 			if(!empty($nodes)) {
-				throw new NotFoundException();
+				throw new NotFoundException("cannot find file with id:$fileId on storage");
 			}
 			$this->node = $nodes[0];
 		}
@@ -144,6 +146,7 @@ class Share implements IShare {
 			throw new \InvalidArgumentException();
 		}
 		$this->nodeType = $type;
+		return $this;
 	}
 
 	/**
@@ -213,6 +216,7 @@ class Share implements IShare {
 	public function setExpirationDate($expireDate) {
 		// TODO(labkode): check for sane values
 		$this->expireDate = $expireDate;
+		return $this;
 	}
 
 	/**
@@ -250,6 +254,7 @@ class Share implements IShare {
 		}
 		// TODO(labkode): check owner is valid user ?
 		$this->shareOwner = $shareOwner;
+		return $this;
 	}
 
 	/**
@@ -294,6 +299,7 @@ class Share implements IShare {
 	 */
 	public function setTarget($target) {
 		$this->target = $target;
+		return $this;
 	}
 
 	/**
@@ -308,6 +314,7 @@ class Share implements IShare {
 	 */
 	public function setShareTime(\DateTime $shareTime) {
 		$this->shareTime = $shareTime;
+		return $this;
 	}
 
 	/**
@@ -322,6 +329,7 @@ class Share implements IShare {
 	 */
 	public function setMailSend($mailSend) {
 		$this->mailSend = $mailSend;
+		return $this;
 	}
 
 	/**

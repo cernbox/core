@@ -119,6 +119,13 @@ class Storage implements \OCP\Files\Storage
         	$userObjectOrString = $this->shareUtil->getUsernameFromSharedToken();
         }
 
+        // FIMXE(labkode): there are some urls that does not pass the username in the constructor
+		// but the user is logged in.
+		// TODO: refactor getUsernameFromSharedToken to also get user from logged in.
+		// use case:
+		/*
+		 * {"reqId":"V-NS2JzLo2upBNA3D0Iy4QAAAAE","remoteAddr":"::1","app":"no app in context","message":"username is nobody","level":0,"time":"2016-10-04T06:57:28+00:00","method":"POST","url":"\/core\/ocs\/v2.php\/apps\/files_sharing\/api\/v1\/shares?format=json","user":"gonzalhu"}
+		 */
         if(!$userObjectOrString) {
 			// FIXME(labkode): There are routes that does not have user context,
 			// like when you click on add to your ownCloud in the link preview page.

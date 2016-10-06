@@ -9,49 +9,293 @@
 namespace OC\CernBox\Share;
 
 
+use OC\Share20\Exception\BackendError;
+use OC\Share20\Exception\InvalidShare;
+use OC\Share20\Exception\ProviderException;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\Node;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\IShareProvider;
 
 class UserShareProvider implements IShareProvider {
+	private $dbConn;
+	private $userManager;
+	private $rootFolder;
+	private $instanceManager;
+
+	public function __construct($rootFolder) {
+		$this->rootFolder = $rootFolder;
+		$this->userManager = \OC::$server->getUserManager();
+		$this->dbConn = \OC::$server->getDatabaseConnection();
+		$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
+	}
+
 	public function identifier() {
 		return "ocinternal";
 	}
 
 	public function create(\OCP\Share\IShare $share) {
-		// TODO: Implement create() method.
+		$qb = $this->dbConn->getQueryBuilder();
+
+		$qb->insert('share');
+		$qb->setValue('share_type', $qb->createNamedParameter($share->getShareType()));
+		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
+			//Set the UID of the user we share with
+			$qb->setValue('share_with', $qb->createNamedParameter($share->getSharedWith()));
+		} else {
+			throw new \Exception('invalid share type!');
+		}
+
+		// Set what is shares
+		$qb->setValue('item_type', $qb->createParameter('itemType'));
+		if ($share->getNode() instanceof \OCP\Files\File) {
+			throw new \Exception('sharing files with individual users not available!');
+			// $qb->setParameter('itemType', 'file');
+		} else {
+			$qb->setParameter('itemType', 'folder');
+		}
+
+		// Set the file id
+		$qb->setValue('item_source', $qb->createNamedParameter($share->getNode()->getId()));
+		$qb->setValue('file_source', $qb->createNamedParameter($share->getNode()->getId()));
+		// set the permissions
+		$qb->setValue('permissions', $qb->createNamedParameter($share->getPermissions()));
+		// Set who created this share
+		$qb->setValue('uid_initiator', $qb->createNamedParameter($share->getSharedBy()));
+		// Set who is the owner of this file/folder (and this the owner of the share)
+		$qb->setValue('uid_owner', $qb->createNamedParameter($share->getShareOwner()));
+		// Set the file target
+		$qb->setValue('file_target', $qb->createNamedParameter($share->getTarget()));
+		// Set the time this share was created
+		$qb->setValue('stime', $qb->createNamedParameter(time()));
+		// insert the data and fetch the id of the share
+		$this->dbConn->beginTransaction();
+		$qb->execute();
+		$id = $this->dbConn->lastInsertId('*PREFIX*share');
+		$this->dbConn->commit();
+		// Now fetch the inserted share and create a complete share object
+		$qb = $this->dbConn->getQueryBuilder();
+		$qb->select('*')
+			->from('share')
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)));
+		$cursor = $qb->execute();
+		$data = $cursor->fetch();
+		$cursor->closeCursor();
+		if ($data === false) {
+			throw new ShareNotFound();
+		}
+		$share = $this->createShare($data);
+		return $share;
 	}
 
 	public function update(\OCP\Share\IShare $share) {
-		// TODO: Implement update() method.
+		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
+			/*
+			 * We allow updating the recipient on user shares.
+			 */
+			$qb = $this->dbConn->getQueryBuilder();
+			$qb->update('share')
+				->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())))
+				->set('share_with', $qb->createNamedParameter($share->getSharedWith()))
+				->set('uid_owner', $qb->createNamedParameter($share->getShareOwner()))
+				->set('uid_initiator', $qb->createNamedParameter($share->getSharedBy()))
+				->set('permissions', $qb->createNamedParameter($share->getPermissions()))
+				->set('item_source', $qb->createNamedParameter($share->getNode()->getId()))
+				->set('file_source', $qb->createNamedParameter($share->getNode()->getId()))
+				->execute();
+		} else {
+			throw new ProviderException('Invalid shareType');
+		}
+		return $share;
 	}
 
 	public function delete(\OCP\Share\IShare $share) {
-		// TODO: Implement delete() method.
+		$qb = $this->dbConn->getQueryBuilder();
+		$qb->delete('share')
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())));
+		$qb->execute();
 	}
 
 	public function deleteFromSelf(\OCP\Share\IShare $share, $recipient) {
-		// TODO: Implement deleteFromSelf() method.
+		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
+			if ($share->getSharedWith() !== $recipient) {
+				throw new ProviderException('Recipient does not match');
+			}
+			// We can just delete user and link shares
+			$this->delete($share);
+		} else {
+			throw new ProviderException('Invalid shareType');
+		}
 	}
 
 	public function move(\OCP\Share\IShare $share, $recipient) {
-		// TODO: Implement move() method.
+		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
+			// Just update the target
+			$qb = $this->dbConn->getQueryBuilder();
+			$qb->update('share')
+				->set('file_target', $qb->createNamedParameter($share->getTarget()))
+				->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())))
+				->execute();
+		} else {
+			throw new ProviderException('Invalid shareType');
+		}
+		return $share;
 	}
 
 	public function getSharesBy($userId, $shareType, $node, $reshares, $limit, $offset) {
-		return array();
+		$qb = $this->dbConn->getQueryBuilder();
+		$qb->select('*')
+			->from('share')
+			->andWhere($qb->expr()->orX(
+				$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
+				$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
+			));
+		$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter($shareType)));
+		/**
+		 * Reshares for this user are shares where they are the owner.
+		 */
+		if ($reshares === false) {
+			$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
+		} else {
+			$qb->andWhere(
+				$qb->expr()->orX(
+					$qb->expr()->eq('uid_owner', $qb->createNamedParameter($userId)),
+					$qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId))
+				)
+			);
+		}
+		if ($node !== null) {
+			$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($node->getId())));
+		}
+		if ($limit !== -1) {
+			$qb->setMaxResults($limit);
+		}
+		$qb->setFirstResult($offset);
+		$qb->orderBy('id');
+		$cursor = $qb->execute();
+		$shares = [];
+		while($data = $cursor->fetch()) {
+			$shares[] = $this->createShare($data);
+		}
+		$cursor->closeCursor();
+		return $shares;
 	}
 
 	public function getShareById($id, $recipientId = null) {
-		return array();
+		$qb = $this->dbConn->getQueryBuilder();
+		$qb->select('*')
+			->from('share')
+			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)))
+			->andWhere(
+				$qb->expr()->in(
+					'share_type',
+					$qb->createNamedParameter([
+						\OCP\Share::SHARE_TYPE_USER,
+					], IQueryBuilder::PARAM_INT_ARRAY)
+				)
+			)
+			->andWhere($qb->expr()->orX(
+				$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
+				$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
+			));
+
+		$cursor = $qb->execute();
+		$data = $cursor->fetch();
+		$cursor->closeCursor();
+		if ($data === false) {
+			throw new ShareNotFound();
+		}
+		try {
+			$share = $this->createShare($data);
+		} catch (InvalidShare $e) {
+			throw new ShareNotFound();
+		}
+		// If the recipient is set for a group share resolve to that user
+		/*
+		if ($recipientId !== null && $share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP) {
+			$share = $this->resolveGroupShare($share, $recipientId);
+		}
+		*/
+		return $share;
 	}
 
 	public function getSharesByPath(Node $path) {
-		return array();
+		$qb = $this->dbConn->getQueryBuilder();
+		$cursor = $qb->select('*')
+			->from('share')
+			->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($path->getId())))
+			->andWhere(
+				$qb->expr()->orX(
+					$qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_USER)),
+					$qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_GROUP))
+				)
+			)
+			->andWhere($qb->expr()->orX(
+				$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
+				$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
+			))
+			->execute();
+		$shares = [];
+		while($data = $cursor->fetch()) {
+			$shares[] = $this->createShare($data);
+		}
+		$cursor->closeCursor();
+		return $shares;
+	}
+
+	/**
+	 * Checks if the file pointed by the share exists
+	 * and it is accessible (not in trash nor version folder).
+	 * @param $shareData
+	 * @returns boolean
+	 */
+	private function isAccessibleResult($shareData) {
+		$entry = $this->instanceManager->getPathById($shareData['uid_owner'], $shareData['file_source']);
+		if(!$entry) {
+			return false;
+		} else {
+			// FIXME(labkode): check file is not on tras nor versions
+			return true;
+		}
 	}
 
 	public function getSharedWith($userId, $shareType, $node, $limit, $offset) {
-		return array();
+		/** @var Share[] $shares */
+		$shares = [];
+		if ($shareType === \OCP\Share::SHARE_TYPE_USER) {
+			//Get shares directly with this user
+			$qb = $this->dbConn->getQueryBuilder();
+			$qb->select('s.*')
+				->from('share', 's');
+			// Order by id
+			$qb->orderBy('s.id');
+			// Set limit and offset
+			if ($limit !== -1) {
+				$qb->setMaxResults($limit);
+			}
+			$qb->setFirstResult($offset);
+			$qb->where($qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_USER)))
+				->andWhere($qb->expr()->eq('share_with', $qb->createNamedParameter($userId)))
+				->andWhere($qb->expr()->orX(
+					$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
+					$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
+				));
+
+			// Filter by node if provided
+			if ($node !== null) {
+				$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($node->getId())));
+			}
+			$cursor = $qb->execute();
+			while($data = $cursor->fetch()) {
+				if ($this->isAccessibleResult($data)) {
+					$shares[] = $this->createShare($data);
+				}
+			}
+			$cursor->closeCursor();
+		} else {
+			throw new BackendError('Invalid share backend');
+		}
+		return $shares;
 	}
 
 	public function getShareByToken($token) {
@@ -70,5 +314,36 @@ class UserShareProvider implements IShareProvider {
 		// TODO: Implement userDeletedFromGroup() method.
 	}
 
+	private function createShare($data) {
+		$share = new Share($this->rootFolder, $this->userManager);
+		$share->setId((int)$data['id'])
+			->setShareType((int)$data['share_type'])
+			->setPermissions((int)$data['permissions'])
+			->setTarget($data['file_target'])
+			->setMailSend((bool)$data['mail_send']);
+
+		$shareTime = new \DateTime();
+		$shareTime->setTimestamp((int)$data['stime']);
+		$share->setShareTime($shareTime);
+
+		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
+			$share->setSharedWith($data['share_with']);
+		}
+
+		$share->setSharedBy($data['uid_initiator']);
+		$share->setShareOwner($data['uid_owner']);
+
+		$share->setNodeId((int)$data['file_source']);
+		$share->setNodeType($data['item_type']);
+
+		if ($data['expiration'] !== null) {
+			$expiration = \DateTime::createFromFormat('Y-m-d H:i:s', $data['expiration']);
+			$share->setExpirationDate($expiration);
+		}
+
+		$share->setProviderId($this->identifier());
+
+		return $share;
+	}
 
 }
