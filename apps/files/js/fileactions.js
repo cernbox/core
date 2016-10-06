@@ -567,7 +567,7 @@
 			
 			var mountType = context.$file.attr('data-mounttype');
 			
-			/*if(context.$file.attr('data-mime') == 'application/pynb' 
+			if(context.$file.attr('data-mime') == 'application/pynb' 
 				&& !context.$file.attr('data-file').startsWith('.')
 				&& (mountType === undefined || (mountType && mountType !== 'shared')))
 			{
@@ -578,8 +578,9 @@
 					altText: t('files', 'Open this notebook in SWAN'),
 					action: function() 
 					{
-						var eosPath = context.$file.attr('data-eospath');
-						window.open('https://swan-virtual3.cern.ch?projurl=file:/' + eosPath, '_blank');
+						var eosPath = encodeURIComponent('file:/' + context.$file.attr('data-eospath'));
+						var query = 'projurl=' + eosPath;
+						window.open('https://cern.ch/swanserver/cgi-bin/go?' + query, '_blank');
 					}
 				}, false, context);
 				
@@ -587,7 +588,7 @@
 				img.css('max-width', 'none');
 				$elSwan.addClass('permanent');
 				$elSwan.css('opacity', '1')
-			}*/
+			}
 
 			$.each(actions, function (name, actionSpec) {
 				if (actionSpec.type === FileActions.TYPE_INLINE) {
