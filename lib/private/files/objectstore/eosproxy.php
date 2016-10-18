@@ -34,10 +34,16 @@ class EosProxy {
 		
 		return rtrim($instanceData['user_root_dir'], '/') . '/' . $ocPath;
 	}
+	public static function toEos($ocPath, $storageId) {
+		$eosPath = self::_toEos($ocPath, $storageId);	
+		\OCP\Util::writeLog('EOS PROXY', 
+		"OC($ocPath) => EOS($eosPath)",  \OCP\Util::ERROR);
+		return $eosPath;
+	}
 	
 	// ocPath is local oc like "" or "files" or "files/A/B/test_file./txt"
 	// storageId is object::store:/eos/dev/user/ or object::user:labrador
-	public static function toEos($ocPath, $storageId) {//ocPath like files/abc.txt or cache/557 or files or ""
+	public static function _toEos($ocPath, $storageId) {//ocPath like files/abc.txt or cache/557 or files or ""
 		
 		if(EosInstanceManager::isInGlobalInstance())
 		{
@@ -76,17 +82,21 @@ class EosProxy {
 			$pathLeft = substr($tempOcPath, $nextSlash);
 			$relativePath = EosUtil::getProjectRelativePath($project);
 			
-			if($relativePath)
-			{
+			if($relativePath) {
 				return (rtrim($eos_project_prefix, '/') . '/' . trim($relativePath, '/') . '/' . trim($pathLeft, '/'));
+			} else {
+				return false;
 			}
 		}
 		
-		/*$project = EosUtil::getProjectNameForUser($username);
-		if($project !== null) {
-			$project_path=  rtrim($eos_project_prefix, '/') . '/' . rtrim($project, '/') . '/' . ltrim(substr($ocPath,6), '/'); #KUBA: added /
+		$projectInfo = EosUtil::getProjectInfoForUser($username);
+		if($projectInfo !== false) {
+			$projectPath = $projectInfo['path'];
+			\OCP\Util::writeLog('EOS PROXY', "ENTRO $projectPath", \OCP\Util::ERROR);
+			$project_path=  rtrim($eos_project_prefix, '/') . '/' . rtrim($projectPath, '/') . '/' . ltrim(substr($ocPath,6), '/'); #KUBA: added /
 			return $project_path;
-		}*/	
+		}
+		
 
 		if ($ocPath === "") {
 			$eosPath = $eos_prefix . substr($username, 0, 1) . "/" . $username . "/";
@@ -138,8 +148,14 @@ class EosProxy {
 		return 'files/' . $ocPath;
 	}
 
+	public static function toOC($eosPath) {
+		$ocPath = self::_toOC($eosPath);
+		\OCP\Util::writeLog('EOS PROXY', 
+		"EOS($eosPath) => OC($ocPath)",  \OCP\Util::ERROR);
+		return $ocPath;
+	}
 	// EOS give us the path ended with a / so perfect
-	public static function toOc($eosPath) {//eosPath like /eos/dev/user/ or /eos/dev/user/l/labrador/abc.txt or /eos/dev/user/.metacernbox/l/labrador/cache/abc.txt or /eos/dev/user/.metacernbox/thumbnails/abc.txt
+	public static function _toOc($eosPath) {//eosPath like /eos/dev/user/ or /eos/dev/user/l/labrador/abc.txt or /eos/dev/user/.metacernbox/l/labrador/cache/abc.txt or /eos/dev/user/.metacernbox/thumbnails/abc.txt
 		
 		if(EosInstanceManager::isInGlobalInstance())
 		{
@@ -185,7 +201,12 @@ class EosProxy {
 			{
 				$rel = trim($rel);
 				$pathLeft = substr($rel, strlen($projectRelName[1]));
-				$ocPath = 'files/' . $projectRelName[0] . '/' . $pathLeft;
+				// if the loggedin user is the owner of the project we
+				// have to expose the project spaces as home directory,
+				// thus we cannot send the "project  <projid>" prefix.
+				//$projectOwner = $projectRelName[1];
+				//$ocPath = 'files/' . $projectRelName[0] . '/' . $pathLeft;
+				$ocPath = 'files/'  . $pathLeft;
 				return $ocPath;
 			}
 			\OCP\Util::writeLog('EOSPROXY','Cannot find project mapping for path ' . $eosPath, \OCP\Util::ERROR);

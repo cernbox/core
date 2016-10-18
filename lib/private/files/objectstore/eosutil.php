@@ -934,6 +934,35 @@ final class EosUtil {
 		return false;
 	}
 	
+	public static function getProjectInfoForUser($user)
+	{
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			self::loadProjectSpaceMappings();
+		}
+		
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			return null;
+		}
+		
+		foreach($all as $project => $data)
+		{
+			$data = json_decode($data, TRUE);
+			if($data['owner'] === $user)
+			{
+				$data['name'] = $project;
+				return $data;
+			}
+		}
+		
+		return false;
+	}
+	
 	public static function isProjectURIPath($uri_path) {
 		// uri paths always start with leading slash (e.g. ?dir=/bla)
 		$uri_path = trim($uri_path, '/');
