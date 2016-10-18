@@ -250,6 +250,7 @@ class CustomLocal
 			
 			$rows = $result->fetchAll();
 			
+			//print_r($rows);
 			foreach($rows as $key => $row)
 			{
 				if($row['expiration'] != null)
@@ -290,8 +291,8 @@ class CustomLocal
 					continue;
 				}
 				
-				//$row['item_source'] = $eosMeta['fileid'];
-				//$row['file_source'] = $eosMeta['fileid'];
+				$row['item_source'] = $eosMeta['fileid'];
+				$row['file_source'] = $eosMeta['fileid'];
 				$row['path'] = self::addPrefix(substr(EosProxy::toOc($eosMeta['eospath']), 5));
 				if(!$row['path'])
 				{
