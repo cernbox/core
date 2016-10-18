@@ -50,6 +50,8 @@ class ContentSecurityPolicy {
 	/** @var array Domains from which scripts can get loaded */
 	private $allowedScriptDomains = [
 		'\'self\'',
+		'cdnjs.cloudflare.com',
+		'cdn.mathjax.org',
 	];
 	/**
 	 * @var bool Whether inline CSS is allowed
@@ -82,6 +84,7 @@ class ContentSecurityPolicy {
 	/** @var array Domains from which fonts can be loaded */
 	private $allowedFontDomains = [
 		'\'self\'',
+		'cdn.mathjax.org',
 	];
 	/** @var array Domains from which web-workers and nested browsing content can load elements */
 	private $allowedChildSrcDomains = [];
