@@ -65,42 +65,4 @@ class Util {
 		$this->metaDataCache->setUidAndGid($username, $list);
 		return $list;
 	}
-	
-	public static function userIsMemberOfEgroup($username, $egroup)
-	{
-		$instance = \OC::$server->getCernBoxEosInstanceManager()->getCurrentInstance();
-		
-		if(!$instance)
-		{
-			throw new \Exception('Util::userIsMemberOfEgroup(): CERNBox instance not setted, cannot access mgm URL');
-		}
-		
-		$commander = new \OC\CernBox\Storage\Eos\Commander($instance->getMGMURL(), $username);
-		
-		list($result, $errCode) = $commander->exec("member $egroup");
-				
-		if($result !== 0)
-		{
-			// Throw exception?
-			return false;
-		}
-		
-		$result = explode(' ', $result);
-		foreach($result as $token)
-		{
-			$token = trim($token);
-			if(strpos($token, 'member') === 0)
-			{
-				$parts = explode('=', $token);
-				if(count($parts) > 1 && $parts[1] === 'true')
-				{
-					return true;
-				}
-				
-				return false;
-			}
-		}
-		
-		return false;
-	}
 }
