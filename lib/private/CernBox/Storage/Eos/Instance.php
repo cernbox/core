@@ -52,6 +52,10 @@ class Instance implements IInstance {
 	public function getProjectPrefix() {
 		return $this->eosProjectPrefix;
 	}
+	
+	public function getMGMURL() {
+		return $this->eosMgmUrl;
+	}
 
 	/*
 	 * Storage functions

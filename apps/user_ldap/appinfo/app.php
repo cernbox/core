@@ -45,10 +45,10 @@ if(count($configPrefixes) === 1) {
 	$connector = new OCA\User_LDAP\Connection($ldapWrapper, $configPrefixes[0]);
 	$ldapAccess = new OCA\User_LDAP\Access($connector, $ldapWrapper, $userManager);
 
-	$ldapAccess->setUserMapper(new OCA\User_LDAP\Mapping\UserMapping($dbc));
-	$ldapAccess->setGroupMapper(new OCA\User_LDAP\Mapping\GroupMapping($dbc));
-	$userBackend  = new OCA\User_LDAP\User_LDAP($ldapAccess, $ocConfig);
-	$groupBackend = new \OCA\User_LDAP\Group_LDAP($ldapAccess);
+	$ldapAccess->setUserMapper(new OCA\User_LDAP\Mapping\CustomUserMapping($dbc));
+	$ldapAccess->setGroupMapper(new OCA\User_LDAP\Mapping\CustomGroupMapping($dbc));
+	$userBackend  = new OCA\User_LDAP\CACHED_User_LDAP($ldapAccess, $ocConfig);
+	$groupBackend = new \OCA\User_LDAP\CACHED_Group_LDAP($ldapAccess);
 } else if(count($configPrefixes) > 1) {
 	$userBackend  = new OCA\User_LDAP\User_Proxy(
 		$configPrefixes, $ldapWrapper, $ocConfig
