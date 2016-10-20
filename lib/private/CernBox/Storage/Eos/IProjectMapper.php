@@ -34,27 +34,3 @@ interface IProjectMapper {
 	public function getAllMappings();
 }
 
-class ProjectInfo {
-	private $projectName;
-	private $projectOwner;
-	private $projectRelativePath;
-
-	public function __construct($projectName, $projectOwner, $projectRelativePath) {
-		$this->projectName = $projectName;
-		$this->projectOwner = $projectOwner;
-		$this->projectRelativePath = $projectRelativePath;
-	}
-
-	public function getProjectName() {
-		return $this->projectName;
-	}
-
-	public function getProjectOwner()  {
-		return $this->projectOwner;
-	}
-
-	public function getProjectRelativePath() {
-		return $this->projectRelativePath;
-	}
-
-}

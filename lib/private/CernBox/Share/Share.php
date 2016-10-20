@@ -96,11 +96,14 @@ class Share implements IShare {
 		$this->fileId = null;
 		$this->nodeType = null;
 		$this->node = $node;
+		$path = $node->getPath();
+		$this->logger->debug("Share->setNode path($path)");
 		return $this;
 	}
 
 	/**
-	 *
+	 * @return Node
+	 * @throws NotFoundException
 	 */
 	public function getNode() {
 		if($this->node === null) {
@@ -110,13 +113,13 @@ class Share implements IShare {
 
 			$fileId = $this->fileId;
 			$userFolder = $this->rootFolder->getUserFolder($this->shareOwner);
-			var_dump($userFolder->getPath());
 			$nodes = $userFolder->getById($this->fileId);
-			if(!empty($nodes)) {
+			if(empty($nodes)) {
 				throw new NotFoundException("cannot find file with id:$fileId on storage");
 			}
 			$this->node = $nodes[0];
 		}
+		return $this->node;
 	}
 
 	/**

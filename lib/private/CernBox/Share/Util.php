@@ -32,11 +32,16 @@ class Util {
 		\OC::$server->getLogger()->debug("token is $token");
 		$result = \OC_DB::prepare('SELECT uid_owner FROM oc_share WHERE token = ? LIMIT 1')->execute([$token])->fetchAll();
 
-		if($result && count($result) > 0)
-		{
+		if($result && count($result) > 0) {
 			return $result[0]['uid_owner'];
+		} else {
+			// get username from logged in user
+			$username = \OC::$server->getUserSession()->getLoginName();
+			if($username) {
+				return $username;
+			} else {
+				return false;
+			}
 		}
-
-		return false;
 	}
 }
