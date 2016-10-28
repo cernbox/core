@@ -52,6 +52,7 @@ class ContentSecurityPolicy {
 		'\'self\'',
 		'cdnjs.cloudflare.com',
 		'cdn.mathjax.org',
+		'root.cern.ch',
 	];
 	/**
 	 * @var bool Whether inline CSS is allowed
@@ -62,6 +63,7 @@ class ContentSecurityPolicy {
 	/** @var array Domains from which CSS can get loaded */
 	private $allowedStyleDomains = [
 		'\'self\'',
+		'root.cern.ch',
 	];
 	/** @var array Domains from which images can get loaded */
 	private $allowedImageDomains = [
@@ -76,6 +78,7 @@ class ContentSecurityPolicy {
 	/** @var array Domains from which media elements can be loaded */
 	private $allowedMediaDomains = [
 		'\'self\'',
+		'root.cern.ch',
 	];
 	/** @var array Domains from which object elements can be loaded */
 	private $allowedObjectDomains = [];
@@ -85,6 +88,7 @@ class ContentSecurityPolicy {
 	private $allowedFontDomains = [
 		'\'self\'',
 		'cdn.mathjax.org',
+		'root.cern.ch',
 	];
 	/** @var array Domains from which web-workers and nested browsing content can load elements */
 	private $allowedChildSrcDomains = [];

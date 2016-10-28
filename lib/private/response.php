@@ -244,10 +244,10 @@ class OC_Response {
 		 * @see \OCP\AppFramework\Http\Response::getHeaders
 		 */
 		$policy = 'default-src \'self\'; '
-			. 'script-src \'self\' cdnjs.cloudflare.com cdn.mathjax.org \'unsafe-eval\' \'unsafe-inline\'; '
-			. 'style-src \'self\' \'unsafe-inline\'; '
+			. 'script-src \'self\' cdnjs.cloudflare.com cdn.mathjax.org root.cern.ch \'unsafe-eval\' \'unsafe-inline\'; '
+			. 'style-src \'self\' root.cern.ch \'unsafe-inline\'; '
 			. 'frame-src *; '
-			. 'img-src * data: blob:; '
+			. 'img-src * data: '
 			. 'font-src \'self\' cdn.mathjax.org data: blob:; '
 			. 'media-src *; ' 
 			. 'connect-src *';
