@@ -96,8 +96,6 @@ class Share implements IShare {
 		$this->fileId = null;
 		$this->nodeType = null;
 		$this->node = $node;
-		$path = $node->getPath();
-		$this->logger->debug("Share->setNode path($path)");
 		return $this;
 	}
 

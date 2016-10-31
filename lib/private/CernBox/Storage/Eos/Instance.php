@@ -21,9 +21,11 @@ class Instance implements IInstance {
 	private $stagingDir;
 
 	private $logger;
+	private $shareUtil;
 
 	public function __construct($id, $instanceConfig) {
 		$this->logger = \OC::$server->getLogger();
+		$this->shareUtil = \OC::$server->getCernBoxShareUtil();
 
 		$this->id = $id;
 		$this->name= $instanceConfig['name'];
@@ -343,6 +345,71 @@ class Instance implements IInstance {
 		$parts[] = $version;
 		$ocPathWithVersionFile = implode("/", $parts);
 		return $this->read($username, $ocPathWithVersionFile);
+	}
+
+	public function addUserToFolderACL($username, $allowedUser, $ocPath, $ocPermissions) {
+		$entry = $this->get($username, $ocPath);
+		if(!$entry) {
+			return false;
+		}
+
+		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+
+		// aclManager contains the current sys.acl
+		$aclManager = $this->getACLManager($eosSysAcl);
+		$eosPermissions = $this->shareUtil->getEosPermissionsFromOwnCloudPermissions($ocPermissions);
+		$aclManager->addUser($allowedUser, $eosPermissions);
+		$newEosSysACL = $aclManager->serializeToEos();
+
+		$eosPath = escapeshellarg($entry['eos.file']);
+		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
+		$commander = $this->getCommander($username);
+		list(,$errorCode) = $commander->exec($command);
+		if($errorCode !== 0) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	public function removeUserFromFolderACL($username, $allowedUser, $ocPath) {
+		$entry = $this->get($username, $ocPath);
+		if(!$entry) {
+			return false;
+		}
+
+		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+
+		// aclManager contains the current sys.acl
+		$aclManager = $this->getACLManager($eosSysAcl);
+		$aclManager->deleteUser($allowedUser);
+		$newEosSysACL = $aclManager->serializeToEos();
+
+		$eosPath = escapeshellarg($entry['eos.file']);
+		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
+		$commander = $this->getCommander($username);
+		list(,$errorCode) = $commander->exec($command);
+		if($errorCode !== 0) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
+		// TODO: Implement addGroupToFolderACL() method.
+	}
+
+	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {
+		// TODO: Implement removeGroupFromFolderACL() method.
+	}
+
+	/**
+	 * @param $eosSysACL
+	 * @return ACLManager
+	 */
+	private function getACLManager($eosSysACL) {
+		return new ACLManager($eosSysACL);
 	}
 
 	private function getById($username, $id) {

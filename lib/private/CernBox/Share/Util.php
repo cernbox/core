@@ -44,4 +44,63 @@ class Util {
 			}
 		}
 	}
+
+	/**
+	 * CERNBox simplifies ownCloud permissions:
+	 * 1 => R/O
+	 * 15 => R/W
+	 * ownCloud permissions is a combination of the following permission bits:
+	 * PERMISSION_CREATE = 4;
+	 * PERMISSION_READ = 1;
+	 * PERMISSION_UPDATE = 2;
+	 * PERMISSION_DELETE = 8;
+	 * PERMISSION_SHARE = 16;
+	 * PERMISSION_ALL = 31;
+	 * @param int $ownCloudPermissions
+	 * @return int
+	 */
+	public function simplifyOwnCloudPermissions($ownCloudPermissions) {
+		$ownCloudPermissions = (int)$ownCloudPermissions;
+		if($ownCloudPermissions <= 0) {
+			return 0;
+		} else if ($ownCloudPermissions === 1) {
+			return 1;
+		} else {
+			return 15;
+		}
+	}
+
+	/**
+	 * If ownCloud permissions contains READ | UPDATE | DELETE
+	 * we give RWX+D eos permissions
+	 * @param int $ownCloudPermissions
+	 * @return string Eos permissions are a string like 'rw'
+	 */
+	public function getEosPermissionsFromOwnCloudPermissions($ownCloudPermissions) {
+		$ownCloudPermissions = (int)$ownCloudPermissions;
+		$eosPermissions = "";
+		if($ownCloudPermissions === 1) {
+			$eosPermissions = 'rx';
+		} else if ($ownCloudPermissions > 1) {
+			$eosPermissions = 'rwx+d';
+		}
+		return $eosPermissions;
+	}
+
+	/**
+	 * Returns ownCloud permissions.
+	 * @param string $eosPermissions
+	 * @return int
+	 */
+	public function getOwnCloudPermissionsFromEosPermissions($eosPermissions) {
+		$eosPermissions = (string)$eosPermissions;
+		$ownCloudPermissions = 0;
+		if(strpos($eosPermissions, "r") !== false) {
+			$ownCloudPermissions += 1;
+		}
+		if(strpos($eosPermissions, "w") !== false) {
+			$ownCloudPermissions += 14;
+		}
+		return $ownCloudPermissions;
+	}
 }

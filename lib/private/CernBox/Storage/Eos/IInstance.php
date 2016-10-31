@@ -44,5 +44,46 @@ interface IInstance {
 
 	public function getVersionsForFile($username, $ocPath);
 	public function rollbackFileToVersion($username, $ocPath, $version);
+
+	/**
+	 * @param string $username
+	 * @param string $ocPath
+	 * @param string $version the version to rollback. Ex: 'TODO'
+	 * @return mixed
+	 */
 	public function downloadVersion($username, $ocPath, $version);
+
+	/**
+	 * @param string $username
+	 * @param string $allowedUser
+	 * @param string $ocPath
+	 * @param int $ocPermissions
+	 * @return bool
+	 */
+	public function addUserToFolderACL($username, $allowedUser, $ocPath, $ocPermissions);
+
+	/**
+	 * @param string $username
+	 * @param string $allowedUser
+	 * @param string $ocPath
+	 * @return bool
+	 */
+	public function removeUserFromFolderACL($username, $allowedUser, $ocPath);
+
+	/**
+	 * @param string $username
+	 * @param string $allowedGroup
+	 * @param string $ocPath
+	 * @param int $ocPermissions
+	 * @return bool
+	 */
+	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions);
+
+	/**
+	 * @param string $username
+	 * @param string $allowedGroup
+	 * @param string $ocPath
+	 * @return bool
+	 */
+	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath);
 }

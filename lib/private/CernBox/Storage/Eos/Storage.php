@@ -174,12 +174,12 @@ class Storage implements \OCP\Files\Storage
 			} else {
 				$this->logger->info("cache miss for " . $this->username);
 				list ($userID, $userGroupID) = $this->util->getUidAndGidForUsername($this->username);
+				if (!$userID || !$userGroupID) {
+					throw  new \Exception("user:" . $this->username . " does not have a valid uid or gid");
+				}
 				$this->metaDataCache->setUidAndGid($this->username, array($userID, $userGroupID));
 			}
 			$this->logger->debug("username " . $this->username . " has uid:$userID and gid:$userGroupID");
-			if (!$userID || !$userGroupID) {
-				throw  new \Exception('user does not have a valid uid or gid');
-			}
 
 			$this->userUID = $userID;
 			$this->userGID = $userGroupID;

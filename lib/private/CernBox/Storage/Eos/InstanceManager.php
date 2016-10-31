@@ -71,6 +71,22 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance;
 	}
 
+	public function getId() {
+		return $this->currentInstance->getId();
+	}
+
+	public function getName() {
+		return $this->currentInstance->getName();
+	}
+
+	public function getPrefix() {
+		return $this->currentInstance->getPrefix();
+	}
+
+	public function getProjectPrefix() {
+		return $this->currentInstance->getProjectPrefix();
+	}
+
 	/**
 	 * @return IInstance[]
 	 */
@@ -135,6 +151,7 @@ class InstanceManager implements  IInstance {
 	/*
 	 * Namespace functions
 	 */
+
 	/**
 	 * @param $username
 	 * @param $ocPath
@@ -217,22 +234,10 @@ class InstanceManager implements  IInstance {
 		}
 	}
 
-	public function getId() {
-		return $this->currentInstance->getId();
-	}
 
-	public function getName() {
-		return $this->currentInstance->getName();
-	}
-
-	public function getPrefix() {
-		return $this->currentInstance->getPrefix();
-	}
-
-	public function getProjectPrefix() {
-		return $this->currentInstance->getProjectPrefix();
-	}
-
+	/*
+	 * Trash bin functions
+	 */
 	public function getDeletedFiles($username) {
 		return $this->currentInstance->getDeletedFiles($username);
 	}
@@ -245,6 +250,10 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->purgeAllDeletedFiles($username);
 	}
 
+	/*
+	 * Versions functions
+	 */
+
 	public function getVersionsForFile($username, $ocPath) {
 		return $this->currentInstance->getVersionsForFile($username, $ocPath);
 	}
@@ -255,6 +264,29 @@ class InstanceManager implements  IInstance {
 
 	public function downloadVersion($username, $ocPath, $version) {
 		return $this->currentInstance->downloadVersion($username, $ocPath, $version);
+	}
+
+	/*
+	 * Share functions
+	 */
+	public function addUserToFolderACL($username, $allowedUser, $ocPath, $ocPermissions) {
+		$this->logger->debug("unit(InstanceManager) method(addUserToFolderACL) owner($username) alloweduser($allowedUser) ocpath($ocPath) ocperm($ocPermissions)");
+		return $this->currentInstance->addUserToFolderACL($username, $allowedUser, $ocPath, $ocPermissions);
+	}
+
+	public function removeUserFromFolderACL($username, $allowedUser, $ocPath) {
+		$this->logger->debug("unit(InstanceManager) method(removeUserFromFolderALC) owner($username) alloweduser($allowedUser) ocpath($ocPath)");
+		return $this->currentInstance->removeUserFromFolderACL($username, $allowedUser, $ocPath);
+	}
+
+	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
+		$this->logger->debug("unit(InstanceManager) method(addGroupToFolderACL) owner($username) allowedgroup($allowedGroup) ocpath($ocPath) ocperm($ocPermissions)");
+		return $this->currentInstance->addUserToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions);
+	}
+
+	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {
+		$this->logger->debug("unit(InstanceManager) method(removeGroupFromFolderACL) owner($username) allowedgroup($allowedGroup) ocpath($ocPath)");
+		return $this->currentInstance->removeGroupFromFolderACL($username, $allowedGroup, $ocPath);
 	}
 
 

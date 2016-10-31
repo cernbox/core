@@ -78,33 +78,6 @@ class CacheEntry implements ICacheEntry, \ArrayAccess, \JsonSerializable
 		return $this->data;
 	}
 
-	public function getOwnCloudACL() {
-		$ownCloudACL = array();
-		$userSysACL = array();
-
-		// $users => ["u:ourense:rwx", "u:labrador:r"]
-		$users= explode(",", $this->data['eos.sys.acl']);
-
-		if(count($userParts) >0 ) {
-			foreach($userParts as $user) {
-				$tokens = explode(":", $user);
-				if(count($tokens) >= 3) {
-					$userSysACL[] = $tokens;
-				}
-			}
-		}
-
-		foreach($userSysACL as $user) {
-			$ownCloudACL[$user[1]] = array(
-				"type" => $user[0],
-				"ocperm" => $this->eosPermissionsToOwnCloudPermissions($user[2]),
-				"eosperm" => $user[2],
-			);
-		}
-
-		return $ownCloudACL;
-	}
-
 	public function offsetSet($offset, $value) {
 		$this->data[$offset] = $value;
 	}
@@ -123,16 +96,5 @@ class CacheEntry implements ICacheEntry, \ArrayAccess, \JsonSerializable
 		} else {
 			return null;
 		}
-	}
-
-	private function eosPermissionsToOwnCloudPermissions($eosPerm) {
-		$total = 0;
-		if(strpos($eosPerm, "r") !== false) {
-			$total += 1;
-		}
-		if(strpos($eosPerm, "w") !== false){
-			$total += 14;
-		}
-		return $total;
 	}
 }

@@ -22,12 +22,14 @@ class UserShareProvider implements IShareProvider {
 	private $userManager;
 	private $rootFolder;
 	private $instanceManager;
+	private $util;
 
 	public function __construct($rootFolder) {
 		$this->rootFolder = $rootFolder;
 		$this->userManager = \OC::$server->getUserManager();
 		$this->dbConn = \OC::$server->getDatabaseConnection();
 		$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
+		$this->util = \OC::$server->getCernBoxShareUtil();
 	}
 
 	public function identifier() {
@@ -35,8 +37,17 @@ class UserShareProvider implements IShareProvider {
 	}
 
 	public function create(\OCP\Share\IShare $share) {
-		$qb = $this->dbConn->getQueryBuilder();
+		// add unique suffix to file target
+		// Ex: /ATF2 (#703291)
+		$inode = $share->getNodeId();
+		$share->setTarget($share->getTarget() . " (#$inode)");
 
+		// Simplify ownCloud permissions
+		// 1 => R/O
+		// 15 => R/W
+		$share->setPermissions($this->util->simplifyOwnCloudPermissions($share->getPermissions()));
+
+		$qb = $this->dbConn->getQueryBuilder();
 		$qb->insert('share');
 		$qb->setValue('share_type', $qb->createNamedParameter($share->getShareType()));
 		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
@@ -49,7 +60,7 @@ class UserShareProvider implements IShareProvider {
 		// Set what is shares
 		$qb->setValue('item_type', $qb->createParameter('itemType'));
 		if ($share->getNode() instanceof \OCP\Files\File) {
-			throw new \Exception('sharing files with individual users not available!');
+			throw new \Exception('sharing files with individual users is not available!');
 			// $qb->setParameter('itemType', 'file');
 		} else {
 			$qb->setParameter('itemType', 'folder');
@@ -84,8 +95,24 @@ class UserShareProvider implements IShareProvider {
 		if ($data === false) {
 			throw new ShareNotFound();
 		}
-		$share = $this->createShare($data);
-		return $share;
+
+		// Add the user to the sys.acl attribute in Eos.
+		// A node's path is '/gonzalhu/files/folder'
+		// A node's internal path (ocPath) is 'files/folder'
+		$ok = $this->instanceManager->addUserToFolderACL(
+			$share->getShareOwner(),
+			$share->getSharedWith(),
+			$share->getNode()->getInternalPath(),
+			$share->getPermissions()
+		);
+
+		if(!$ok) {
+			// TODO(labkode): remove share from db.
+			throw new ShareNotFound();
+		} else {
+			$share = $this->createShare($data);
+			return $share;
+		}
 	}
 
 	public function update(\OCP\Share\IShare $share) {
@@ -93,6 +120,7 @@ class UserShareProvider implements IShareProvider {
 			/*
 			 * We allow updating the recipient on user shares.
 			 */
+			$share->setPermissions($this->util->simplifyOwnCloudPermissions($share->getPermissions()));
 			$qb = $this->dbConn->getQueryBuilder();
 			$qb->update('share')
 				->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())))
@@ -106,7 +134,21 @@ class UserShareProvider implements IShareProvider {
 		} else {
 			throw new ProviderException('Invalid shareType');
 		}
-		return $share;
+
+		// Update the user in the sys.acl attribute in Eos.
+		$ok = $this->instanceManager->addUserToFolderACL(
+			$share->getShareOwner(),
+			$share->getSharedWith(),
+			$share->getNode()->getInternalPath(),
+			$share->getPermissions()
+		);
+
+		if(!$ok) {
+			// TODO(labkode): remove share from db.
+			throw new ShareNotFound();
+		} else {
+			return $share;
+		}
 	}
 
 	public function delete(\OCP\Share\IShare $share) {
@@ -114,9 +156,20 @@ class UserShareProvider implements IShareProvider {
 		$qb->delete('share')
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())));
 		$qb->execute();
+
+		$ok = $this->instanceManager->removeUserFromFolderACL(
+			$share->getShareOwner(),
+			$share->getSharedWith(),
+			$share->getNode()->getInternalPath());
+		if(!$ok) {
+			// TODO(labkode): What to do here ?
+			throw new ShareNotFound();
+		}
 	}
 
 	public function deleteFromSelf(\OCP\Share\IShare $share, $recipient) {
+		throw new ProviderException('Unsharing is not allowed');
+		/*
 		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
 			if ($share->getSharedWith() !== $recipient) {
 				throw new ProviderException('Recipient does not match');
@@ -126,9 +179,12 @@ class UserShareProvider implements IShareProvider {
 		} else {
 			throw new ProviderException('Invalid shareType');
 		}
+		*/
 	}
 
 	public function move(\OCP\Share\IShare $share, $recipient) {
+		throw new ProviderException('Not allowed');
+		/*
 		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
 			// Just update the target
 			$qb = $this->dbConn->getQueryBuilder();
@@ -140,6 +196,7 @@ class UserShareProvider implements IShareProvider {
 			throw new ProviderException('Invalid shareType');
 		}
 		return $share;
+		*/
 	}
 
 	public function getSharesBy($userId, $shareType, $node, $reshares, $limit, $offset) {
@@ -154,6 +211,7 @@ class UserShareProvider implements IShareProvider {
 		/**
 		 * Reshares for this user are shares where they are the owner.
 		 */
+		/*
 		if ($reshares === false) {
 			$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
 		} else {
@@ -164,6 +222,8 @@ class UserShareProvider implements IShareProvider {
 				)
 			);
 		}
+		*/
+		$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
 		if ($node !== null) {
 			$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($node->getId())));
 		}
@@ -254,7 +314,7 @@ class UserShareProvider implements IShareProvider {
 		if(!$entry) {
 			return false;
 		} else {
-			// FIXME(labkode): check file is not on tras nor versions
+			// FIXME(labkode): check file is not on trash nor versions
 			return true;
 		}
 	}
@@ -315,6 +375,8 @@ class UserShareProvider implements IShareProvider {
 	}
 
 	private function createShare($data) {
+		// TODO(labkode): maybe add stat to Eos to see if share is orphaned
+		// because file has been removed through FUSE or sync client?
 		$share = new Share($this->rootFolder, $this->userManager);
 		$share->setId((int)$data['id'])
 			->setShareType((int)$data['share_type'])

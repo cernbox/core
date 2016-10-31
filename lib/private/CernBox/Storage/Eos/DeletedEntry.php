@@ -12,8 +12,8 @@ namespace OC\CernBox\Storage\Eos;
 class DeletedEntry implements IDeletedEntry, \ArrayAccess, \JsonSerializable   {
 	private $data;
 
-	public function __construct($owncloudRecycleMap) {
-		$this->data = $owncloudRecycleMap;
+	public function __construct($ownCloudRecycleMap) {
+		$this->data = $ownCloudRecycleMap;
 	}
 
 	public function getRestoreKey() {
