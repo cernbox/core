@@ -93,6 +93,34 @@ class CLIParser {
 	}
 
 	/**
+	 * Parses the output of the eos member command
+	 *
+	 * Ex: $ eos -r 95491 2763 member cernbox-admins
+	 * egroup=cernbox-admins user=gonzalhu member=true lifetime=1800
+	 *
+	 * Ex: $ eos -r 95491 2763 member
+	 * egroup=cernbox user=gonzalhu member=false lifetime=77
+	 * egroup=cernbox-admins user=gonzalhu member=true lifetime=40
+	 * egroup=eos-admins user=gonzalhu member=true lifetime=1797
+	 *
+	 * @param $lines
+	 * @return array
+	 */
+	public static function parseMemberResponse($lines) {
+		$memberMap = array();
+		foreach($lines as $line) {
+			$pairs = explode(" ", $line);
+			foreach($pairs as $pair)
+			{
+				$entry = array();
+				list($key, $value) = explode("=", $pair);
+				$entry[$key] = $value; $memberMap[] = $entry;
+			}
+		}
+		return $memberMap;
+	}
+
+	/**
 	 * Builds and extract the name from the EOS answer. This function will remove
 	 * the keylength and file properties from the array
 	 * @param array $rawMap array of EOS data splitted by white space

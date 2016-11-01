@@ -9,6 +9,7 @@ interface IInstance {
 	public function getName();
 	public function getPrefix();
 	public function getProjectPrefix();
+	public function getMgmUrl();
 
 	public function createDir($username, $ocPath);
 	public function remove($username, $ocPath);
@@ -86,4 +87,12 @@ interface IInstance {
 	 * @return bool
 	 */
 	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath);
+
+	/**
+	 * Returns true if $username is member of group $group
+	 * @param $username
+	 * @param $group
+	 * @return bool
+	 */
+	public function isUserMemberOfGroup($username, $group);
 }

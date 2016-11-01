@@ -87,6 +87,10 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->getProjectPrefix();
 	}
 
+	public function getMgmUrl() {
+		return $this->currentInstance->getMgmUrl();
+	}
+
 	/**
 	 * @return IInstance[]
 	 */
@@ -287,6 +291,11 @@ class InstanceManager implements  IInstance {
 	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {
 		$this->logger->debug("unit(InstanceManager) method(removeGroupFromFolderACL) owner($username) allowedgroup($allowedGroup) ocpath($ocPath)");
 		return $this->currentInstance->removeGroupFromFolderACL($username, $allowedGroup, $ocPath);
+	}
+
+	public function isUserMemberOfGroup($username, $group) {
+		$this->logger->debug("unit(InstanceManager) method(isMemberOfGroup) username($username) group($group)");
+		return $this->currentInstance->isUserMemberOfGroup($username, $group);
 	}
 
 

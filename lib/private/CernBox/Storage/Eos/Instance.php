@@ -3,6 +3,7 @@
 namespace OC\CernBox\Storage\Eos;
 
 
+use OCP\Constants;
 use OCP\Files\Cache\ICacheEntry;
 
 class Instance implements IInstance {
@@ -39,21 +40,11 @@ class Instance implements IInstance {
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
 
-	public function getId() {
-		return $this->id;
-	}
-
-	public function getName() {
-		return $this->name;
-	}
-
-	public function getPrefix() {
-		return $this->eosPrefix;
-	}
-
-	public function getProjectPrefix() {
-		return $this->eosProjectPrefix;
-	}
+	public function getId() { return $this->id; }
+	public function getName() { return $this->name; }
+	public function getPrefix() { return $this->eosPrefix; }
+	public function getProjectPrefix() { return $this->eosProjectPrefix; }
+	public function getMgmUrl() { return $this->eosMgmUrl; }
 
 	/*
 	 * Storage functions
@@ -234,11 +225,11 @@ class Instance implements IInstance {
 	 * @return ICacheEntry[] returns ICacheEntries with version information
 	 */
 	public function getDeletedFiles($username) {
+		$deletedEntries= array();
 		$command = "recycle ls -m";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
 		if($errorCode === 0) {
-			$deletedEntries= array();
 			foreach($result as $lineToParse) {
 				$eosRecycleMap = CLIParser::parseRecycleLSMResponse($lineToParse);
 				if(count($eosRecycleMap) > 0) {
@@ -266,12 +257,13 @@ class Instance implements IInstance {
 			return $deletedEntries;
 		} else {
 			// check error 17 for custom errors
+			return $deletedEntries;
 		}
 	}
 
 	/**
 	 * @param $username
-	 * @param $key the restore-key
+	 * @param string $key the restore-key
 	 * @return ICacheEntry the cache entry for the restored file.
 	 */
 	public function restoreDeletedFile($username, $key) {
@@ -328,7 +320,7 @@ class Instance implements IInstance {
 		$eosPathEscaped = escapeshellarg($eosPath);
 		$command = "file versions $eosPathEscaped $version";
 		$commander = $this->getCommander($username);
-		list($result, $errorCode) = $commander->exec($command);
+		list(, $errorCode) = $commander->exec($command);
 		if($errorCode !== 0) {
 			return false;
 		} else {
@@ -404,6 +396,28 @@ class Instance implements IInstance {
 		// TODO: Implement removeGroupFromFolderACL() method.
 	}
 
+	public function isUserMemberOfGroup($username, $group) {
+		$command = "member $group";
+		$commander = $this->getCommander($username);
+		list($result, $errorCode) = $commander->exec($command);
+		if($errorCode !== 0) {
+			return false;
+		} else {
+			$lineToParse = $result[0];
+			$memberMap = CLIParser::parseMemberResponse($lineToParse);
+			foreach($memberMap as $entry) {
+				if($entry['user'] === $username &&
+					$entry['egroup'] === $group &&
+					$entry['member'] ===  'true'
+				) {
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+
 	/**
 	 * @param $eosSysACL
 	 * @return ACLManager
@@ -471,7 +485,7 @@ class Instance implements IInstance {
 		}
 
 		//$eosMap['permissions'] = \OC::$server->getCernBoxEosUtil()->convertEosACLToOwnCloudACL($eosMap['eos.sys.acl']);
-		$eosMap['permissions'] = \OCP\Constants::PERMISSION_ALL;
+		$eosMap['permissions'] = Constants::PERMISSION_ALL;
 		return $eosMap;
 	}
 
