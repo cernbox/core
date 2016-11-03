@@ -2,19 +2,16 @@
 
 namespace OC\CernBox\Drivers;
 
-use \Redis as NativeRedis;
-
 class Redis
 {
 	private $redisInstance;
 	private $logger;
 
 	public function __construct() {
-		$this->redisInstance = new NativeRedis();
 		$this->logger = \OC::$server->getLogger();
-
-		if(!$this->redisInstance->connect('127.0.0.1', 6379))
-		{
+		if(\OC::$server->getGetRedisFactory()->isAvailable()) {
+			$this->redisInstance = \OC::$server->getGetRedisFactory()->getInstance();
+		} else {
 			$this->logger->error('Unable to connect to redis server on 127.0.0.1:6379');
 		}
 	}
