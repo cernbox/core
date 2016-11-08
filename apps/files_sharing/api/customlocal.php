@@ -398,21 +398,26 @@ class CustomLocal
 				unset($row['accepted']);
 				if(strpos($eosMeta['eospath'], EosUtil::getEosProjectPrefix()) === 0)
 				{
-					$row['file_target'] = '/  project ' . $eosMeta['name'];
-					$row['project_share'] = true;
-					$row['projectname'] = EosUtil::getProjectNameForUser($row["uid_owner"]);
-					
-					$readers = $row;
-					$readers['share_with'] = 'cernbox-project-'.$row['projectname'].'-readers';
-					$readers['permissions'] = 1;
-					
-					$writers = $row;
-					$writers['share_with'] = 'cernbox-project-'.$row['projectname'].'-writers';
-					$writers['permissions'] = 15;
-					
-					$row['grouped'] = [];
-					$row['grouped'][] = $readers;
-					$row['grouped'][] = $writers;
+					// we have to check if this a project share (i.e. shared with readers and writers)
+					// or if it is a normal share shared from the service account of the project
+					$projectPath = trim(substr($eosMeta['eospath'], strlen(EosUtil::getEosProjectPrefix())), '/');
+					if(count(explode('/', $projectPath)) <= 2) { // just the project path, 'cernbox' or with letter 'c/cernbox'
+						$row['file_target'] = '/  project ' . $eosMeta['name'];
+						$row['project_share'] = true;
+						$row['projectname'] = EosUtil::getProjectNameForUser($row["uid_owner"]);
+						
+						$readers = $row;
+						$readers['share_with'] = 'cernbox-project-'.$row['projectname'].'-readers';
+						$readers['permissions'] = 1;
+						
+						$writers = $row;
+						$writers['share_with'] = 'cernbox-project-'.$row['projectname'].'-writers';
+						$writers['permissions'] = 15;
+						
+						$row['grouped'] = [];
+						$row['grouped'][] = $readers;
+						$row['grouped'][] = $writers;
+					}
 					
 				}
 				else 

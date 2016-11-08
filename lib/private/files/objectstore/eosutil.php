@@ -354,14 +354,28 @@ final class EosUtil {
 		if(!$data) {
 			return false;
 		}
-	    $eosPath = $data["eospath"];
+	    	$eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
+
+		$projectjail = null;
+		$projectInfo = self::getProjectInfoForUser($from);
+		if($projectInfo) {
+			$projectjail = self::getEosProjectPrefix() . "/" . $projectInfo['path'];
+		}
+
 		// do not allow shares above user home directory. Improve to not allow self home dir.
 		$eosprefix = self::getEosPrefix();
 		$eosjail = $eosprefix . $from[0] . "/" . $from . "/";
-		if (strpos($eosPath, $eosjail) !== 0 ) {
-			\OCP\Util::writeLog('EOS', "SECURITY PROBLEM. user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
-			return false;
+		if($projectjail) {
+			if (strpos($eosPath, $eosjail) !== 0 && strpos($eosPath, $projectjail !==0)) {
+				\OCP\Util::writeLog('EOS', "SECURITY PROBLEM (outside project and user paths). user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
+				return false;
+			}
+		} else {
+			if (strpos($eosPath, $eosjail) !== 0 ) {
+				\OCP\Util::writeLog('EOS', "SECURITY PROBLEM (outside user path). user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
+				return false;
+			}
 		}
 
 		$ocacl = self::toOcAcl($data["sys.acl"]);
