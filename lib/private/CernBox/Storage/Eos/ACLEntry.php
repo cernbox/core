@@ -11,7 +11,7 @@ namespace OC\CernBox\Storage\Eos;
 
 class ACLEntry {
 	const USER_TYPE = "u";
-	const GROUP_TYPE = "e";
+	const GROUP_TYPE = "egroup";
 
 	private $type;
 	private $grantee;

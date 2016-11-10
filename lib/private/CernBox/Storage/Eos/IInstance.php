@@ -7,9 +7,13 @@ use OCP\Files\Cache\ICacheEntry;
 interface IInstance {
 	public function getId();
 	public function getName();
-	public function getPrefix();
-	public function getProjectPrefix();
 	public function getMgmUrl();
+	public function getPrefix();
+	public function getMetaDataPrefix();
+	public function getRecycleDir();
+	public function getFilterRegex();
+	public function getProjectPrefix();
+	public function getStagingDir();
 
 	public function createDir($username, $ocPath);
 	public function remove($username, $ocPath);

@@ -116,6 +116,16 @@ class ACLManager {
 		return false;
 	}
 
+	public function getGroup($gid) {
+		$groups = $this->getGroups();
+		foreach($groups as $group) {
+			if($group->getGrantee() === $gid) {
+				return $group;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Adds a new user to the sys.acl with $eosPermissions.
 	 * If the entry already exists, it is overwritten.
@@ -131,13 +141,20 @@ class ACLManager {
 		return true;
 	}
 
+	public function addGroup($grantee, $eosPermissions) {
+		$this->deleteGroup($grantee); // delete previous entry if existed
+		$singleACL = implode(":", array(ACLEntry::GROUP_TYPE, $grantee, $eosPermissions));
+		$aclEntry = new ACLEntry($singleACL);
+		$this->aclEntries[] = $aclEntry;
+		return true;
+	}
+
 	public function deleteUser($grantee) {
-		foreach($this->aclEntries as $index => $entry) {
-			if ($entry->getGrantee() === $grantee) {
-				unset($this->aclEntries[$index]);
-				$this->aclEntries = array_values($this->aclEntries); // re-index from 0
-			}
-		}
+		$this->deleteGrantee($grantee);
+	}
+
+	public function deleteGroup($grantee) {
+		$this->deleteGrantee($grantee);
 	}
 
 	public function serializeToEos() {
@@ -146,6 +163,15 @@ class ACLManager {
 			$entries[] = $entry->serializeToEos();
 		}
 		return implode(",", $entries);
+	}
+
+	private function deleteGrantee($grantee) {
+		foreach($this->aclEntries as $index => $entry) {
+			if ($entry->getGrantee() === $grantee) {
+				unset($this->aclEntries[$index]);
+				$this->aclEntries = array_values($this->aclEntries); // re-index from 0
+			}
+		}
 	}
 }
 

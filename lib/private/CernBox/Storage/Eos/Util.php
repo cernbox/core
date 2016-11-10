@@ -25,8 +25,9 @@ class Util {
 
 	public function getUidAndGidForUsername($username) {
 		$cached = $this->metaDataCache->getUidAndGid($username);
-		if($cached)
-		{
+		if($cached) {
+			$cached[0] = (int)$cached[0];
+			$cached[1] = (int)$cached[1];
 			return $cached;
 		}
 
@@ -35,8 +36,7 @@ class Util {
 		$errcode = null;
 		exec($cmd, $result, $errcode);
 		$list = array();
-		if ($errcode === 0)
-		{
+		if ($errcode === 0) {
 			$lines    = explode(" ", $result[0]);
 			$line_uid = $lines[0];
 			$line_gid = $lines[1];
@@ -52,16 +52,16 @@ class Util {
 
 			$list[] = $uid;
 			$list[] = $gid;
-		}
-		else
-		{
-			return false;
-		}
-		if (count($list) != 2)
-		{
+		} else {
 			return false;
 		}
 
+		if (count($list) != 2) {
+			return false;
+		}
+
+		$list[0] = (int)$list[0];
+		$list[1] = (int)$list[1];
 		$this->metaDataCache->setUidAndGid($username, $list);
 		return $list;
 	}

@@ -13,14 +13,15 @@ class Instance implements IInstance {
 
 	private $id;
 	private $name;
-	private $eosMgmUrl;
-	private $eosPrefix;
-	private $eosMetaDataPrefix;
-	private $eosRecycleDir;
-	private $eosProjectPrefix;
-	private $metaDataCache;
+	private $mgmUrl;
+	private $prefix;
+	private $metaDataPrefix;
+	private $recycleDir;
+	private $filterRegex;
+	private $projectPrefix;
 	private $stagingDir;
 
+	private $metaDataCache;
 	private $logger;
 	private $shareUtil;
 
@@ -30,21 +31,53 @@ class Instance implements IInstance {
 
 		$this->id = $id;
 		$this->name= $instanceConfig['name'];
-		$this->eosMgmUrl = $instanceConfig['mgmurl'];
-		$this->eosPrefix = $instanceConfig['prefix'];
-		$this->eosMetaDataPrefix = $instanceConfig['metadatadir'];
-		$this->eosRecycleDir = $instanceConfig['recycledir'];
-		$this->eosProjectPrefix = $instanceConfig['projectprefix'];
+		$this->mgmUrl = $instanceConfig['mgmurl'];
+		$this->prefix = $instanceConfig['prefix'];
+		$this->metaDataPrefix = $instanceConfig['metadatadir'];
+		$this->recycleDir = $instanceConfig['recycledir'];
+		$this->filterRegex = $instanceConfig['filterregex'];
+		$this->projectPrefix = $instanceConfig['projectprefix'];
 		$this->stagingDir = $instanceConfig['stagingdir'];
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
 
-	public function getId() { return $this->id; }
-	public function getName() { return $this->name; }
-	public function getPrefix() { return $this->eosPrefix; }
-	public function getProjectPrefix() { return $this->eosProjectPrefix; }
-	public function getMgmUrl() { return $this->eosMgmUrl; }
+	public function getId() {
+		return $this->id;
+	}
+
+	public function getName() {
+		return $this->name;
+	}
+
+	public function getPrefix() {
+		return $this->prefix;
+	}
+
+	public function getProjectPrefix() {
+		return $this->projectPrefix;
+	}
+
+	public function getMgmUrl() {
+		return $this->mgmUrl;
+	}
+
+	public function getRecycleDir() {
+		return $this->recycleDir;
+	}
+
+	public function getMetaDataPrefix() {
+		return $this->metaDataPrefix;
+	}
+
+	public function getFilterRegex() {
+		return $this->filterRegex;
+	}
+
+	public function getStagingDir() {
+		return $this->stagingDir;
+	}
+
 
 	/*
 	 * Storage functions
@@ -93,7 +126,7 @@ class Instance implements IInstance {
 			return fopen($localCachedFile, 'r');
 		}
 
-		$xrdSource= escapeshellarg($this->eosMgmUrl . "//". $eosPath);
+		$xrdSource= escapeshellarg($this->mgmUrl . "//". $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "xrdcopy -f $xrdSource $localCachedFile -OSeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
@@ -119,7 +152,7 @@ class Instance implements IInstance {
 		fclose($stream);
 		fclose($handle);
 
-		$xrdTarget = escapeshellarg($this->eosMgmUrl . "//" . $eosPath);
+		$xrdTarget = escapeshellarg($this->mgmUrl . "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
@@ -231,9 +264,9 @@ class Instance implements IInstance {
 		list($result, $errorCode) = $commander->exec($command);
 		if($errorCode === 0) {
 			foreach($result as $lineToParse) {
-				$eosRecycleMap = CLIParser::parseRecycleLSMResponse($lineToParse);
-				if(count($eosRecycleMap) > 0) {
-					$ownCloudRecycleMap = $this->getOwnCloudRecycleMapFromEosRecycleMap($username, $eosRecycleMap);
+				$recycleMap = CLIParser::parseRecycleLSMResponse($lineToParse);
+				if(count($recycleMap) > 0) {
+					$ownCloudRecycleMap = $this->getOwnCloudRecycleMapFromEosRecycleMap($username, $recycleMap);
 					$deletedEntry = new DeletedEntry($ownCloudRecycleMap);
 					$deletedEntries[] = $deletedEntry;
 				}
@@ -355,7 +388,7 @@ class Instance implements IInstance {
 
 		$eosPath = escapeshellarg($entry['eos.file']);
 		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
-		$commander = $this->getCommander($username);
+		$commander = $this->getCommander('root');
 		list(,$errorCode) = $commander->exec($command);
 		if($errorCode !== 0) {
 			return false;
@@ -379,7 +412,7 @@ class Instance implements IInstance {
 
 		$eosPath = escapeshellarg($entry['eos.file']);
 		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
-		$commander = $this->getCommander($username);
+		$commander = $this->getCommander('root');
 		list(,$errorCode) = $commander->exec($command);
 		if($errorCode !== 0) {
 			return false;
@@ -389,11 +422,53 @@ class Instance implements IInstance {
 	}
 
 	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
-		// TODO: Implement addGroupToFolderACL() method.
+		$entry = $this->get($username, $ocPath);
+		if(!$entry) {
+			return false;
+		}
+
+		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+
+		// aclManager contains the current sys.acl
+		$aclManager = $this->getACLManager($eosSysAcl);
+		$eosPermissions = $this->shareUtil->getEosPermissionsFromOwnCloudPermissions($ocPermissions);
+
+		$aclManager->addGroup($allowedGroup, $eosPermissions);
+		$newEosSysACL = $aclManager->serializeToEos();
+
+		$eosPath = escapeshellarg($entry['eos.file']);
+		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
+		$commander = $this->getCommander('root');
+		list(,$errorCode) = $commander->exec($command);
+		if($errorCode !== 0) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 
 	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {
-		// TODO: Implement removeGroupFromFolderACL() method.
+		$entry = $this->get($username, $ocPath);
+		if(!$entry) {
+			return false;
+		}
+
+		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+
+		// aclManager contains the current sys.acl
+		$aclManager = $this->getACLManager($eosSysAcl);
+		$aclManager->deleteGroup($allowedGroup);
+		$newEosSysACL = $aclManager->serializeToEos();
+
+		$eosPath = escapeshellarg($entry['eos.file']);
+		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
+		$commander = $this->getCommander('root');
+		list(,$errorCode) = $commander->exec($command);
+		if($errorCode !== 0) {
+			return false;
+		} else {
+			return true;
+		}
 	}
 
 	public function isUserMemberOfGroup($username, $group) {
@@ -447,17 +522,12 @@ class Instance implements IInstance {
 
 
 	private function getTranslator($username) {
-		$translator = new Translator(
-			$username,
-			$this->eosPrefix,
-			$this->eosMetaDataPrefix,
-			$this->eosProjectPrefix,
-			$this->eosRecycleDir);
+		$translator = new Translator($username, $this);
 		return $translator;
 	}
 
 	private function getCommander($username) {
-		$commander = new Commander($this->eosMgmUrl, $username);
+		$commander = new Commander($this->mgmUrl, $username);
 		return $commander;
 	}
 
@@ -489,13 +559,13 @@ class Instance implements IInstance {
 		return $eosMap;
 	}
 
-	private function getOwnCloudRecycleMapFromEosRecycleMap($username, $eosRecycleMap) {
+	private function getOwnCloudRecycleMapFromEosRecycleMap($username, $recycleMap) {
 		$translator = $this->getTranslator($username);
 
-		$eosRecycleMap['path'] = $translator->toOc($eosRecycleMap['eos.restore-path']);
-		$eosRecycleMap['name'] = basename($eosRecycleMap['eos.restore-path']);
-		$eosRecycleMap['mtime'] = basename($eosRecycleMap['eos.deletion-time']);
-		return $eosRecycleMap;
+		$recycleMap['path'] = $translator->toOc($recycleMap['eos.restore-path']);
+		$recycleMap['name'] = basename($recycleMap['eos.restore-path']);
+		$recycleMap['mtime'] = basename($recycleMap['eos.deletion-time']);
+		return $recycleMap;
 	}
 
 

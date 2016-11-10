@@ -691,8 +691,8 @@ class Server extends ServerContainer implements IServerContainer {
 
 		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
 			$requestCache = new RequestCache();
-			$redisCache = new RedisCache(new Redis());
-			$multiCache = new MultiCache(array($requestCache, $redisCache));
+			//$redisCache = new RedisCache(new Redis());
+			$multiCache = new MultiCache(array($requestCache));
 			return $multiCache;
 		});
 

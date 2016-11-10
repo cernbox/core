@@ -91,6 +91,23 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->getMgmUrl();
 	}
 
+	public function getMetaDataPrefix() {
+		return $this->currentInstance->getMetaDataPrefix();
+	}
+
+	public function getRecycleDir() {
+		return $this->currentInstance->getRecycleDir();
+	}
+
+	public function getFilterRegex() {
+		return $this->currentInstance->getFilterRegex();
+	}
+
+	public function getStagingDir() {
+		return $this->currentInstance->getStagingDir();
+	}
+
+
 	/**
 	 * @return IInstance[]
 	 */
@@ -285,7 +302,7 @@ class InstanceManager implements  IInstance {
 
 	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
 		$this->logger->debug("unit(InstanceManager) method(addGroupToFolderACL) owner($username) allowedgroup($allowedGroup) ocpath($ocPath) ocperm($ocPermissions)");
-		return $this->currentInstance->addUserToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions);
+		return $this->currentInstance->addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions);
 	}
 
 	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {

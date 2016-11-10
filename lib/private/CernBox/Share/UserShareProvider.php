@@ -12,7 +12,6 @@ namespace OC\CernBox\Share;
 use OC\Share20\Exception\BackendError;
 use OC\Share20\Exception\InvalidShare;
 use OC\Share20\Exception\ProviderException;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\Node;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\IShareProvider;
@@ -23,8 +22,10 @@ class UserShareProvider implements IShareProvider {
 	private $rootFolder;
 	private $instanceManager;
 	private $util;
+	private $log;
 
 	public function __construct($rootFolder) {
+		$this->log = \OC::$server->getLogger();
 		$this->rootFolder = $rootFolder;
 		$this->userManager = \OC::$server->getUserManager();
 		$this->dbConn = \OC::$server->getDatabaseConnection();
@@ -124,12 +125,12 @@ class UserShareProvider implements IShareProvider {
 			$qb = $this->dbConn->getQueryBuilder();
 			$qb->update('share')
 				->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())))
-				->set('share_with', $qb->createNamedParameter($share->getSharedWith()))
-				->set('uid_owner', $qb->createNamedParameter($share->getShareOwner()))
-				->set('uid_initiator', $qb->createNamedParameter($share->getSharedBy()))
+				//->set('share_with', $qb->createNamedParameter($share->getSharedWith()))
+				//->set('uid_owner', $qb->createNamedParameter($share->getShareOwner()))
+				//->set('uid_initiator', $qb->createNamedParameter($share->getSharedBy()))
 				->set('permissions', $qb->createNamedParameter($share->getPermissions()))
-				->set('item_source', $qb->createNamedParameter($share->getNode()->getId()))
-				->set('file_source', $qb->createNamedParameter($share->getNode()->getId()))
+				//->set('item_source', $qb->createNamedParameter($share->getNode()->getId()))
+				//->set('file_source', $qb->createNamedParameter($share->getNode()->getId()))
 				->execute();
 		} else {
 			throw new ProviderException('Invalid shareType');
@@ -204,25 +205,9 @@ class UserShareProvider implements IShareProvider {
 		$qb->select('*')
 			->from('share')
 			->andWhere($qb->expr()->orX(
-				$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
 				$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
 			));
-		$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter($shareType)));
-		/**
-		 * Reshares for this user are shares where they are the owner.
-		 */
-		/*
-		if ($reshares === false) {
-			$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
-		} else {
-			$qb->andWhere(
-				$qb->expr()->orX(
-					$qb->expr()->eq('uid_owner', $qb->createNamedParameter($userId)),
-					$qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId))
-				)
-			);
-		}
-		*/
+		$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_USER)));
 		$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
 		if ($node !== null) {
 			$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($node->getId())));
@@ -247,17 +232,12 @@ class UserShareProvider implements IShareProvider {
 			->from('share')
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($id)))
 			->andWhere(
-				$qb->expr()->in(
+				$qb->expr()->eq(
 					'share_type',
-					$qb->createNamedParameter([
-						\OCP\Share::SHARE_TYPE_USER,
-					], IQueryBuilder::PARAM_INT_ARRAY)
+					$qb->createNamedParameter(\OCP\Share::SHARE_TYPE_USER)
 				)
 			)
-			->andWhere($qb->expr()->orX(
-				$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
-				$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
-			));
+			->andWhere($qb->expr()->eq('item_type', $qb->createNamedParameter('folder')));
 
 		$cursor = $qb->execute();
 		$data = $cursor->fetch();
@@ -270,12 +250,6 @@ class UserShareProvider implements IShareProvider {
 		} catch (InvalidShare $e) {
 			throw new ShareNotFound();
 		}
-		// If the recipient is set for a group share resolve to that user
-		/*
-		if ($recipientId !== null && $share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP) {
-			$share = $this->resolveGroupShare($share, $recipientId);
-		}
-		*/
 		return $share;
 	}
 
@@ -303,23 +277,11 @@ class UserShareProvider implements IShareProvider {
 		return $shares;
 	}
 
-	/**
-	 * Checks if the file pointed by the share exists
-	 * and it is accessible (not in trash nor version folder).
-	 * @param $shareData
-	 * @returns boolean
-	 */
-	private function isAccessibleResult($shareData) {
-		$entry = $this->instanceManager->getPathById($shareData['uid_owner'], $shareData['file_source']);
-		if(!$entry) {
-			return false;
-		} else {
-			// FIXME(labkode): check file is not on trash nor versions
-			return true;
-		}
-	}
-
 	public function getSharedWith($userId, $shareType, $node, $limit, $offset) {
+		$logMessage = sprintf("unit(UserShareProvider) method(getSharedWith) userId(%s) shareType(%d)",
+			$userId, $shareType);
+		$this->log->info($logMessage);
+
 		/** @var Share[] $shares */
 		$shares = [];
 		if ($shareType === \OCP\Share::SHARE_TYPE_USER) {
@@ -343,6 +305,8 @@ class UserShareProvider implements IShareProvider {
 
 			// Filter by node if provided
 			if ($node !== null) {
+				$logMessage = sprintf("unit(UserShareProvider) method(getSharedWith) node(%s)", $node->getInternalPath());
+				$this->log->info($logMessage);
 				$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($node->getId())));
 			}
 			$cursor = $qb->execute();
@@ -354,6 +318,12 @@ class UserShareProvider implements IShareProvider {
 			$cursor->closeCursor();
 		} else {
 			throw new BackendError('Invalid share backend');
+		}
+
+		$logMessage = sprintf("unit(UserShareProvider) method(getSharedWith) return:numberofshares(%d)", count($shares));
+		$this->log->info($logMessage);
+		if($shares) {
+			$this->log->info("share: " . $shares[0]->getNode()->getInternalPath());
 		}
 		return $shares;
 	}
@@ -372,6 +342,22 @@ class UserShareProvider implements IShareProvider {
 
 	public function userDeletedFromGroup($uid, $gid) {
 		// TODO: Implement userDeletedFromGroup() method.
+	}
+
+	/**
+	 * Checks if the file pointed by the share exists
+	 * and it is accessible (not in trash nor version folder).
+	 * @param $shareData
+	 * @returns boolean
+	 */
+	private function isAccessibleResult($shareData) {
+		$entry = $this->instanceManager->getPathById($shareData['uid_owner'], $shareData['file_source']);
+		if(!$entry) {
+			return false;
+		} else {
+			// FIXME(labkode): check file is not on trash nor versions
+			return true;
+		}
 	}
 
 	private function createShare($data) {
@@ -409,3 +395,4 @@ class UserShareProvider implements IShareProvider {
 	}
 
 }
+

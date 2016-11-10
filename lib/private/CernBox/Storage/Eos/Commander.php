@@ -34,11 +34,13 @@ class  Commander{
 		$this->retryAttempts = $value;
 
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
-		if(!$uid || !$gid) {
-			throw new \Exception("could not instantiate commander because username:$username does not have a valid uid and gid");
+		if(is_int($uid) && is_int($gid) && $uid >= 0 && $gid >= 0) {
+			$this->uid = $uid;
+			$this->gid = $gid;
+		} else {
+			$msg = "could not instantiate commander because username($username) does not have a valid uid($uid) and gid($gid)";
+			throw new \Exception($msg);
 		}
-		$this->uid = $uid;
-		$this->gid = $gid;
 	}
 
 	public function exec($cmd) {
