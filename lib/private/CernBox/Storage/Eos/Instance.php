@@ -535,14 +535,13 @@ class Instance implements IInstance {
 		$translator = $this->getTranslator($username);
 
 		$eosMap['etag'] = $eosMap['eos.etag'];
-		$eosMap['fileid'] = $eosMap['eos.ino'];
-		$eosMap['fileid'] = $eosMap['eos.ino'];
+		$eosMap['fileid'] = (int)$eosMap['eos.ino'];
 		$eosMap['mtime'] = $eosMap['eos.mtime'];
-		$eosMap['size'] = isset($eosMap['eos.size']) ? $eosMap['eos.size'] : 0;
+		$eosMap['size'] = (int)isset($eosMap['eos.size']) ? $eosMap['eos.size'] : 0;
 		$eosMap['storage_mtime'] = $eosMap['mtime'];
 		$eosMap['path'] = $translator->toOc($eosMap['eos.file']);
 		$eosMap['path_hash'] = md5($eosMap['path']);
-		$eosMap['parent'] = $eosMap['eos.pid'];
+		$eosMap['parent'] = (int)$eosMap['eos.pid'];
 		$eosMap['encrypted'] = 0;
 		$eosMap['unencrypted_size'] = $eosMap['size'];
 		$eosMap['name'] = basename($eosMap['path']);
