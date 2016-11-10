@@ -20,22 +20,11 @@ class Translator {
 	 * @var string
 	 */
 	private $username;
+
 	/**
-	 * @var string
+	 * @var IInstance
 	 */
-	private $eosPrefix;
-	/**
-	 * @var string
-	 */
-	private $eosMetaDataPrefix;
-	/**
-	 * @var string
-	 */
-	private $eosProjectPrefix;
-	/**
-	 * @var string
-	 */
-	private $eosRecycleDir;
+	private $instance;
 
 	/**
 	 * @var \OCP\ILogger
@@ -51,19 +40,18 @@ class Translator {
 	 * Translator constructor.
 	 *
 	 * @param $username
-	 * @param $eosPrefix
-	 * @param $eosMetaDataPrefix
-	 * @param $eosProjectPrefix
-	 * @param $eosRecycleDir
+	 * @param IInstance $instance
 	 */
-	public function __construct($username, $eosPrefix, $eosMetaDataPrefix, $eosProjectPrefix, $eosRecycleDir) {
+	public function __construct($username, IInstance $instance) {
 		$this->logger = \OC::$server->getLogger();
+		$this->instance = $instance;
 		$this->projectMapper = \OC::$server->getCernBoxProjectMapper();
 
 		$letter = $username[0];
 
 		// if the eosPrefix or eosMetaData prefix contains placeholders for
 		// username first letter and username, we replace them.
+		/*
 		$eosPrefix = str_replace("<letter>", $letter, $eosPrefix);
 		$eosPrefix = str_replace("<username>", $username, $eosPrefix);
 
@@ -73,23 +61,35 @@ class Translator {
 		$this->eosPrefix = $eosPrefix;
 		$this->eosMetaDataPrefix = $eosMetaDataPrefix;
 		$this->eosProjectPrefix = $eosProjectPrefix;
+		*/
 		$this->username = $username;
 	}
 
-	// ocPath is a local owncloud path like "" or "files" or "files/A/B/test_file./txt"
-	// this function converts the ocPath to an eos path according to the eos prefix
-	// and username if the eos instance is an user instance.
 	/**
+	 * Converts an owncloud path like 'files' or 'files/A/B/file.txt' to
+	 * an eos path like '/eos/user/l/labrador/' or '/eos/user/l/labrador/A/B/file.txt'
+	 * To convert an owncloud path to an eos path we always need an user context.
 	 * @param $ocPath
 	 * @return string
 	 */
 	public function toEos($ocPath) {
+		$ocPath = ltrim($ocPath, '/');
 		$eosPath = $this->_toEos($ocPath);
-		$this->logger->debug("TRANSLATOR OC('$ocPath') => EOS('$eosPath')");
+		$this->logger->debug("TRANSLATOR OC('$ocPath') => EOS('$eosPath') USER('" . $this->username . "')");
 		return $eosPath;
 	}
 
 	private function _toEos($ocPath) {
+
+		$eosPrefix = sprintf("%s/%s/%s/",
+			rtrim($this->instance->getPrefix(), '/') ,
+			$this->username[0], // first username letter
+			$this->username);
+
+		$eosMetaDataPrefix = sprintf("%s/%s/%s/",
+			rtrim($this->instance->getMetaDataPrefix(), '/') ,
+			$this->username[0], // first username letter
+			$this->username);
 
 		$tempOcPath = $ocPath;
 
@@ -97,7 +97,7 @@ class Translator {
 		// to the project prefix.
 		if(strpos($ocPath, 'projects') === 0) {
 			$tempOcPath = substr($tempOcPath, strlen('projects'));
-			$eosPath =  rtrim($this->eosProjectPrefix, '/') . '/' . $tempOcPath;
+			$eosPath =  rtrim($this->instance->getProjectPrefix(), '/') . '/' . $tempOcPath;
 			return $eosPath;
 		}
 
@@ -120,13 +120,13 @@ class Translator {
 			$relativePath = $projectInfo->getProjectRelativePath();
 
 			if ($relativePath) {
-				return (rtrim($this->eosProjectPrefix, '/') . '/' . trim($relativePath, '/') . '/' . trim($pathLeft, '/'));
+				return (rtrim($this->instance->getProjectPrefix(), '/') . '/' . trim($relativePath, '/') . '/' . trim($pathLeft, '/'));
 			}
 		}
 
 		if ($ocPath === "") {
 			//$eosPath = $this->eosPrefix. substr($this->username, 0, 1) . "/" . $this->username. "/";
-			$eosPath = $this->eosPrefix;
+			$eosPath = $eosPrefix;
 			return $eosPath;
 		}
 		// we must be cautious because there is files_encryption, that is the reason we perform this check
@@ -140,18 +140,24 @@ class Translator {
 			}
 		}
 		if ($condition) {
-			$splitted = explode("/", $ocPath);// [files, hola.txt] or [files]
+			$split = explode("/", $ocPath);// [files, hola.txt] or [files]
 			$last = "";
-			if (count($splitted) >= 2) {
-				$last = implode("/", array_slice($splitted, 1));
+			if (count($split) >= 2) {
+				$last = implode("/", array_slice($split, 1));
 			}
 			//$eosPath = $this->eosPrefix. substr($this->username, 0, 1) . "/" . $this->username. "/" . $last;
-			$eosPath = $this->eosPrefix . $last;
+			$eosPath = $eosPrefix . $last;
 			return $eosPath;
 		} else {
-			$eosPath = $this->eosMetaDataPrefix . $ocPath;
+			$eosPath = $eosMetaDataPrefix. $ocPath;
 			return $eosPath;
 		}
+	}
+
+	public function toOc($eosPath) {
+		$ocPath = $this->_toOc($eosPath);
+		$this->logger->debug("TRANSLATOR EOS('$eosPath') => OC('$ocPath') USER('" . $this->username. "')");
+		return $ocPath;
 	}
 
 	/**
@@ -165,25 +171,37 @@ class Translator {
 	 * - /eos/dev/user/.metacernbox/thumbnails/abc.txt
 	 * - /eos/dev/projects/a/atlas-dist
 	 */
-	public function toOc($eosPath) {
-		if ($eosPath == $this->eosPrefix) {
+	public function _toOc($eosPath) {
+		if ($eosPath == $this->instance->getPrefix()) {
 			return "";
 		}
-		if (strpos($eosPath, $this->eosMetaDataPrefix) === 0) {
-			$len_prefix = strlen($this->eosPrefix);
-			$rel = substr($eosPath, $len_prefix);
-			// splitted should be something like [.metacernbox, l, labrador, cache, 123]
-			$splitted = explode("/", $rel);
-			$ocPath = implode("/", array_slice($splitted, 3));
+
+		if (strpos($eosPath, $this->instance->getMetaDataPrefix()) === 0) {
+			$prefixSize = strlen($this->instance->getMetaDataPrefix());
+			$metaPath = trim(substr($eosPath, $prefixSize), '/');
+
+			// split should be something like [l, labrador, cache, 123]
+			$split = explode("/", $metaPath);
+			array_shift($split); // shift first letter
+			array_shift($split); // shift username
+			$ocPath = '/' . implode("/", $split);
 			return $ocPath;
-		} else if (strpos($eosPath, $this->eosPrefix) === 0) {
-			return "files/" . substr($eosPath, strlen($this->eosPrefix));
-		} else if (strpos($eosPath, $this->eosRecycleDir) === 0) {
+		} else if (strpos($eosPath, $this->instance->getPrefix()) === 0) {
+			$prefixSize = strlen($this->instance->getPrefix());
+			$dataPath = trim(substr($eosPath, $prefixSize), '/');
+
+			// split should be something like [l, labrador, photos, jamaica.png]
+			$split   = explode("/", $dataPath);
+			array_shift($split); // shift first letter
+			array_shift($split); // shift username
+			$ocPath = 'files/' . implode("/", $split);
+			return $ocPath;
+		} else if (strpos($eosPath, $this->instance->getRecycleDir()) === 0) {
 			return false;
-		} else if (strpos($eosPath, $this->eosProjectPrefix) === 0) {
-			$len_prefix = strlen($this->eosProjectPrefix);
+		} else if (strpos($eosPath, $this->instance->getProjectPrefix()) === 0) {
+			$prefixSize = strlen($this->instance->getProjectPrefix());
 			// a/atlas-software-dist or skiclub/more/contents or just b
-			$pathWithoutProjectPrefix = rtrim(substr($eosPath, $len_prefix), '/');
+			$pathWithoutProjectPrefix = rtrim(substr($eosPath, $prefixSize), '/');
 			$projectName = '';
 			$projectRest = '';
 
