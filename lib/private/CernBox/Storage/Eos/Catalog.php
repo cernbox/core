@@ -41,11 +41,11 @@ class Catalog implements ICache
      */
     public function getNumericStorageId()
     {
-        return 0;
+        return $this->storage->userUID;
     }
 
     public function getNumericId() {
-        return 0;
+        return $this->getNumericStorageId();
     }
     /**
      * get the stored metadata of a file or folder
@@ -91,7 +91,7 @@ class Catalog implements ICache
     public function getFolderContentsById($fileId)
     {
 		if($this->username === Storage::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
-			return false;
+			return array(); // ideally return false
 		}
 		return $this->instanceManager->getFolderContentsById($this->username, $fileId);
     }
