@@ -7,12 +7,11 @@
   ],
   
   'eosinstances' => [
-  
        'eosbackup' => [
            'name' => 'EOS Backup',
            'mgmurl' => 'root://eosbackup.cern.ch',
-           'prefix' => '/eos/scratch/user/<letter>/<username>/',
-           'metadatadir' => '/eos/scratch/user/.sys.dav.hide#.user.metadata/<letter>/<username>/',
+           'prefix' => '/eos/scratch/user/',
+           'metadatadir' => '/eos/scratch/user/.sys.dav.hide#.user.metadata/',
            'recycledir' => '/eos/scratch/proc/recycle',
            'filterregex' => '\\.sys\\.[a-zA-Z0-9_]*#\\.',
            'versionregex' => '\\.sys\\.v#\\.',
@@ -22,6 +21,13 @@
   ],
    
   'eoshomedirectoryinstance' => 'eosbackup',
-   
-  'eoscliretryattempts' => '2',
+  'eoscliretryattempts' => 2,
+  
+  'user_backends' => array(
+    array(
+        'class' => 'OC\CernBox\Backends\UserBackend',
+        'arguments' => array(),
+    ),
+  ),
+  
 ```

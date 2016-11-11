@@ -67,11 +67,11 @@ class Storage implements \OCP\Files\Storage
 	/**
 	 * @var int
 	 */
-	private $userUID;
+	public $userUID;
 	/**
 	 * @var int
 	 */
-	private $userGID;
+	public $userGID;
 
 
 	/**
