@@ -15,7 +15,7 @@
            'recycledir' => '/eos/scratch/proc/recycle',
            'filterregex' => '\\.sys\\.[a-zA-Z0-9_]*#\\.',
            'versionregex' => '\\.sys\\.v#\\.',
-           'projectprefix' => '/eos/scratch/projects/',
+           'projectprefix' => '/eos/scratch/project/',
            'stagingdir' => '/tmp/',
        ], 
   ],
@@ -29,5 +29,7 @@
         'arguments' => array(),
     ),
   ),
+  
+  'sharing.managerFactory' => 'OC\CernBox\Share\ProviderFactory',
   
 ```
