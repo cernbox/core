@@ -174,7 +174,7 @@ final class EosUtil {
 	
 	public static function isSharedLinkGuest()
 	{
-		$uri = $_SERVER['REQUEST_URI'];
+		$uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
 		$uri = trim($uri, '/');
 		
 		$token = false;
@@ -1152,6 +1152,22 @@ final class EosUtil {
 		}
 	
 		return FALSE;
+	}
+	
+	// used with the clean_expired_users cronjob.
+	public static function lsNoUserContext($eosPath)
+	{
+		$uid = 0;
+		$gid = 0;
+		$eosPath = escapeshellarg($eosPath);
+		$cmd = "eos -r $uid $gid ls $eosPath";
+		list($result, $errCode) = EosCmd::exec($cmd);
+		if($errCode === 0)
+		{
+			return $result;
+		}
+	
+		return false;
 	}
 	
 	public static function createVersionFolder($eosPath)
