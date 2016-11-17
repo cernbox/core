@@ -235,7 +235,7 @@ class Instance implements IInstance {
 				if($eosMap['eos.file']) {
 					// find also returns the directory
 					// asked to be listed, so we filter it.
-					if($eosMap['eos.file'] !== $eosPath) {
+					if(trim($eosMap['eos.file'], '/') !== trim($eosPath, '/')) {
 						$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
 						$entries[] = new CacheEntry($ownCloudMap);
 					}
