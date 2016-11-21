@@ -23,6 +23,7 @@
 		'{{{remoteShareInfo}}}' +
 		'</div>' +
 		'<div id="recipentList" class="shareRecipentListView hidden"><p>Share item to the following users/groups:</p><ul></ul>' +
+		'</br><input id="shareNotifyByEmail" type="checkbox" value="1"> Send notification email</br></br>' +
 		'<input id="shareListButton" class="emailButton" type="submit" value="Confirm">' +
 		'</div>' +
 		'{{/if}}' +
@@ -302,7 +303,7 @@
 			shareButton.click(function(event)
 			{
 				event.preventDefault();
-				
+					
 				var shareRequestData = [];
 				for(var i = 0; i < _self.shareRecipientList.length; i++)
 				{
@@ -310,7 +311,9 @@
 					shareRequestData.push(token);
 				}
 				
-				_self.model.addShareList(shareRequestData);
+				var options = {};
+				options.notifyByEmail = _self.$el.find('#shareNotifyByEmail').val() === "1";	
+				_self.model.addShareList(shareRequestData, options);
 				
 				_self.shareRecipientList.length = 0;
 				_self.$el.find('#recipentList').addClass('hidden');

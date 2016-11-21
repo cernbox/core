@@ -224,9 +224,7 @@
 		addShareList: function(shareWith, options)
 		{
 			var fileName = this.fileInfoModel.get('name');
-			
 			options = options || {};
-
 			// Default permissions are Edit (CRUD) and Share
 			// Check if these permissions are possible
 			var permissions = OC.PERMISSION_READ;
@@ -246,7 +244,7 @@
 			var model = this;
 			var itemType = this.get('itemType');
 			var itemSource = this.get('itemSource');
-			OC.Share.shareList(itemType, itemSource, null, shareWith, permissions, fileName, options.expiration, function() {
+			OC.Share.shareList(itemType, itemSource, null, shareWith, permissions, fileName, options.expiration, options.notifyByEmail, function() {
 				model.fetch();
 			});
 		},

@@ -378,7 +378,7 @@ OC.Share = _.extend(OC.Share || {}, {
 		);
 	},
 	/** CERNBOX SHARE USER LIST PR PATCH */
-	shareList:function(itemType, itemSource, shareType, shareWith, permissions, itemSourceName, expirationDate, callback, errorCallback) {
+	shareList:function(itemType, itemSource, shareType, shareWith, permissions, itemSourceName, expirationDate, notifyByEmail, callback, errorCallback) {
 		// Add a fallback for old share() calls without expirationDate.
 		// We should remove this in a later version,
 		// after the Apps have been updated.
@@ -402,7 +402,8 @@ OC.Share = _.extend(OC.Share || {}, {
 				shareWith: shareWith,
 				permissions: permissions,
 				itemSourceName: itemSourceName,
-				expirationDate: expirationDate
+				expirationDate: expirationDate,
+				notifyByEmail: notifyByEmail
 			}, function (result) {
 				if (result && result.status === 'success') {
 					if (callback) {
