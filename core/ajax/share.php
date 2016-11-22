@@ -118,7 +118,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			case 'shareList':
 				if (isset($_POST['shareWith']) && isset($_POST['permissions'])) {
 					try {
-						$notifyByEmail = (isset($_POST['notifyByEmail'])) ? (bool)$_POST['notifyByEmail'] : false;
+						$notifyByEmail = (isset($_POST['notifyByEmail'])) ? $_POST['notifyByEmail'] === 'true' ? true : false : false;
 
 						$itemSourceName=(isset($_POST['itemSourceName'])) ? (string)$_POST['itemSourceName']:'';
 						$shareWithArray = (is_array($_POST['shareWith'])? $_POST['shareWith'] : [$_POST['shareWith']]);
