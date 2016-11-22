@@ -2591,6 +2591,7 @@ class Share extends Constants {
 			}
 				
 			if($notifyByEmail) {
+				\OCP\Util::writeLog('CERNBoxMail', "user choosed to send email", \OCP\Util::ERROR);
 				// Send different mails depending if the share was done to an user or to an egroup.
 				$filedata = \OC\Files\ObjectStore\EosUtil::getFileById ( $fileid );
 				// $mailNotification = new \OC\Share\MailNotifications();
@@ -2607,6 +2608,8 @@ class Share extends Constants {
 				} else {
 					$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
 				}
+			} else {
+				\OCP\Util::writeLog('CERNBoxMail', "user did not choose to send email", \OCP\Util::ERROR);
 			}
 
 			// FIXME: KUBA
