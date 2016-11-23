@@ -618,7 +618,7 @@ class Share extends Constants {
 	 * @throws \OC\HintException when the share type is remote and the shareWith is invalid
 	 * @throws \Exception
 	 */
-	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null, $passwordChanged = null) {
+	public static function shareItem($itemType, $itemSource, $shareType, $shareWith, $permissions, $itemSourceName = null, \DateTime $expirationDate = null, $passwordChanged = null, $notifyByEmail = false) {
 		/** CERNBOX SHARE PLUGIN PATCH */
 		/* HUGO try to put here the logic to convert file share via link to version folder share */
 		if($shareType === 3 && $itemType === 'file') {
@@ -857,7 +857,7 @@ class Share extends Constants {
 					);
 				}
 				$result = self::put($itemType, $itemSource, $shareType, $shareWith, $uidOwner, $permissions,
-					null, $token, $itemSourceName, $expirationDate);
+					null, $token, $itemSourceName, $expirationDate, $notifyByEmail);
 				if ($result) {
 					return $token;
 				} else {
@@ -920,7 +920,7 @@ class Share extends Constants {
 		}
 
 		// Put the item into the database
-		$result = self::put($itemType, $itemSource, $shareType, $shareWith, $uidOwner, $permissions, null, null, $itemSourceName, $expirationDate);
+		$result = self::put($itemType, $itemSource, $shareType, $shareWith, $uidOwner, $permissions, null, null, $itemSourceName, $expirationDate, $notifyByEmail);
 
 		return $result ? true : false;
 	}
@@ -2192,7 +2192,7 @@ class Share extends Constants {
 	 * @return mixed id of the new share or false
 	 */
 	private static function put($itemType, $itemSource, $shareType, $shareWith, $uidOwner,
-								$permissions, $parentFolder = null, $token = null, $itemSourceName = null, \DateTime $expirationDate = null) {
+								$permissions, $parentFolder = null, $token = null, $itemSourceName = null, \DateTime $expirationDate = null, $notifyByEmail = false) {
 
 		$queriesToExecute = array();
 		$suggestedItemTarget = null;
@@ -2366,7 +2366,7 @@ class Share extends Constants {
 
 		$id = false;
 		if ($isGroupShare) {
-			$id = self::insertShare($queriesToExecute['groupShare']);
+			$id = self::insertShare($queriesToExecute['groupShare'], $notifyByEmail);
 			// Save this id, any extra rows for this group share will need to reference it
 			$parent = \OC_DB::insertid('*PREFIX*share');
 			unset($queriesToExecute['groupShare']);
@@ -2374,7 +2374,7 @@ class Share extends Constants {
 
 		foreach ($queriesToExecute as $shareQuery) {
 			$shareQuery['parent'] = $parent;
-			$id = self::insertShare($shareQuery);
+			$id = self::insertShare($shareQuery, $notifyByEmail);
 		}
 
 		/** CERNBOX SHARE PLUGIN PATCH */
@@ -2505,7 +2505,7 @@ class Share extends Constants {
 	 * @param array $shareData
 	 * @return mixed false in case of a failure or the id of the new share
 	 */
-	private static function insertShare(array $shareData) {
+	private static function insertShare(array $shareData, $notifyByEmail = false) {
 		/** CERNBOX SHARE PLUGIN PATCH */
 		// HUGO when inserting a share we append to the item_target (like a symlink, the one the user sees in Shared with me) the inode to keep it unique
 		// LUCA propossed to put the owner of the share as well like "root_js_sample_files (#ourense.1397353)" instead "just root_js_sample_files (#1397353)"
@@ -2590,22 +2590,28 @@ class Share extends Constants {
 				\OCP\Util::writeLog('core', 'Could not add ' .$to. ' to EOS ACL', \OCP\Util::ERROR);
 			}
 				
-			// Send different mails depending if the share was done to an user or to an egroup.
-			$filedata = \OC\Files\ObjectStore\EosUtil::getFileById ( $fileid );
-			// $mailNotification = new \OC\Share\MailNotifications();
-			$defaults = new \OCP\Defaults();
-			$mailNotification = new \OC\Share\MailNotifications ( \OC::$server->getUserSession ()->getUser ()->getUID (), \OC::$server->getConfig (),
-					\OC::$server->getL10N ( 'lib' ),
-					\OC::$server->getMailer(),
-					\OC::$server->getLogger(),
-					$defaults
-					);
-				
-			if($type === 'u') {
-				$result = $mailNotification->sendLinkEosUser($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+			if($notifyByEmail === true) {
+				\OCP\Util::writeLog('CERNBoxMail', "user choosed to send email", \OCP\Util::ERROR);
+				// Send different mails depending if the share was done to an user or to an egroup.
+				$filedata = \OC\Files\ObjectStore\EosUtil::getFileById ( $fileid );
+				// $mailNotification = new \OC\Share\MailNotifications();
+				$defaults = new \OCP\Defaults();
+				$mailNotification = new \OC\Share\MailNotifications ( \OC::$server->getUserSession ()->getUser ()->getUID (), \OC::$server->getConfig (),
+						\OC::$server->getL10N ( 'lib' ),
+						\OC::$server->getMailer(),
+						\OC::$server->getLogger(),
+						$defaults
+						);
+					
+				if($type === 'u') {
+					$result = $mailNotification->sendLinkEosUser($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+				} else {
+					$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+				}
 			} else {
-				$result = $mailNotification->sendLinkEosEGroup($shareData["shareWith"]."@cern.ch", $filedata["name"],$filedata["eospath"],$shareData["shareWith"]);
+				\OCP\Util::writeLog('CERNBoxMail', "user did not choose to send email", \OCP\Util::ERROR);
 			}
+
 			// FIXME: KUBA
 			// FIXME: after next client release we shouldnot need this anymore (no need to navigate to subdrectory as users may type the path directly into a text field since 1.8)
 			// EosUtil::propagatePermissionXToParents($filedata, $to,$type);
