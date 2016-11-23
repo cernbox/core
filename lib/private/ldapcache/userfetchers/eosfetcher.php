@@ -20,7 +20,7 @@ class EosFetcher implements IUserFetcher
 			$char = chr($i);
 			$tempEosPath = $eosBase . $char;
 			
-			$users = EosUtil::ls($tempEosPath);
+			$users = EosUtil::lsNoUserContext($tempEosPath);
 			if($users !== FALSE)
 			{
 				$temp = [];

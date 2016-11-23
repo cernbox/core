@@ -112,42 +112,57 @@ class EosParser {
 			}
 			else // Folders
 			{
-				$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
-				$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
-				
-				$isInACL = false;
-				$aclMember = '';
-				if(isset($ocPerm[$currentUser]))
-				{
-					$isInACL = true;
-					$aclMember = $currentUser;
-				}
-				else
-				{
-					$highestOcPerm = 0;
-					foreach($groups as $group)
-					{
-						if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
-						{
-							$isInACL = true;
-							$aclMember = $group;
-							$highestOcPerm = $ocPerm[$group]['ocperm'];
-						}
+				// check first that the folder is under a project space and we are the owner
+				// of such project space
+				$eos_project_prefix = EosUtil::getEosProjectPrefix();
+				if (strpos($data['eospath'], $eos_project_prefix) === 0) {
+					$rest = trim(substr($data['eospath'], strlen($eos_project_prefix)), '/');	
+					$rest = substr($rest, 2); // remove "letter/"
+					$parts = explode("/", $rest);
+					$projectName = $parts[0];
+					$projectInfo = EosUtil::getProjectInfoForUser($currentUser);
+					if($projectInfo) {
+						$data['permissions'] = 31;
 					}
-				}
+				} else {
+					$groups = \OC\LDAPCache\LDAPCacheManager::getUserEGroups($currentUser);
+					$ocPerm = EosUtil::toOcAcl($data['sys.acl']);
 					
-				if($isInACL)
-				{
-					if($isOwner) //is the owner, so give share permissions
+					$isInACL = false;
+					$aclMember = '';
+					if(isset($ocPerm[$currentUser]))
 					{
-						$permissions = 31;
+						$isInACL = true;
+						$aclMember = $currentUser;
 					}
 					else
 					{
-						$permissions = $ocPerm[$aclMember]['ocperm'];
+						$highestOcPerm = 0;
+						foreach($groups as $group)
+						{
+							if(isset($ocPerm[$group]) && $ocPerm[$group]['ocperm'] > $highestOcPerm)
+							{
+								$isInACL = true;
+								$aclMember = $group;
+								$highestOcPerm = $ocPerm[$group]['ocperm'];
+							}
+						}
 					}
-					$data['permissions'] = $permissions;
-				}
+						
+					if($isInACL)
+					{
+						if($isOwner) //is the owner, so give share permissions
+						{
+							$permissions = 31;
+						}
+						else
+						{
+							$permissions = $ocPerm[$aclMember]['ocperm'];
+						}
+						$data['permissions'] = $permissions;
+					}
+
+					}
 			}
 		}
 		
