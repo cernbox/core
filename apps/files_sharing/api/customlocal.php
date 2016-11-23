@@ -132,7 +132,7 @@ class CustomLocal
 					}
 					
 					$row['path'] = self::addPrefix(substr(EosProxy::toOc($eosMeta['eospath']), 5));
-					$row['file_target'] = $row['item_type'] === 'file' ? $eosMeta['name'] : "/" . $eosMeta['name'];
+					//$row['file_target'] = $row['item_type'] === 'file' ? $eosMeta['name'] : "/" . $eosMeta['name'];
 					$row['storage'] = $storageId;
 					unset($row['accepted']);
 					unset($row['item_target']);
@@ -299,7 +299,7 @@ class CustomLocal
 					unset($rows[$key]);
 					continue;
 				}
-				$row['file_target'] = $eosMeta['name'];
+				//$row['file_target'] = $eosMeta['name'];
 				$row['storage'] = (int)$storageId;
 				$row['eospath'] = $eosMeta['eospath'];
 				unset($row['accepted']);
@@ -403,7 +403,7 @@ class CustomLocal
 					// or if it is a normal share shared from the service account of the project
 					$projectPath = trim(substr($eosMeta['eospath'], strlen(EosUtil::getEosProjectPrefix())), '/');
 					if(count(explode('/', $projectPath)) <= 2) { // just the project path, 'cernbox' or with letter 'c/cernbox'
-						$row['file_target'] = '/  project ' . $eosMeta['name'];
+						//$row['file_target'] = '/  project ' . $eosMeta['name'];
 						$row['project_share'] = true;
 						$row['projectname'] = EosUtil::getProjectNameForUser($row["uid_owner"]);
 						
@@ -424,7 +424,7 @@ class CustomLocal
 				else 
 				{
 					$row['project_share'] = false;
-					$row['file_target'] = '/' . $eosMeta['name'] . ' (#' . $eosMeta['fileid'] . ')';
+					//$row['file_target'] = '/' . $eosMeta['name'] . ' (#' . $eosMeta['fileid'] . ')';
 				}
 				$row['mimetype'] = $eosMeta['mimetype'];
 				$row['share_with_displayname'] = (isset($row['share_with']) && !empty($row['share_with'])) ? \OCP\User::getDisplayName($row['share_with']) : '';
@@ -513,7 +513,7 @@ class CustomLocal
 				//$row['item_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 				//$row['file_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 				$row['path'] = self::addPrefix(substr(EosProxy::toOc($eosMeta['eospath']), 5));
-				$row['file_target'] = $eosMeta['name'];
+				//$row['file_target'] = $eosMeta['name'];
 				$row['storage'] = $storageId;
 				unset($row['accepted']);
 				unset($row['item_target']);
@@ -590,7 +590,7 @@ class CustomLocal
 					//$row['item_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 					//$row['file_source'] = $eosMeta['fileid'];	// TESTING VERSION FILE ID
 					$row['path'] = self::addPrefix($path);
-					$row['file_target'] = $basename;
+					//$row['file_target'] = $basename;
 					$row['storage'] = $storageId;
 					unset($row['accepted']);
 					unset($row['item_target']);
