@@ -174,7 +174,7 @@ final class EosUtil {
 	
 	public static function isSharedLinkGuest()
 	{
-		$uri = $_SERVER['REQUEST_URI'];
+		$uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '';
 		$uri = trim($uri, '/');
 		
 		$token = false;
@@ -354,14 +354,28 @@ final class EosUtil {
 		if(!$data) {
 			return false;
 		}
-	    $eosPath = $data["eospath"];
+	    	$eosPath = $data["eospath"];
 		$eosPathEscaped = escapeshellarg($eosPath);
+
+		$projectjail = null;
+		$projectInfo = self::getProjectInfoForUser($from);
+		if($projectInfo) {
+			$projectjail = self::getEosProjectPrefix() . "/" . $projectInfo['path'];
+		}
+
 		// do not allow shares above user home directory. Improve to not allow self home dir.
 		$eosprefix = self::getEosPrefix();
 		$eosjail = $eosprefix . $from[0] . "/" . $from . "/";
-		if (strpos($eosPath, $eosjail) !== 0 ) {
-			\OCP\Util::writeLog('EOS', "SECURITY PROBLEM. user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
-			return false;
+		if($projectjail) {
+			if (strpos($eosPath, $eosjail) !== 0 && strpos($eosPath, $projectjail !==0)) {
+				\OCP\Util::writeLog('EOS', "SECURITY PROBLEM (outside project and user paths). user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
+				return false;
+			}
+		} else {
+			if (strpos($eosPath, $eosjail) !== 0 ) {
+				\OCP\Util::writeLog('EOS', "SECURITY PROBLEM (outside user path). user $from tried to share the folder $eosPath with $to", \OCP\Util::ERROR);
+				return false;
+			}
 		}
 
 		$ocacl = self::toOcAcl($data["sys.acl"]);
@@ -934,6 +948,35 @@ final class EosUtil {
 		return false;
 	}
 	
+	public static function getProjectInfoForUser($user)
+	{
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			self::loadProjectSpaceMappings();
+		}
+		
+		$all = Redis::readHashFromCacheMap(self::REDIS_KEY_PROJECT_USER_MAP);
+		
+		if(!$all)
+		{
+			return null;
+		}
+		
+		foreach($all as $project => $data)
+		{
+			$data = json_decode($data, TRUE);
+			if($data['owner'] === $user)
+			{
+				$data['name'] = $project;
+				return $data;
+			}
+		}
+		
+		return false;
+	}
+	
 	public static function isProjectURIPath($uri_path) {
 		// uri paths always start with leading slash (e.g. ?dir=/bla)
 		$uri_path = trim($uri_path, '/');
@@ -1109,6 +1152,22 @@ final class EosUtil {
 		}
 	
 		return FALSE;
+	}
+	
+	// used with the clean_expired_users cronjob.
+	public static function lsNoUserContext($eosPath)
+	{
+		$uid = 0;
+		$gid = 0;
+		$eosPath = escapeshellarg($eosPath);
+		$cmd = "eos -r $uid $gid ls $eosPath";
+		list($result, $errCode) = EosCmd::exec($cmd);
+		if($errCode === 0)
+		{
+			return $result;
+		}
+	
+		return false;
 	}
 	
 	public static function createVersionFolder($eosPath)
