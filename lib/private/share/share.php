@@ -2518,8 +2518,8 @@ class Share extends Constants {
 			$ocParentPath = \OC\Files\ObjectStore\EosProxy::toOc($parentPath);
 			$ocParentPath = substr($ocParentPath, 5); // remove "files" from the beggining of the path
 			
-			$tempFileTarget = trim($shareData['fileTarget'] . " (#" . $shareData['itemSource'] . ")", '/');
-			$shareData['fileTarget'] = '/' . trim($ocParentPath . $tempFileTarget, '/');
+			$tempFileTarget = trim(basename($eosMeta['eospath']) . " (#" . $shareData['itemSource'] . ")", '/');
+			$shareData['fileTarget'] = '/' . $tempFileTarget;
 			
 			/** CERNBOX TEMPORAL PATCH: SHARE WITH SYMLINKS FOR SWAN PROTOTYPE */
 			if($shareData['shareType'] == 0)
