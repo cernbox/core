@@ -248,7 +248,7 @@ class Instance implements IInstance {
 	public function getPathById($username, $id) {
 		$entry = $this->getById($username, $id);
 		if (!$entry) {
-			return false;
+			return null;
 		}
 		return $entry->getPath();
 	}
@@ -501,22 +501,29 @@ class Instance implements IInstance {
 		return new ACLManager($eosSysACL);
 	}
 
+	// get a Cache entry by id relative to this storage
 	private function getById($username, $id) {
+		list($uid, ) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$command = "file info inode:$id -m";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
 		if($errorCode !== 0) {
-			return false;
+			return null;
 		} else {
 			$lineToParse = $result[0];
 			$eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
 			if(!$eosMap['eos.file']) {
-				return false;
+				return null;
 			}
-
 			$ownCloudMap= $this->getOwnCloudMapFromEosMap($username, $eosMap);
-			$entry = new CacheEntry($ownCloudMap);
-			return $entry;
+
+			// check if the file is owned by user triggering the call ?
+			if($uid === (int)$ownCloudMap['eos.uid']) {
+				$this->logger->critical("xstorage " . $uid . "==" . (int)$ownCloudMap['eos.uid']);
+				return new CacheEntry($ownCloudMap);
+			}
+			$this->logger->warning("xstorage access to file id in other storage. username($username) uid($uid), eospath:(" . $eosMap['eos.file']). ") owneruid(" . $eosMap['eos.uid'] . ")";
+			return null;
 		}
 	}
 

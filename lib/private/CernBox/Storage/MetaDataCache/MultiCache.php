@@ -22,17 +22,21 @@ use OCP\Files\Cache\ICacheEntry;
 class MultiCache implements IMetaDataCache {
 
 	/** @var IMetaDataCache[] list of enabled caches */
-	private $caches;
+	private $caches = array();
 
 	/**
 	 * MultiCache constructor.
+	 *
+	 * @param array $caches
 	 */
 	public function __construct($caches) {
-		// lowest number => higher priority
-		$priority = 0;
-		foreach($caches as $cache) {
-			$this->caches[$priority] = $cache;
-			$priority++;
+		if(count($caches) > 0) {
+			// lowest number => higher priority
+			$priority = 0;
+			foreach($caches as $cache) {
+				$this->caches[$priority] = $cache;
+				$priority++;
+			}
 		}
 	}
 

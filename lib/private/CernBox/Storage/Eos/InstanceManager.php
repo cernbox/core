@@ -176,9 +176,16 @@ class InstanceManager implements  IInstance {
 	/**
 	 * @param $username
 	 * @param $ocPath
-	 * @return CacheEntry
+	 * @return CacheEntry | false
 	 */
 	public function get($username, $ocPath) {
+		if(is_int($ocPath)) {
+			$ocPath = $this->getPathById($username, $ocPath);
+			if($ocPath === null) {
+				return false;
+			}
+		}
+
 		$key = $this->currentInstance->getId() . ":" . $username . ":" . $ocPath;
 		$cachedData = $this->metaDataCache->getCacheEntry($key);
 		if($cachedData !== null) {
@@ -188,7 +195,7 @@ class InstanceManager implements  IInstance {
 		$this->logger->info("cache miss for $key");
 		$entry = $this->currentInstance->get($username, $ocPath);
 		if(!$entry) {
-			return null;
+			return false;
 		} else {
 			$this->metaDataCache->setCacheEntry($key, $entry);
 			return $entry;
@@ -228,7 +235,7 @@ class InstanceManager implements  IInstance {
 				$this->metaDataCache->setPathById($key, $ocPath);
 				return $this->currentInstance->getFolderContents($username, $ocPath);
 			} else {
-				return null;
+				return array();
 			}
 		}
 	}

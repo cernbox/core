@@ -72,4 +72,9 @@ class NullScanner implements IScanner
        throw new Exception('Not supported');
     }
 
+    // TODO(labkode) NOT DEFINED IN INTERFACE
+	// {"reqId":"WDQILALj-KbowSnG89c9ggAAAA0","remoteAddr":"::1","app":"PHP","message":"Call to undefined method OC\\CernBox\\Storage\\Eos\\NullScanner::listen() at \/var\/www\/html\/core\/lib\/private\/Files\/Utils\/Scanner.php#100","level":3,"time":"2016-11-22T08:56:20+00:00","method":"GET","url":"\/core\/cron.php","user":"--"}
+	public function listen() {
+
+	}
 }
