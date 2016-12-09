@@ -232,7 +232,9 @@ class Preview {
 	 * @return false|Files\FileInfo|\OCP\Files\FileInfo
 	 */
 	protected function getFileInfo() {
-		return $this->info;
+		if ($this->info) {
+			return $this->info;
+		}
 		$absPath = $this->fileView->getAbsolutePath($this->file);
 		$absPath = Files\Filesystem::normalizePath($absPath);
 		if (array_key_exists($absPath, self::$deleteFileMapper)) {
