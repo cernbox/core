@@ -358,6 +358,11 @@ class CustomLocal
 						continue;
 					}
 				}
+
+				// Add first slash in file_target if file_target does not start with it.
+				if(strpos($row['file_target'], '/') === false) {
+					$row['file_target'] = '/' . $row['file_target'];
+				}
 				
 				// CACHE STORAGE ID
 				$queryStorages = \OC_DB::prepare('SELECT numeric_id FROM oc_storages WHERE id = ?');
