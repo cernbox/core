@@ -209,6 +209,12 @@ final class EosUtil {
 			$token = $_POST['dirToken'];
 		}
 		
+		// for public folder creation the token is passed in 'token' param
+		if(!$token && isset($_POST['token']))
+		{
+			$token = $_POST['token'];
+		}
+
 		if(!$token && strpos($uri, 'galleryplus') !== FALSE)
 		{
 			$parts = explode('/', $uri);
