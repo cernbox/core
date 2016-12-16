@@ -52,20 +52,19 @@ class EosInstanceManager
 		}
 		
 		$instance = json_decode(Redis::readFromCacheMap(self::EOS_MAPPING_REDIS_KEY, $id), TRUE);
-		if(!$instance || $instance === NULL)
-		{
-			$temp = self::loadCacheFromDB();
-			if(isset($temp[$id]))
-			{
-				$instance = $temp[$id];
-			}
+		if($instance) {
+			return $instance;
 		}
-		else
+
+		$temp = self::loadCacheFromDB();
+		if(isset($temp[$id]))
 		{
-			\OCP\Util::writeLog('EOS INSTANCES', 'Could not find instance with id ' . $id, \OCP\Util::ERROR);
+			$instance = $temp[$id];
+			return $instance;
 		}
 	
-		return $instance;
+		\OCP\Util::writeLog('EOS INSTANCES', 'Could not find instance with id ' . $id, \OCP\Util::ERROR);
+		return null;
 	}
 	
 	public static function setUserInstance($id)

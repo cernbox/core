@@ -1105,7 +1105,15 @@ final class EosUtil {
 				
 				//$itemEosPath = escapeshellarg(rtrim($data['eospath'], '/'));
 
-
+				
+				// FIX: if the current instance is not EOSUSER means that
+				// the request comes from EOS Browser so we only give RO permissions
+				// This is a horrible hack, it hurts the eyes ... this cannot be in 9.
+				$loadedInstance =  EosInstanceManager::getUserInstance();
+				\OCP\Util::writeLog('EOSINSTANCE', "getFolderContents: loaded instance is: " . $loadedInstance, \OCP\Util::ERROR);
+				if ($loadedInstance !== "-2" ) {
+					$data['permissions'] = 1;
+				}
 				EosCacheManager::setFileByEosPath($data['eospath'], $data);
 				EosCacheManager::setFileById($data['fileid'], $data);
 			}
