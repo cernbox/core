@@ -40,9 +40,9 @@ class EosCmd {
 		}
 		
 		if($errcode === 0) {
-			\OCP\Util::writeLog('EOSCMD', "luser: $user cmd:$cmd errcode:$errcode", \OCP\Util::WARN);
+			\OCP\Util::writeLog('EOSCMD', "luser: $user cmd:$fullCmd errcode:$errcode", \OCP\Util::WARN);
 		} else {
-			\OCP\Util::writeLog('EOSCMD', "luser: $user cmd:$cmd errcode:$errcode", \OCP\Util::ERROR);
+			\OCP\Util::writeLog('EOSCMD', "luser: $user cmd:$fullCmd errcode:$errcode", \OCP\Util::ERROR);
 		}
 		return array($result, $errcode);
 	}

@@ -17,6 +17,7 @@ use OC\Files\ObjectStore\EosParser;
 use OC\Files\ObjectStore\EosProxy;
 use OC\Files\ObjectStore\EosCmd;
 use OC\Files\ObjectStore\EosCacheManager;
+use OC\Files\ObjectStore\EosInstanceManager;
 use OC\Files\Cache\Storage;
 
 /**
@@ -156,7 +157,14 @@ class EosCache {
 				return false;
 			}
 			$data["storage"] = $this->storageId;
-			//$data["permissions"] = 31;
+			// FIX: if the current instance is not EOSUSER means that
+			// the request comes from EOS Browser so we only give RO permissions
+			// This is a horrible hack, it hurts the eyes ... this cannot be in 9.
+			$loadedInstance =  EosInstanceManager::getUserInstance();
+			\OCP\Util::writeLog('get: EOSINSTANCE', "loaded instance is: " . $loadedInstance, \OCP\Util::ERROR);
+			if ($loadedInstance !== "-2" ) {
+				$data['permissions'] = 1;	
+			}
 			EosCacheManager::setFileByEosPath($eosPath, $data);
 			return $data;
 		}
@@ -177,10 +185,12 @@ class EosCache {
 			return false;
 		}
 		
-		return EosUtil::getFolderContents($eosPath, function(array &$data)
+		$contents = EosUtil::getFolderContents($eosPath, function(array &$data)
 		{
 			$data['storage'] = $this->storageId;
 		}, $deep);
+		return $contents;
+
 	}
 
 	/**
