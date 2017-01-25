@@ -31,6 +31,12 @@ class UserSession extends Session {
 	}
 
 	protected function prepareUserLogin() {
+		// is Eos storage is not enabled we don't do anything.
+		if(!\OC::$server->getConfig()->getSystemValue('eosstore')) {
+			parent::prepareUserLogin();
+			return;
+		}
+
 		// Refresh the token
 		\OC::$server->getCsrfTokenManager()->refreshToken();
 
