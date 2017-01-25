@@ -7,23 +7,18 @@ use OCP\IUserBackend;
 use OCP\UserInterface;
 
 class UserBackend implements UserInterface, IUserBackend {
-	private $users = array();
+	private $users;
+	private $logger;
 
-	public function __construct() {
-		$this->users = array(
-			array(
-				'uid' => 'labradorsvc',
-				'password' => 'testor',
-				'display_name' => 'Labrador Service Account'
-			),
-			array(
-				'uid' => 'ourense',
-				'password' => 'test',
-				'display_name' => 'Ourense Is Good'
-			),
-		);
-
-		// add the group backend
+	public function __construct($userList) {
+		$this->logger = \OC::$server->getLogger();
+		$users = array();
+		foreach(explode(",", $userList) as $user) {
+			$tokens = explode(":", $user);
+			$user = array("uid"=> $tokens[0], "password" => $tokens[1], "display_name" => $tokens[2]);
+			$users[] = $user;
+		}
+		$this->users = $users;
 		\OC::$server->getGroupManager()->clearBackends();
 		\OC::$server->getGroupManager()->addBackend(new GroupBackend());
 	}
@@ -96,6 +91,7 @@ class UserBackend implements UserInterface, IUserBackend {
 	 */
 	// NOT IN INTERFACE
 	public function checkPassword($uid, $password) {
+		$this->logger->info(sprintf("checkPassword for uid=%s", $uid));
 		foreach($this->users as $user) {
 			if($user['uid'] === $uid && $user['password'] === $password) {
 				return $user['uid'];
