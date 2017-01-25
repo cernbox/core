@@ -40,19 +40,21 @@ class InstanceManager implements  IInstance {
 		$this->logger = \OC::$server->getLogger();
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 
-		// instantiate all the eos instances defined on the configuration file.
+		// instantiate all the eos instances defined on the configuration files.
 		$eosInstances = \OC::$server->getConfig()->getSystemValue("eosinstances");
-		foreach($eosInstances as $instanceId => $instanceConfig) {
-			$instance = new Instance($instanceId, $instanceConfig);
-			$this->instances[$instance->getId()] = $instance;
+		if($eosInstances) {
+			foreach($eosInstances as $instanceId => $instanceConfig) {
+				$instance = new Instance($instanceId, $instanceConfig);
+				$this->instances[$instance->getId()] = $instance;
+			}
+
+			// register instance for home directories
+			$homeDirectoryInstance = \OC::$server->getConfig()->getSystemValue("eoshomedirectoryinstance");
+			$this->homeDirectoryInstance = $this->instances[$homeDirectoryInstance];
+
+			// TODO: load current instance based on URI or Redis Cache.
+			$this->currentInstance = $this->homeDirectoryInstance;
 		}
-
-		// register instance for home directories
-		$homeDirectoryInstance = \OC::$server->getConfig()->getSystemValue("eoshomedirectoryinstance");
-		$this->homeDirectoryInstance = $this->instances[$homeDirectoryInstance];
-
-		// TODO: load current instance based on URI or Redis Cache.
-		$this->currentInstance = $this->homeDirectoryInstance;
 	}
 
 	public function loadInstancesFromDataBase() {
