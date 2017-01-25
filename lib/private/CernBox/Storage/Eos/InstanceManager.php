@@ -322,5 +322,10 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->isUserMemberOfGroup($username, $group);
 	}
 
+	public function createHome($username) {
+		$this->logger->debug("unit(InstanceManager) method(createHome) username($username)");
+		return $this->currentInstance->createHome($username);
+	}
+
 
 }

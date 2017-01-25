@@ -23,6 +23,7 @@ interface IInstance {
 	public function get($username, $ocPath);
 	public function getFolderContents($username, $ocPath);
 	public function getPathById($username, $id);
+	public function createHome($username);
 
 	/**
 	 * @param $username
