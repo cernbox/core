@@ -7,7 +7,6 @@ use OCP\Constants;
 use OCP\Files\Cache\ICacheEntry;
 
 class Instance implements IInstance {
-
 	const READ_BUFFER_SIZE = 8192;
 	const VERSIONS_PREFIX = ".sys.v#.";
 
@@ -20,17 +19,30 @@ class Instance implements IInstance {
 	private $filterRegex;
 	private $projectPrefix;
 	private $stagingDir;
+	private $homeDirScript;
 
 	private $metaDataCache;
 	private $logger;
 	private $shareUtil;
 
+	/**
+	 * Instance constructor.
+	 * When calling a method on an Instance object be sure to
+	 * determine beforehand that the passed $username has a valid
+	 * uid and gid.
+	 * Checks for valid uid and gid are not done in this class for performance
+	 * reasons.
+	 *
+	 * @param $id
+	 * @param $instanceConfig
+	 *
+	 */
 	public function __construct($id, $instanceConfig) {
 		$this->logger = \OC::$server->getLogger();
 		$this->shareUtil = \OC::$server->getCernBoxShareUtil();
 
 		$this->id = $id;
-		$this->name= $instanceConfig['name'];
+		$this->name = $instanceConfig['name'];
 		$this->mgmUrl = $instanceConfig['mgmurl'];
 		$this->prefix = $instanceConfig['prefix'];
 		$this->metaDataPrefix = $instanceConfig['metadatadir'];
@@ -38,6 +50,7 @@ class Instance implements IInstance {
 		$this->filterRegex = $instanceConfig['filterregex'];
 		$this->projectPrefix = $instanceConfig['projectprefix'];
 		$this->stagingDir = $instanceConfig['stagingdir'];
+		$this->homeDirScript = $instanceConfig['homedirscript'];
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
@@ -88,8 +101,8 @@ class Instance implements IInstance {
 		$eosPath = escapeshellarg($eosPath);
 		$command = "mkdir -p $eosPath";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -102,8 +115,8 @@ class Instance implements IInstance {
 		$eosPath = escapeshellarg($eosPath);
 		$command = "rm -r $eosPath";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -115,23 +128,23 @@ class Instance implements IInstance {
 		$eosPath = $translator->toEos($ocPath);
 
 		$entry = $this->get($username, $ocPath);
-		if(!$entry) {
+		if (!$entry) {
 			return false;
 		}
 
 		// try to read the file from the local caching area first.
 		$localCachedFile = $this->stagingDir . "/eosread:" . $entry->getId() . ":" . $entry->getMTime();
-		if(file_exists($localCachedFile)) {
+		if (file_exists($localCachedFile)) {
 			$this->logger->info("downloading file from local caching area");
 			return fopen($localCachedFile, 'r');
 		}
 
-		$xrdSource= escapeshellarg($this->mgmUrl . "//". $eosPath);
+		$xrdSource = escapeshellarg($this->mgmUrl . "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "xrdcopy -f $xrdSource $localCachedFile -OSeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->execRaw($rawCommand);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->execRaw($rawCommand);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return fopen($localCachedFile, 'r');
@@ -145,7 +158,7 @@ class Instance implements IInstance {
 		$tempFileForLocalWriting = tempnam($this->stagingDir, "eostempwrite");
 		$handle = fopen($tempFileForLocalWriting, 'w');
 
-		while(!feof($stream)){
+		while (!feof($stream)) {
 			$data = fread($stream, self::READ_BUFFER_SIZE);
 			fwrite($handle, $data);
 		}
@@ -156,8 +169,8 @@ class Instance implements IInstance {
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->execRaw($rawCommand);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->execRaw($rawCommand);
+		if ($errorCode !== 0) {
 			unlink($tempFileForLocalWriting);
 			return false;
 		} else {
@@ -173,8 +186,8 @@ class Instance implements IInstance {
 		$toEosPath = escapeshellarg($toEosPath);
 		$command = "file rename $fromEosPath $toEosPath";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -198,20 +211,20 @@ class Instance implements IInstance {
 		$command = "file info $eosPath -m";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			$lineToParse = $result[0];
 			$eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
-			if(!$eosMap['eos.file']) {
+			if (!$eosMap['eos.file']) {
 				return false;
 			}
 
-			$ownCloudMap= $this->getOwnCloudMapFromEosMap($username, $eosMap);
+			$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
 			$entry = new CacheEntry($ownCloudMap);
 			return $entry;
 		}
-    }
+	}
 
 	/**
 	 * @param $username
@@ -225,17 +238,17 @@ class Instance implements IInstance {
 		$command = "find --fileinfo --maxdepth 1 $eosPathEscaped";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			$entries = array();
 			$this->logger->debug("eospath=$eosPath");
-			foreach($result as $lineToParse) {
+			foreach ($result as $lineToParse) {
 				$eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
-				if($eosMap['eos.file']) {
+				if ($eosMap['eos.file']) {
 					// find also returns the directory
 					// asked to be listed, so we filter it.
-					if(trim($eosMap['eos.file'], '/') !== trim($eosPath, '/')) {
+					if (trim($eosMap['eos.file'], '/') !== trim($eosPath, '/')) {
 						$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
 						$entries[] = new CacheEntry($ownCloudMap);
 					}
@@ -258,14 +271,14 @@ class Instance implements IInstance {
 	 * @return ICacheEntry[] returns ICacheEntries with version information
 	 */
 	public function getDeletedFiles($username) {
-		$deletedEntries= array();
+		$deletedEntries = array();
 		$command = "recycle ls -m";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
-		if($errorCode === 0) {
-			foreach($result as $lineToParse) {
+		if ($errorCode === 0) {
+			foreach ($result as $lineToParse) {
 				$recycleMap = CLIParser::parseRecycleLSMResponse($lineToParse);
-				if(count($recycleMap) > 0) {
+				if (count($recycleMap) > 0) {
 					$ownCloudRecycleMap = $this->getOwnCloudRecycleMapFromEosRecycleMap($username, $recycleMap);
 					$deletedEntry = new DeletedEntry($ownCloudRecycleMap);
 					$deletedEntries[] = $deletedEntry;
@@ -302,7 +315,7 @@ class Instance implements IInstance {
 	public function restoreDeletedFile($username, $key) {
 		$command = "recycle restore $key";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->exec($command);
+		list(, $errorCode) = $commander->exec($command);
 		return $errorCode;
 	}
 
@@ -314,7 +327,7 @@ class Instance implements IInstance {
 	public function purgeAllDeletedFiles($username) {
 		$command = "recycle purge";
 		$commander = $this->getCommander($username);
-		list(,$errorCode) = $commander->exec($command);
+		list(, $errorCode) = $commander->exec($command);
 		return $errorCode !== 0 ? false : true;
 	}
 
@@ -333,10 +346,10 @@ class Instance implements IInstance {
 
 		$versions = array();
 		$entries = $this->getFolderContents($username, $ocPathWithVersionPrefix);
-		if($entries) {
-			foreach($entries as $entry) {
+		if ($entries) {
+			foreach ($entries as $entry) {
 				// filter the version folder to be output to the user.
-				if($entry->getMimeType() !== 'httpd/unix-directory') {
+				if ($entry->getMimeType() !== 'httpd/unix-directory') {
 					// we also pass the path to the current file
 					$entry['current_revision_path'] = $ocPath;
 					$entry['revision'] = $entry->getName();
@@ -354,7 +367,7 @@ class Instance implements IInstance {
 		$command = "file versions $eosPathEscaped $version";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -374,11 +387,11 @@ class Instance implements IInstance {
 
 	public function addUserToFolderACL($username, $allowedUser, $ocPath, $ocPermissions) {
 		$entry = $this->get($username, $ocPath);
-		if(!$entry) {
+		if (!$entry) {
 			return false;
 		}
 
-		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+		$eosSysAcl = isset($entry['eos.sys.acl']) ? $entry['eos.sys.acl'] : "";
 
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
@@ -389,8 +402,8 @@ class Instance implements IInstance {
 		$eosPath = escapeshellarg($entry['eos.file']);
 		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
 		$commander = $this->getCommander('root');
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -399,11 +412,11 @@ class Instance implements IInstance {
 
 	public function removeUserFromFolderACL($username, $allowedUser, $ocPath) {
 		$entry = $this->get($username, $ocPath);
-		if(!$entry) {
+		if (!$entry) {
 			return false;
 		}
 
-		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+		$eosSysAcl = isset($entry['eos.sys.acl']) ? $entry['eos.sys.acl'] : "";
 
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
@@ -413,8 +426,8 @@ class Instance implements IInstance {
 		$eosPath = escapeshellarg($entry['eos.file']);
 		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
 		$commander = $this->getCommander('root');
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -423,11 +436,11 @@ class Instance implements IInstance {
 
 	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
 		$entry = $this->get($username, $ocPath);
-		if(!$entry) {
+		if (!$entry) {
 			return false;
 		}
 
-		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+		$eosSysAcl = isset($entry['eos.sys.acl']) ? $entry['eos.sys.acl'] : "";
 
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
@@ -439,8 +452,8 @@ class Instance implements IInstance {
 		$eosPath = escapeshellarg($entry['eos.file']);
 		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
 		$commander = $this->getCommander('root');
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -449,11 +462,11 @@ class Instance implements IInstance {
 
 	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {
 		$entry = $this->get($username, $ocPath);
-		if(!$entry) {
+		if (!$entry) {
 			return false;
 		}
 
-		$eosSysAcl = isset($entry['eos.sys.acl'])? $entry['eos.sys.acl'] : "";
+		$eosSysAcl = isset($entry['eos.sys.acl']) ? $entry['eos.sys.acl'] : "";
 
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
@@ -463,8 +476,8 @@ class Instance implements IInstance {
 		$eosPath = escapeshellarg($entry['eos.file']);
 		$command = "attr -r set sys.acl=$newEosSysACL $eosPath";
 		$commander = $this->getCommander('root');
-		list(,$errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			return true;
@@ -475,21 +488,61 @@ class Instance implements IInstance {
 		$command = "member $group";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		if ($errorCode !== 0) {
 			return false;
 		} else {
 			$lineToParse = $result[0];
 			$memberMap = CLIParser::parseMemberResponse($lineToParse);
-			foreach($memberMap as $entry) {
-				if($entry['user'] === $username &&
+			foreach ($memberMap as $entry) {
+				if ($entry['user'] === $username &&
 					$entry['egroup'] === $group &&
-					$entry['member'] ===  'true'
+					$entry['member'] === 'true'
 				) {
 					return true;
 				}
 			}
 			return false;
 		}
+	}
+
+	public function createHome($username) {
+		list($uid,) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
+
+		// check that the needed parameters are supplied
+		if (empty($this->homeDirScript) || empty($this->mgmUrl) || empty($this->prefix) || empty($this->recycleDir)) {
+			$this->logger->critical("error creating homedir, missing instance parameters: homedirscript=%s mgmurl=%s prefix=%s recycledir=%s",
+				$this->homeDirScript, $this->mgmUrl, $this->prefix, $this->recycleDir);
+			return false;
+		}
+
+		// check if the user already has a home
+		$code = -1;
+		do {
+			$code = $this->stat($username, 'files');
+			usleep(5000000); // 0.5 seconds
+		} while ($code !== 0 && $code !== 14);
+
+		if ($code === 0) {
+			$this->logger->info(sprintf("user=%s has a valid homedir", $username));
+			return true;
+		}
+
+		// the user does not a valid home directory so we try to create it
+		// calling the configured script so sites can have their own
+		// requirements (quotas, permissions) for their deployments.
+		$this->logger->error(sprintf("user=%s does not have a valid homedir", $username));
+
+		$result = null;
+		$errorCode = null;
+		$command = sprintf("/bin/bash %s %s %s %s %s",
+		$this->homeDirScript, $this->mgmUrl, $this->prefix, $this->recycleDir, $username);
+		exec($command, $result, $errorCode);
+		$this->logger->info(sprintf("homedirscript called: command:%s  returncode=%d result=%s", $command, $errorCode, $result));
+		if ($errorCode === 0) {
+			return true;
+		}
+		$this->logger->critical(sprintf("error creating homedir for user=%s command=%s", $username, $command));
+		return false;
 	}
 
 
@@ -503,30 +556,45 @@ class Instance implements IInstance {
 
 	// get a Cache entry by id relative to this storage
 	private function getById($username, $id) {
-		list($uid, ) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
+		list($uid,) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$command = "file info inode:$id -m";
 		$commander = $this->getCommander($username);
 		list($result, $errorCode) = $commander->exec($command);
-		if($errorCode !== 0) {
+		if ($errorCode !== 0) {
 			return null;
 		} else {
 			$lineToParse = $result[0];
 			$eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
-			if(!$eosMap['eos.file']) {
+			if (!$eosMap['eos.file']) {
 				return null;
 			}
-			$ownCloudMap= $this->getOwnCloudMapFromEosMap($username, $eosMap);
+			$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
 
 			// check if the file is owned by user triggering the call ?
-			if($uid === (int)$ownCloudMap['eos.uid']) {
+			if ($uid === (int)$ownCloudMap['eos.uid']) {
 				$this->logger->critical("xstorage " . $uid . "==" . (int)$ownCloudMap['eos.uid']);
 				return new CacheEntry($ownCloudMap);
 			}
-			$this->logger->warning("xstorage access to file id in other storage. username($username) uid($uid), eospath:(" . $eosMap['eos.file']). ") owneruid(" . $eosMap['eos.uid'] . ")";
+			$this->logger->warning("xstorage access to file id in other storage. username($username) uid($uid), eospath:(" . $eosMap['eos.file']) . ") owneruid(" . $eosMap['eos.uid'] . ")";
 			return null;
 		}
 	}
 
+
+	/**
+	 * @param $username
+	 * @param $ocPath
+	 * @return int eos error code (14 => file does not exists, 0 => file exists)
+	 */
+	private function stat($username, $ocPath) {
+		$translator = $this->getTranslator($username);
+		$eosPath = $translator->toEos($ocPath);
+		$eosPath = escapeshellarg($eosPath);
+		$command = "stat $eosPath";
+		$commander = $this->getCommander($username);
+		list(, $errorCode) = $commander->exec($command);
+		return $errorCode;
+	}
 
 	private function getTranslator($username) {
 		$translator = new Translator($username, $this);
@@ -553,7 +621,7 @@ class Instance implements IInstance {
 		$eosMap['unencrypted_size'] = $eosMap['size'];
 		$eosMap['name'] = basename($eosMap['path']);
 
-		if(isset($eosMap['eos.container'])) {
+		if (isset($eosMap['eos.container'])) {
 			$eosMap['mimetype'] = "httpd/unix-directory";
 			$eosMap['size'] = $eosMap['eos.treesize'];
 		} else {
@@ -573,6 +641,4 @@ class Instance implements IInstance {
 		$recycleMap['mtime'] = basename($recycleMap['eos.deletion-time']);
 		return $recycleMap;
 	}
-
-
 }
