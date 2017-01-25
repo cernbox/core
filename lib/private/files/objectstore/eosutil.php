@@ -582,7 +582,9 @@ final class EosUtil {
 	}
 	
 	// checks if a user is member or not of an egroup
+	// this command is executed agains the slave as it is very aggresive
 	public static function isMemberOfEGroup($username, $egroup) {
+		$eosSlaveInstance = \OCP\Config::getSystemValue("eos_slave_mgm_url");
 		$uidAndGid = self::getUidAndGid($username);
 		if (!$uidAndGid) {
 			return false;
@@ -590,7 +592,7 @@ final class EosUtil {
 		list($uid, $gid) = $uidAndGid;
 		$egroupEscaped = escapeshellarg($egroup);
 		$member = "eos -b -r $uid $gid member $egroupEscaped";
-		list($result, $errcode) = EosCmd::exec($member);
+		list($result, $errcode) = EosCmd::exec($member, $eosSlaveInstance);
                 if ($errcode === 0 && $result) {
                         $line_to_parse = $result[0];
                         $data = EosParser::parseMember($line_to_parse);
