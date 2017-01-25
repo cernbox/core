@@ -19,19 +19,21 @@ class DBProjectMapper implements  IProjectMapper {
 	private $infos;
 
 	public function __construct() {
-		$this->logger = \OC::$server->getLogger();
-		$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
-		$infos = array();
-		foreach($data as $projectData)
-		{
-			$project = $projectData['project_name'];
-			$relativePath = $projectData['eos_relative_path'];
-			$owner = $projectData['project_owner'];
-			$info = new ProjectInfo($project, $owner, $relativePath);
-			$infos[$project] = $info;
-		}
+		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+			$this->logger = \OC::$server->getLogger();
+			$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
+			$infos = array();
+			foreach($data as $projectData)
+			{
+				$project = $projectData['project_name'];
+				$relativePath = $projectData['eos_relative_path'];
+				$owner = $projectData['project_owner'];
+				$info = new ProjectInfo($project, $owner, $relativePath);
+				$infos[$project] = $info;
+			}
 
-		$this->infos = $infos;
+			$this->infos = $infos;
+		}
 	}
 
 	/**
