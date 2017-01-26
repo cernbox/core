@@ -961,7 +961,7 @@ final class EosUtil {
 		
 		if(!$all)
 		{
-			return null;
+			return false;
 		}
 		
 		foreach($all as $project => $data)

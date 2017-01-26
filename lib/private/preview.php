@@ -143,6 +143,20 @@ class Preview {
 			throw new \Exception('No preview providers');
 		}
 	}
+	
+	private function scan($previewPath) {
+		$infos = array();
+		$files = scandir($previewPath);
+		if($files) {
+			foreach($files as $file) {
+				$i = array();
+				$i['name'] = $file;
+				$i['path'] = rtrim($previewPath, '/') . "/$file";
+				$infos[] = $i;
+			}
+		}
+		return $infos;
+	}
 
 	/**
 	 * returns the path of the file you want a thumbnail from
@@ -186,7 +200,8 @@ class Preview {
 	 * @return string
 	 */
 	public function getThumbnailsFolder() {
-		return self::THUMBNAILS_FOLDER;
+		//return self::THUMBNAILS_FOLDER;
+		return \OC::$server->getConfig()->getSystemValue("cernbox_thumbnails_dir", "/data/thumbnails");
 	}
 
 	/**
@@ -222,6 +237,9 @@ class Preview {
 	 * @return false|Files\FileInfo|\OCP\Files\FileInfo
 	 */
 	protected function getFileInfo() {
+		if($this->info) {
+			return $this->info;
+		}
 		$absPath = $this->fileView->getAbsolutePath($this->file);
 		$absPath = Files\Filesystem::normalizePath($absPath);
 		if (array_key_exists($absPath, self::$deleteFileMapper)) {
@@ -451,7 +469,8 @@ class Preview {
 		 */
 		$previewPath = $this->getPreviewPath($fileId);
 		// We currently can't look for a single file due to bugs related to #16478
-		$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		//$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		$allThumbnails = $this->scan($previewPath);
 		list($maxPreviewWidth, $maxPreviewHeight) = $this->getMaxPreviewSize($allThumbnails);
 
 		// Only use the cache if we have a max preview
@@ -534,7 +553,7 @@ class Preview {
 	private function thumbnailSizeExists(array $allThumbnails, $name) {
 
 		foreach ($allThumbnails as $thumbnail) {
-			if ($name === $thumbnail->getName()) {
+			if ($name === $thumbnail['name']) {
 				return true;
 			}
 		}
@@ -811,7 +830,8 @@ class Preview {
 	 * @param string $cached the path to the cached preview
 	 */
 	private function getCachedPreview($fileId, $cached) {
-		$stream = $this->userView->fopen($cached, 'r');
+		//$stream = $this->userView->fopen($cached, 'r');
+		$stream = fopen($cached, 'r');
 		$this->preview = null;
 		if ($stream) {
 			$image = new \OC_Image();
@@ -1045,7 +1065,8 @@ class Preview {
 
 		} else {
 			$cachePath = $this->buildCachePath($fileId, $previewWidth, $previewHeight);
-			$this->userView->file_put_contents($cachePath, $this->preview->data());
+			//$this->userView->file_put_contents($cachePath, $this->preview->data());
+			file_put_contents($cachePath, $this->preview->data());
 		}
 	}
 
@@ -1141,7 +1162,8 @@ class Preview {
 
 				$this->preview = $preview;
 				$previewPath = $this->getPreviewPath($fileId);
-
+				
+				/*
 				if ($this->userView->is_dir($this->getThumbnailsFolder() . '/') === false) {
 					$this->userView->mkdir($this->getThumbnailsFolder() . '/');
 				}
@@ -1151,6 +1173,12 @@ class Preview {
 				}
 
 				// This stores our large preview so that it can be used in subsequent resizing requests
+				$this->storeMaxPreview($previewPath);
+				*/
+				
+				if (is_dir($previewPath) === false) {
+					mkdir($previewPath);
+				}
 				$this->storeMaxPreview($previewPath);
 
 				break 2;
@@ -1188,7 +1216,8 @@ class Preview {
 		$maxPreviewExists = false;
 		$preview = $this->preview;
 
-		$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		//$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		$allThumbnails = $this->scan($previewPath);
 		// This is so that the cache doesn't need emptying when upgrading
 		// Can be replaced by an upgrade script...
 		foreach ($allThumbnails as $thumbnail) {
@@ -1204,7 +1233,8 @@ class Preview {
 			$previewHeight = $preview->height();
 			$previewPath = $previewPath . strval($previewWidth) . '-' . strval($previewHeight);
 			$previewPath .= '-max.png';
-			$this->userView->file_put_contents($previewPath, $preview->data());
+			//$this->userView->file_put_contents($previewPath, $preview->data());
+			file_put_contents($previewPath, $preview->data());
 			$this->maxPreviewWidth = $previewWidth;
 			$this->maxPreviewHeight = $previewHeight;
 		}

@@ -31,6 +31,7 @@ abstract class Image extends Provider {
 	 * {@inheritDoc}
 	 */
 	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
+		/*
 		//get fileinfo
 		$fileInfo = $fileview->getFileInfo($path);
 		if (!$fileInfo) {
@@ -63,6 +64,28 @@ abstract class Image extends Provider {
 			return $image;
 		}
 		return false;
+		*/
+
+		$owner = $fileview->getOwner('');
+                $key = $owner . $path;
+                $xs = md5($key);
+                $thumbsDir = \OC::$server->getConfig()->getSystemValue("cernbox_thumbnails_dir", "/data/thumbnails");
+                $fileName = rtrim($thumbsDir, '/') . "/$xs";
+                if(!stat($fileName)) {
+                        $localFile = $fileview->toTmpFile($path);
+                        rename($localFile, $fileName);
+                }
+                $image = new \OC_Image();
+                $image->loadFromFile($fileName);
+		unlink($fileName);
+                $image->fixOrientation();
+                if ($image->valid()) {
+                        $image->scaleDownToFit($maxX, $maxY);
+
+                        return $image;
+                }
+                return false;
+	
 	}
 
 }
