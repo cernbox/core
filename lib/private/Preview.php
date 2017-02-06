@@ -153,6 +153,7 @@ class Preview {
 	public function setFileInfo($info) {
 		$this->info = $info;
 	}
+
 	/**
 	 * returns the path of the file you want a thumbnail from
 	 *
@@ -422,35 +423,36 @@ class Preview {
 	 * Deletes all previews of a file
 	 */
 	public function deleteAllPreviews() {
-		$thumbnailMount = $this->userView->getMount($this->getThumbnailsFolder());
-		$propagator = $thumbnailMount->getStorage()->getPropagator();
-		$propagator->beginBatch();
-
-		$toDelete = $this->getChildren();
-		$toDelete[] = $this->getFileInfo();
-
-		foreach ($toDelete as $delete) {
-			if ($delete instanceof FileInfo) {
-				/** @var \OCP\Files\FileInfo $delete */
-				$fileId = $delete->getId();
-
-				// getId() might return null, e.g. when the file is a
-				// .ocTransferId*.part file from chunked file upload.
-				if (!empty($fileId)) {
-					$previewPath = $this->getPreviewPath($fileId);
-					$this->userView->rmdir($previewPath);
-				}
-			}
-		}
-
-		$propagator->commitBatch();
+		// TODO(labkode) Delete the local file
+//		$thumbnailMount = $this->userView->getMount($this->getThumbnailsFolder());
+//		$propagator = $thumbnailMount->getStorage()->getPropagator();
+//		$propagator->beginBatch();
+//
+//		$toDelete = $this->getChildren();
+//		$toDelete[] = $this->getFileInfo();
+//
+//		foreach ($toDelete as $delete) {
+//			if ($delete instanceof FileInfo) {
+//				/** @var \OCP\Files\FileInfo $delete */
+//				$fileId = $delete->getId();
+//
+//				// getId() might return null, e.g. when the file is a
+//				// .ocTransferId*.part file from chunked file upload.
+//				if (!empty($fileId)) {
+//					$previewPath = $this->getPreviewPath($fileId);
+//					$this->userView->rmdir($previewPath);
+//				}
+//			}
+//		}
+//
+//		$propagator->commitBatch();
 	}
 
 	private function scan($previewPath) {
 		$infos = array();
 		$files = scandir($previewPath);
-		if($files) {
-			foreach($files as $file) {
+		if ($files) {
+			foreach ($files as $file) {
 				$i = array();
 				$i['name'] = $file;
 				$i['path'] = rtrim($previewPath, '/') . "/$file";
@@ -459,6 +461,7 @@ class Preview {
 		}
 		return $infos;
 	}
+
 	/**
 	 * Checks if a preview matching the asked dimensions or a bigger version is already cached
 	 *
