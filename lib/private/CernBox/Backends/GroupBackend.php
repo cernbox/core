@@ -8,19 +8,17 @@ use OCP\GroupInterface;
 
 class GroupBackend implements GroupInterface {
 
+	private $logger;
 	private $groups = array();
 
 	public function __construct() {
-		$this->groups = array(
-			array(
-				'gid' => 'cernbox-admins',
-				'users' => array('labradorsvc', 'gonzalhu'),
-			),
-			array(
-				'gid' => 'cernbox-project-labradortestproject-readers',
-				'users' => array('labradorsvc'),
-			),
-		);
+		$this->logger = \OC::$server->getLogger();
+		$groups = \OC::$server->getConfig()->getSystemValue("local_group_backend");
+		if(!$groups) {
+			$this->groups = array();
+		} else {
+			$this->groups = $groups;
+		}
 	}
 
 	public function implementsActions($actions) {
