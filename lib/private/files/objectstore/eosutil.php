@@ -12,6 +12,7 @@ final class EosUtil {
 	const REDIS_KEY_PROJECT_USER_MAP = 'project_spaces_mapping';
 
 	private static $internalScript = false;
+	public static $useSlave = false;
 	
 	public static function setInternalScriptExecution($val)
 	{
@@ -20,7 +21,12 @@ final class EosUtil {
 	
 	public static function getEosMgmUrl() 
 	{
-		
+		// if the we are asked to use the slave, we use the home directory instance
+		// gallery will not work for eos browser as it lives in another instance.
+		if(self::$useSlave) {
+			return \OCP\Config::getSystemValue("eos_slave_mgm_url");
+		}
+
 		$val = EosInstanceManager::getUserInstance();
 		
 		$eosInstance = '';
