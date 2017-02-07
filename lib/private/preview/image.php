@@ -31,38 +31,23 @@ abstract class Image extends Provider {
 	 * {@inheritDoc}
 	 */
 	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
-		//get fileinfo
-		$fileInfo = $fileview->getFileInfo($path);
-		if (!$fileInfo) {
-			return false;
-		}
+		$owner = $fileview->getOwner('');
+                $key = $owner . $path;
+                $xs = md5($key);
+                $thumbsDir = \OC::$server->getConfig()->getSystemValue("cernbox_thumbnails_dir", "/data/thumbnails");
+                $fileName = rtrim($thumbsDir, '/') . "/$xs";
+                if(!stat($fileName)) {
+                        $localFile = $fileview->toTmpFile($path);
+                        rename($localFile, $fileName);
+                }
+                $image = new \OC_Image();
+                $image->loadFromFile($fileName);
+                $image->fixOrientation();
+                if ($image->valid()) {
+                        $image->scaleDownToFit($maxX, $maxY);
 
-		$maxSizeForImages = \OC::$server->getConfig()->getSystemValue('preview_max_filesize_image', 50);
-		$size = $fileInfo->getSize();
-
-		if ($maxSizeForImages !== -1 && $size > ($maxSizeForImages * 1024 * 1024)) {
-			return false;
-		}
-
-		$image = new \OC_Image();
-
-		$useTempFile = $fileInfo->isEncrypted() || !$fileInfo->getStorage()->isLocal();
-		if ($useTempFile) {
-			$fileName = $fileview->toTmpFile($path);
-		} else {
-			$fileName = $fileview->getLocalFile($path);
-		}
-		$image->loadFromFile($fileName);
-		if ($useTempFile) {
-			unlink($fileName);
-		}
-		$image->fixOrientation();
-		if ($image->valid()) {
-			$image->scaleDownToFit($maxX, $maxY);
-
-			return $image;
-		}
-		return false;
+                        return $image;
+                }
+                return false;
 	}
-
 }

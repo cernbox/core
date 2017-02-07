@@ -88,6 +88,8 @@ class Preview {
 	 */
 	protected $info;
 
+	private $user;
+
 	/**
 	 * check if thumbnail or bigger version of thumbnail of file is cached
 	 *
@@ -117,7 +119,7 @@ class Preview {
 			$user = \OC_User::getUser();
 		}
 		$this->fileView = new \OC\Files\View('/' . $user . '/' . $root);
-		$this->userView = new \OC\Files\View('/' . $user);
+		//$this->userView = new \OC\Files\View('/' . $user);
 
 		//set config
 		$sysConfig = \OC::$server->getConfig();
@@ -142,6 +144,10 @@ class Preview {
 			\OCP\Util::writeLog('core', 'No preview providers exist', \OCP\Util::ERROR);
 			throw new \Exception('No preview providers');
 		}
+	}
+
+	public function setFileInfo($info) {
+		$this->info = $info;
 	}
 
 	/**
@@ -186,7 +192,7 @@ class Preview {
 	 * @return string
 	 */
 	public function getThumbnailsFolder() {
-		return self::THUMBNAILS_FOLDER;
+		return \OC::$server->getConfig()->getSystemValue("cernbox_thumbnails_dir", "/data/thumbnails");
 	}
 
 	/**
@@ -222,6 +228,7 @@ class Preview {
 	 * @return false|Files\FileInfo|\OCP\Files\FileInfo
 	 */
 	protected function getFileInfo() {
+		return $this->info;
 		$absPath = $this->fileView->getAbsolutePath($this->file);
 		$absPath = Files\Filesystem::normalizePath($absPath);
 		if (array_key_exists($absPath, self::$deleteFileMapper)) {
@@ -232,6 +239,21 @@ class Preview {
 
 		return $this->info;
 	}
+	
+       private function scan($previewPath) {
+               $infos = array();
+               $files = scandir($previewPath);
+               if($files) {
+                       foreach($files as $file) {
+                               $i = array();
+                               $i['name'] = $file;
+                               $i['path'] = rtrim($previewPath, '/') . "/$file";
+                               $infos[] = $i;
+                       }
+               }
+               return $infos;
+       }
+
 
 
 	/**
@@ -451,7 +473,8 @@ class Preview {
 		 */
 		$previewPath = $this->getPreviewPath($fileId);
 		// We currently can't look for a single file due to bugs related to #16478
-		$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		//$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		$allThumbnails = $this->scan($previewPath);
 		list($maxPreviewWidth, $maxPreviewHeight) = $this->getMaxPreviewSize($allThumbnails);
 
 		// Only use the cache if we have a max preview
@@ -534,7 +557,7 @@ class Preview {
 	private function thumbnailSizeExists(array $allThumbnails, $name) {
 
 		foreach ($allThumbnails as $thumbnail) {
-			if ($name === $thumbnail->getName()) {
+			if ($name === $thumbnail['name']) {
 				return true;
 			}
 		}
@@ -811,7 +834,8 @@ class Preview {
 	 * @param string $cached the path to the cached preview
 	 */
 	private function getCachedPreview($fileId, $cached) {
-		$stream = $this->userView->fopen($cached, 'r');
+		//$stream = $this->userView->fopen($cached, 'r');
+		$stream = fopen($cached, 'r');
 		$this->preview = null;
 		if ($stream) {
 			$image = new \OC_Image();
@@ -1045,7 +1069,8 @@ class Preview {
 
 		} else {
 			$cachePath = $this->buildCachePath($fileId, $previewWidth, $previewHeight);
-			$this->userView->file_put_contents($cachePath, $this->preview->data());
+			//$this->userView->file_put_contents($cachePath, $this->preview->data());
+			file_put_contents($cachePath, $this->preview->data());
 		}
 	}
 
@@ -1140,6 +1165,7 @@ class Preview {
 				}
 
 				$this->preview = $preview;
+				/*
 				$previewPath = $this->getPreviewPath($fileId);
 
 				if ($this->userView->is_dir($this->getThumbnailsFolder() . '/') === false) {
@@ -1152,6 +1178,20 @@ class Preview {
 
 				// This stores our large preview so that it can be used in subsequent resizing requests
 				$this->storeMaxPreview($previewPath);
+				*/
+				
+                               $previewPath = $this->getPreviewPath($fileId);
+
+                               if (is_dir($this->getThumbnailsFolder() . '/') === false) {
+                                       mkdir($this->getThumbnailsFolder() . '/');
+                               }
+
+                               if (is_dir($previewPath) === false) {
+                                       mkdir($previewPath);
+                               }
+
+                               // This stores our large preview so that it can be used in subsequent resizing requests
+                               $this->storeMaxPreview($previewPath);
 
 				break 2;
 			}
@@ -1188,11 +1228,12 @@ class Preview {
 		$maxPreviewExists = false;
 		$preview = $this->preview;
 
-		$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		//$allThumbnails = $this->userView->getDirectoryContent($previewPath);
+		$allThumbnails = scandir($previewPath);
 		// This is so that the cache doesn't need emptying when upgrading
 		// Can be replaced by an upgrade script...
 		foreach ($allThumbnails as $thumbnail) {
-			$name = rtrim($thumbnail['name'], '.png');
+			$name = rtrim($thumbnail, '.png');
 			if (strpos($name, 'max')) {
 				$maxPreviewExists = true;
 				break;
@@ -1204,7 +1245,8 @@ class Preview {
 			$previewHeight = $preview->height();
 			$previewPath = $previewPath . strval($previewWidth) . '-' . strval($previewHeight);
 			$previewPath .= '-max.png';
-			$this->userView->file_put_contents($previewPath, $preview->data());
+			//$this->userView->file_put_contents($previewPath, $preview->data());
+			file_put_contents($previewPath, $preview->data());
 			$this->maxPreviewWidth = $previewWidth;
 			$this->maxPreviewHeight = $previewHeight;
 		}
