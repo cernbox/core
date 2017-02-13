@@ -48,12 +48,16 @@ if ($maxX === 0 || $maxY === 0) {
 	exit;
 }
 
+// Shameless horrible hack, set mgm to talk to slave
+\OC\Files\ObjectStore\EosUtil::$useSlave = true;
+
 $info = \OC\Files\Filesystem::getFileInfo($file);
 
 if (!$info instanceof OCP\Files\FileInfo || !$always && !\OC::$server->getPreviewManager()->isAvailable($info)) {
 	\OC_Response::setStatus(404);
 } else {
 	$preview = new \OC\Preview(\OC_User::getUser(), 'files');
+	$preview->setFileInfo($info);
 	$preview->setFile($file, $info);
 	$preview->setMaxX($maxX);
 	$preview->setMaxY($maxY);
