@@ -73,6 +73,15 @@ OCA.Sharing.PublicApp = {
 		mimetypeIcon = mimetypeIcon.substring(0, mimetypeIcon.length - 3);
 		mimetypeIcon = mimetypeIcon + 'svg';
 
+		if (mimetype == 'application/pynb') {
+			var query = 'projurl=' + $("#downloadURL").val();
+			var imagePath = OC.imagePath('core', 'actions/badge_swan_white_150');
+			var image = '<img src="' + imagePath + '"></img>';
+			var link = '<a target="_blank" href="https://cern.ch/swanserver/cgi-bin/go?' + query + '">' + image + '</a>' ;
+			$("#preview").append(link);
+		}
+
+
 		var previewSupported = $('#previewSupported').val();
 
 		if (typeof FileActions !== 'undefined') {
@@ -174,7 +183,7 @@ OCA.Sharing.PublicApp = {
 				return OC.generateUrl('/apps/files_sharing/ajax/publicpreview.php?') + $.param(urlSpec);
 			};
 
-			this.fileList.updateEmptyContent = function() {
+			this.fileList.updateEmptyContent = function () {
 				this.$el.find('#emptycontent .uploadmessage').text(
 					t('files_sharing', 'You can upload into this folder')
 				);
@@ -229,7 +238,7 @@ OCA.Sharing.PublicApp = {
 			OCA.Sharing.PublicApp._saveToOwnCloud(remote, token, owner, ownerDisplayName, name, isProtected);
 		});
 
-		$('#remote_address').on("keyup paste", function() {
+		$('#remote_address').on("keyup paste", function () {
 			if ($(this).val() === '') {
 				$('#save-button-confirm').prop('disabled', true);
 			} else {
@@ -277,7 +286,7 @@ OCA.Sharing.PublicApp = {
 		var location = window.location.protocol + '//' + window.location.host + OC.webroot;
 
 		var url = remote + '/index.php/apps/files#' + 'remote=' + encodeURIComponent(location) // our location is the remote for the other server
-			+ "&token=" + encodeURIComponent(token) + "&owner=" + encodeURIComponent(owner) +"&ownerDisplayName=" + encodeURIComponent(ownerDisplayName) + "&name=" + encodeURIComponent(name) + "&protected=" + isProtected;
+			+ "&token=" + encodeURIComponent(token) + "&owner=" + encodeURIComponent(owner) + "&ownerDisplayName=" + encodeURIComponent(ownerDisplayName) + "&name=" + encodeURIComponent(name) + "&protected=" + isProtected;
 
 
 		if (remote.indexOf('://') > 0) {
