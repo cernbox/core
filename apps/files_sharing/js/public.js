@@ -73,7 +73,7 @@ OCA.Sharing.PublicApp = {
 		mimetypeIcon = mimetypeIcon.substring(0, mimetypeIcon.length - 3);
 		mimetypeIcon = mimetypeIcon + 'svg';
 
-		if (mimetype == 'application/pynb') {
+		if (mimetype == 'application/pynb' && $("input#passwordProtected").val() === "false") {
 			var query = 'projurl=' + $("#downloadURL").val();
 			var imagePath = OC.imagePath('core', 'actions/badge_swan_white_150');
 			var image = '<img src="' + imagePath + '"></img>';
