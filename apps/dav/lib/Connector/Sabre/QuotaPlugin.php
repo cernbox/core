@@ -101,7 +101,7 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 				$uri = rtrim($parentUri, '/') . '/' . $info['name'];
 			}
 			$freeSpace = $this->getFreeSpace($uri);
-			if ($freeSpace !== \OCP\Files\FileInfo::SPACE_UNKNOWN && $length > $freeSpace) {
+			if ( !($freeSpace === \OCP\Files\FileInfo::SPACE_UNKNOWN || $freeSpace === \OCP\Files\FileInfo::SPACE_UNLIMITED) && $length > $freeSpace) {
 				if (isset($chunkHandler)) {
 					$chunkHandler->cleanup();
 				}
