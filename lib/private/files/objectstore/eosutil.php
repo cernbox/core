@@ -221,7 +221,7 @@ final class EosUtil {
 			$token = $_POST['token'];
 		}
 
-		if(!$token && strpos($uri, 'galleryplus') !== FALSE)
+		if(!$token && strpos($uri, 'gallery') !== FALSE)
 		{
 			$parts = explode('/', $uri);
 			if(count($parts) < 5)
