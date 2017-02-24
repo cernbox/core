@@ -348,6 +348,12 @@ class CustomLocal
 				
 			foreach($rows as $key => $row)
 			{
+				// hide project shares from showing in the shared with me tab
+				if(strpos($row['file_target'], "/  project ") === 0) {
+					unset($rows[$key]);
+					continue;
+				}
+
 				if($row['expiration'] != null)
 				{
 					$timeStamp = strtotime($row['expiration']);

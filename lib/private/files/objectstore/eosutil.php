@@ -221,7 +221,7 @@ final class EosUtil {
 			$token = $_POST['token'];
 		}
 
-		if(!$token && strpos($uri, 'galleryplus') !== FALSE)
+		if(!$token && strpos($uri, 'gallery') !== FALSE)
 		{
 			$parts = explode('/', $uri);
 			if(count($parts) < 5)
@@ -616,7 +616,7 @@ final class EosUtil {
 			
 			    /* CERN mime types */
 			    'root' => 'application/x-root',			
-				'ipynb' => 'application/pynb',
+			    'ipynb' => 'application/pynb',
 		    		
 			    'txt' => 'text/plain',
 			    'htm' => 'text/html',
@@ -663,13 +663,16 @@ final class EosUtil {
 
 			    // ms office
 			    'doc' => 'application/msword',
+			    'docx' => 'application/msword',
 			    'rtf' => 'application/rtf',
 			    'xls' => 'application/vnd.ms-excel',
+			    'xlsx' => 'application/vnd.ms-excel',
 			    'ppt' => 'application/vnd.ms-powerpoint',
+			    'pptx' => 'application/vnd.ms-powerpoint',
 
-			    // open office
-			    'odt' => 'application/vnd.oasis.opendocument.text',
-	            	    'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
+			    // open office, open with office 365
+			    'odt' => 'application/msword',
+			    'ods' => 'application/vnd.ms-excel',
 	             );
 		    
 			$val = explode('.', $path);
