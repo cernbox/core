@@ -255,22 +255,49 @@
 			}
 			else
 			{
+				var items = [{
+					id: 'file',
+					displayName: t('files', 'Text file'),
+					templateName: t('files', 'New text file.txt'),
+					iconClass: 'icon-filetype-text',
+					fileType: 'file'
+				}, {
+					id: 'folder',
+					displayName: t('files', 'Folder'),
+					templateName: t('files', 'New folder'),
+					iconClass: 'icon-folder',
+					fileType: 'folder'
+				}];
+
+				if(OCA.WOPIViewer) {
+					items.push(
+						{
+							id: 'file',
+							displayName: t('files', 'Word'),
+							templateName: t('files', 'New document.docx'),
+							iconClass: 'icon-filetype-x-office-document',
+							fileType: 'file'
+						}, {
+							id: 'file',
+							displayName: t('files', 'Excel'),
+							templateName: t('files', 'New spreadsheet.xlsx'),
+							iconClass: 'icon-filetype-x-office-spreadsheet',
+							fileType: 'file'
+						}, {
+							id: 'file',
+							displayName: t('files', 'PowerPoint'),
+							templateName: t('files', 'New presentation.pptx'),
+							iconClass: 'icon-filetype-x-office-presentation',
+							fileType: 'file'
+
+						}
+					);
+				}
+
 				this.$el.html(this.template({
 					uploadMaxHumanFileSize: 'TODO',
 					uploadLabel: t('files', 'Upload'),
-					items: [{
-						id: 'file',
-						displayName: t('files', 'Text file'),
-						templateName: t('files', 'New text file.txt'),
-						iconClass: 'icon-filetype-text',
-						fileType: 'file'
-					}, {
-						id: 'folder',
-						displayName: t('files', 'Folder'),
-						templateName: t('files', 'New folder'),
-						iconClass: 'icon-folder',
-						fileType: 'folder'
-					}]
+					items: items
 				}));
 			}
 			
