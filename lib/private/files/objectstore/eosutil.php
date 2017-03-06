@@ -129,7 +129,11 @@ final class EosUtil {
 			}
 		} else if (strpos($eosPath, $eos_project_prefix) === 0){ // TODO: get the owner of the top level project dir
 		    $rel = substr($eosPath,strlen($eos_project_prefix));
-			$prjname = explode("/",$rel)[0];
+			$tokens = explode("/",$rel);
+			$prjname = $tokens[0];
+			if(strlen($prjname) === 1) { // means we hit a new project space with letter prefix
+				$prjname = $tokens[1];
+			}
 			$user=self::getUserForProjectName($prjname);
 			
 			if (!$user) { 
