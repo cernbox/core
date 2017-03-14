@@ -16,7 +16,7 @@ class Instance implements IInstance {
 	private $prefix;
 	private $metaDataPrefix;
 	private $recycleDir;
-	private $filterRegex;
+	private $hideRegex;
 	private $projectPrefix;
 	private $stagingDir;
 	private $homeDirScript;
@@ -47,7 +47,7 @@ class Instance implements IInstance {
 		$this->prefix = $instanceConfig['prefix'];
 		$this->metaDataPrefix = $instanceConfig['metadatadir'];
 		$this->recycleDir = $instanceConfig['recycledir'];
-		$this->filterRegex = $instanceConfig['filterregex'];
+		$this->hideRegex = $instanceConfig['hideregex'];
 		$this->projectPrefix = $instanceConfig['projectprefix'];
 		$this->stagingDir = $instanceConfig['stagingdir'];
 		$this->homeDirScript = $instanceConfig['homedirscript'];
@@ -84,7 +84,7 @@ class Instance implements IInstance {
 	}
 
 	public function getFilterRegex() {
-		return $this->filterRegex;
+		return $this->hideRegex;
 	}
 
 	public function getStagingDir() {
@@ -249,6 +249,10 @@ class Instance implements IInstance {
 					// find also returns the directory
 					// asked to be listed, so we filter it.
 					if (trim($eosMap['eos.file'], '/') !== trim($eosPath, '/')) {
+						// hide filenames that match the hideregex
+						if (preg_match("|".$this->hideRegex."|", basename($eosMap["eos.file"])) ) {
+							continue;
+						}
 						$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
 						$entries[] = new CacheEntry($ownCloudMap);
 					}
