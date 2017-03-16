@@ -296,6 +296,15 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->downloadVersion($username, $ocPath, $version);
 	}
 
+	public function getVersionsFolderForFile($username, $ocPath) {
+		return $this->currentInstance->getVersionsFolderForFile($username, $ocPath);
+	}
+
+	public function getFileFromVersionsFolder($username, $ocPath) {
+		return $this->currentInstance->getFileFromVersionsFolder($username, $ocPath);
+	}
+
+
 	/*
 	 * Share functions
 	 */

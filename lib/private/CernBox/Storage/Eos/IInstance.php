@@ -25,6 +25,9 @@ interface IInstance {
 	public function getPathById($username, $id);
 	public function createHome($username);
 
+	public function getVersionsFolderForFile($username, $ocPath);
+	public function getFileFromVersionsFolder($username, $ocPath);
+
 	/**
 	 * @param $username
 	 * @return IDeletedEntry[]

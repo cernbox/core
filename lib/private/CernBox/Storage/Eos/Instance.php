@@ -584,6 +584,41 @@ class Instance implements IInstance {
 		}
 	}
 
+	public function getVersionsFolderForFile($username, $ocPath, $forceCreation = false) {
+		$dirname = dirname($ocPath);
+		$basename = basename($ocPath);
+		$versionsFolder = sprintf("%s/.sys.v#.%s", $dirname, $basename);
+		$metaData = $this->get($username, $versionsFolder);
+
+		if(!$metaData) {
+			if($forceCreation) {
+				// TODO(labkode) create versions folder
+			} else {
+				return null;
+			}
+		}
+
+		// if there is no metadata after we tried to
+		// create the versions folder we abort
+		if(!$metaData) {
+			return null;
+		}
+		return $metaData;
+	}
+
+	public function getFileFromVersionsFolder($username, $ocPath) {
+		// the share information points to a versions folder
+		// we need to point the share back to its original file
+		$dirname = dirname($ocPath);
+		$basename= basename($ocPath);
+		if(strpos($basename, ".sys.v#.") === false) {
+			return null;
+		}
+		$basename = substr($basename, strlen(".sys.v#."));
+		$versionsPath = sprintf("%s/%s", $dirname, $basename);
+		return $this->get($username, $versionsPath);
+	}
+
 
 	/**
 	 * @param $username

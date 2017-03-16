@@ -21,6 +21,7 @@ class LinkShareProvider implements IShareProvider {
 		$this->dbConn = \OC::$server->getDatabaseConnection();
 		$this->rootFolder = $rootFolder;
 		$this->userManager = \OC::$server->getUserManager();
+		$this->instanceManager = \OC::$server->getCernBoxEosInstanceManager();
 	}
 
 	public function identifier() {
@@ -63,6 +64,18 @@ class LinkShareProvider implements IShareProvider {
 		}
 
 		// Set the file id
+		// If it is a file, we have to use the persistent versions folders instead
+		$node = $share->getNode();
+		if($node->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
+			$metaData = $this->instanceManager->getVersionsFolderForFile($share->getShareOwner(), $share->getNode()->getInternalPath());
+			if(!$metaData) {
+				throw new \Exception("cannot get versions folder for file link share");
+			}
+			$versionsFolderName = basename($metaData['path']);
+			$share->setTarget($versionsFolderName);
+			$share->setNodeId($metaData['fileid']);
+		}
+
 		$qb->setValue('item_source', $qb->createNamedParameter($share->getNode()->getId()));
 		$qb->setValue('file_source', $qb->createNamedParameter($share->getNode()->getId()));
 
@@ -146,7 +159,7 @@ class LinkShareProvider implements IShareProvider {
 				$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
 			));
 
-		$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter($shareType)));
+		$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_LINK)));
 
 		/**
 		 * Reshares for this user are shares where they are the owner.
@@ -163,7 +176,18 @@ class LinkShareProvider implements IShareProvider {
 		}
 
 		if ($node !== null) {
-			$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($node->getId())));
+			$nodeID = $node->getId();
+			// if node is not null then we are asking for the information of a
+			// particular file or folder.
+			// If it is a file we need to get the versions folder id as this is
+			// saved in the file_source sql field.
+			if($node->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
+				$metaData = $this->instanceManager->getVersionsFolderForFile($node->getOwner()->getUID(), $node->getInternalPath());
+				if($metaData) {
+					$nodeID = $metaData['fileid'];
+				}
+			}
+			$qb->andWhere($qb->expr()->eq('file_source', $qb->createNamedParameter($nodeID)));
 		}
 
 		if ($limit !== -1) {
@@ -180,6 +204,16 @@ class LinkShareProvider implements IShareProvider {
 		}
 		$cursor->closeCursor();
 
+		// now that we have all the shares we have to convert back
+		// versions folder shares to their original filename.
+		foreach($shares as $index => $share) {
+			if($share->getNodeType() === \OCP\Files\FileInfo::TYPE_FILE) {
+				$metaData = $this->instanceManager->getFileFromVersionsFolder($share->getShareOwner(), $share->getNode()->getInternalPath());
+				$parentFolder = $share->getNode()->getParent();
+				$originalNode = $parentFolder->get(basename($metaData['path']));
+				$share->setNode($originalNode);
+			}
+		}
 		return $shares;
 	}
 
@@ -250,6 +284,15 @@ class LinkShareProvider implements IShareProvider {
 			$share = $this->createShare($data);
 		} catch (InvalidShare $e) {
 			throw new ShareNotFound();
+		}
+
+		// if it is a file we have to give back
+		// the information of the original file
+		if($share->getNodeType() === \OCP\Files\FileInfo::TYPE_FILE) {
+			$metaData = $this->instanceManager->getFileFromVersionsFolder($share->getShareOwner(), $share->getNode()->getInternalPath());
+			$parentFolder = $share->getNode()->getParent();
+			$originalNode = $parentFolder->get(basename($metaData['path']));
+			$share->setNode($originalNode);
 		}
 
 		return $share;
