@@ -49,7 +49,7 @@ use OCP\Share\IProviderFactory;
 class Manager implements IManager {
 
 	/** @var IProviderFactory */
-	protected $factory;
+	private $factory;
 	/** @var ILogger */
 	private $logger;
 	/** @var IConfig */
