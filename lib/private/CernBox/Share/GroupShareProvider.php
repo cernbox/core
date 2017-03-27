@@ -378,9 +378,11 @@ class GroupShareProvider implements IShareProvider {
 
 	private function getUserGroups($username) {
 		$groups = $this->groupManager->getUserIdGroups($username);
-		return array_map(function(Group $group) {
-			$group->getGID();
-		}, $groups);
+		$gids = array();
+		foreach($groups as $group) {
+			$gids[] = $group->getGID();
+		}
+		return $gids;
 	}
 
 }

@@ -3,18 +3,21 @@
 namespace OC\CernBox\Backends;
 
 
+use Guzzle\Http\Client;
 use OC\Group\Backend;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\GroupInterface;
 
-class GroupBackend implements GroupInterface {
+class LDAPGroupBackend implements GroupInterface {
 
 	private $hostname = 'localhost';
-	private $port = 686;
-	private $bindUsername = 'test';
-	private $bindPassword = 'test';
+	private $port = 389;
 	private $baseDN;
 
-	public function __construct($hostname, $port, $bindUsername, $bindPassword, $baseDN) {
+	private $cboxgroupdBaseURL = 'http://localhost:2002/api/v1/membership';
+	private $cboxgroupdSecret = 'change me !!!';
+
+	public function __construct($hostname, $port, $baseDN, $cboxgroupdSecret, $cboxgroupdBaseURL) {
 		$this->logger = \OC::$server->getLogger();
 
 		if ($hostname) {
@@ -23,32 +26,21 @@ class GroupBackend implements GroupInterface {
 		if ($port) {
 			$this->port = $port;
 		}
-		if ($bindUsername) {
-			$this->bindUsername = $bindUsername;
-		}
-		if ($bindPassword) {
-			$this->bindPassword = $bindPassword;
-		}
 		if ($baseDN) {
 			$this->baseDN = $baseDN;
 		}
-
-		$this->logger->info(sprintf("hostname=%s port=%d bindUsername=%s bindPassword=%s baseDN=%s",
-			$this->hostname,
-			$this->port,
-			$this->bindUsername,
-			'xxxx',
-			$this->baseDN));
+		if($cboxgroupdSecret) {
+			$this->cboxgroupdSecret = $cboxgroupdSecret;
+		}
+		if($cboxgroupdBaseURL) {
+			$this->cboxgroupdBaseURL = $cboxgroupdBaseURL;
+		}
 	}
 
 	private function getLink() {
 		$ds = ldap_connect($this->hostname, $this->port);
 		if (!$ds) {
 			throw new \Exception("ldap connection does not work");
-		}
-		$bindOK = ldap_bind($ds, $this->bindUsername, $this->bindPassword);
-		if (!$bindOK) {
-			throw new \Exception("ldap binding does not work");
 		}
 		return $ds;
 	}
@@ -58,9 +50,26 @@ class GroupBackend implements GroupInterface {
 	}
 
 	public function inGroup($uid, $gid) {
+		$userGroups = $this->getUserGroups($uid);
+		foreach($userGroups as $userGroup) {
+			if($gid === $userGroup) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public function getUserGroups($uid) {
+		$client = new Client();
+		$request = $client->createRequest("GET", sprintf("%s/usergroups/%s", $this->cboxgroupdBaseURL, $uid), null, null);
+		$request->addHeader("Authorization", "Bearer " . $this->cboxgroupdSecret);
+		$response = $client->send($request);
+		if ($response->getStatusCode() == 200) {
+			$json = $response->json();
+			return $json;
+		} else {
+			throw new \Exception('req to cboxgroupd failed');
+		}
 	}
 
 	public function getGroups($search = '', $limit = -1, $offset = 0) {
@@ -68,7 +77,7 @@ class GroupBackend implements GroupInterface {
 
 		$search = trim($search);
 		// less that 3 chars is going to put a lot of load on LDAP
-		if(strlen($search) <3) {
+		if (strlen($search) < 3) {
 			return $uids;
 		}
 
@@ -91,13 +100,23 @@ class GroupBackend implements GroupInterface {
 
 	public function groupExists($gid) {
 		$group = $this->getGroup($gid);
-		if($group === false) {
+		if ($group === false) {
 			return false;
 		}
 		return true;
 	}
 
 	public function usersInGroup($gid, $search = '', $limit = -1, $offset = 0) {
+		$client = new Client();
+		$request = $client->createRequest("GET", sprintf("%s/usersingroup/%s", $this->cboxgroupdBaseURL, $gid), null, null);
+		$request->addHeader("Authorization", "Bearer " . $this->cboxgroupdSecret);
+		$response = $client->send($request);
+		if ($response->getStatusCode() == 200) {
+			$json = $response->json();
+			return $json;
+		} else {
+			throw new \Exception('req to cboxgroupd failed');
+		}
 	}
 
 	private function getSupportedActions() {
@@ -106,10 +125,10 @@ class GroupBackend implements GroupInterface {
 
 	private function getGroup($gid) {
 		$ldapLink = $this->getLink();
-		$search =  sprintf("(&(objectClass=group)(objectClass=top)(cn=%s))", $gid);
+		$search = sprintf("(&(objectClass=group)(objectClass=top)(cn=%s))", $gid);
 		$this->logger->info("filter=$search");
-		$sr = ldap_search($ldapLink, $this->baseDN,  $search, ["cn", "mail", "displayName"]);
-		if($sr === null) {
+		$sr = ldap_search($ldapLink, $this->baseDN, $search, ["cn", "mail", "displayName"]);
+		if ($sr === null) {
 			$error = ldap_error($ldapLink);
 			$this->logger->error($error);
 			throw new Exception($error);

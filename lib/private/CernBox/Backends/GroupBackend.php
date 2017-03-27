@@ -72,7 +72,7 @@ class GroupBackend implements GroupInterface {
 		foreach($this->groups as $group) {
 			foreach($group['users'] as $user) {
 				if(strpos($user, $search) !== false) {
-					$users[] = $users;
+					$users[] = $user;
 				}
 			}
 		}

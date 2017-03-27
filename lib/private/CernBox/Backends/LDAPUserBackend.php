@@ -43,7 +43,14 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 
 		// add the group backend
 		\OC::$server->getGroupManager()->clearBackends();
-		\OC::$server->getGroupManager()->addBackend(new GroupBackend());
+		\OC::$server->getGroupManager()->addBackend(
+			new LDAPGroupBackend(
+				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.hostname'),
+				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.port'),
+				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.dn'),
+				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.cboxgroupd.secret'),
+				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.cboxgroupd.baseurl'))
+		);
 	}
 
 	private function getLink() {
