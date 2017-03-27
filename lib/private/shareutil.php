@@ -29,6 +29,8 @@ class ShareUtil {
 			return;
 		}
 
+		$currentPath = "/" . trim($currentPath, '/');
+
 		/*
 		The new algorithm will apply this logic:
 		Ex: we want to share /test/L0/L1
@@ -49,7 +51,13 @@ class ShareUtil {
 			$fileID = $share['item_source'];
 			$meta = EosUtil::getFileById($fileID);
 			if ($meta) {
-				$allPaths[] = substr($meta['path'], 5); // remote files/ prefix
+				$p = "/" . trim(substr($meta['path'], 5), "/"); // remove files/ prefix
+				// If $p == '/' means the homedirectory has been shared
+				// this is the case for project spaces, so we remove it from all paths
+				// so the check for parent paths do not check for /
+				if($p !== "/") {
+					$allPaths[] = $p;
+				}
 			}
 		}
 
@@ -86,7 +94,6 @@ class ShareUtil {
 	}
 
 	private static function childrenFoldersHaveBeenShared($allPaths, $currentPath) {
-		$currentPath = $currentPath . "/";
 		foreach ($allPaths as $path) {
 			if (strpos($path, $currentPath) === 0) {
 				return $path;
