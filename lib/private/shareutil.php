@@ -55,7 +55,7 @@ class ShareUtil {
 				// If $p == '/' means the homedirectory has been shared
 				// this is the case for project spaces, so we remove it from all paths
 				// so the check for parent paths do not check for /
-				if($p !== "/") {
+				if($p !== "/" && $p !== $currentPath) {
 					$allPaths[] = $p;
 				}
 			}
