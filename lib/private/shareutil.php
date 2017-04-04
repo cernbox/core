@@ -95,7 +95,10 @@ class ShareUtil {
 
 	private static function childrenFoldersHaveBeenShared($allPaths, $currentPath) {
 		foreach ($allPaths as $path) {
-			if (strpos($path, $currentPath) === 0) {
+			// $path can be /FCC Two/Internal and $currentPath /FCC
+			// so we cannot just check that $path starts with prefix $currentPath
+			// we check that the paths to be matched ends with a /
+			if (strpos($path, $currentPath . '/') === 0) {
 				return $path;
 			}
 		}
