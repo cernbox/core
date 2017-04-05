@@ -8,7 +8,8 @@
 	}
 	
 	var TEMPLATE =
-		 '<p><b>EOS Path</b>:</p><textarea onclick="this.focus();this.select()">{{eospathText}}</textarea>';
+		 '<p><b>EOS Path</b>:</p><textarea onclick="this.focus();this.select()">{{eospathText}}</textarea>' +
+		 '<p><b>XROOTD Path</b>:</p><textarea onclick="this.focus();this.select()">{{xrootdpathText}}</textarea>';
 	
 	var ShareDialogEospath = OC.Backbone.View.extend({
 	/** @type {string} **/
@@ -48,6 +49,7 @@
 			}
 			
 			var eospathT = this.model.get('eospath');
+			var xrootdPath = this.model.get('eosmgmurl') + ":/" + this.model.get('eospath');
 			
 			if(typeof eospathT == 'undefined') 
 			{
@@ -68,7 +70,8 @@
 			var reshareTemplate = this.template();
 			
 			this.$el.html(reshareTemplate({
-				eospathText: eospathT
+				eospathText: eospathT,
+				xrootdpathText: xrootdPath
 			}));
 			
 			//this.$el.find('textarea').select();

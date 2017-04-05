@@ -69,6 +69,7 @@ class EosProxy {
 		
 		$tempOcPath = trim($tempOcPath, '/');
 		
+		/*
 		if(strpos($tempOcPath, '  project') === 0)
 		{
 			$len = strlen('  project ');
@@ -96,6 +97,7 @@ class EosProxy {
 			$project_path=  rtrim($eos_project_prefix, '/') . '/' . rtrim($projectPath, '/') . '/' . ltrim(substr($ocPath,6), '/'); #KUBA: added /
 			return $project_path;
 		}
+		*/
 		
 
 		if ($ocPath === "") {
