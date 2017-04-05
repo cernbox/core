@@ -187,6 +187,7 @@ class Helper {
 		}
 		
 		$entry['eospath'] = $i['eospath'];
+		$entry['eosmgmurl'] = $i['eosmgmurl'];
 		
 		return $entry;
 	}

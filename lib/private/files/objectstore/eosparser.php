@@ -75,6 +75,7 @@ class EosParser {
 		$data["eosuid"]			  = $info["uid"];
 		$data["eosmode"]		  = $info["mode"];
 		$data["eostype"]		  = isset($info["container"]) ? 'folder' : 'file';
+		$data["eosmgmurl"] = EosUtil::getEosMgmUrl();
 		/*
 		if(isset($info['xattrn']) && isset($info['xattrv']) && $info['xattrn'] === 'user.acl'){
 			$data["eosacl"] = $info['xattrv'];
