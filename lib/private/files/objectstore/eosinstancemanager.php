@@ -25,6 +25,9 @@ class EosInstanceManager
 	
 	public static function getAllMappings()
 	{
+		// load always from DB as redis kv pairs are not autoexpired
+		$all = self::loadCacheFromDB();
+
 		$temp = [];
 		$all = Redis::readHashFromCacheMap(self::EOS_MAPPING_REDIS_KEY);
 		if(!$all || $all === NULL)
