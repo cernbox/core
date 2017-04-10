@@ -1119,6 +1119,34 @@ describe('OCA.Files.FileList tests', function() {
 			expect(fileList.files.length).toEqual(65);
 			expect($('#fileList tr').length).toEqual(20);
 		});
+		it('renders the full first page despite hidden rows', function() {
+			filesConfig.set('showhidden', false);
+			var files = _.map(generateFiles(0, 23), function(data) {
+				return _.extend(data, {
+					name: '.' + data.name
+				});
+			});
+			// only hidden files + one visible
+			files.push(testFiles[0]);
+			fileList.setFiles(files);
+			expect(fileList.files.length).toEqual(25);
+			// render 24 hidden elements + the visible one
+			expect($('#fileList tr').length).toEqual(25);
+		});
+		it('renders the full first page despite hidden rows', function() {
+			filesConfig.set('showhidden', true);
+			var files = _.map(generateFiles(0, 23), function(data) {
+				return _.extend(data, {
+					name: '.' + data.name
+				});
+			});
+			// only hidden files + one visible
+			files.push(testFiles[0]);
+			fileList.setFiles(files);
+			expect(fileList.files.length).toEqual(25);
+			// render 20 first hidden elements as visible
+			expect($('#fileList tr').length).toEqual(20);
+		});
 		it('renders the second page when scrolling down (trigger nextPage)', function() {
 			// TODO: can't simulate scrolling here, so calling nextPage directly
 			fileList._nextPage(true);
@@ -1400,7 +1428,9 @@ describe('OCA.Files.FileList tests', function() {
 				'/../abc',
 				'/abc/..',
 				'/abc/../',
-				'/../abc/'
+				'/../abc/',
+				'/zero' + decodeURIComponent('%00') + 'byte/',
+				'/really who adds new' + decodeURIComponent('%0A') + 'lines in their paths/',
 			], function(path) {
 				fileList.changeDirectory(path);
 				expect(fileList.getCurrentDirectory()).toEqual('/');
@@ -1415,6 +1445,12 @@ describe('OCA.Files.FileList tests', function() {
 				fileList.changeDirectory(path);
 				expect(fileList.getCurrentDirectory()).toEqual(path);
 			});
+		});
+		it('switches to root dir in case of bad request', function() {
+			fileList.changeDirectory('/unexist');
+			// can happen in case of invalid chars in the URL
+			deferredList.reject(400);
+			expect(fileList.getCurrentDirectory()).toEqual('/');
 		});
 		it('switches to root dir when current directory does not exist', function() {
 			fileList.changeDirectory('/unexist');

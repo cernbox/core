@@ -687,7 +687,11 @@ class View {
 		if ($mount and $mount->getInternalPath($absolutePath) === '') {
 			return $this->removeMount($mount, $absolutePath);
 		}
-		$result = $this->basicOperation('unlink', $path, array('delete'));
+		if ($this->is_dir($path)) {
+			$result = $this->basicOperation('rmdir', $path, array('delete'));
+		} else {
+			$result = $this->basicOperation('unlink', $path, array('delete'));
+		}
 		if (!$result && !$this->file_exists($path)) { //clear ghost files from the cache on delete
 			$storage = $mount->getStorage();
 			$internalPath = $mount->getInternalPath($absolutePath);
@@ -1144,6 +1148,8 @@ class View {
 				$unlockLater = false;
 				if ($this->lockingEnabled && $operation === 'fopen' && is_resource($result)) {
 					$unlockLater = true;
+					// make sure our unlocking callback will still be called if connection is aborted
+					ignore_user_abort(true);
 					$result = CallbackWrapper::wrap($result, null, null, function () use ($hooks, $path) {
 						if (in_array('write', $hooks)) {
 							$this->unlockFile($path, ILockingProvider::LOCK_EXCLUSIVE);
