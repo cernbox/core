@@ -131,6 +131,14 @@ try {
 			'message' => $l->t('Storage invalid')
 		)
 	));
+} catch (\OCP\Files\NotPermittedException $e) {
+	\OCP\Util::logException('files', $e);
+	OCP\JSON::error(array(
+		'data' => array(
+			'exception' => '\OCP\Files\NotPermittedException',
+			'message' => $l->t('Permission denied accessing the resource or temporary storage error')
+		)
+	));
 } catch (\Exception $e) {
 	\OCP\Util::logException('files', $e);
 	OCP\JSON::error(array(
