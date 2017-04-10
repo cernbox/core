@@ -226,6 +226,37 @@ class UserShareProvider implements IShareProvider {
 		return $shares;
 	}
 
+	public function getAllSharesBy($userId, $shareTypes, $nodeIDs, $reshares) {
+		$shares = [];
+		$qb = $this->dbConn->getQueryBuilder();
+
+		$nodeIdsChunks = array_chunk($nodeIDs, 100);
+		foreach ($nodeIdsChunks as $nodeIdsChunk) {
+			$qb->select('*')
+				->from('share')
+				->andWhere($qb->expr()->orX(
+					$qb->expr()->eq('item_type', $qb->createNamedParameter('file')),
+					$qb->expr()->eq('item_type', $qb->createNamedParameter('folder'))
+				));
+
+			$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_USER)));
+			$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
+
+			$qb->andWhere($qb->expr()->in('file_source', $qb->createParameter('file_source_ids')));
+			$qb->setParameter('file_source_ids', $nodeIdsChunk, IQueryBuilder::PARAM_INT_ARRAY);
+
+			$qb->orderBy('id');
+
+			$cursor = $qb->execute();
+			while($data = $cursor->fetch()) {
+				$shares[] = $this->createShare($data);
+			}
+			$cursor->closeCursor();
+		}
+		
+		return $shares;
+	}
+
 	public function getShareById($id, $recipientId = null) {
 		$qb = $this->dbConn->getQueryBuilder();
 		$qb->select('*')

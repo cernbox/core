@@ -44,6 +44,11 @@ class LDAPGroupBackend implements GroupInterface {
 		}
 		return $ds;
 	}
+	
+	public function isVisibleForScope($scope) {
+		// TODO(labkode): what is the scope???
+		return true;
+	}
 
 	public function implementsActions($actions) {
 		return (bool)($this->getSupportedActions() & $actions);

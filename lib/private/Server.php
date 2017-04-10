@@ -800,6 +800,30 @@ class Server extends ServerContainer implements IServerContainer {
 		});
 		$this->registerAlias('OCP\IUserSession', 'UserSession');
 		$this->registerAlias('OCP\Security\ICrypto', 'Crypto');
+
+		// CernBox specific services
+		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
+			$requestCache = new RequestCache();
+			$redisCache = new RedisCache(new Redis());
+			//$multiCache = new MultiCache(array($requestCache));
+			$multiCache = new MultiCache(array($redisCache));
+			return $multiCache;
+		});
+		$this->registerService('CernBoxEosUtil', function (Server $c) {
+			return new Util($c->getCernBoxMetaDataCache());
+		});
+		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
+			return new InstanceManager();
+		});
+		$this->registerService('CernBoxShareUtil', function (Server $c) {
+			return new \OC\CernBox\Share\Util();
+		});
+		$this->registerService('CernBoxProjectMapper', function (Server $c) {
+			return new DBProjectMapper();
+		});
+		$this->registerService('CernBoxRedis', function (Server $c) {
+			return new Redis();
+		});
 	}
 
 	/**

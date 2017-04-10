@@ -79,6 +79,19 @@ class MultiShareProvider implements  IShareProvider {
 		return call_user_func_array(array($provider, __FUNCTION__), $args);
 	}
 
+
+	public function getAllSharesBy($userId, $shareTypes, $nodeIDs, $reshares) {
+		$shares = [];
+		foreach($shareTypes as $shareType) {
+			$provider = $this->getShareProvider($shareType);	
+			$providerShares = $provider->getAllSharesBy($userId, [$shareType], $nodeIDs, $reshares);
+			if(is_array($providerShares)) {
+				$shares = array_merge($shares, $providerShares);	
+			}
+		}
+		return $shares;
+	}
+
 	public function getShareById($id, $recipientId = null) {
 		$this->logger->info("getShareById id:$id recipientId:$recipientId");
 		foreach($this->providerHandlers as $type => $provider) {
