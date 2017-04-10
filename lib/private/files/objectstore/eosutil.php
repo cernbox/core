@@ -1058,7 +1058,8 @@ final class EosUtil {
 		$files = array();
 		list($result, $errcode) = EosCmd::exec($getFolderContents);
 		if ($errcode !== 0) {
-			return $files;
+			// Safe bet: always throw permission denied if the call to eos fails.
+			throw new \OCP\Files\NotPermittedException("cannot list contents of eos folder");
 		}
 
 		// we need to obtain the tree size performing an 'ls' command and merging attributes
