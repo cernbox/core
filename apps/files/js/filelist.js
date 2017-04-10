@@ -790,7 +790,8 @@
 				size: parseInt($el.attr('data-size'), 10),
 				etag: $el.attr('data-etag'),
 				permissions: parseInt($el.attr('data-permissions'), 10),
-				eospath: $el.attr('data-eospath')
+				eospath: $el.attr('data-eospath'),
+				eosmgmurl: $el.attr('data-eosmgmurl')
 			};
 			var icon = $el.attr('data-icon');
 			if (icon) {
@@ -925,6 +926,7 @@
 				path = fileData.path,
 				dataIcon = null,
 				eospath = fileData.eospath,
+				eosmgmurl = fileData.eosmgmurl,
 				linkUrl;
 			options = options || {};
 
@@ -951,7 +953,8 @@
 				"data-mtime": mtime,
 				"data-etag": fileData.etag,
 				"data-permissions": fileData.permissions || this.getDirectoryPermissions(),
-				"data-eospath": eospath
+				"data-eospath": eospath,
+				"data-eosmgmurl":eosmgmurl
 			});
 
 			if (dataIcon) {
