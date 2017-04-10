@@ -3,7 +3,7 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Felix Moeller <mail@felixmoeller.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -11,7 +11,7 @@
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -109,7 +109,7 @@ class ZIP extends Archive{
 	 */
 	function getFolder($path) {
 		$files=$this->getFiles();
-		$folderContent=array();
+		$folderContent= [];
 		$pathLength=strlen($path);
 		foreach($files as $file) {
 			if(substr($file, 0, $pathLength)==$path and $file!=$path) {
@@ -126,7 +126,7 @@ class ZIP extends Archive{
 	 */
 	function getFiles() {
 		$fileCount=$this->zip->numFiles;
-		$files=array();
+		$files= [];
 		for($i=0;$i<$fileCount;$i++) {
 			$files[]=$this->zip->getNameIndex($i);
 		}
@@ -197,7 +197,7 @@ class ZIP extends Archive{
 				$ext='';
 			}
 			$tmpFile=\OCP\Files::tmpFile($ext);
-			\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
+			\OC\Files\Stream\Close::registerCallback($tmpFile, [$this, 'writeBack']);
 			if($this->fileExists($path)) {
 				$this->extractFile($path, $tmpFile);
 			}
@@ -206,7 +206,7 @@ class ZIP extends Archive{
 		}
 	}
 
-	private static $tempFiles=array();
+	private static $tempFiles= [];
 	/**
 	 * write back temporary files
 	 */

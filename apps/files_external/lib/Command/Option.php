@@ -1,9 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 
 namespace OCA\Files_External\Command;
 
-use OCA\Files_External\Lib\StorageConfig;
+use OCP\Files\External\IStorageConfig;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -47,11 +47,11 @@ class Option extends Config {
 	}
 
 	/**
-	 * @param StorageConfig $mount
+	 * @param IStorageConfig $mount
 	 * @param string $key
 	 * @param OutputInterface $output
 	 */
-	protected function getOption(StorageConfig $mount, $key, OutputInterface $output) {
+	protected function getOption(IStorageConfig $mount, $key, OutputInterface $output) {
 		$value = $mount->getMountOption($key);
 		if (!is_string($value)) { // show bools and objects correctly
 			$value = json_encode($value);
@@ -60,12 +60,12 @@ class Option extends Config {
 	}
 
 	/**
-	 * @param StorageConfig $mount
+	 * @param IStorageConfig $mount
 	 * @param string $key
 	 * @param string $value
 	 * @param OutputInterface $output
 	 */
-	protected function setOption(StorageConfig $mount, $key, $value, OutputInterface $output) {
+	protected function setOption(IStorageConfig $mount, $key, $value, OutputInterface $output) {
 		$decoded = json_decode($value, true);
 		if (!is_null($decoded)) {
 			$value = $decoded;

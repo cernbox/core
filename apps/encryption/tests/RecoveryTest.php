@@ -2,10 +2,11 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Clark Tomlinson <fallen013@gmail.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -267,13 +268,13 @@ class RecoveryTest extends TestCase {
 
 		$this->cryptMock = $this->getMockBuilder('OCA\Encryption\Crypto\Crypt')->disableOriginalConstructor()->getMock();
 		/** @var \OCP\Security\ISecureRandom $randomMock */
-		$randomMock = $this->getMock('OCP\Security\ISecureRandom');
+		$randomMock = $this->createMock('OCP\Security\ISecureRandom');
 		$this->keyManagerMock = $this->getMockBuilder('OCA\Encryption\KeyManager')->disableOriginalConstructor()->getMock();
-		$this->configMock = $this->getMock('OCP\IConfig');
+		$this->configMock = $this->createMock('OCP\IConfig');
 		/** @var \OCP\Encryption\Keys\IStorage $keyStorageMock */
-		$keyStorageMock = $this->getMock('OCP\Encryption\Keys\IStorage');
-		$this->fileMock = $this->getMock('OCP\Encryption\IFile');
-		$this->viewMock = $this->getMock('OC\Files\View');
+		$keyStorageMock = $this->createMock('OCP\Encryption\Keys\IStorage');
+		$this->fileMock = $this->createMock('OCP\Encryption\IFile');
+		$this->viewMock = $this->createMock('OC\Files\View');
 
 		$this->configMock->expects($this->any())
 			->method('setAppValue')

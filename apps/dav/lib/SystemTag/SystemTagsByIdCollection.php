@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@ use OCP\SystemTag\ISystemTag;
 use OCP\SystemTag\TagNotFoundException;
 use OCP\IGroupManager;
 use OCP\IUserSession;
-use OC\User\NoUserException;
 
 class SystemTagsByIdCollection implements ICollection {
 

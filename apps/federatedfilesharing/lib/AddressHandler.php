@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -91,7 +92,7 @@ class AddressHandler {
 			$remote = substr($id, $pos + 1);
 			$remote = $this->fixRemoteURL($remote);
 			if (!empty($user) && !empty($remote)) {
-				return array($user, $remote);
+				return [$user, $remote];
 			}
 		}
 
@@ -127,12 +128,12 @@ class AddressHandler {
 			\OCP\Util::emitHook(
 				'\OCA\Files_Sharing\API\Server2Server',
 				'preLoginNameUsedAsUserName',
-				array('uid' => &$user1)
+				['uid' => &$user1]
 			);
 			\OCP\Util::emitHook(
 				'\OCA\Files_Sharing\API\Server2Server',
 				'preLoginNameUsedAsUserName',
-				array('uid' => &$user2)
+				['uid' => &$user2]
 			);
 
 			if ($user1 === $user2) {

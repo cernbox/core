@@ -5,7 +5,7 @@
  * @author tbelau666 <thomas.belau@gmx.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,10 +56,10 @@ class PgSqlTools {
 			$sqlInfo = 'SELECT table_schema, table_name, column_name
 				FROM information_schema.columns
 				WHERE column_default = ? AND table_catalog = ?';
-			$sequenceInfo = $conn->fetchAssoc($sqlInfo, array(
+			$sequenceInfo = $conn->fetchAssoc($sqlInfo, [
 				"nextval('$sequenceName'::regclass)",
 				$databaseName
-			));
+			]);
 			$tableName = $sequenceInfo['table_name'];
 			$columnName = $sequenceInfo['column_name'];
 			$sqlMaxId = "SELECT MAX($columnName) FROM $tableName";

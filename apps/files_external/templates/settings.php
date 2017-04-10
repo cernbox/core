@@ -1,8 +1,7 @@
 <?php
-	use \OCA\Files_External\Lib\Backend\Backend;
-	use \OCA\Files_External\Lib\Auth\AuthMechanism;
-	use \OCA\Files_External\Lib\DefinitionParameter;
-	use \OCA\Files_External\Service\BackendService;
+	use \OCP\Files\External\Backend\Backend;
+	use \OCP\Files\External\Auth\AuthMechanism;
+	use \OCP\Files\External\IStoragesBackendService;
 
 	$l->t("Enable encryption");
 	$l->t("Enable previews");
@@ -30,64 +29,27 @@
 		}
 	}
 
-	function writeParameterInput($parameter, $options, $classes = []) {
-		$value = '';
-		if (isset($options[$parameter->getName()])) {
-			$value = $options[$parameter->getName()];
-		}
-		$placeholder = $parameter->getText();
-		$is_optional = $parameter->isFlagSet(DefinitionParameter::FLAG_OPTIONAL);
-
-		switch ($parameter->getType()) {
-		case DefinitionParameter::VALUE_PASSWORD: ?>
-			<?php if ($is_optional) { $classes[] = 'optional'; } ?>
-			<input type="password"
-				<?php if (!empty($classes)): ?> class="<?php p(implode(' ', $classes)); ?>"<?php endif; ?>
-				data-parameter="<?php p($parameter->getName()); ?>"
-				value="<?php p($value); ?>"
-				placeholder="<?php p($placeholder); ?>"
-			/>
-			<?php
-			break;
-		case DefinitionParameter::VALUE_BOOLEAN: ?>
-			<?php $checkboxId = uniqid("checkbox_"); ?>
-			<div>
-			<label>
-			<input type="checkbox"
-				id="<?php p($checkboxId); ?>"
-				<?php if (!empty($classes)): ?> class="checkbox <?php p(implode(' ', $classes)); ?>"<?php endif; ?>
-				data-parameter="<?php p($parameter->getName()); ?>"
-				<?php if ($value === true): ?> checked="checked"<?php endif; ?>
-			/>
-			<?php p($placeholder); ?>
-			</label>
-			</div>
-			<?php
-			break;
-		case DefinitionParameter::VALUE_HIDDEN: ?>
-			<input type="hidden"
-				<?php if (!empty($classes)): ?> class="<?php p(implode(' ', $classes)); ?>"<?php endif; ?>
-				data-parameter="<?php p($parameter->getName()); ?>"
-				value="<?php p($value); ?>"
-			/>
-			<?php
-			break;
-		default: ?>
-			<?php if ($is_optional) { $classes[] = 'optional'; } ?>
-			<input type="text"
-				<?php if (!empty($classes)): ?> class="<?php p(implode(' ', $classes)); ?>"<?php endif; ?>
-				data-parameter="<?php p($parameter->getName()); ?>"
-				value="<?php p($value); ?>"
-				placeholder="<?php p($placeholder); ?>"
-			/>
-			<?php
-		}
-	}
 ?>
 <form id="files_external" class="section" data-encryption-enabled="<?php echo $_['encryptionEnabled']?'true': 'false'; ?>">
-	<h2><?php p($l->t('External Storage')); ?></h2>
+	<h2 class="app-name"><?php p($l->t('External Storage')); ?></h2>
+
+	<?php if ($_['visibilityType'] === IStoragesBackendService::VISIBILITY_ADMIN): ?>
+	<p>
+		<input type="checkbox" name="enableExternalStorage" id="enableExternalStorageCheckbox" class="checkbox"
+			   value="1" <?php if ($_['enableExternalStorage']) print_unescaped('checked="checked"'); ?> />
+		<label for="enableExternalStorageCheckbox">
+			<?php p($l->t('Enable external storage'));?>
+		</label>
+	</p>
+	<?php endif; ?>
+	<?php if (!$_['enableExternalStorage']): ?>
+	<p><?php p($l->t('External storage has been disabled by the administrator')); ?></p>
+	<?php endif; ?>
+
+	<div id="files_external_settings" class=" <?php if (!$_['enableExternalStorage']) print('hidden'); ?>">
+
 	<?php if (isset($_['dependencies']) and ($_['dependencies']<>'')) print_unescaped(''.$_['dependencies'].''); ?>
-	<table id="externalStorage" class="grid" data-admin='<?php print_unescaped(json_encode($_['visibilityType'] === BackendService::VISIBILITY_ADMIN)); ?>'>
+	<table id="externalStorage" class="grid" data-admin='<?php print_unescaped(json_encode($_['visibilityType'] === IStoragesBackendService::VISIBILITY_ADMIN)); ?>'>
 		<thead>
 			<tr>
 				<th></th>
@@ -95,14 +57,14 @@
 				<th><?php p($l->t('External storage')); ?></th>
 				<th><?php p($l->t('Authentication')); ?></th>
 				<th><?php p($l->t('Configuration')); ?></th>
-				<?php if ($_['visibilityType'] === BackendService::VISIBILITY_ADMIN) print_unescaped('<th>'.$l->t('Available for').'</th>'); ?>
+				<?php if ($_['visibilityType'] === IStoragesBackendService::VISIBILITY_ADMIN) print_unescaped('<th>'.$l->t('Available for').'</th>'); ?>
 				<th>&nbsp;</th>
 				<th>&nbsp;</th>
 			</tr>
 		</thead>
 		<tbody>
 			<tr id="addMountPoint"
-			<?php if ($_['visibilityType'] === BackendService::VISIBILITY_PERSONAL && $_['allowUserMounting'] === false): ?>
+			<?php if ($_['visibilityType'] === IStoragesBackendService::VISIBILITY_PERSONAL && $_['allowUserMounting'] === false): ?>
 				style="display: none;"
 			<?php endif; ?>
 			>
@@ -134,7 +96,7 @@
 				</td>
 				<td class="authentication" data-mechanisms='<?php p(json_encode($_['authMechanisms'])); ?>'></td>
 				<td class="configuration"></td>
-				<?php if ($_['visibilityType'] === BackendService::VISIBILITY_ADMIN): ?>
+				<?php if ($_['visibilityType'] === IStoragesBackendService::VISIBILITY_ADMIN): ?>
 					<td class="applicable" align="right">
 						<input type="hidden" class="applicableUsers" style="width:20em;" value="" />
 					</td>
@@ -159,7 +121,7 @@
 	</table>
 	<br />
 
-	<?php if ($_['visibilityType'] === BackendService::VISIBILITY_ADMIN): ?>
+	<?php if ($_['visibilityType'] === IStoragesBackendService::VISIBILITY_ADMIN): ?>
 		<br />
 		<input type="checkbox" name="allowUserMounting" id="allowUserMounting" class="checkbox"
 			value="1" <?php if ($_['allowUserMounting'] == 'yes') print_unescaped(' checked="checked"'); ?> />
@@ -169,18 +131,19 @@
 			<?php p($l->t('Allow users to mount the following external storage')); ?><br />
 			<?php
 				$userBackends = array_filter($_['backends'], function($backend) {
-					return $backend->isAllowedVisibleFor(BackendService::VISIBILITY_PERSONAL);
+					return $backend->isAllowedVisibleFor(IStoragesBackendService::VISIBILITY_PERSONAL);
 				});
 			?>
 			<?php $i = 0; foreach ($userBackends as $backend): ?>
 				<?php if ($deprecateTo = $backend->getDeprecateTo()): ?>
 					<input type="hidden" id="allowUserMountingBackends<?php p($i); ?>" name="allowUserMountingBackends[]" value="<?php p($backend->getIdentifier()); ?>" data-deprecate-to="<?php p($deprecateTo->getIdentifier()); ?>" />
 				<?php else: ?>
-					<input type="checkbox" id="allowUserMountingBackends<?php p($i); ?>" class="checkbox" name="allowUserMountingBackends[]" value="<?php p($backend->getIdentifier()); ?>" <?php if ($backend->isVisibleFor(BackendService::VISIBILITY_PERSONAL)) print_unescaped(' checked="checked"'); ?> />
+					<input type="checkbox" id="allowUserMountingBackends<?php p($i); ?>" class="checkbox" name="allowUserMountingBackends[]" value="<?php p($backend->getIdentifier()); ?>" <?php if ($backend->isVisibleFor(IStoragesBackendService::VISIBILITY_PERSONAL)) print_unescaped(' checked="checked"'); ?> />
 					<label for="allowUserMountingBackends<?php p($i); ?>"><?php p($backend->getText()); ?></label> <br />
 				<?php endif; ?>
 				<?php $i++; ?>
 			<?php endforeach; ?>
 		</p>
 	<?php endif; ?>
+	</div>
 </form>

@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,10 +23,10 @@
 namespace OCA\Files_External\Command;
 
 use OC\Core\Command\Base;
-use OCA\Files_External\Lib\Auth\AuthMechanism;
-use OCA\Files_External\Lib\Backend\Backend;
-use OCA\Files_External\Lib\DefinitionParameter;
-use OCA\Files_External\Service\BackendService;
+use OCP\Files\External\Auth\AuthMechanism;
+use OCP\Files\External\Backend\Backend;
+use OCP\Files\External\DefinitionParameter;
+use OCP\Files\External\IStoragesBackendService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableHelper;
@@ -37,10 +38,10 @@ use Symfony\Component\Console\Input\Input;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Backends extends Base {
-	/** @var BackendService */
+	/** @var IStoragesBackendService */
 	private $backendService;
 
-	function __construct(BackendService $backendService
+	function __construct(IStoragesBackendService $backendService
 	) {
 		parent::__construct();
 

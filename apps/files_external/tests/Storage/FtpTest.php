@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -61,11 +61,11 @@ class FtpTest extends \Test\Files\Storage\Storage {
 	}
 
 	public function testConstructUrl(){
-		$config = array ( 'host' => 'localhost',
+		$config = ['host' => 'localhost',
 						  'user' => 'ftp',
 						  'password' => 'ftp',
 						  'root' => '/',
-						  'secure' => false );
+						  'secure' => false];
 		$instance = new FTP($config);
 		$this->assertEquals('ftp://ftp:ftp@localhost/', $instance->constructUrl(''));
 

@@ -3,16 +3,16 @@
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Georg Ehrke <georg@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Piotr Filiciak <piotr@filiciak.pl>
  * @author Robin Appelman <icewind@owncloud.com>
- * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -135,10 +135,10 @@ class ShareController extends Controller {
 		$share = $this->shareManager->getShareByToken($token);
 
 		if($this->linkShareAuth($share)) {
-			return new RedirectResponse($this->urlGenerator->linkToRoute('files_sharing.sharecontroller.showShare', array('token' => $token)));
+			return new RedirectResponse($this->urlGenerator->linkToRoute('files_sharing.sharecontroller.showShare', ['token' => $token]));
 		}
 
-		return new TemplateResponse($this->appName, 'authenticate', array(), 'guest');
+		return new TemplateResponse($this->appName, 'authenticate', [], 'guest');
 	}
 
 	/**
@@ -162,10 +162,10 @@ class ShareController extends Controller {
 		$authenticate = $this->linkShareAuth($share, $password);
 
 		if($authenticate === true) {
-			return new RedirectResponse($this->urlGenerator->linkToRoute('files_sharing.sharecontroller.showShare', array('token' => $token)));
+			return new RedirectResponse($this->urlGenerator->linkToRoute('files_sharing.sharecontroller.showShare', ['token' => $token]));
 		}
 
-		return new TemplateResponse($this->appName, 'authenticate', array('wrongpw' => true), 'guest');
+		return new TemplateResponse($this->appName, 'authenticate', ['wrongpw' => true], 'guest');
 	}
 
 	/**
@@ -251,7 +251,7 @@ class ShareController extends Controller {
 	 *
 	 * @param string $token
 	 * @param string $path
-	 * @return TemplateResponse|RedirectResponse
+	 * @return NotFoundResponse|RedirectResponse|TemplateResponse
 	 * @throws NotFoundException
 	 */
 	public function showShare($token, $path = '') {
@@ -268,7 +268,7 @@ class ShareController extends Controller {
 		// Share is password protected - check whether the user is permitted to access the share
 		if ($share->getPassword() !== null && !$this->linkShareAuth($share)) {
 			return new RedirectResponse($this->urlGenerator->linkToRoute('files_sharing.sharecontroller.authenticate',
-				array('token' => $token)));
+				['token' => $token]));
 		}
 
 		if (!$this->validateShare($share)) {
@@ -327,8 +327,7 @@ class ShareController extends Controller {
 				$freeSpace = (INF > 0) ? INF: PHP_INT_MAX; // work around https://bugs.php.net/bug.php?id=69188
 			}
 
-			$uploadLimit = Util::uploadLimit();
-			$maxUploadFilesize = min($freeSpace, $uploadLimit);
+			$maxUploadFilesize = $freeSpace;
 
 			$folder = new Template('files', 'list', '');
 			$folder->assign('dir', $rootFolder->getRelativePath($path->getPath()));
@@ -339,17 +338,23 @@ class ShareController extends Controller {
 			$folder->assign('uploadMaxFilesize', $maxUploadFilesize);
 			$folder->assign('uploadMaxHumanFilesize', OCP\Util::humanFileSize($maxUploadFilesize));
 			$folder->assign('freeSpace', $freeSpace);
-			$folder->assign('uploadLimit', $uploadLimit); // PHP upload limit
 			$folder->assign('usedSpacePercent', 0);
 			$folder->assign('trash', false);
 			$shareTmpl['folder'] = $folder->fetchPage();
 		}
 
-		$shareTmpl['downloadURL'] = $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.downloadShare', array('token' => $token));
+		$shareTmpl['downloadURL'] = $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.downloadShare', ['token' => $token]);
+		$shareTmpl['shareUrl'] = $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $token]);
 		$shareTmpl['maxSizeAnimateGif'] = $this->config->getSystemValue('max_filesize_animated_gifs_public_sharing', 10);
 		$shareTmpl['previewEnabled'] = $this->config->getSystemValue('enable_previews', true);
 		$shareTmpl['previewMaxX'] = $this->config->getSystemValue('preview_max_x', 1024);
 		$shareTmpl['previewMaxY'] = $this->config->getSystemValue('preview_max_y', 1024);
+		if ($shareTmpl['previewSupported']) {
+			$shareTmpl['previewImage'] = $this->urlGenerator->linkToRouteAbsolute( 'core_ajax_public_preview',
+				['x' => 200, 'y' => 200, 'file' => $shareTmpl['directory_path'], 't' => $shareTmpl['dirToken']]);
+		} else {
+			$shareTmpl['previewImage'] = $this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath('core', 'favicon-fb.png'));
+		}
 
 		$csp = new OCP\AppFramework\Http\ContentSecurityPolicy();
 		$csp->addAllowedFrameDomain('\'self\'');
@@ -369,7 +374,7 @@ class ShareController extends Controller {
 	 * @param string $files
 	 * @param string $path
 	 * @param string $downloadStartSecret
-	 * @return void|RedirectResponse
+	 * @return NotFoundResponse|RedirectResponse|void
 	 */
 	public function downloadShare($token, $files = null, $path = '', $downloadStartSecret = '') {
 		\OC_User::setIncognitoMode(true);
@@ -382,12 +387,11 @@ class ShareController extends Controller {
 				['token' => $token]));
 		}
 
-		$files_list = null;
+		$files_list = $files;
 		if (!is_null($files)) { // download selected files
-			$files_list = json_decode($files);
 			// in case we get only a single file
-			if ($files_list === null) {
-				$files_list = [$files];
+			if (!is_array($files_list)) {
+				$files_list = [(string)$files_list];
 			}
 		}
 
@@ -487,7 +491,7 @@ class ShareController extends Controller {
 
 		$this->emitAccessShareHook($share);
 
-		$server_params = array( 'head' => $this->request->getMethod() == 'HEAD' );
+		$server_params = ['head' => $this->request->getMethod() == 'HEAD'];
 
 		/**
 		 * Http range requests support

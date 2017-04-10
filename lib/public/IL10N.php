@@ -2,13 +2,13 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ interface IL10N {
 	 * returned.
 	 * @since 6.0.0
 	 */
-	public function t($text, $parameters = array());
+	public function t($text, $parameters = []);
 
 	/**
 	 * Translating
@@ -70,7 +70,7 @@ interface IL10N {
 	 * @since 6.0.0
 	 *
 	 */
-	public function n($text_singular, $text_plural, $count, $parameters = array());
+	public function n($text_singular, $text_plural, $count, $parameters = []);
 
 	/**
 	 * Localization
@@ -97,7 +97,7 @@ interface IL10N {
 	 *    - params: timestamp (int/string)
 	 * @since 6.0.0 - parameter $options was added in 8.0.0
 	 */
-	public function l($type, $data, $options = array());
+	public function l($type, $data, $options = []);
 
 
 	/**

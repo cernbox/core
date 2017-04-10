@@ -188,6 +188,71 @@ describe('Core base tests', function() {
 			expect(OC.joinPaths('/', '//', '/')).toEqual('/');
 		});
 	});
+	describe('isSamePath', function() {
+		it('recognizes empty paths are equal', function() {
+			expect(OC.isSamePath('', '')).toEqual(true);
+			expect(OC.isSamePath('/', '')).toEqual(true);
+			expect(OC.isSamePath('//', '')).toEqual(true);
+			expect(OC.isSamePath('/', '/')).toEqual(true);
+			expect(OC.isSamePath('/', '//')).toEqual(true);
+		});
+		it('recognizes path with single sections as equal regardless of extra slashes', function() {
+			expect(OC.isSamePath('abc', 'abc')).toEqual(true);
+			expect(OC.isSamePath('/abc', 'abc')).toEqual(true);
+			expect(OC.isSamePath('//abc', 'abc')).toEqual(true);
+			expect(OC.isSamePath('abc', '/abc')).toEqual(true);
+			expect(OC.isSamePath('abc/', 'abc')).toEqual(true);
+			expect(OC.isSamePath('abc/', 'abc/')).toEqual(true);
+			expect(OC.isSamePath('/abc/', 'abc/')).toEqual(true);
+			expect(OC.isSamePath('/abc/', '/abc/')).toEqual(true);
+			expect(OC.isSamePath('//abc/', '/abc/')).toEqual(true);
+			expect(OC.isSamePath('//abc//', '/abc/')).toEqual(true);
+
+			expect(OC.isSamePath('abc', 'def')).toEqual(false);
+			expect(OC.isSamePath('/abc', 'def')).toEqual(false);
+			expect(OC.isSamePath('//abc', 'def')).toEqual(false);
+			expect(OC.isSamePath('abc', '/def')).toEqual(false);
+			expect(OC.isSamePath('abc/', 'def')).toEqual(false);
+			expect(OC.isSamePath('abc/', 'def/')).toEqual(false);
+			expect(OC.isSamePath('/abc/', 'def/')).toEqual(false);
+			expect(OC.isSamePath('/abc/', '/def/')).toEqual(false);
+			expect(OC.isSamePath('//abc/', '/def/')).toEqual(false);
+			expect(OC.isSamePath('//abc//', '/def/')).toEqual(false);
+		});
+		it('recognizes path with multiple sections as equal regardless of extra slashes', function() {
+			expect(OC.isSamePath('abc/def', 'abc/def')).toEqual(true);
+			expect(OC.isSamePath('/abc/def', 'abc/def')).toEqual(true);
+			expect(OC.isSamePath('abc/def', '/abc/def')).toEqual(true);
+			expect(OC.isSamePath('abc/def/', '/abc/def/')).toEqual(true);
+			expect(OC.isSamePath('/abc/def/', '/abc/def/')).toEqual(true);
+			expect(OC.isSamePath('/abc/def/', 'abc/def/')).toEqual(true);
+			expect(OC.isSamePath('//abc/def/', 'abc/def/')).toEqual(true);
+			expect(OC.isSamePath('//abc/def//', 'abc/def/')).toEqual(true);
+
+			expect(OC.isSamePath('abc/def', 'abc/ghi')).toEqual(false);
+			expect(OC.isSamePath('/abc/def', 'abc/ghi')).toEqual(false);
+			expect(OC.isSamePath('abc/def', '/abc/ghi')).toEqual(false);
+			expect(OC.isSamePath('abc/def/', '/abc/ghi/')).toEqual(false);
+			expect(OC.isSamePath('/abc/def/', '/abc/ghi/')).toEqual(false);
+			expect(OC.isSamePath('/abc/def/', 'abc/ghi/')).toEqual(false);
+			expect(OC.isSamePath('//abc/def/', 'abc/ghi/')).toEqual(false);
+			expect(OC.isSamePath('//abc/def//', 'abc/ghi/')).toEqual(false);
+		});
+		it('recognizes path entries with dot', function() {
+			expect(OC.isSamePath('.', '')).toEqual(true);
+			expect(OC.isSamePath('.', '.')).toEqual(true);
+			expect(OC.isSamePath('.', '/')).toEqual(true);
+			expect(OC.isSamePath('/.', '/')).toEqual(true);
+			expect(OC.isSamePath('/./', '/')).toEqual(true);
+			expect(OC.isSamePath('/./', '/.')).toEqual(true);
+			expect(OC.isSamePath('/./', '/./')).toEqual(true);
+			expect(OC.isSamePath('/./', '/./')).toEqual(true);
+
+			expect(OC.isSamePath('a/./b', 'a/b')).toEqual(true);
+			expect(OC.isSamePath('a/b/.', 'a/b')).toEqual(true);
+			expect(OC.isSamePath('./a/b', 'a/b')).toEqual(true);
+		});
+	});
 	describe('filePath', function() {
 		beforeEach(function() {
 			OC.webroot = 'http://localhost';
@@ -559,6 +624,56 @@ describe('Core base tests', function() {
 				for (var i = 0; i < data.length; i++) {
 					expect(OC.Util.humanFileSize(data[i][0], true)).toEqual(data[i][1]);
 				}
+			});
+		});
+		describe('computerFileSize', function() {
+			it('correctly parses file sizes from a human readable formated string', function() {
+				var data = [
+					['125', 125],
+					['125.25', 125],
+					['125.25B', 125],
+					['125.25 B', 125],
+					['0 B', 0],
+					['99999999999999999999999999999999999999999999 B', 99999999999999999999999999999999999999999999],
+					['0 MB', 0],
+					['0 kB', 0],
+					['0kB', 0],
+					['125 B', 125],
+					['125b', 125],
+					['125 KB', 128000],
+					['125kb', 128000],
+					['122.1 MB', 128031130],
+					['122.1mb', 128031130],
+					['119.2 GB', 127990025421],
+					['119.2gb', 127990025421],
+					['116.4 TB', 127983153473126],
+					['116.4tb', 127983153473126],
+					['8776656778888777655.4tb', 9.650036181387265e+30],
+					[1234, null],
+					[-1234, null],
+					['-1234 B', null],
+					['B', null],
+					['40/0', null],
+					['40,30 kb', null],
+					[' 122.1 MB ', 128031130],
+					['122.1 MB ', 128031130],
+					[' 122.1 MB ', 128031130],
+					['	122.1 MB ', 128031130],
+					['122.1    MB ', 128031130],
+					[' 125', 125],
+					[' 125 ', 125],					
+				];
+				for (var i = 0; i < data.length; i++) {
+					expect(OC.Util.computerFileSize(data[i][0])).toEqual(data[i][1]);
+				}
+			});
+			it('returns null if the parameter is not a string', function() {
+				expect(OC.Util.computerFileSize(NaN)).toEqual(null);
+				expect(OC.Util.computerFileSize(125)).toEqual(null);
+			});
+			it('returns null if the string is unparsable', function() {
+				expect(OC.Util.computerFileSize('')).toEqual(null);
+				expect(OC.Util.computerFileSize('foobar')).toEqual(null);
 			});
 		});
 		describe('stripTime', function() {

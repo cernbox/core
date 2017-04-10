@@ -8,7 +8,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,14 +42,10 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 
 class Migrator {
 
-	/**
-	 * @var \Doctrine\DBAL\Connection $connection
-	 */
+	/** @var \Doctrine\DBAL\Connection $connection */
 	protected $connection;
 
-	/**
-	 * @var ISecureRandom
-	 */
+	/** @var ISecureRandom */
 	private $random;
 
 	/** @var IConfig */
@@ -155,7 +151,7 @@ class Migrator {
 		$tmpTable = $this->renameTableSchema($table, $tmpName);
 		$schemaConfig = new SchemaConfig();
 		$schemaConfig->setName($this->connection->getDatabase());
-		$schema = new Schema(array($tmpTable), array(), $schemaConfig);
+		$schema = new Schema([$tmpTable], [], $schemaConfig);
 
 		try {
 			$this->applySchema($schema);
@@ -180,7 +176,7 @@ class Migrator {
 		 * @var \Doctrine\DBAL\Schema\Index[] $indexes
 		 */
 		$indexes = $table->getIndexes();
-		$newIndexes = array();
+		$newIndexes = [];
 		foreach ($indexes as $index) {
 			if ($index->isPrimary()) {
 				// do not rename primary key
@@ -193,7 +189,13 @@ class Migrator {
 		}
 
 		// foreign keys are not supported so we just set it to an empty array
-		return new Table($newName, $table->getColumns(), $newIndexes, array(), 0, $table->getOptions());
+		return new Table($newName, $table->getColumns(), $newIndexes, [], 0, $table->getOptions());
+	}
+
+	public function createSchema() {
+		$filterExpression = $this->getFilterExpression();
+		$this->connection->getConfiguration()->setFilterSchemaAssetsExpression($filterExpression);
+		return $this->connection->getSchemaManager()->createSchema();
 	}
 
 	/**
@@ -216,8 +218,7 @@ class Migrator {
 		}
 
 		$filterExpression = $this->getFilterExpression();
-		$this->connection->getConfiguration()->
-		setFilterSchemaAssetsExpression($filterExpression);
+		$this->connection->getConfiguration()->setFilterSchemaAssetsExpression($filterExpression);
 		$sourceSchema = $connection->getSchemaManager()->createSchema();
 
 		// remove tables we don't know about

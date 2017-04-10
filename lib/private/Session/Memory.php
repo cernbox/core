@@ -7,7 +7,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ class Memory extends Session {
 
 	public function __construct($name) {
 		//no need to use $name since all data is already scoped to this instance
-		$this->data = array();
+		$this->data = [];
 	}
 
 	/**
@@ -81,7 +81,7 @@ class Memory extends Session {
 	}
 
 	public function clear() {
-		$this->data = array();
+		$this->data = [];
 	}
 
 	/**

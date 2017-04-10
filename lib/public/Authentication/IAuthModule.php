@@ -9,7 +9,7 @@ use OCP\IUser;
  * Interface IAuthModule
  *
  * @package OCP\Authentication
- * @since 9.1.5
+ * @since 10.0.0
  */
 interface IAuthModule {
 
@@ -19,7 +19,7 @@ interface IAuthModule {
 	 * @param IRequest $request The request.
 	 *
 	 * @return null|IUser The user if the request is authenticated, null otherwise.
-	 * @since 9.1.5
+	 * @since 10.0.0
 	 */
 	public function auth(IRequest $request);
 
@@ -29,7 +29,7 @@ interface IAuthModule {
 	 * @param IRequest $request The request.
 	 *
 	 * @return String The user's password.
-	 * @since 9.1.5
+	 * @since 10.0.0
 	 */
 	public function getUserPassword(IRequest $request);
 

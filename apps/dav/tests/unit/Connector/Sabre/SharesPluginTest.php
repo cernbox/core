@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,6 +21,8 @@
  *
  */
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
+
+use OCP\Share\IShare;
 
 class SharesPluginTest extends \Test\TestCase {
 
@@ -56,17 +59,17 @@ class SharesPluginTest extends \Test\TestCase {
 		$this->tree = $this->getMockBuilder('\Sabre\DAV\Tree')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->shareManager = $this->getMock('\OCP\Share\IManager');
-		$user = $this->getMock('\OCP\IUser');
+		$this->shareManager = $this->createMock('\OCP\Share\IManager');
+		$user = $this->createMock('\OCP\IUser');
 		$user->expects($this->once())
 			->method('getUID')
 			->will($this->returnValue('user1'));
-		$userSession = $this->getMock('\OCP\IUserSession');
+		$userSession = $this->createMock('\OCP\IUserSession');
 		$userSession->expects($this->once())
 			->method('getUser')
 			->will($this->returnValue($user));
 
-		$this->userFolder = $this->getMock('\OCP\Files\Folder');
+		$this->userFolder = $this->createMock('\OCP\Files\Folder');
 
 		$this->plugin = new \OCA\DAV\Connector\Sabre\SharesPlugin(
 			$this->tree,
@@ -92,27 +95,42 @@ class SharesPluginTest extends \Test\TestCase {
 			->will($this->returnValue('/subdir'));
 
 		// node API nodes
-		$node = $this->getMock('\OCP\Files\Folder');
+		$node = $this->createMock('\OCP\Files\Folder');
+		$node->expects($this->any())
+			->method('getId')
+			->will($this->returnValue(123));
 
 		$this->userFolder->expects($this->once())
 			->method('get')
 			->with('/subdir')
 			->will($this->returnValue($node));
 
+		$requestedShareTypes = [
+			\OCP\Share::SHARE_TYPE_USER,
+			\OCP\Share::SHARE_TYPE_GROUP,
+			\OCP\Share::SHARE_TYPE_LINK,
+			\OCP\Share::SHARE_TYPE_REMOTE
+		];
+
 		$this->shareManager->expects($this->any())
-			->method('getSharesBy')
+			->method('getAllSharesBy')
 			->with(
 				$this->equalTo('user1'),
-				$this->anything(),
-				$this->anything(),
-				$this->equalTo(false),
-				$this->equalTo(1)
+				$requestedShareTypes,
+				$this->anything()
 			)
-			->will($this->returnCallback(function($userId, $requestedShareType, $node, $flag, $limit) use ($shareTypes){
-				if (in_array($requestedShareType, $shareTypes)) {
-					return ['dummyshare'];
+			->will($this->returnCallback(function($userId, $requestedShareTypes, $node) use ($shareTypes){
+				$allShares = array();
+				foreach($requestedShareTypes as $requestedShareType){
+					$share = $this->createMock(IShare::class);
+					$share->method('getShareType')->willReturn($requestedShareType);
+					$share->method('getNodeId')->willReturn(123);
+					if (in_array($requestedShareType, $shareTypes)) {
+						array_push($allShares, $share);
+					}
 				}
-				return [];
+
+				return $allShares;
 			}));
 
 		$propFind = new \Sabre\DAV\PropFind(
@@ -168,15 +186,15 @@ class SharesPluginTest extends \Test\TestCase {
 			->will($this->returnValue('/subdir'));
 
 		// node API nodes
-		$node = $this->getMock('\OCP\Files\Folder');
+		$node = $this->createMock('\OCP\Files\Folder');
 		$node->expects($this->any())
 			->method('getId')
 			->will($this->returnValue(123));
-		$node1 = $this->getMock('\OCP\Files\File');
+		$node1 = $this->createMock('\OCP\Files\File');
 		$node1->expects($this->any())
 			->method('getId')
 			->will($this->returnValue(111));
-		$node2 = $this->getMock('\OCP\Files\File');
+		$node2 = $this->createMock('\OCP\Files\File');
 		$node2->expects($this->any())
 			->method('getId')
 			->will($this->returnValue(222));
@@ -189,21 +207,32 @@ class SharesPluginTest extends \Test\TestCase {
 			->with('/subdir')
 			->will($this->returnValue($node));
 
+		$requestedShareTypes = [
+			\OCP\Share::SHARE_TYPE_USER,
+			\OCP\Share::SHARE_TYPE_GROUP,
+			\OCP\Share::SHARE_TYPE_LINK,
+			\OCP\Share::SHARE_TYPE_REMOTE
+		];
+
 		$this->shareManager->expects($this->any())
-			->method('getSharesBy')
+			->method('getAllSharesBy')
 			->with(
 				$this->equalTo('user1'),
-				$this->anything(),
-				$this->anything(),
-				$this->equalTo(false),
-				$this->equalTo(1)
+				$requestedShareTypes,
+				$this->anything()
 			)
-			->will($this->returnCallback(function($userId, $requestedShareType, $node, $flag, $limit) use ($shareTypes){
-				if ($node->getId() === 111 && in_array($requestedShareType, $shareTypes)) {
-					return ['dummyshare'];
+			->will($this->returnCallback(function($userId, $requestedShareTypes, $node) use ($shareTypes){
+				$allShares = array();
+				foreach($requestedShareTypes as $requestedShareType){
+					$share = $this->createMock(IShare::class);
+					$share->method('getShareType')->willReturn($requestedShareType);
+					$share->method('getNodeId')->willReturn(111);
+					if (in_array($requestedShareType, $shareTypes)) {
+						array_push($allShares, $share);
+					}
 				}
 
-				return [];
+				return $allShares;
 			}));
 
 		// simulate sabre recursive PROPFIND traversal

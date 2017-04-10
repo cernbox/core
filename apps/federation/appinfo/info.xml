@@ -9,7 +9,7 @@
 	<namespace>Federation</namespace>
 	<category>other</category>
 	<dependencies>
-		<owncloud min-version="9.1" max-version="9.1" />
+		<owncloud min-version="10.0" max-version="10.0" />
 	</dependencies>
 	<default_enable/>
 	<types>
@@ -19,4 +19,10 @@
 	<background-jobs>
 		<job>OCA\Federation\SyncJob</job>
 	</background-jobs>
+	<commands>
+		<command>OCA\Federation\Command\SyncFederationAddressBooks</command>
+	</commands>
+	<settings>
+		<admin>OCA\Federation\Panels\Admin</admin>
+	</settings>
 </info>

@@ -12,9 +12,10 @@
  * @author Ross Nicoll <jrn@jrn.me.uk>
  * @author SA <stephen@mthosting.net>
  * @author Senorsen <senorsen.zhang@gmail.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +41,7 @@ use phpseclib\Net\SFTP\Stream;
 * Uses phpseclib's Net\SFTP class and the Net\SFTP\Stream stream wrapper to
 * provide access to SFTP servers.
 */
-class SFTP extends \OC\Files\Storage\Common {
+class SFTP extends \OCP\Files\Storage\StorageAdapter {
 	private $host;
 	private $user;
 	private $root;
@@ -242,8 +243,8 @@ class SFTP extends \OC\Files\Storage\Common {
 		try {
 			$keyPath = $this->hostKeysPath();
 			if (file_exists($keyPath)) {
-				$hosts = array();
-				$keys = array();
+				$hosts = [];
+				$keys = [];
 				$lines = file($keyPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 				if ($lines) {
 					foreach ($lines as $line) {
@@ -258,7 +259,7 @@ class SFTP extends \OC\Files\Storage\Common {
 			}
 		} catch (\Exception $e) {
 		}
-		return array();
+		return [];
 	}
 
 	/**
@@ -298,7 +299,7 @@ class SFTP extends \OC\Files\Storage\Common {
 			}
 
 			$id = md5('sftp:' . $path);
-			$dirStream = array();
+			$dirStream = [];
 			foreach($list as $file) {
 				if ($file != '.' && $file != '..') {
 					$dirStream[] = $file;
@@ -375,7 +376,7 @@ class SFTP extends \OC\Files\Storage\Common {
 				case 'x+':
 				case 'c':
 				case 'c+':
-					$context = stream_context_create(array('sftp' => array('session' => $this->getConnection())));
+					$context = stream_context_create(['sftp' => ['session' => $this->getConnection()]]);
 					$handle = fopen($this->constructUrl($path), $mode, false, $context);
 					return RetryWrapper::wrap($handle);
 			}
@@ -426,7 +427,7 @@ class SFTP extends \OC\Files\Storage\Common {
 	 */
 	public function rename($source, $target) {
 		try {
-			if (!$this->is_dir($target) && $this->file_exists($target)) {
+			if ($this->file_exists($target)) {
 				$this->unlink($target);
 			}
 			return $this->getConnection()->rename(
@@ -448,7 +449,7 @@ class SFTP extends \OC\Files\Storage\Common {
 			$mtime = $stat ? $stat['mtime'] : -1;
 			$size = $stat ? $stat['size'] : 0;
 
-			return array('mtime' => $mtime, 'size' => $size, 'ctime' => -1);
+			return ['mtime' => $mtime, 'size' => $size, 'ctime' => -1];
 		} catch (\Exception $e) {
 			return false;
 		}

@@ -14,25 +14,30 @@
  * @author Individual IT Services <info@individual-it.net>
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Joachim Bauch <bauch@struktur.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Juan Pablo Villafáñez <jvillafanez@solidgear.es>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author neumann <node512@gmail.com>
  * @author Owen Winkler <a_github@midnightcircus.com>
  * @author Phil Davis <phil.davis@inf.org>
  * @author Ramiro Aparicio <rapariciog@gmail.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author scolebrook <scolebrook@mac.com>
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  * @author Volkan Gezer <volkangezer@gmail.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -62,7 +67,7 @@ class OC {
 	/**
 	 * Associative array for autoloading. classname => filename
 	 */
-	public static $CLASSPATH = array();
+	public static $CLASSPATH = [];
 	/**
 	 * The installation path for owncloud on the server (e.g. /srv/http/owncloud)
 	 */
@@ -79,7 +84,7 @@ class OC {
 	 * The installation path array of the apps folder on the server (e.g. /srv/http/owncloud) 'path' and
 	 * web path in 'url'
 	 */
-	public static $APPSROOTS = array();
+	public static $APPSROOTS = [];
 
 	/**
 	 * @var string
@@ -180,7 +185,7 @@ class OC {
 		}
 
 		// search the apps folder
-		$config_paths = self::$config->getValue('apps_paths', array());
+		$config_paths = self::$config->getValue('apps_paths', []);
 		if (!empty($config_paths)) {
 			foreach ($config_paths as $paths) {
 				if (isset($paths['url']) && isset($paths['path'])) {
@@ -190,20 +195,20 @@ class OC {
 				}
 			}
 		} elseif (file_exists(OC::$SERVERROOT . '/apps')) {
-			OC::$APPSROOTS[] = array('path' => OC::$SERVERROOT . '/apps', 'url' => '/apps', 'writable' => true);
+			OC::$APPSROOTS[] = ['path' => OC::$SERVERROOT . '/apps', 'url' => '/apps', 'writable' => true];
 		} elseif (file_exists(OC::$SERVERROOT . '/../apps')) {
-			OC::$APPSROOTS[] = array(
+			OC::$APPSROOTS[] = [
 				'path' => rtrim(dirname(OC::$SERVERROOT), '/') . '/apps',
 				'url' => '/apps',
 				'writable' => true
-			);
+			];
 		}
 
 		if (empty(OC::$APPSROOTS)) {
 			throw new \RuntimeException('apps directory not found! Please put the ownCloud apps folder in the ownCloud folder'
 				. ' or the folder above. You can also configure the location in the config.php file.');
 		}
-		$paths = array();
+		$paths = [];
 		foreach (OC::$APPSROOTS as $path) {
 			$paths[] = $path['path'];
 			if (!is_dir($path['path'])) {
@@ -215,12 +220,7 @@ class OC {
 
 		// set the right include path
 		set_include_path(
-			OC::$SERVERROOT . '/lib/private' . PATH_SEPARATOR .
-			OC::$SERVERROOT . '/config' . PATH_SEPARATOR .
-			OC::$SERVERROOT . '/3rdparty' . PATH_SEPARATOR .
-			implode(PATH_SEPARATOR, $paths) . PATH_SEPARATOR .
-			get_include_path() . PATH_SEPARATOR .
-			OC::$SERVERROOT
+			implode(PATH_SEPARATOR, $paths)
 		);
 	}
 
@@ -251,7 +251,7 @@ class OC {
 					$l->t('Cannot write into "config" directory!'),
 					$l->t('This can usually be fixed by '
 					. '%sgiving the webserver write access to the config directory%s.',
-					 array('<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'))
+					 ['<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'])
 				);
 			}
 		}
@@ -421,7 +421,7 @@ class OC {
 			// Allow session apps to create a custom session object
 			$useCustomSession = false;
 			$session = self::$server->getSession();
-			OC_Hook::emit('OC', 'initSession', array('session' => &$session, 'sessionName' => &$sessionName, 'useCustomSession' => &$useCustomSession));
+			OC_Hook::emit('OC', 'initSession', ['session' => &$session, 'sessionName' => &$sessionName, 'useCustomSession' => &$useCustomSession]);
 			if (!$useCustomSession) {
 				// set the session name to the instance id - which is unique
 				$session = new \OC\Session\Internal($sessionName);
@@ -495,26 +495,32 @@ class OC {
 		if (defined('PHPUNIT_RUN')) {
 			self::$loader->addValidRoot(OC::$SERVERROOT . '/tests');
 		}
-		spl_autoload_register(array(self::$loader, 'load'));
+		spl_autoload_register([self::$loader, 'load']);
 		$loaderEnd = microtime(true);
 
 		self::$CLI = (php_sapi_name() == 'cli');
 
+		// setup 3rdparty autoloader
+		$vendorAutoLoad = OC::$SERVERROOT . '/lib/composer/autoload.php';
+		if (!file_exists($vendorAutoLoad)) {
+			printf('Composer autoloader not found, unable to continue. Please run "make".');
+			exit();
+		}
+
 		// Add default composer PSR-4 autoloader
-		self::$composerAutoloader = require_once OC::$SERVERROOT . '/lib/composer/autoload.php';
+		self::$composerAutoloader = require $vendorAutoLoad;
+		if (!self::$composerAutoloader) {
+			print('Composer autoloader not found!');
+			exit();
+		}
 
 		try {
 			self::initPaths();
-			// setup 3rdparty autoloader
-			$vendorAutoLoad = OC::$SERVERROOT. '/3rdparty/autoload.php';
-			if (!file_exists($vendorAutoLoad)) {
-				throw new \RuntimeException('Composer autoloader not found, unable to continue. Check the folder "3rdparty". Running "git submodule update --init" will initialize the git submodule that handles the subfolder "3rdparty".');
-			}
-			require_once $vendorAutoLoad;
-
 		} catch (\RuntimeException $e) {
 			if (!self::$CLI) {
-				OC_Response::setStatus(OC_Response::STATUS_SERVICE_UNAVAILABLE);
+				// can`t use OC_Response::setStatus because server is not
+				// initialized here
+				http_response_code(OC_Response::STATUS_SERVICE_UNAVAILABLE);
 			}
 			// we can't use the template error page here, because this needs the
 			// DI container which isn't available yet
@@ -532,7 +538,9 @@ class OC {
 		@ini_set('display_errors', 0);
 		@ini_set('log_errors', 1);
 
-		date_default_timezone_set('UTC');
+		if(!date_default_timezone_set('UTC')) {
+			\OC::$server->getLogger()->error('Could not set timezone to UTC');
+		};
 
 		//try to configure php to enable big file uploads.
 		//this doesn´t work always depending on the webserver and php configuration.
@@ -567,10 +575,9 @@ class OC {
 		stream_wrapper_register('static', 'OC\Files\Stream\StaticStream');
 		stream_wrapper_register('close', 'OC\Files\Stream\Close');
 		stream_wrapper_register('quota', 'OC\Files\Stream\Quota');
-		stream_wrapper_register('oc', 'OC\Files\Stream\OC');
 
 		\OC::$server->getEventLogger()->start('init_session', 'Initialize session');
-		OC_App::loadApps(array('session'));
+		OC_App::loadApps(['session']);
 		if (!self::$CLI) {
 			self::initSession();
 		}
@@ -606,7 +613,7 @@ class OC {
 					exit(1);
 				} else {
 					OC_Response::setStatus(OC_Response::STATUS_SERVICE_UNAVAILABLE);
-					OC_Template::printGuestPage('', 'error', array('errors' => $errors));
+					OC_Template::printGuestPage('', 'error', ['errors' => $errors]);
 					exit;
 				}
 			} elseif (self::$CLI && \OC::$server->getConfig()->getSystemValue('installed', false)) {
@@ -625,7 +632,7 @@ class OC {
 		}
 
 		OC_User::useBackend(new \OC\User\Database());
-		OC_Group::useBackend(new \OC\Group\Database());
+		\OC::$server->getGroupManager()->addBackend(new \OC\Group\Database());
 
 		// Subscribe to the hook
 		\OCP\Util::connectHook(
@@ -655,9 +662,9 @@ class OC {
 
 		//make sure temporary files are cleaned up
 		$tmpManager = \OC::$server->getTempManager();
-		register_shutdown_function(array($tmpManager, 'clean'));
+		register_shutdown_function([$tmpManager, 'clean']);
 		$lockProvider = \OC::$server->getLockingProvider();
-		register_shutdown_function(array($lockProvider, 'releaseAll'));
+		register_shutdown_function([$lockProvider, 'releaseAll']);
 
 		// Check whether the sample configuration has been copied
 		if($systemConfig->getValue('copied_sample_config', false)) {
@@ -724,7 +731,7 @@ class OC {
 				} catch (\Exception $e) {
 					// a GC exception should not prevent users from using OC,
 					// so log the exception
-					\OC::$server->getLogger()->warning('Exception when running cache gc: ' . $e->getMessage(), array('app' => 'core'));
+					\OC::$server->getLogger()->warning('Exception when running cache gc: ' . $e->getMessage(), ['app' => 'core']);
 				}
 			});
 		}
@@ -762,8 +769,8 @@ class OC {
 	 */
 	public static function registerFilesystemHooks() {
 		// Check for blacklisted files
-		OC_Hook::connect('OC_Filesystem', 'write', 'OC\Files\Filesystem', 'isBlacklisted');
-		OC_Hook::connect('OC_Filesystem', 'rename', 'OC\Files\Filesystem', 'isBlacklisted');
+		OC_Hook::connect('OC_Filesystem', 'write', 'OC\Files\Filesystem', 'isForbiddenFileOrDir_Hook');
+		OC_Hook::connect('OC_Filesystem', 'rename', 'OC\Files\Filesystem', 'isForbiddenFileOrDir_Hook');
 	}
 
 	/**
@@ -875,7 +882,7 @@ class OC {
 				OC_App::loadApps();
 			} else {
 				// For guests: Load only filesystem and logging
-				OC_App::loadApps(array('filesystem', 'logging'));
+				OC_App::loadApps(['filesystem', 'logging']);
 				self::handleLogin($request);
 			}
 		}
@@ -883,7 +890,7 @@ class OC {
 		if (!self::$CLI) {
 			try {
 				if (!$systemConfig->getValue('maintenance', false) && !self::checkUpgrade(false)) {
-					OC_App::loadApps(array('filesystem', 'logging'));
+					OC_App::loadApps(['filesystem', 'logging']);
 					OC_App::loadApps();
 				}
 				self::checkSingleUserMode();
@@ -934,7 +941,7 @@ class OC {
 	 * @param OCP\IRequest $request
 	 * @return boolean
 	 */
-	private static function handleLogin(OCP\IRequest $request) {
+	static function handleLogin(OCP\IRequest $request) {
 		$userSession = self::$server->getUserSession();
 		if (OC_User::handleApacheAuth()) {
 			return true;
@@ -955,10 +962,10 @@ class OC {
 		}
 
 		// Extract PHP_AUTH_USER/PHP_AUTH_PW from other headers if necessary.
-		$vars = array(
+		$vars = [
 			'HTTP_AUTHORIZATION', // apache+php-cgi work around
 			'REDIRECT_HTTP_AUTHORIZATION', // apache+php-cgi alternative
-		);
+		];
 		foreach ($vars as $var) {
 			if (isset($_SERVER[$var]) && preg_match('/Basic\s+(.*)$/i', $_SERVER[$var], $matches)) {
 				list($name, $password) = explode(':', base64_decode($matches[1]), 2);

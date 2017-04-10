@@ -1,11 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -118,4 +118,13 @@ interface IJobList {
 	 * @since 7.0.0
 	 */
 	public function setLastRun($job);
+
+	/**
+	 * set the lastRun of $job to now
+	 *
+	 * @param \OCP\BackgroundJob\IJob $job
+	 * @param int $timeTaken	 
+	 * @since 10.0.0
+	 */
+	public function setExecutionTime($job, $timeTaken);
 }

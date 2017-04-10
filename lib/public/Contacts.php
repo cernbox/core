@@ -5,7 +5,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -95,7 +95,7 @@ namespace OCP {
 		 * @deprecated 8.1.0 use search() of \OCP\Contacts\IManager - \OC::$server->getContactsManager();
 		 * @since 5.0.0
 		 */
-		public static function search($pattern, $searchProperties = array(), $options = array()) {
+		public static function search($pattern, $searchProperties = [], $options = []) {
 			$cm = \OC::$server->getContactsManager();
 			return $cm->search($pattern, $searchProperties, $options);
 		}

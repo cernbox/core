@@ -79,13 +79,13 @@ abstract class Storage extends \Test\TestCase {
 		$this->assertTrue($this->instance->isUpdatable('/' . $directory));
 
 		$dh = $this->instance->opendir('/');
-		$content = array();
+		$content = [];
 		while ($file = readdir($dh)) {
 			if ($file != '.' and $file != '..') {
 				$content[] = $file;
 			}
 		}
-		$this->assertEquals(array($directory), $content);
+		$this->assertEquals([$directory], $content);
 
 		$this->assertFalse($this->instance->mkdir('/' . $directory)); //can't create existing folders
 		$this->assertTrue($this->instance->rmdir('/' . $directory));
@@ -96,13 +96,24 @@ abstract class Storage extends \Test\TestCase {
 		$this->assertFalse($this->instance->rmdir('/' . $directory)); //can't remove non existing folders
 
 		$dh = $this->instance->opendir('/');
-		$content = array();
+		$content = [];
 		while ($file = readdir($dh)) {
 			if ($file != '.' and $file != '..') {
 				$content[] = $file;
 			}
 		}
-		$this->assertEquals(array(), $content);
+		$this->assertEquals([], $content);
+	}
+
+	public function fileNameProvider() {
+		return [
+			['file.txt'],
+			[' file.txt'],
+			['folder .txt'],
+			['file with space.txt'],
+			['spéciäl fäile'],
+			['test single\'quote.txt'],
+		];
 	}
 
 	public function directoryProvider() {
@@ -118,12 +129,12 @@ abstract class Storage extends \Test\TestCase {
 
 	function loremFileProvider() {
 		$root = \OC::$SERVERROOT . '/tests/data/';
-		return array(
+		return [
 			// small file
-			array($root . 'lorem.txt'),
+			[$root . 'lorem.txt'],
 			// bigger file (> 8 KB which is the standard PHP block size)
-			array($root . 'lorem-big.txt')
-		);
+			[$root . 'lorem-big.txt']
+		];
 	}
 
 	/**
@@ -336,22 +347,25 @@ abstract class Storage extends \Test\TestCase {
 		$this->assertFalse($this->instance->file_exists('/lorem.txt'));
 	}
 
-	public function testFOpen() {
+	/**
+	 * @dataProvider fileNameProvider
+	 */
+	public function testFOpen($fileName) {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
 
-		$fh = @$this->instance->fopen('foo', 'r');
+		$fh = @$this->instance->fopen($fileName, 'r');
 		if ($fh) {
 			fclose($fh);
 		}
 		$this->assertFalse($fh);
-		$this->assertFalse($this->instance->file_exists('foo'));
+		$this->assertFalse($this->instance->file_exists($fileName));
 
-		$fh = $this->instance->fopen('foo', 'w');
+		$fh = $this->instance->fopen($fileName, 'w');
 		fwrite($fh, file_get_contents($textFile));
 		fclose($fh);
-		$this->assertTrue($this->instance->file_exists('foo'));
+		$this->assertTrue($this->instance->file_exists($fileName));
 
-		$fh = $this->instance->fopen('foo', 'r');
+		$fh = $this->instance->fopen($fileName, 'r');
 		$content = stream_get_contents($fh);
 		$this->assertEquals(file_get_contents($textFile), $content);
 	}
@@ -398,11 +412,11 @@ abstract class Storage extends \Test\TestCase {
 	}
 
 	public function hashProvider() {
-		return array(
-			array('Foobar', 'md5'),
-			array('Foobar', 'sha1'),
-			array('Foobar', 'sha256'),
-		);
+		return [
+			['Foobar', 'md5'],
+			['Foobar', 'sha1'],
+			['Foobar', 'sha256'],
+		];
 	}
 
 	/**
@@ -423,14 +437,14 @@ abstract class Storage extends \Test\TestCase {
 		$this->assertEquals('data', $this->instance->file_get_contents('#foo/test.txt'));
 
 		$dh = $this->instance->opendir('#foo');
-		$content = array();
+		$content = [];
 		while ($file = readdir($dh)) {
 			if ($file != '.' and $file != '..') {
 				$content[] = $file;
 			}
 		}
 
-		$this->assertEquals(array('test.txt'), $content);
+		$this->assertEquals(['test.txt'], $content);
 	}
 
 	public function testCopyOverWriteFile() {

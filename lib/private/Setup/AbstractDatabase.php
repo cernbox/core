@@ -1,11 +1,11 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Manish Bisht <manish.bisht490@gmail.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,13 +23,14 @@
  */
 namespace OC\Setup;
 
+use OC\DB\MigrationService;
 use OCP\IConfig;
 use OCP\ILogger;
 use OCP\Security\ISecureRandom;
 
 abstract class AbstractDatabase {
 
-	/** @var \OC_L10N */
+	/** @var \OCP\IL10N */
 	protected $trans;
 	/** @var string */
 	protected $dbDefinitionFile;
@@ -59,16 +60,16 @@ abstract class AbstractDatabase {
 	}
 
 	public function validate($config) {
-		$errors = array();
+		$errors = [];
 		if(empty($config['dbuser']) && empty($config['dbname'])) {
-			$errors[] = $this->trans->t("%s enter the database username and name.", array($this->dbprettyname));
+			$errors[] = $this->trans->t("%s enter the database username and name.", [$this->dbprettyname]);
 		} else if(empty($config['dbuser'])) {
-			$errors[] = $this->trans->t("%s enter the database username.", array($this->dbprettyname));
+			$errors[] = $this->trans->t("%s enter the database username.", [$this->dbprettyname]);
 		} else if(empty($config['dbname'])) {
-			$errors[] = $this->trans->t("%s enter the database name.", array($this->dbprettyname));
+			$errors[] = $this->trans->t("%s enter the database name.", [$this->dbprettyname]);
 		}
 		if(substr_count($config['dbname'], '.') >= 1) {
-			$errors[] = $this->trans->t("%s you may not use dots in the database name", array($this->dbprettyname));
+			$errors[] = $this->trans->t("%s you may not use dots in the database name", [$this->dbprettyname]);
 		}
 		return $errors;
 	}
@@ -97,4 +98,12 @@ abstract class AbstractDatabase {
 	 * @param string $userName
 	 */
 	abstract public function setupDatabase($userName);
+
+	public function runMigrations() {
+		if (!is_dir(\OC::$SERVERROOT."/core/Migrations")) {
+			return;
+		}
+		$ms = new MigrationService('core', \OC::$server->getDatabaseConnection());
+		$ms->migrate();
+	}
 }

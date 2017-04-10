@@ -1,7 +1,9 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Michael Jobst <mjobst+github@tecratech.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
@@ -9,7 +11,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +31,6 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OC\Files\View;
-use OCA\DAV\Upload\FutureFile;
 use OCP\Files\ForbiddenException;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\NotFound;
@@ -43,6 +44,8 @@ use \Sabre\HTTP\ResponseInterface;
 use OCP\Files\StorageNotAvailableException;
 use OCP\IConfig;
 use OCP\IRequest;
+use Sabre\DAV\Exception\BadRequest;
+use OCA\DAV\Connector\Sabre\Directory;
 
 class FilesPlugin extends ServerPlugin {
 
@@ -103,20 +106,17 @@ class FilesPlugin extends ServerPlugin {
 
 	/**
 	 * @param Tree $tree
-	 * @param View $view
 	 * @param IConfig $config
 	 * @param IRequest $request
 	 * @param bool $isPublic
 	 * @param bool $downloadAttachment
 	 */
 	public function __construct(Tree $tree,
-								View $view,
 								IConfig $config,
 								IRequest $request,
 								$isPublic = false,
 								$downloadAttachment = true) {
 		$this->tree = $tree;
-		$this->fileView = $view;
 		$this->config = $config;
 		$this->request = $request;
 		$this->isPublic = $isPublic;
@@ -153,12 +153,12 @@ class FilesPlugin extends ServerPlugin {
 		$server->protectedProperties = array_diff($server->protectedProperties, $allowedProperties);
 
 		$this->server = $server;
-		$this->server->on('propFind', array($this, 'handleGetProperties'));
-		$this->server->on('propPatch', array($this, 'handleUpdateProperties'));
-		$this->server->on('afterBind', array($this, 'sendFileIdHeader'));
-		$this->server->on('afterWriteContent', array($this, 'sendFileIdHeader'));
+		$this->server->on('propFind', [$this, 'handleGetProperties']);
+		$this->server->on('propPatch', [$this, 'handleUpdateProperties']);
+		$this->server->on('afterBind', [$this, 'sendFileIdHeader']);
+		$this->server->on('afterWriteContent', [$this, 'sendFileIdHeader']);
 		$this->server->on('afterMethod:GET', [$this,'httpGet']);
-		$this->server->on('afterMethod:GET', array($this, 'handleDownloadToken'));
+		$this->server->on('afterMethod:GET', [$this, 'handleDownloadToken']);
 		$this->server->on('afterResponse', function($request, ResponseInterface $response) {
 			$body = $response->getBody();
 			if (is_resource($body)) {
@@ -271,6 +271,10 @@ class FilesPlugin extends ServerPlugin {
 		$httpRequest = $this->server->httpRequest;
 
 		if ($node instanceof \OCA\DAV\Connector\Sabre\Node) {
+			if (!$node->getFileInfo()->isReadable()) {
+				// avoid detecting files through this means
+				throw new NotFound();
+			}
 
 			$propFind->handle(self::FILEID_PROPERTYNAME, function() use ($node) {
 				return $node->getFileId();
@@ -308,10 +312,12 @@ class FilesPlugin extends ServerPlugin {
 				$displayName = $owner->getDisplayName();
 				return $displayName;
 			});
+			$propFind->handle(self::SIZE_PROPERTYNAME, function() use ($node) {
+				return $node->getSize();
+			});
 		}
 
-		if ($node instanceof \OCA\DAV\Connector\Sabre\Node
-			|| $node instanceof \OCA\DAV\Files\FilesHome) {
+		if ($node instanceof \OCA\DAV\Connector\Sabre\Node) {
 			$propFind->handle(self::DATA_FINGERPRINT_PROPERTYNAME, function() use ($node) {
 				return $this->config->getSystemValue('data-fingerprint', '');
 			});
@@ -360,24 +366,21 @@ class FilesPlugin extends ServerPlugin {
 	 * @return void
 	 */
 	public function handleUpdateProperties($path, PropPatch $propPatch) {
-		$propPatch->handle(self::LASTMODIFIED_PROPERTYNAME, function($time) use ($path) {
+		$node = $this->tree->getNodeForPath($path);
+		if (!($node instanceof \OCA\DAV\Connector\Sabre\Node)) {
+			return;
+		}
+
+		$propPatch->handle(self::LASTMODIFIED_PROPERTYNAME, function($time) use ($node) {
 			if (empty($time)) {
 				return false;
-			}
-			$node = $this->tree->getNodeForPath($path);
-			if (is_null($node)) {
-				return 404;
 			}
 			$node->touch($time);
 			return true;
 		});
-		$propPatch->handle(self::GETETAG_PROPERTYNAME, function($etag) use ($path) {
+		$propPatch->handle(self::GETETAG_PROPERTYNAME, function($etag) use ($node) {
 			if (empty($etag)) {
 				return false;
-			}
-			$node = $this->tree->getNodeForPath($path);
-			if (is_null($node)) {
-				return 404;
 			}
 			if ($node->setEtag($etag) !== -1) {
 				return true;
@@ -413,5 +416,4 @@ class FilesPlugin extends ServerPlugin {
 			}
 		}
 	}
-
 }

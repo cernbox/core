@@ -2,8 +2,11 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -94,12 +97,8 @@ class Checker {
 	 * @return bool
 	 */
 	public function isCodeCheckEnforced() {
-		$signedChannels = [
-			'daily',
-			'testing',
-			'stable',
-		];
-		if(!in_array($this->environmentHelper->getChannel(), $signedChannels, true)) {
+		$notSignedChannels = [ '', 'git'];
+		if (in_array($this->environmentHelper->getChannel(), $notSignedChannels, true)) {
 			return false;
 		}
 
@@ -113,7 +112,7 @@ class Checker {
 		} else {
 			$isIntegrityCheckDisabled = false;
 		}
-		if($isIntegrityCheckDisabled === true) {
+		if ($isIntegrityCheckDisabled === true) {
 			return false;
 		}
 
@@ -247,6 +246,7 @@ class Checker {
 
 		$privateKey->setSignatureMode(RSA::SIGNATURE_PSS);
 		$privateKey->setMGFHash('sha512');
+		$privateKey->setSaltLength(0);
 		$signature = $privateKey->sign(json_encode($hashes));
 
 		return [
@@ -267,16 +267,24 @@ class Checker {
 	public function writeAppSignature($path,
 									  X509 $certificate,
 									  RSA $privateKey) {
-		if(!is_dir($path)) {
-			throw new \Exception('Directory does not exist.');
-		}
+		$appInfoDir = $path . '/appinfo';
+		$this->fileAccessHelper->assertDirectoryExists($path);
+		$this->fileAccessHelper->assertDirectoryExists($appInfoDir);
+
 		$iterator = $this->getFolderIterator($path);
 		$hashes = $this->generateHashes($iterator, $path);
 		$signature = $this->createSignatureData($hashes, $certificate, $privateKey);
-		$this->fileAccessHelper->file_put_contents(
-				$path . '/appinfo/signature.json',
+		try {
+			$this->fileAccessHelper->file_put_contents(
+				$appInfoDir . '/signature.json',
 				json_encode($signature, JSON_PRETTY_PRINT)
-		);
+			);
+		} catch (\Exception $e){
+			if (!$this->fileAccessHelper->is_writeable($appInfoDir)){
+				throw new \Exception($appInfoDir . ' is not writable');
+			}
+			throw $e;
+		}
 	}
 
 	/**
@@ -285,17 +293,29 @@ class Checker {
 	 * @param X509 $certificate
 	 * @param RSA $rsa
 	 * @param string $path
+	 * @throws \Exception
 	 */
 	public function writeCoreSignature(X509 $certificate,
 									   RSA $rsa,
 									   $path) {
+		$coreDir = $path . '/core';
+		$this->fileAccessHelper->assertDirectoryExists($path);
+		$this->fileAccessHelper->assertDirectoryExists($coreDir);
+
 		$iterator = $this->getFolderIterator($path, $path);
 		$hashes = $this->generateHashes($iterator, $path);
 		$signatureData = $this->createSignatureData($hashes, $certificate, $rsa);
-		$this->fileAccessHelper->file_put_contents(
-				$path . '/core/signature.json',
+		try {
+			$this->fileAccessHelper->file_put_contents(
+				$coreDir . '/signature.json',
 				json_encode($signatureData, JSON_PRETTY_PRINT)
-		);
+			);
+		} catch (\Exception $e){
+			if (!$this->fileAccessHelper->is_writeable($coreDir)){
+				throw new \Exception($coreDir . ' is not writable');
+			}
+			throw $e;
+		}
 	}
 
 	/**
@@ -353,15 +373,16 @@ class Checker {
 
 		// Verify if certificate has proper CN. "core" CN is always trusted.
 		if($x509->getDN(X509::DN_OPENSSL)['CN'] !== $certificateCN && $x509->getDN(X509::DN_OPENSSL)['CN'] !== 'core') {
+			$cn = $x509->getDN(true)['CN'];
 			throw new InvalidSignatureException(
-					sprintf('Certificate is not valid for required scope. (Requested: %s, current: %s)', $certificateCN, $x509->getDN(true))
-			);
+					"Certificate is not valid for required scope. (Requested: $certificateCN, current: CN=$cn)");
 		}
 
 		// Check if the signature of the files is valid
 		$rsa = new \phpseclib\Crypt\RSA();
 		$rsa->loadKey($x509->currentCert['tbsCertificate']['subjectPublicKeyInfo']['subjectPublicKey']);
 		$rsa->setSignatureMode(RSA::SIGNATURE_PSS);
+		$rsa->setSaltLength(0);
 		$rsa->setMGFHash('sha512');
 		if(!$rsa->verify(json_encode($expectedHashes), $signature)) {
 			throw new InvalidSignatureException('Signature could not get verified.');

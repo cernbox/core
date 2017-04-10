@@ -51,8 +51,7 @@ script('core', [
 				autocomplete="off" autocapitalize="off" autocorrect="off" required>
 			<label for="adminpass" class="infield"><?php p($l->t( 'Password' )); ?></label>
 			<input type="checkbox" id="show" name="show">
-			<label for="show" class="svg"></label>
-			<div class="strengthify-wrapper"></div>
+			<label for="show"></label>
 		</p>
 	</fieldset>
 
@@ -83,7 +82,7 @@ script('core', [
 		<?php foreach($_['databases'] as $type => $label): ?>
 		<?php if(count($_['databases']) === 1): ?>
 		<p class="info">
-			<?php p($l->t( 'Only %s is available.', array($label) )); ?>
+			<?php p($l->t( 'Only %s is available.', [$label])); ?>
 			<?php p($l->t( 'Install and activate additional PHP modules to choose other database types.' )); ?><br>
 			<a href="<?php print_unescaped(link_to_docs('admin-source_install')); ?>" target="_blank" rel="noreferrer">
 				<?php p($l->t( 'For more details check out the documentation.' )); ?> ↗</a>
@@ -142,6 +141,9 @@ script('core', [
 					placeholder="<?php p($l->t( 'Database host' )); ?>"
 					value="<?php p($_['dbhost']); ?>"
 					autocomplete="off" autocapitalize="off" autocorrect="off">
+			</p>
+			<p class="info">
+				<?php p($l->t( 'Please specify the port number along with the host name (e.g., localhost: 5432).' )); ?>
 			</p>
 		</div>
 		</fieldset>

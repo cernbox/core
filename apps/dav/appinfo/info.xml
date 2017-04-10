@@ -5,8 +5,9 @@
 	<description>ownCloud WebDAV endpoint</description>
 	<licence>AGPL</licence>
 	<author>owncloud.org</author>
-	<version>0.2.7</version>
+	<version>0.2.8</version>
 	<default_enable/>
+	<use-migrations>true</use-migrations>
 	<types>
 		<filesystem/>
 	</types>
@@ -15,18 +16,20 @@
 		<webdav>appinfo/v1/publicwebdav.php</webdav>
 	</public>
 	<dependencies>
-		<owncloud min-version="9.1" max-version="9.1" />
+		<owncloud min-version="10.0" max-version="10.0" />
 	</dependencies>
 	<background-jobs>
 		<job>OCA\DAV\CardDAV\SyncJob</job>
 	</background-jobs>
 	<repair-steps>
 		<post-migration>
-			<step>OCA\DAV\Migration\Classification</step>
 			<step>OCA\DAV\Migration\FixBirthdayCalendarComponent</step>
 		</post-migration>
-		<live-migration>
-			<step>OCA\DAV\Migration\GenerateBirthdays</step>
-		</live-migration>
 	</repair-steps>
+	<commands>
+		<command>OCA\DAV\Command\CreateAddressBook</command>
+		<command>OCA\DAV\Command\CreateCalendar</command>
+		<command>OCA\DAV\Command\SyncBirthdayCalendar</command>
+		<command>OCA\DAV\Command\SyncSystemAddressBook</command>
+	</commands>
 </info>

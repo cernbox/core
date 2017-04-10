@@ -1,9 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ class MaintenancePluginTest extends TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->config = $this->getMock('\OCP\IConfig');
+		$this->config = $this->createMock('\OCP\IConfig');
 		$this->maintenancePlugin = new MaintenancePlugin($this->config);
 	}
 

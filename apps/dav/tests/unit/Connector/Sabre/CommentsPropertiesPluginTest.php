@@ -1,9 +1,10 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,8 +36,8 @@ class CommentsPropertiesPluginTest extends \Test\TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->commentsManager = $this->getMock('\OCP\Comments\ICommentsManager');
-		$this->userSession = $this->getMock('\OCP\IUserSession');
+		$this->commentsManager = $this->createMock('\OCP\Comments\ICommentsManager');
+		$this->userSession = $this->createMock('\OCP\IUserSession');
 
 		$this->server = $this->getMockBuilder('\Sabre\DAV\Server')
 			->disableOriginalConstructor()
@@ -114,7 +115,7 @@ class CommentsPropertiesPluginTest extends \Test\TestCase {
 
 	public function userProvider() {
 		return [
-			[$this->getMock('\OCP\IUser')],
+			[$this->createMock('\OCP\IUser')],
 			[null]
 		];
 	}

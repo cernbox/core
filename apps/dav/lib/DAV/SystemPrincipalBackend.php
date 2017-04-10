@@ -1,8 +1,9 @@
 <?php
 /**
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,6 +51,10 @@ class SystemPrincipalBackend extends AbstractBackend {
 				'uri' => 'principals/system/system',
 				'{DAV:}displayname' => 'system',
 			];
+			$principals[] = [
+				'uri' => 'principals/system/public',
+				'{DAV:}displayname' => 'public',
+			];
 		}
 
 		return $principals;
@@ -69,6 +74,13 @@ class SystemPrincipalBackend extends AbstractBackend {
 			$principal = [
 				'uri' => 'principals/system/system',
 				'{DAV:}displayname' => 'system',
+			];
+			return $principal;
+		}
+		if ($path === 'principals/system/public') {
+			$principal = [
+				'uri' => 'principals/system/public',
+				'{DAV:}displayname' => 'public',
 			];
 			return $principal;
 		}

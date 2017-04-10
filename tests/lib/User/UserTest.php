@@ -10,6 +10,14 @@
 namespace Test\User;
 
 use OC\Hooks\PublicEmitter;
+use OC\User\Backend;
+use OC\User\Database;
+use OC\User\User;
+use OCP\IConfig;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\GenericEvent;
+use Test\TestCase;
+use Test\Util\User\Dummy;
 
 /**
  * Class UserTest
@@ -18,12 +26,12 @@ use OC\Hooks\PublicEmitter;
  *
  * @package Test\User
  */
-class UserTest extends \Test\TestCase {
+class UserTest extends TestCase {
 	public function testDisplayName() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\OC\User\Backend');
+		$backend = $this->createMock('\OC\User\Backend');
 		$backend->expects($this->once())
 			->method('getDisplayName')
 			->with($this->equalTo('foo'))
@@ -31,10 +39,10 @@ class UserTest extends \Test\TestCase {
 
 		$backend->expects($this->any())
 			->method('implementsActions')
-			->with($this->equalTo(\OC\User\Backend::GET_DISPLAYNAME))
+			->with($this->equalTo(Backend::GET_DISPLAYNAME))
 			->will($this->returnValue(true));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertEquals('Foo', $user->getDisplayName());
 	}
 
@@ -43,9 +51,9 @@ class UserTest extends \Test\TestCase {
 	 */
 	public function testDisplayNameEmpty() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\OC\User\Backend');
+		$backend = $this->createMock('\OC\User\Backend');
 		$backend->expects($this->once())
 			->method('getDisplayName')
 			->with($this->equalTo('foo'))
@@ -53,58 +61,61 @@ class UserTest extends \Test\TestCase {
 
 		$backend->expects($this->any())
 			->method('implementsActions')
-			->with($this->equalTo(\OC\User\Backend::GET_DISPLAYNAME))
+			->with($this->equalTo(Backend::GET_DISPLAYNAME))
 			->will($this->returnValue(true));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertEquals('foo', $user->getDisplayName());
 	}
 
 	public function testDisplayNameNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\OC\User\Backend');
+		$backend = $this->createMock('\OC\User\Backend');
 		$backend->expects($this->never())
 			->method('getDisplayName');
 
 		$backend->expects($this->any())
 			->method('implementsActions')
-			->with($this->equalTo(\OC\User\Backend::GET_DISPLAYNAME))
+			->with($this->equalTo(Backend::GET_DISPLAYNAME))
 			->will($this->returnValue(false));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertEquals('foo', $user->getDisplayName());
 	}
 
 	public function testSetPassword() {
-		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
-		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		/** @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend */
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->once())
 			->method('setPassword')
-			->with($this->equalTo('foo'), $this->equalTo('bar'));
+			->with($this->equalTo('foo'), $this->equalTo('bar'))
+			->willReturn(true);
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::SET_PASSWORD) {
+				if ($actions === Backend::SET_PASSWORD) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
+		$config = $this->createMock(IConfig::class);
+		$config->expects($this->once())
+			->method('deleteUserValue')
+			->with('foo', 'owncloud', 'lostpassword');
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend, null, $config);
 		$this->assertTrue($user->setPassword('bar',''));
 	}
 
 	public function testSetPasswordNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->never())
 			->method('setPassword');
 
@@ -112,15 +123,15 @@ class UserTest extends \Test\TestCase {
 			->method('implementsActions')
 			->will($this->returnValue(false));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertFalse($user->setPassword('bar',''));
 	}
 
 	public function testChangeAvatarSupportedYes() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('Test\User\AvatarUserDummy');
+		$backend = $this->createMock('Test\User\AvatarUserDummy');
 		$backend->expects($this->once())
 			->method('canChangeAvatar')
 			->with($this->equalTo('foo'))
@@ -129,22 +140,22 @@ class UserTest extends \Test\TestCase {
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::PROVIDE_AVATAR) {
+				if ($actions === Backend::PROVIDE_AVATAR) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertTrue($user->canChangeAvatar());
 	}
 
 	public function testChangeAvatarSupportedNo() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('Test\User\AvatarUserDummy');
+		$backend = $this->createMock('Test\User\AvatarUserDummy');
 		$backend->expects($this->once())
 			->method('canChangeAvatar')
 			->with($this->equalTo('foo'))
@@ -153,22 +164,22 @@ class UserTest extends \Test\TestCase {
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::PROVIDE_AVATAR) {
+				if ($actions === Backend::PROVIDE_AVATAR) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertFalse($user->canChangeAvatar());
 	}
 
 	public function testChangeAvatarNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('Test\User\AvatarUserDummy');
+		$backend = $this->createMock('Test\User\AvatarUserDummy');
 		$backend->expects($this->never())
 			->method('canChangeAvatar');
 
@@ -178,20 +189,52 @@ class UserTest extends \Test\TestCase {
 					return false;
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertTrue($user->canChangeAvatar());
 	}
 
 	public function testDelete() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->once())
 			->method('deleteUser')
 			->with($this->equalTo('foo'));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
+		$this->assertTrue($user->delete());
+	}
+
+	public function testDeleteWithDifferentHome() {
+		/**
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 */
+		$backend = $this->createMock(Dummy::class);
+
+		$backend->expects($this->at(0))
+			->method('implementsActions')
+			->will($this->returnCallback(function ($actions) {
+				if ($actions === Backend::GET_HOME) {
+					return true;
+				} else {
+					return false;
+				}
+			}));
+
+		// important: getHome MUST be called before deleteUser because
+		// once the user is deleted, getHome implementations might not
+		// return anything
+		$backend->expects($this->at(1))
+			->method('getHome')
+			->with($this->equalTo('foo'))
+			->will($this->returnValue('/home/foo'));
+
+		$backend->expects($this->at(2))
+			->method('deleteUser')
+			->with($this->equalTo('foo'));
+
+		$user = new User('foo', $backend);
 		$this->assertTrue($user->delete());
 	}
 
@@ -229,9 +272,9 @@ class UserTest extends \Test\TestCase {
 
 	public function testGetHome() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->once())
 			->method('getHome')
 			->with($this->equalTo('foo'))
@@ -240,29 +283,29 @@ class UserTest extends \Test\TestCase {
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::GET_HOME) {
+				if ($actions === Backend::GET_HOME) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertEquals('/home/foo', $user->getHome());
 	}
 
 	public function testGetBackendClassName() {
-		$user = new \OC\User\User('foo', new \Test\Util\User\Dummy());
+		$user = new User('foo', new Dummy());
 		$this->assertEquals('Dummy', $user->getBackendClassName());
-		$user = new \OC\User\User('foo', new \OC\User\Database());
+		$user = new User('foo', new Database());
 		$this->assertEquals('Database', $user->getBackendClassName());
 	}
 
 	public function testGetHomeNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->never())
 			->method('getHome');
 
@@ -281,88 +324,88 @@ class UserTest extends \Test\TestCase {
 			->with($this->equalTo('datadirectory'))
 			->will($this->returnValue('arbitrary/path'));
 
-		$user = new \OC\User\User('foo', $backend, null, $allConfig);
+		$user = new User('foo', $backend, null, $allConfig);
 		$this->assertEquals('arbitrary/path/foo', $user->getHome());
 	}
 
 	public function testCanChangePassword() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::SET_PASSWORD) {
+				if ($actions === Backend::SET_PASSWORD) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertTrue($user->canChangePassword());
 	}
 
 	public function testCanChangePasswordNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnValue(false));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertFalse($user->canChangePassword());
 	}
 
 	public function testCanChangeDisplayName() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::SET_DISPLAYNAME) {
+				if ($actions === Backend::SET_DISPLAYNAME) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertTrue($user->canChangeDisplayName());
 	}
 
 	public function testCanChangeDisplayNameNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnValue(false));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertFalse($user->canChangeDisplayName());
 	}
 
 	public function testSetDisplayNameSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\OC\User\Database');
+		$backend = $this->createMock('\OC\User\Database');
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::SET_DISPLAYNAME) {
+				if ($actions === Backend::SET_DISPLAYNAME) {
 					return true;
 				} else {
 					return false;
@@ -374,7 +417,7 @@ class UserTest extends \Test\TestCase {
 			->with('foo','Foo')
 			->willReturn(true);
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertTrue($user->setDisplayName('Foo'));
 		$this->assertEquals('Foo',$user->getDisplayName());
 	}
@@ -384,30 +427,30 @@ class UserTest extends \Test\TestCase {
 	 */
 	public function testSetDisplayNameEmpty() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\OC\User\Database');
+		$backend = $this->createMock('\OC\User\Database');
 
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::SET_DISPLAYNAME) {
+				if ($actions === Backend::SET_DISPLAYNAME) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertFalse($user->setDisplayName(' '));
 		$this->assertEquals('foo',$user->getDisplayName());
 	}
 
 	public function testSetDisplayNameNotSupported() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\OC\User\Database');
+		$backend = $this->createMock('\OC\User\Database');
 
 		$backend->expects($this->any())
 			->method('implementsActions')
@@ -418,7 +461,7 @@ class UserTest extends \Test\TestCase {
 		$backend->expects($this->never())
 			->method('setDisplayName');
 
-		$user = new \OC\User\User('foo', $backend);
+		$user = new User('foo', $backend);
 		$this->assertFalse($user->setDisplayName('Foo'));
 		$this->assertEquals('foo',$user->getDisplayName());
 	}
@@ -428,14 +471,15 @@ class UserTest extends \Test\TestCase {
 		$test = $this;
 
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->once())
-			->method('setPassword');
+			->method('setPassword')
+			->willReturn(true);
 
 		/**
-		 * @param \OC\User\User $user
+		 * @param User $user
 		 * @param string $password
 		 */
 		$hook = function ($user, $password) use ($test, &$hooksCalled) {
@@ -451,14 +495,14 @@ class UserTest extends \Test\TestCase {
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC\User\Backend::SET_PASSWORD) {
+				if ($actions === Backend::SET_PASSWORD) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
-		$user = new \OC\User\User('foo', $backend, $emitter);
+		$user = new User('foo', $backend, $emitter);
 
 		$user->setPassword('bar','');
 		$this->assertEquals(2, $hooksCalled);
@@ -469,14 +513,14 @@ class UserTest extends \Test\TestCase {
 		$test = $this;
 
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$backend->expects($this->once())
 			->method('deleteUser');
 
 		/**
-		 * @param \OC\User\User $user
+		 * @param User $user
 		 */
 		$hook = function ($user) use ($test, &$hooksCalled) {
 			$hooksCalled++;
@@ -487,16 +531,44 @@ class UserTest extends \Test\TestCase {
 		$emitter->listen('\OC\User', 'preDelete', $hook);
 		$emitter->listen('\OC\User', 'postDelete', $hook);
 
-		$user = new \OC\User\User('foo', $backend, $emitter);
+		$user = new User('foo', $backend, $emitter);
 		$this->assertTrue($user->delete());
 		$this->assertEquals(2, $hooksCalled);
 	}
 
+	public function testSetEnabledHook(){
+		/**
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 */
+		$backend = $this->createMock(Dummy::class);
+		$eventDispatcherMock = $this->createMock(EventDispatcher::class);
+
+		$expectations = [true, false];
+		$eventDispatcherMock->expects($this->exactly(2))
+			->method('dispatch')
+			->with(
+				$this->callback(
+					function($eventName){
+						if ($eventName === User::class . '::postSetEnabled' ){
+							return true;
+						}
+						return false;
+					}
+				),
+				$this->anything()
+			)
+		;
+
+		$user = new User('foo', $backend, null, null, null, $eventDispatcherMock);
+		$user->setEnabled(false);
+		$user->setEnabled(true);
+	}
+
 	public function testGetCloudId() {
 		/**
-		 * @var \OC\User\Backend | \PHPUnit_Framework_MockObject_MockObject $backend
+		 * @var Backend | \PHPUnit_Framework_MockObject_MockObject $backend
 		 */
-		$backend = $this->getMock('\Test\Util\User\Dummy');
+		$backend = $this->createMock(Dummy::class);
 		$urlGenerator = $this->getMockBuilder('\OC\URLGenerator')
 				->setMethods(['getAbsoluteURL'])
 				->disableOriginalConstructor()->getMock();
@@ -505,7 +577,7 @@ class UserTest extends \Test\TestCase {
 				->method('getAbsoluteURL')
 				->withAnyParameters()
 				->willReturn('http://localhost:8888/owncloud');
-		$user = new \OC\User\User('foo', $backend, null, null, $urlGenerator);
+		$user = new User('foo', $backend, null, null, $urlGenerator);
 		$this->assertEquals("foo@localhost:8888/owncloud", $user->getCloudId());
 	}
 }

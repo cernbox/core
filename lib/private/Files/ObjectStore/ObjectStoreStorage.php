@@ -1,11 +1,12 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,7 +34,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	/**
 	 * @var array
 	 */
-	private static $tmpFiles = array();
+	private static $tmpFiles = [];
 	/**
 	 * @var \OCP\Files\ObjectStore\IObjectStore $objectStore
 	 */
@@ -47,6 +48,8 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	 */
 	protected $user;
 
+	private $objectPrefix = 'urn:oid:';
+
 	public function __construct($params) {
 		if (isset($params['objectstore']) && $params['objectstore'] instanceof IObjectStore) {
 			$this->objectStore = $params['objectstore'];
@@ -57,6 +60,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 			$this->id = 'object::store:' . $params['storageid'];
 		} else {
 			$this->id = 'object::store:' . $this->objectStore->getStorageId();
+		}
+		if (isset($params['objectPrefix'])) {
+			$this->objectPrefix = $params['objectPrefix'];
 		}
 		//initialize cache with root directory in cache
 		if (!$this->is_dir('/')) {
@@ -215,7 +221,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 	 */
 	protected function getURN($fileId) {
 		if (is_numeric($fileId)) {
-			return 'urn:oid:' . $fileId;
+			return $this->objectPrefix . $fileId;
 		}
 		return null;
 	}
@@ -224,7 +230,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		$path = $this->normalizePath($path);
 
 		try {
-			$files = array();
+			$files = [];
 			$folderContents = $this->getCache()->getFolderContents($path);
 			foreach ($folderContents as $file) {
 				$files[] = $file['name'];
@@ -285,7 +291,7 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 					$ext = '';
 				}
 				$tmpFile = \OC::$server->getTempManager()->getTemporaryFile($ext);
-				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
+				\OC\Files\Stream\Close::registerCallback($tmpFile, [$this, 'writeBack']);
 				if ($this->file_exists($path)) {
 					$source = $this->fopen($path, 'r');
 					file_put_contents($tmpFile, $source);
@@ -341,14 +347,14 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		} else {
 			$mimeType = \OC::$server->getMimeTypeDetector()->detectPath($path);
 			// create new file
-			$stat = array(
+			$stat = [
 				'etag' => $this->getETag($path),
 				'mimetype' => $mimeType,
 				'size' => 0,
 				'mtime' => $mtime,
 				'storage_mtime' => $mtime,
 				'permissions' => \OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE,
-			);
+			];
 			$fileId = $this->getCache()->put($path, $stat);
 			try {
 				//read an empty file from memory
@@ -371,9 +377,9 @@ class ObjectStoreStorage extends \OC\Files\Storage\Common {
 		$stat = $this->stat($path);
 		if (empty($stat)) {
 			// create new file
-			$stat = array(
+			$stat = [
 				'permissions' => \OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE,
-			);
+			];
 		}
 		// update stat with new data
 		$mTime = time();

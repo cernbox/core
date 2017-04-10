@@ -1,13 +1,14 @@
 <?php
 /**
  * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,7 +38,7 @@ use OCP\Files\Storage\IStorage;
  */
 class Cache extends CacheJail {
 	/**
-	 * @var \OC\Files\Storage\Shared
+	 * @var \OCA\Files_Sharing\SharedStorage
 	 */
 	private $storage;
 
@@ -57,7 +58,7 @@ class Cache extends CacheJail {
 	private $sourceCache;
 
 	/**
-	 * @param \OC\Files\Storage\Shared $storage
+	 * @param \OCA\Files_Sharing\SharedStorage $storage
 	 * @param IStorage $sourceStorage
 	 * @param ICacheEntry $sourceRootInfo
 	 */
@@ -70,14 +71,6 @@ class Cache extends CacheJail {
 			$this->sourceCache,
 			$this->sourceRootInfo->getPath()
 		);
-	}
-
-	public function getNumericStorageId() {
-		if (isset($this->numericId)) {
-			return $this->numericId;
-		} else {
-			return false;
-		}
 	}
 
 	protected function formatCacheEntry($entry) {

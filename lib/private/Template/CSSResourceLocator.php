@@ -1,11 +1,13 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Michael Jobst <mjobst+github@tecratech.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,26 +32,30 @@ class CSSResourceLocator extends ResourceLocator {
 	 */
 	public function doFind($style) {
 		if (strpos($style, '3rdparty') === 0
-			&& $this->appendIfExist($this->thirdpartyroot, $style.'.css')
-			|| $this->appendIfExist($this->serverroot, $style.'.css')
-			|| $this->appendIfExist($this->serverroot, 'core/'.$style.'.css')
+			&& $this->appendOnceIfExist($this->thirdpartyroot, $style.'.css')
+			|| $this->appendOnceIfExist($this->serverroot, $style.'.css')
+			|| $this->appendOnceIfExist($this->serverroot, 'core/'.$style.'.css')
 		) {
 			return;
 		}
 		$app = substr($style, 0, strpos($style, '/'));
 		$style = substr($style, strpos($style, '/')+1);
+
 		$app_path = \OC_App::getAppPath($app);
+		if( $app_path === false ) { return; }
 		$app_url = \OC_App::getAppWebPath($app);
-		$this->append($app_path, $style.'.css', $app_url);
+		$app_url = ($app_url !== false) ? $app_url : null;
+		$this->appendOnceIfExist($app_path, $style.'.css', $app_url);
 	}
 
 	/**
 	 * @param string $style
 	 */
 	public function doFindTheme($style) {
-		$theme_dir = 'themes/'.$this->theme.'/';
-		$this->appendIfExist($this->serverroot, $theme_dir.'apps/'.$style.'.css')
-			|| $this->appendIfExist($this->serverroot, $theme_dir.$style.'.css')
-			|| $this->appendIfExist($this->serverroot, $theme_dir.'core/'.$style.'.css');
+		$themeDirectory = $this->theme->getDirectory();
+
+		$this->appendOnceIfExist($this->serverroot, $themeDirectory.'apps/'.$style.'.css')
+			|| $this->appendOnceIfExist($this->serverroot, $themeDirectory.$style.'.css')
+			|| $this->appendOnceIfExist($this->serverroot, $themeDirectory.'core/'.$style.'.css');
 	}
 }

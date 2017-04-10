@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,20 +22,17 @@
 
 namespace OCA\Files_External\Lib\Backend;
 
-use \OCP\IL10N;
-use \OCA\Files_External\Lib\Backend\Backend;
-use \OCA\Files_External\Lib\DefinitionParameter;
-use \OCA\Files_External\Lib\Auth\AuthMechanism;
-use \OCA\Files_External\Service\BackendService;
-use \OCA\Files_External\Lib\Auth\OpenStack\OpenStack;
-use \OCA\Files_External\Lib\Auth\OpenStack\Rackspace;
-use \OCA\Files_External\Lib\LegacyDependencyCheckPolyfill;
+use OCP\IL10N;
+use OCP\Files\External\DefinitionParameter;
+use OCP\Files\External\Auth\AuthMechanism;
+use OCP\Files\External\Backend\Backend;
+use OCA\Files_External\Lib\LegacyDependencyCheckPolyfill;
 
 class Swift extends Backend {
 
 	use LegacyDependencyCheckPolyfill;
 
-	public function __construct(IL10N $l, OpenStack $openstackAuth, Rackspace $rackspaceAuth) {
+	public function __construct(IL10N $l) {
 		$this
 			->setIdentifier('swift')
 			->addIdentifierAlias('\OC\Files\Storage\Swift') // legacy compat
@@ -50,12 +48,6 @@ class Swift extends Backend {
 					->setFlag(DefinitionParameter::FLAG_OPTIONAL),
 			])
 			->addAuthScheme(AuthMechanism::SCHEME_OPENSTACK)
-			->setLegacyAuthMechanismCallback(function(array $params) use ($openstackAuth, $rackspaceAuth) {
-				if (isset($params['options']['key']) && $params['options']['key']) {
-					return $rackspaceAuth;
-				}
-				return $openstackAuth;
-			})
 		;
 	}
 

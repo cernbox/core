@@ -3,14 +3,15 @@
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Christoph Schaefer <christophł@wolkesicher.de>
  * @author Christoph Wurst <christoph@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,6 +30,8 @@
 
 namespace OC\App;
 
+use OC_App;
+use OC\Installer;
 use OCP\App\IAppManager;
 use OCP\App\ManagerEvent;
 use OCP\IAppConfig;
@@ -77,10 +80,11 @@ class AppManager implements IAppManager {
 	private $dispatcher;
 
 	/**
-	 * @param \OCP\IUserSession $userSession
-	 * @param \OCP\IAppConfig $appConfig
-	 * @param \OCP\IGroupManager $groupManager
-	 * @param \OCP\ICacheFactory $memCacheFactory
+	 * @param IUserSession $userSession
+	 * @param IAppConfig $appConfig
+	 * @param IGroupManager $groupManager
+	 * @param ICacheFactory $memCacheFactory
+	 * @param EventDispatcherInterface $dispatcher
 	 */
 	public function __construct(IUserSession $userSession,
 								IAppConfig $appConfig,
@@ -209,6 +213,9 @@ class AppManager implements IAppManager {
 	 * @param string $appId
 	 */
 	public function enableApp($appId) {
+		if(OC_App::getAppPath($appId) === false) {
+			throw new \Exception("$appId can't be enabled since it is not installed.");
+		}
 		$this->installedAppsCache[$appId] = 'yes';
 		$this->appConfig->setValue($appId, 'enabled', 'yes');
 		$this->dispatcher->dispatch(ManagerEvent::EVENT_APP_ENABLE, new ManagerEvent(
@@ -274,7 +281,7 @@ class AppManager implements IAppManager {
 	/**
 	 * Returns a list of apps that need upgrade
 	 *
-	 * @param array $version ownCloud version as array of version components
+	 * @param array $ocVersion ownCloud version as array of version components
 	 * @return array list of app info from apps that need an upgrade
 	 *
 	 * @internal
@@ -326,7 +333,7 @@ class AppManager implements IAppManager {
 	 */
 	public function getIncompatibleApps($version) {
 		$apps = $this->getInstalledApps();
-		$incompatibleApps = array();
+		$incompatibleApps = [];
 		foreach ($apps as $appId) {
 			$info = $this->getAppInfo($appId);
 			if (!\OC_App::isAppCompatible($version, $info)) {
@@ -367,5 +374,39 @@ class AppManager implements IAppManager {
 	public function getAlwaysEnabledApps() {
 		$this->loadShippedJson();
 		return $this->alwaysEnabled;
+	}
+
+	/**
+	 * @param string $package
+	 * @return mixed
+	 * @since 10.0
+	 */
+	public function installApp($package) {
+		return Installer::installApp([
+			'source' => 'local',
+			'path' => $package
+		]);
+	}
+
+	/**
+	 * @param string $package
+	 * @return mixed
+	 * @since 10.0
+	 */
+	public function updateApp($package) {
+		return Installer::updateApp([
+			'source' => 'local',
+			'path' => $package
+		]);
+	}
+
+	/**
+	 * Returns the list of all apps, enabled and disabled
+	 *
+	 * @return string[]
+	 * @since 10.0
+	 */
+	public function getAllApps() {
+		return $this->appConfig->getApps();
 	}
 }

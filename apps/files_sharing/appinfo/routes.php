@@ -2,13 +2,14 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Georg Ehrke <georg@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,6 +40,13 @@ $application->registerRoutes($this, [
 			'verb' => 'GET'
 		],
 	],
+	'ocs' => [
+		[
+			'name' => 'sharees#search',
+			'url' => '/api/v1/sharees',
+			'verb' => 'GET',
+		]
+	]
 ]);
 
 /** @var $this \OCP\Route\IRouter */
@@ -89,47 +97,30 @@ API::register('delete',
 
 API::register('get',
 		'/apps/files_sharing/api/v1/remote_shares',
-		array('\OCA\Files_Sharing\API\Remote', 'getShares'),
+		['\OCA\Files_Sharing\API\Remote', 'getShares'],
 		'files_sharing');
 
 API::register('get',
 		'/apps/files_sharing/api/v1/remote_shares/pending',
-		array('\OCA\Files_Sharing\API\Remote', 'getOpenShares'),
+		['\OCA\Files_Sharing\API\Remote', 'getOpenShares'],
 		'files_sharing');
 
 API::register('post',
 		'/apps/files_sharing/api/v1/remote_shares/pending/{id}',
-		array('\OCA\Files_Sharing\API\Remote', 'acceptShare'),
+		['\OCA\Files_Sharing\API\Remote', 'acceptShare'],
 		'files_sharing');
 
 API::register('delete',
 		'/apps/files_sharing/api/v1/remote_shares/pending/{id}',
-		array('\OCA\Files_Sharing\API\Remote', 'declineShare'),
+		['\OCA\Files_Sharing\API\Remote', 'declineShare'],
 		'files_sharing');
 
 API::register('get',
 		'/apps/files_sharing/api/v1/remote_shares/{id}',
-		array('\OCA\Files_Sharing\API\Remote', 'getShare'),
+		['\OCA\Files_Sharing\API\Remote', 'getShare'],
 		'files_sharing');
 
 API::register('delete',
 		'/apps/files_sharing/api/v1/remote_shares/{id}',
-		array('\OCA\Files_Sharing\API\Remote', 'unshare'),
+		['\OCA\Files_Sharing\API\Remote', 'unshare'],
 		'files_sharing');
-
-
-$sharees = new \OCA\Files_Sharing\API\Sharees(\OC::$server->getGroupManager(),
-                                              \OC::$server->getUserManager(),
-                                              \OC::$server->getContactsManager(),
-                                              \OC::$server->getConfig(),
-                                              \OC::$server->getUserSession(),
-                                              \OC::$server->getURLGenerator(),
-                                              \OC::$server->getRequest(),
-                                              \OC::$server->getLogger(),
-                                              \OC::$server->getShareManager());
-
-API::register('get',
-		'/apps/files_sharing/api/v1/sharees',
-		[$sharees, 'search'],
-		'files_sharing', API::USER_AUTH);
-

@@ -3,13 +3,14 @@
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Gadzy <dev@gadzy.fr>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,14 +27,10 @@
  *
  */
 
-\OC::$CLASSPATH['OC_Share_Backend_File'] = 'files_sharing/lib/share/file.php';
-\OC::$CLASSPATH['OC_Share_Backend_Folder'] = 'files_sharing/lib/share/folder.php';
-\OC::$CLASSPATH['OC\Files\Storage\Shared'] = 'files_sharing/lib/sharedstorage.php';
-
 \OCA\Files_Sharing\Helper::registerHooks();
 
-\OCP\Share::registerBackend('file', 'OC_Share_Backend_File');
-\OCP\Share::registerBackend('folder', 'OC_Share_Backend_Folder', 'file');
+\OCP\Share::registerBackend('file', 'OCA\Files_Sharing\ShareBackend\File');
+\OCP\Share::registerBackend('folder', 'OCA\Files_Sharing\ShareBackend\Folder', 'file');
 
 $application = new \OCA\Files_Sharing\AppInfo\Application();
 $application->registerMountProviders();

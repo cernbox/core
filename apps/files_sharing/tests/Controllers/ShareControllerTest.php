@@ -2,7 +2,7 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Georg Ehrke <georg@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -10,7 +10,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Cloutier <vincent1cloutier@gmail.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -77,11 +77,11 @@ class ShareControllerTest extends \Test\TestCase {
 		$this->appName = 'files_sharing';
 
 		$this->shareManager = $this->getMockBuilder('\OC\Share20\Manager')->disableOriginalConstructor()->getMock();
-		$this->urlGenerator = $this->getMock('\OCP\IURLGenerator');
-		$this->session = $this->getMock('\OCP\ISession');
-		$this->previewManager = $this->getMock('\OCP\IPreview');
-		$this->config = $this->getMock('\OCP\IConfig');
-		$this->userManager = $this->getMock('\OCP\IUserManager');
+		$this->urlGenerator = $this->createMock('\OCP\IURLGenerator');
+		$this->session = $this->createMock('\OCP\ISession');
+		$this->previewManager = $this->createMock('\OCP\IPreview');
+		$this->config = $this->createMock('\OCP\IConfig');
+		$this->userManager = $this->createMock('\OCP\IUserManager');
 		$this->federatedShareProvider = $this->getMockBuilder('OCA\FederatedFileSharing\FederatedShareProvider')
 			->disableOriginalConstructor()->getMock();
 		$this->federatedShareProvider->expects($this->any())
@@ -91,16 +91,16 @@ class ShareControllerTest extends \Test\TestCase {
 
 		$this->shareController = new \OCA\Files_Sharing\Controllers\ShareController(
 			$this->appName,
-			$this->getMock('\OCP\IRequest'),
+			$this->createMock('\OCP\IRequest'),
 			$this->config,
 			$this->urlGenerator,
 			$this->userManager,
-			$this->getMock('\OCP\ILogger'),
-			$this->getMock('\OCP\Activity\IManager'),
+			$this->createMock('\OCP\ILogger'),
+			$this->createMock('\OCP\Activity\IManager'),
 			$this->shareManager,
 			$this->session,
 			$this->previewManager,
-			$this->getMock('\OCP\Files\IRootFolder'),
+			$this->createMock('\OCP\Files\IRootFolder'),
 			$this->federatedShareProvider
 		);
 
@@ -269,7 +269,7 @@ class ShareControllerTest extends \Test\TestCase {
 			}));
 
 		$response = $this->shareController->authenticate('token', 'invalidpassword');
-		$expectedResponse =  new TemplateResponse($this->appName, 'authenticate', array('wrongpw' => true), 'guest');
+		$expectedResponse =  new TemplateResponse($this->appName, 'authenticate', ['wrongpw' => true], 'guest');
 		$this->assertEquals($expectedResponse, $response);
 	}
 
@@ -309,11 +309,11 @@ class ShareControllerTest extends \Test\TestCase {
 
 
 	public function testShowShare() {
-		$owner = $this->getMock('OCP\IUser');
+		$owner = $this->createMock('OCP\IUser');
 		$owner->method('getDisplayName')->willReturn('ownerDisplay');
 		$owner->method('getUID')->willReturn('ownerUID');
 
-		$file = $this->getMock('OCP\Files\File');
+		$file = $this->createMock('OCP\Files\File');
 		$file->method('getName')->willReturn('file1.txt');
 		$file->method('getMimetype')->willReturn('text/plain');
 		$file->method('getSize')->willReturn(33);
@@ -353,7 +353,7 @@ class ShareControllerTest extends \Test\TestCase {
 		$this->userManager->method('get')->with('ownerUID')->willReturn($owner);
 
 		$response = $this->shareController->showShare('token');
-		$sharedTmplParams = array(
+		$sharedTmplParams = [
 			'displayName' => 'ownerDisplay',
 			'owner' => 'ownerUID',
 			'filename' => 'file1.txt',
@@ -372,7 +372,9 @@ class ShareControllerTest extends \Test\TestCase {
 			'previewEnabled' => true,
 			'previewMaxX' => 1024,
 			'previewMaxY' => 1024,
-		);
+			'shareUrl' => null,
+			'previewImage' => null
+		];
 
 		$csp = new \OCP\AppFramework\Http\ContentSecurityPolicy();
 		$csp->addAllowedFrameDomain('\'self\'');
@@ -386,11 +388,11 @@ class ShareControllerTest extends \Test\TestCase {
 	 * @expectedException \OCP\Files\NotFoundException
 	 */
 	public function testShowShareInvalid() {
-		$owner = $this->getMock('OCP\IUser');
+		$owner = $this->createMock('OCP\IUser');
 		$owner->method('getDisplayName')->willReturn('ownerDisplay');
 		$owner->method('getUID')->willReturn('ownerUID');
 
-		$file = $this->getMock('OCP\Files\File');
+		$file = $this->createMock('OCP\Files\File');
 		$file->method('getName')->willReturn('file1.txt');
 		$file->method('getMimetype')->willReturn('text/plain');
 		$file->method('getSize')->willReturn(33);
@@ -432,7 +434,7 @@ class ShareControllerTest extends \Test\TestCase {
 
 
 	public function testDownloadShare() {
-		$share = $this->getMock('\OCP\Share\IShare');
+		$share = $this->createMock('\OCP\Share\IShare');
 		$share->method('getPassword')->willReturn('password');
 
 		$this->shareManager

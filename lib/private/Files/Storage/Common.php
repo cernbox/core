@@ -4,7 +4,7 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author hkjolhede <hkjolhede@gmail.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Martin Mattel <martin.mattel@diemattels.at>
@@ -19,7 +19,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -208,7 +208,7 @@ abstract class Common implements Storage, ILockingStorage {
 			$dir = $this->opendir($path1);
 			$this->mkdir($path2);
 			while ($file = readdir($dir)) {
-				if (!Filesystem::isIgnoredDir($file)) {
+				if (!Filesystem::isIgnoredDir($file) && !Filesystem::isForbiddenFileOrDir($file)) {
 					if (!$this->copy($path1 . '/' . $file, $path2 . '/' . $file)) {
 						return false;
 					}
@@ -278,7 +278,7 @@ abstract class Common implements Storage, ILockingStorage {
 	 * @return array
 	 */
 	protected function searchInDir($query, $dir = '') {
-		$files = array();
+		$files = [];
 		$dh = $this->opendir($dir);
 		if (is_resource($dh)) {
 			while (($item = readdir($dh)) !== false) {
@@ -415,7 +415,7 @@ abstract class Common implements Storage, ILockingStorage {
 			$path = '/' . $path;
 		}
 
-		$output = array();
+		$output = [];
 		foreach (explode('/', $path) as $chunk) {
 			if ($chunk == '..') {
 				array_pop($output);
@@ -465,6 +465,10 @@ abstract class Common implements Storage, ILockingStorage {
 	 * @return bool
 	 */
 	public function instanceOfStorage($class) {
+		if (ltrim($class, '\\') === 'OC\Files\Storage\Shared') {
+			// FIXME Temporary fix to keep existing checks working
+			$class = '\OCA\Files_Sharing\SharedStorage';
+		}
 		return is_a($this, $class);
 	}
 
@@ -488,26 +492,7 @@ abstract class Common implements Storage, ILockingStorage {
 			throw new FileNameTooLongException();
 		}
 
-		// NOTE: $path will remain unverified for now
-		if (\OC_Util::runningOnWindows()) {
-			$this->verifyWindowsPath($fileName);
-		} else {
-			$this->verifyPosixPath($fileName);
-		}
-	}
-
-	/**
-	 * https://msdn.microsoft.com/en-us/library/windows/desktop/aa365247%28v=vs.85%29.aspx
-	 * @param string $fileName
-	 * @throws InvalidPathException
-	 */
-	protected function verifyWindowsPath($fileName) {
-		$fileName = trim($fileName);
-		$this->scanForInvalidCharacters($fileName, "\\/<>:\"|?*");
-		$reservedNames = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
-		if (in_array(strtoupper($fileName), $reservedNames)) {
-			throw new ReservedWordException();
-		}
+		$this->verifyPosixPath($fileName);
 	}
 
 	/**
@@ -574,7 +559,7 @@ abstract class Common implements Storage, ILockingStorage {
 			$result = $this->mkdir($targetInternalPath);
 			if (is_resource($dh)) {
 				while ($result and ($file = readdir($dh)) !== false) {
-					if (!Filesystem::isIgnoredDir($file)) {
+					if (!Filesystem::isIgnoredDir($file) && !Filesystem::isForbiddenFileOrDir($file)) {
 						$result &= $this->copyFromStorage($sourceStorage, $sourceInternalPath . '/' . $file, $targetInternalPath . '/' . $file);
 					}
 				}

@@ -1,9 +1,10 @@
 <?php
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,15 +31,14 @@ use OCP\ISession;
 
 class SessionMiddleware extends Middleware {
 
-	/**
-	 * @var IRequest
-	 */
+	/** @var IRequest */
 	private $request;
 
-	/**
-	 * @var ControllerMethodReflector
-	 */
+	/** @var ControllerMethodReflector */
 	private $reflector;
+
+	/** @var ISession */
+	private $session;
 
 	/**
 	 * @param IRequest $request

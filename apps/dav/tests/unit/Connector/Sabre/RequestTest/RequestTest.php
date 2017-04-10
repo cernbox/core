@@ -1,11 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,11 +26,7 @@ namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
 
 use OCA\DAV\Connector\Sabre\Server;
 use OCA\DAV\Connector\Sabre\ServerFactory;
-use OC\Files\Mount\MountPoint;
-use OC\Files\Storage\StorageFactory;
-use OC\Files\Storage\Temporary;
 use OC\Files\View;
-use OCP\IUser;
 use Sabre\HTTP\Request;
 use Test\TestCase;
 use Test\Traits\MountProviderTrait;
@@ -55,6 +51,8 @@ abstract class RequestTest extends TestCase {
 	protected function setUp() {
 		parent::setUp();
 
+		unset($_SERVER['HTTP_OC_CHUNKED']);
+
 		$this->serverFactory = new ServerFactory(
 			\OC::$server->getConfig(),
 			\OC::$server->getLogger(),
@@ -62,7 +60,7 @@ abstract class RequestTest extends TestCase {
 			\OC::$server->getUserSession(),
 			\OC::$server->getMountManager(),
 			\OC::$server->getTagManager(),
-			$this->getMock('\OCP\IRequest')
+			$this->createMock('\OCP\IRequest')
 		);
 	}
 

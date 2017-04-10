@@ -2,8 +2,10 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +40,7 @@ class DiscoveryManagerTest extends \Test\TestCase {
 
 	public function setUp() {
 		parent::setUp();
-		$this->cache = $this->getMock('\OCP\ICache');
+		$this->cache = $this->createMock('\OCP\ICache');
 		/** @var ICacheFactory $cacheFactory */
 		$cacheFactory = $this->getMockBuilder('\OCP\ICacheFactory')
 			->disableOriginalConstructor()->getMock();
@@ -66,7 +68,7 @@ class DiscoveryManagerTest extends \Test\TestCase {
 	}
 
 	public function testWithMalformedFormattedEndpointCached() {
-		$response = $this->getMock('\OCP\Http\Client\IResponse');
+		$response = $this->createMock('\OCP\Http\Client\IResponse');
 		$response
 			->expects($this->once())
 			->method('getStatusCode')
@@ -103,7 +105,7 @@ class DiscoveryManagerTest extends \Test\TestCase {
 	}
 
 	public function testGetWebDavEndpointWithValidFormattedEndpointAndNotCached() {
-		$response = $this->getMock('\OCP\Http\Client\IResponse');
+		$response = $this->createMock('\OCP\Http\Client\IResponse');
 		$response
 			->expects($this->once())
 			->method('getStatusCode')
@@ -126,7 +128,7 @@ class DiscoveryManagerTest extends \Test\TestCase {
 	}
 
 	public function testGetWebDavEndpointWithValidFormattedEndpointWithoutDataAndNotCached() {
-		$response = $this->getMock('\OCP\Http\Client\IResponse');
+		$response = $this->createMock('\OCP\Http\Client\IResponse');
 		$response
 			->expects($this->once())
 			->method('getStatusCode')
@@ -149,7 +151,7 @@ class DiscoveryManagerTest extends \Test\TestCase {
 	}
 
 	public function testGetShareEndpointWithValidFormattedEndpointAndNotCached() {
-		$response = $this->getMock('\OCP\Http\Client\IResponse');
+		$response = $this->createMock('\OCP\Http\Client\IResponse');
 		$response
 			->expects($this->once())
 			->method('getStatusCode')
@@ -172,7 +174,7 @@ class DiscoveryManagerTest extends \Test\TestCase {
 	}
 
 	public function testWithMaliciousEndpointCached() {
-		$response = $this->getMock('\OCP\Http\Client\IResponse');
+		$response = $this->createMock('\OCP\Http\Client\IResponse');
 		$response
 			->expects($this->once())
 			->method('getStatusCode')

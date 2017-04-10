@@ -6,8 +6,9 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,6 +34,7 @@ use OCP\ILogger;
 use OCP\IUserManager;
 use OCP\Files\IRootFolder;
 use OCP\IL10N;
+use OCP\IUser;
 
 /**
  * This class implements methods to access Avatar functionality
@@ -84,18 +86,39 @@ class AvatarManager implements IAvatarManager {
 			throw new \Exception('user does not exist');
 		}
 
-		// casing might not be the same
 		$userId = $user->getUID();
 
-		/*
-		 * Fix for #22119
-		 * Basically we do not want to copy the skeleton folder
-		 */
-		\OC\Files\Filesystem::initMountPoints($userId);
-		$dir = '/' . $userId;
-		/** @var Folder $folder */
-		$folder = $this->rootFolder->get($dir);
+		$avatarsFolder = $this->getAvatarFolder($user);
+		return new Avatar($avatarsFolder, $this->l, $user, $this->logger);
+	}
 
-		return new Avatar($folder, $this->l, $user, $this->logger);
+	private function getFolder(Folder $folder, $path) {
+		try {
+			return $folder->get($path);
+		} catch (NotFoundException $e) {
+			return $folder->newFolder($path);
+		}
+	}
+
+	private function buildAvatarPath($userId) {
+		$avatar = substr_replace(substr_replace(md5($userId), '/', 4, 0), '/', 2, 0);
+		return explode('/', $avatar);
+	}
+
+	/**
+	 * Returns the avatar folder for the given user
+	 *
+	 * @param IUser $user user
+	 * @return Folder|\OCP\Files\Node
+	 *
+	 * @internal
+	 */
+	public function getAvatarFolder(IUser $user) {
+		$avatarsFolder = $this->getFolder($this->rootFolder, 'avatars');
+		$parts = $this->buildAvatarPath($user->getUID());
+		foreach ($parts as $part) {
+			$avatarsFolder = $this->getFolder($avatarsFolder, $part);
+		}
+		return $avatarsFolder;
 	}
 }

@@ -65,7 +65,7 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 	/** @var IRequest */
 	private $request;
 	/** @var ILogger */
-	protected $logger;
+	private $logger;
 
 	protected function setUp() {
 
@@ -84,7 +84,7 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 		$this->l10n
 			->expects($this->any())
 			->method('t')
-			->will($this->returnCallback(function($text, $parameters = array()) {
+			->will($this->returnCallback(function($text, $parameters = []) {
 				return vsprintf($text, $parameters);
 			}));
 		$this->defaults = $this->getMockBuilder('\OC_Defaults')
@@ -228,29 +228,29 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 		$this->urlGenerator
 			->expects($this->once())
 			->method('linkToRouteAbsolute')
-			->with('core.lost.setPassword', array('userId' => 'ValidTokenUser', 'token' => 'TheOnlyAndOnlyOneTokenToResetThePassword'))
+			->with('core.lost.setPassword', ['userId' => 'ValidTokenUser', 'token' => 'TheOnlyAndOnlyOneTokenToResetThePassword'])
 			->will($this->returnValue('https://ownCloud.com/index.php/lostpassword/'));
 
 		$response = $this->lostController->resetform($token, $userId);
 		$expectedResponse = new TemplateResponse('core',
 			'lostpassword/resetpassword',
-			array(
+			[
 				'link' => 'https://ownCloud.com/index.php/lostpassword/',
-			),
+			],
 			'guest');
 		$this->assertEquals($expectedResponse, $response);
 	}
 
 	public function testEmailUnsucessful() {
-		$existingUser = 'ExistingUser';
+		$existingUser = 'ExistingUser1';
 		$nonExistingUser = 'NonExistingUser';
 		$this->userManager
 			->expects($this->any())
 			->method('userExists')
-			->will($this->returnValueMap(array(
-				array(true, $existingUser),
-				array(false, $nonExistingUser)
-			)));
+			->will($this->returnValueMap([
+				[true, $existingUser],
+				[false, $nonExistingUser]
+			]));
 
 		// With a non existing user
 		$response = $this->lostController->email($nonExistingUser);
@@ -267,8 +267,11 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 			->expects($this->any())
 			->method('getUserValue')
 			->with($existingUser, 'settings', 'email')
-			->will($this->returnValue(null));
+			->will($this->returnValue(''));
 		$response = $this->lostController->email($existingUser);
+		$this->logger->expects($this->any())
+			->method('error')
+			->with('Could not send reset email because there is no email address for this username. User: {user}');
 		$expectedResponse = [
 			'status' => 'success'
 		];
@@ -305,7 +308,7 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 		$this->urlGenerator
 			->expects($this->once())
 			->method('linkToRouteAbsolute')
-			->with('core.lost.resetform', array('userId' => 'ExistingUser', 'token' => 'ThisIsMaybeANotSoSecretToken!'))
+			->with('core.lost.resetform', ['userId' => 'ExistingUser', 'token' => 'ThisIsMaybeANotSoSecretToken!'])
 			->will($this->returnValue('https://ownCloud.com/index.php/lostpassword/'));
 		$message = $this->getMockBuilder('\OC\Mail\Message')
 			->disableOriginalConstructor()->getMock();
@@ -335,7 +338,7 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 			->with($message);
 
 		$response = $this->lostController->email('ExistingUser');
-		$expectedResponse = array('status' => 'success');
+		$expectedResponse = ['status' => 'success'];
 		$this->assertSame($expectedResponse, $response);
 	}
 
@@ -366,7 +369,7 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 		$this->urlGenerator
 			->expects($this->once())
 			->method('linkToRouteAbsolute')
-			->with('core.lost.resetform', array('userId' => 'ExistingUser', 'token' => 'ThisIsMaybeANotSoSecretToken!'))
+			->with('core.lost.resetform', ['userId' => 'ExistingUser', 'token' => 'ThisIsMaybeANotSoSecretToken!'])
 			->will($this->returnValue('https://ownCloud.com/index.php/lostpassword/'));
 		$message = $this->getMockBuilder('\OC\Mail\Message')
 			->disableOriginalConstructor()->getMock();
@@ -444,17 +447,13 @@ class LostControllerTest extends \PHPUnit_Framework_TestCase {
 			->method('get')
 			->with('ValidTokenUser')
 			->will($this->returnValue($user));
-		$this->config
-			->expects($this->any())
-			->method('deleteUserValue')
-			->with('ValidTokenUser', 'owncloud', 'lostpassword');
 		$this->timeFactory
 			->expects($this->once())
 			->method('getTime')
 			->will($this->returnValue(12348));
 
 		$response = $this->lostController->setPassword('TheOnlyAndOnlyOneTokenToResetThePassword', 'ValidTokenUser', 'NewPassword', true);
-		$expectedResponse = array('status' => 'success');
+		$expectedResponse = ['status' => 'success'];
 		$this->assertSame($expectedResponse, $response);
 	}
 

@@ -27,25 +27,25 @@ use OCP\IConfig;
 use OCP\ILogger;
 use OC\IntegrityCheck\Checker;
 
-class UpdaterTest extends \Test\TestCase {
-	/** @var IConfig|\PHPUnit_Framework_MockObject_MockObject */
+class UpdaterTest extends TestCase {
+	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
 	private $config;
-	/** @var ILogger */
+	/** @var ILogger | \PHPUnit_Framework_MockObject_MockObject */
 	private $logger;
 	/** @var Updater */
 	private $updater;
-	/** @var Checker */
+	/** @var Checker | \PHPUnit_Framework_MockObject_MockObject */
 	private $checker;
 
 	public function setUp() {
 		parent::setUp();
-		$this->config = $this->getMockBuilder('\\OCP\\IConfig')
+		$this->config = $this->getMockBuilder(IConfig::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->logger = $this->getMockBuilder('\\OCP\\ILogger')
+		$this->logger = $this->getMockBuilder(ILogger::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->checker = $this->getMockBuilder('\OC\IntegrityCheck\Checker')
+		$this->checker = $this->getMockBuilder(Checker::class)
 				->disableOriginalConstructor()
 				->getMock();
 
@@ -54,14 +54,6 @@ class UpdaterTest extends \Test\TestCase {
 			$this->checker,
 			$this->logger
 		);
-	}
-
-	/**
-	 * @param string $baseUrl
-	 * @return string
-	 */
-	private function buildUpdateUrl($baseUrl) {
-		return $baseUrl . '?version='.implode('x', \OCP\Util::getVersion()).'xinstalledatxlastupdatedatx'.\OC_Util::getChannel().'x'.\OC_Util::getEditionString().'x';
 	}
 
 	/**
@@ -137,6 +129,12 @@ class UpdaterTest extends \Test\TestCase {
 			['8.1.0.0', '8.2.0.0', '8.1', true, true],
 			['8.2.0.1', '8.2.0.1', '8.1', true, true],
 			['8.3.0.0', '8.2.0.0', '8.1', true, true],
+
+			// Downgrade of maintenance
+			['9.0.53.0', '9.0.4.0', '8.1', false, false, 'owncloud'],
+			// with vendor switch
+			['9.0.53.0', '9.0.4.0', '8.1', true, false, ''],
+			['9.0.53.0', '9.0.4.0', '8.1', true, false, 'nextcloud'],
 		];
 	}
 
@@ -148,28 +146,19 @@ class UpdaterTest extends \Test\TestCase {
 	 * @param string $allowedVersion
 	 * @param bool $result
 	 * @param bool $debug
+	 * @param string $vendor
 	 */
-	public function testIsUpgradePossible($oldVersion, $newVersion, $allowedVersion, $result, $debug = false) {
+	public function testIsUpgradePossible($oldVersion, $newVersion, $allowedVersion, $result, $debug = false, $vendor = 'owncloud') {
 		$this->config->expects($this->any())
 			->method('getSystemValue')
 			->with('debug', false)
 			->willReturn($debug);
+		$this->config->expects($this->any())
+			->method('getAppValue')
+			->with('core', 'vendor', '')
+			->willReturn($vendor);
 
 		$this->assertSame($result, $this->updater->isUpgradePossible($oldVersion, $newVersion, $allowedVersion));
-	}
-
-	public function testSetSimulateStepEnabled() {
-		$this->updater->setSimulateStepEnabled(true);
-		$this->assertSame(true, $this->invokePrivate($this->updater, 'simulateStepEnabled'));
-		$this->updater->setSimulateStepEnabled(false);
-		$this->assertSame(false, $this->invokePrivate($this->updater, 'simulateStepEnabled'));
-	}
-
-	public function testSetUpdateStepEnabled() {
-		$this->updater->setUpdateStepEnabled(true);
-		$this->assertSame(true, $this->invokePrivate($this->updater, 'updateStepEnabled'));
-		$this->updater->setUpdateStepEnabled(false);
-		$this->assertSame(false, $this->invokePrivate($this->updater, 'updateStepEnabled'));
 	}
 
 	public function testSetSkip3rdPartyAppsDisable() {

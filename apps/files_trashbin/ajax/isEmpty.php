@@ -3,8 +3,9 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,6 +28,6 @@ OCP\JSON::callCheck();
 
 $trashStatus = OCA\Files_Trashbin\Trashbin::isEmpty(OCP\User::getUser());
 
-OCP\JSON::success(array("data" => array("isEmpty" => $trashStatus)));
+OCP\JSON::success(["data" => ["isEmpty" => $trashStatus]]);
 
 

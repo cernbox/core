@@ -1,11 +1,12 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -83,10 +84,10 @@ class SystemTagPluginTest extends \Test\TestCase {
 
 		$this->server = new \Sabre\DAV\Server($this->tree);
 
-		$this->tagManager = $this->getMock('\OCP\SystemTag\ISystemTagManager');
-		$this->groupManager = $this->getMock('\OCP\IGroupManager');
-		$this->user = $this->getMock('\OCP\IUser');
-		$this->userSession = $this->getMock('\OCP\IUserSession');
+		$this->tagManager = $this->createMock('\OCP\SystemTag\ISystemTagManager');
+		$this->groupManager = $this->createMock('\OCP\IGroupManager');
+		$this->user = $this->createMock('\OCP\IUser');
+		$this->userSession = $this->createMock('\OCP\IUserSession');
 		$this->userSession
 			->expects($this->any())
 			->method('getUser')
@@ -294,12 +295,12 @@ class SystemTagPluginTest extends \Test\TestCase {
 			->with($systemTag, ['group1', 'group2']);
 
 		// properties to set
-		$propPatch = new \Sabre\DAV\PropPatch(array(
+		$propPatch = new \Sabre\DAV\PropPatch([
 			self::DISPLAYNAME_PROPERTYNAME => 'Test changed',
 			self::USERVISIBLE_PROPERTYNAME => 'false',
 			self::USERASSIGNABLE_PROPERTYNAME => 'true',
 			self::GROUPS_PROPERTYNAME => 'group1|group2',
-		));
+		]);
 
 		$this->plugin->handleUpdateProperties(
 			'/systemtag/1',
@@ -350,9 +351,9 @@ class SystemTagPluginTest extends \Test\TestCase {
 			->method('setTagGroups');
 
 		// properties to set
-		$propPatch = new \Sabre\DAV\PropPatch(array(
+		$propPatch = new \Sabre\DAV\PropPatch([
 			self::GROUPS_PROPERTYNAME => 'group1|group2',
-		));
+		]);
 
 		$this->plugin->handleUpdateProperties(
 			'/systemtag/1',

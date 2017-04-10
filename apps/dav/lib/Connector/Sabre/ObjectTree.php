@@ -1,13 +1,14 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -106,11 +107,17 @@ class ObjectTree extends \Sabre\DAV\Tree {
 	 * @throws InvalidPath
 	 * @throws \Sabre\DAV\Exception\Locked
 	 * @throws \Sabre\DAV\Exception\NotFound
+	 * @throws \Sabre\DAV\Exception\Forbidden
 	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
 	 */
 	public function getNodeForPath($path) {
 		if (!$this->fileView) {
 			throw new \Sabre\DAV\Exception\ServiceUnavailable('filesystem not setup');
+		}
+
+		// check the path, also called when the path has been entered manually eg via a file explorer
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($path)) {
+			throw new \Sabre\DAV\Exception\Forbidden();
 		}
 
 		$path = trim($path, '/');
@@ -125,6 +132,11 @@ class ObjectTree extends \Sabre\DAV\Tree {
 			} catch (\OCP\Files\InvalidPathException $ex) {
 				throw new InvalidPath($ex->getMessage());
 			}
+		}
+
+		// check the path, also called when the path has been entered manually eg via a file explorer
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($path)) {
+			throw new \Sabre\DAV\Exception\Forbidden();
 		}
 
 		// Is it the root node?
@@ -156,7 +168,7 @@ class ObjectTree extends \Sabre\DAV\Tree {
 			try {
 				$info = $this->fileView->getFileInfo($path);
 			} catch (StorageNotAvailableException $e) {
-				throw new \Sabre\DAV\Exception\ServiceUnavailable('Storage not available');
+				throw new \Sabre\DAV\Exception\ServiceUnavailable('Storage is temporarily not available', 0, $e);
 			} catch (StorageInvalidException $e) {
 				throw new \Sabre\DAV\Exception\NotFound('Storage ' . $path . ' is invalid');
 			} catch (LockedException $e) {
@@ -196,7 +208,15 @@ class ObjectTree extends \Sabre\DAV\Tree {
 			throw new \Sabre\DAV\Exception\ServiceUnavailable('filesystem not setup');
 		}
 
+		# check the destination path, for source see below
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($destinationPath)) {
+			throw new \Sabre\DAV\Exception\Forbidden();
+		}
+
 		$targetNodeExists = $this->nodeExists($destinationPath);
+
+		// at getNodeForPath we also check the path for isForbiddenFileOrDir
+		// with that we have covered both source and destination
 		$sourceNode = $this->getNodeForPath($sourcePath);
 		if ($sourceNode instanceof \Sabre\DAV\ICollection && $targetNodeExists) {
 			throw new \Sabre\DAV\Exception\Forbidden('Could not copy directory ' . $sourceNode->getName() . ', target exists');
@@ -273,7 +293,13 @@ class ObjectTree extends \Sabre\DAV\Tree {
 			throw new \Sabre\DAV\Exception\ServiceUnavailable('filesystem not setup');
 		}
 
-		// this will trigger existence check
+		# check the destination path, for source see below
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($destination)) {
+			throw new \Sabre\DAV\Exception\Forbidden();
+		}
+
+		// at getNodeForPath we also check the path for isForbiddenFileOrDir
+		// with that we have covered both source and destination
 		$this->getNodeForPath($source);
 
 		list($destinationDir, $destinationName) = \Sabre\HTTP\URLUtil::splitPath($destination);

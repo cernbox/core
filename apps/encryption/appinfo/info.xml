@@ -25,7 +25,14 @@
 	</types>
 	<dependencies>
 		<lib>openssl</lib>
-		<owncloud min-version="9.1" max-version="9.1" />
+		<owncloud min-version="10.0" max-version="10.0" />
 	</dependencies>
-
+	<commands>
+		<command>OCA\Encryption\Command\EnableMasterKey</command>
+		<command>OCA\Encryption\Command\MigrateKeys</command>
+	</commands>
+	<settings>
+		<admin>OCA\Encryption\Panels\Admin</admin>
+		<personal>OCA\Encryption\Panels\Personal</personal>
+	</settings>
 </info>

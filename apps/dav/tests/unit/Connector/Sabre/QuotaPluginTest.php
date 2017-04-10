@@ -1,11 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -100,25 +100,25 @@ class QuotaPluginTest extends TestCase {
 	}
 
 	public function quotaOkayProvider() {
-		return array(
-			array(1024, array()),
-			array(1024, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(1024, array('CONTENT-LENGTH' => '512')),
-			array(1024, array('OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512')),
+		return [
+			[1024, []],
+			[1024, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[1024, ['CONTENT-LENGTH' => '512']],
+			[1024, ['OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512']],
 			// \OCP\Files\FileInfo::SPACE-UNKNOWN = -2
-			array(-2, array()),
-			array(-2, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(-2, array('CONTENT-LENGTH' => '512')),
-			array(-2, array('OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512')),
-		);
+			[-2, []],
+			[-2, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[-2, ['CONTENT-LENGTH' => '512']],
+			[-2, ['OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512']],
+		];
 	}
 
 	public function quotaExceededProvider() {
-		return array(
-			array(1023, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(511, array('CONTENT-LENGTH' => '512')),
-			array(2047, array('OC-TOTAL-LENGTH' => '2048', 'CONTENT-LENGTH' => '1024')),
-		);
+		return [
+			[1023, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[511, ['CONTENT-LENGTH' => '512']],
+			[2047, ['OC-TOTAL-LENGTH' => '2048', 'CONTENT-LENGTH' => '1024']],
+		];
 	}
 
 	public function lengthProvider() {
@@ -138,22 +138,22 @@ class QuotaPluginTest extends TestCase {
 	}
 
 	public function quotaChunkedOkProvider() {
-		return array(
-			array(1024, 0, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(1024, 0, array('CONTENT-LENGTH' => '512')),
-			array(1024, 0, array('OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512')),
+		return [
+			[1024, 0, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[1024, 0, ['CONTENT-LENGTH' => '512']],
+			[1024, 0, ['OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512']],
 			// with existing chunks (allowed size = total length - chunk total size)
-			array(400, 128, array('X-EXPECTED-ENTITY-LENGTH' => '512')),
-			array(400, 128, array('CONTENT-LENGTH' => '512')),
-			array(400, 128, array('OC-TOTAL-LENGTH' => '512', 'CONTENT-LENGTH' => '500')),
+			[400, 128, ['X-EXPECTED-ENTITY-LENGTH' => '512']],
+			[400, 128, ['CONTENT-LENGTH' => '512']],
+			[400, 128, ['OC-TOTAL-LENGTH' => '512', 'CONTENT-LENGTH' => '500']],
 			// \OCP\Files\FileInfo::SPACE-UNKNOWN = -2
-			array(-2, 0, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(-2, 0, array('CONTENT-LENGTH' => '512')),
-			array(-2, 0, array('OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512')),
-			array(-2, 128, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(-2, 128, array('CONTENT-LENGTH' => '512')),
-			array(-2, 128, array('OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512')),
-		);
+			[-2, 0, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[-2, 0, ['CONTENT-LENGTH' => '512']],
+			[-2, 0, ['OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512']],
+			[-2, 128, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[-2, 128, ['CONTENT-LENGTH' => '512']],
+			[-2, 128, ['OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512']],
+		];
 	}
 
 	/**
@@ -180,15 +180,15 @@ class QuotaPluginTest extends TestCase {
 	}
 
 	public function quotaChunkedFailProvider() {
-		return array(
-			array(400, 0, array('X-EXPECTED-ENTITY-LENGTH' => '1024')),
-			array(400, 0, array('CONTENT-LENGTH' => '512')),
-			array(400, 0, array('OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512')),
+		return [
+			[400, 0, ['X-EXPECTED-ENTITY-LENGTH' => '1024']],
+			[400, 0, ['CONTENT-LENGTH' => '512']],
+			[400, 0, ['OC-TOTAL-LENGTH' => '1024', 'CONTENT-LENGTH' => '512']],
 			// with existing chunks (allowed size = total length - chunk total size)
-			array(380, 128, array('X-EXPECTED-ENTITY-LENGTH' => '512')),
-			array(380, 128, array('CONTENT-LENGTH' => '512')),
-			array(380, 128, array('OC-TOTAL-LENGTH' => '512', 'CONTENT-LENGTH' => '500')),
-		);
+			[380, 128, ['X-EXPECTED-ENTITY-LENGTH' => '512']],
+			[380, 128, ['CONTENT-LENGTH' => '512']],
+			[380, 128, ['OC-TOTAL-LENGTH' => '512', 'CONTENT-LENGTH' => '500']],
+		];
 	}
 
 	/**

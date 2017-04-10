@@ -1,12 +1,13 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -148,7 +149,7 @@ class CheckSetupController extends Controller {
 	private function isUsedTlsLibOutdated() {
 		// Appstore is disabled by default in EE
 		$appStoreDefault = false;
-		if (\OC_Util::getEditionString() === '') {
+		if (\OC_Util::getEditionString() === \OC_Util::EDITION_COMMUNITY) {
 			$appStoreDefault = true;
 		}
 

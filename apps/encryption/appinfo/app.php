@@ -2,8 +2,9 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Clark Tomlinson <fallen013@gmail.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +23,7 @@
 
 namespace OCA\Encryption\AppInfo;
 
-\OCP\Util::addscript('encryption', 'encryption');
+\OCP\Util::addScript('encryption', 'encryption');
 
 $encryptionSystemReady = \OC::$server->getEncryptionManager()->isReady();
 
@@ -30,5 +31,4 @@ $app = new Application([], $encryptionSystemReady);
 if ($encryptionSystemReady) {
 	$app->registerEncryptionModule();
 	$app->registerHooks();
-	$app->registerSettings();
 }

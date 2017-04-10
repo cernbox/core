@@ -1,9 +1,12 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -83,7 +86,7 @@ class Notifications {
 			$url = $remote;
 			$local = $this->addressHandler->generateRemoteURL();
 
-			$fields = array(
+			$fields = [
 				'shareWith' => $user,
 				'token' => $token,
 				'name' => $name,
@@ -93,7 +96,7 @@ class Notifications {
 				'sharedBy' => $sharedBy,
 				'sharedByFederatedId' => $sharedByFederatedId,
 				'remote' => $local,
-			);
+			];
 
 			$url = $this->addressHandler->removeProtocolFromUrl($url);
 			$result = $this->tryHttpPostToShareEndpoint($url, '', $fields);
@@ -124,12 +127,12 @@ class Notifications {
 	 */
 	public function requestReShare($token, $id, $shareId, $remote, $shareWith, $permission) {
 
-		$fields = array(
+		$fields = [
 			'shareWith' => $shareWith,
 			'token' => $token,
 			'permission' => $permission,
 			'remoteId' => $shareId
-		);
+		];
 
 		$url = $this->addressHandler->removeProtocolFromUrl($remote);
 		$result = $this->tryHttpPostToShareEndpoint(rtrim($url, '/'), '/' . $id . '/reshare', $fields);
@@ -222,7 +225,7 @@ class Notifications {
 	 */
 	public function sendUpdateToRemote($remote, $remoteId, $token, $action, $data = [], $try = 0) {
 
-		$fields = array('token' => $token);
+		$fields = ['token' => $token];
 		foreach ($data as $key => $value) {
 			$fields[$key] = $value;
 		}

@@ -2,7 +2,7 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Mitar <mitar.git@tnode.com>
@@ -14,7 +14,7 @@
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -74,8 +74,8 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 
 	protected $inputStream;
 	protected $content;
-	protected $items = array();
-	protected $allowedKeys = array(
+	protected $items = [];
+	protected $allowedKeys = [
 		'get',
 		'post',
 		'files',
@@ -86,7 +86,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 		'parameters',
 		'method',
 		'requesttoken',
-	);
+	];
 	/** @var ISecureRandom */
 	protected $secureRandom;
 	/** @var IConfig */
@@ -118,13 +118,13 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 * @param string $stream
 	 * @see http://www.php.net/manual/en/reserved.variables.php
 	 */
-	public function __construct(array $vars=array(),
+	public function __construct(array $vars= [],
 								ISecureRandom $secureRandom = null,
 								IConfig $config,
 								CsrfTokenManager $csrfTokenManager = null,
 								$stream = 'php://input') {
 		$this->inputStream = $stream;
-		$this->items['params'] = array();
+		$this->items['params'] = [];
 		$this->secureRandom = $secureRandom;
 		$this->config = $config;
 		$this->csrfTokenManager = $csrfTokenManager;
@@ -136,7 +136,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 		foreach($this->allowedKeys as $name) {
 			$this->items[$name] = isset($vars[$name])
 				? $vars[$name]
-				: array();
+				: [];
 		}
 
 		$this->items['parameters'] = array_merge(
@@ -294,7 +294,7 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	 */
 	public function getHeader($name) {
 
-		$name = strtoupper(str_replace(array('-'),array('_'),$name));
+		$name = strtoupper(str_replace(['-'], ['_'],$name));
 		if (isset($this->server['HTTP_' . $name])) {
 			return $this->server['HTTP_' . $name];
 		}
@@ -453,6 +453,11 @@ class Request implements \ArrayAccess, \Countable, IRequest {
 	public function passesCSRFCheck() {
 		if($this->csrfTokenManager === null) {
 			return false;
+		}
+
+		// Is CSRF protection handled outside of ownCloud?
+		if ($this->config->getSystemValue('csrf.disabled', false)) {
+			return true;
 		}
 
 		if (isset($this->items['get']['requesttoken'])) {

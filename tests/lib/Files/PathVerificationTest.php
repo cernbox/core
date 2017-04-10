@@ -9,6 +9,7 @@ namespace Test\Files;
 
 use OC\Files\Storage\Local;
 use OC\Files\View;
+use OCP\Files\InvalidPathException;
 
 /**
  * Class PathVerificationTest
@@ -79,10 +80,12 @@ class PathVerificationTest extends \Test\TestCase {
 
 	/**
 	 * @dataProvider providesAstralPlane
-	 * @expectedException \OCP\Files\InvalidPathException
-	 * @expectedExceptionMessage 4-byte characters are not supported in file names
 	 */
 	public function testPathVerificationAstralPlane($fileName) {
+		if (!\OC::$server->getDatabaseConnection()->allows4ByteCharacters()) {
+			$this->expectException(InvalidPathException::class);
+			$this->expectExceptionMessage('4-byte characters are not supported in file names');
+		}
 		$this->view->verifyPath('', $fileName);
 	}
 
@@ -98,63 +101,6 @@ class PathVerificationTest extends \Test\TestCase {
 	}
 
 	/**
-	 * @dataProvider providesInvalidCharsWindows
-	 * @expectedException \OCP\Files\InvalidCharacterInPathException
-	 */
-	public function testPathVerificationInvalidCharsWindows($fileName) {
-		$storage = new Local(['datadir' => '']);
-
-		$fileName = " 123{$fileName}456 ";
-		self::invokePrivate($storage, 'verifyWindowsPath', [$fileName]);
-	}
-
-	public function providesInvalidCharsWindows() {
-		return [
-			[\chr(0)],
-			[\chr(1)],
-			[\chr(2)],
-			[\chr(3)],
-			[\chr(4)],
-			[\chr(5)],
-			[\chr(6)],
-			[\chr(7)],
-			[\chr(8)],
-			[\chr(9)],
-			[\chr(10)],
-			[\chr(11)],
-			[\chr(12)],
-			[\chr(13)],
-			[\chr(14)],
-			[\chr(15)],
-			[\chr(16)],
-			[\chr(17)],
-			[\chr(18)],
-			[\chr(19)],
-			[\chr(20)],
-			[\chr(21)],
-			[\chr(22)],
-			[\chr(23)],
-			[\chr(24)],
-			[\chr(25)],
-			[\chr(26)],
-			[\chr(27)],
-			[\chr(28)],
-			[\chr(29)],
-			[\chr(30)],
-			[\chr(31)],
-			['<'],
-			['>'],
-			[':'],
-			['"'],
-			['/'],
-			['\\'],
-			['|'],
-			['?'],
-			['*'],
-		];
-	}
-
-	/**
 	 * @dataProvider providesInvalidCharsPosix
 	 * @expectedException \OCP\Files\InvalidCharacterInPathException
 	 */
@@ -162,7 +108,7 @@ class PathVerificationTest extends \Test\TestCase {
 		$storage = new Local(['datadir' => '']);
 
 		$fileName = " 123{$fileName}456 ";
-		self::invokePrivate($storage, 'verifyWindowsPath', [$fileName]);
+		self::invokePrivate($storage, 'verifyPosixPath', [$fileName]);
 	}
 
 	public function providesInvalidCharsPosix() {
@@ -205,50 +151,12 @@ class PathVerificationTest extends \Test\TestCase {
 	}
 
 	/**
-	 * @dataProvider providesReservedNamesWindows
-	 * @expectedException \OCP\Files\ReservedWordException
-	 */
-	public function testPathVerificationReservedNamesWindows($fileName) {
-		$storage = new Local(['datadir' => '']);
-
-		self::invokePrivate($storage, 'verifyWindowsPath', [$fileName]);
-	}
-
-	public function providesReservedNamesWindows() {
-		return [
-			[' CON '],
-			['prn '],
-			['AUX'],
-			['NUL'],
-			['COM1'],
-			['COM2'],
-			['COM3'],
-			['COM4'],
-			['COM5'],
-			['COM6'],
-			['COM7'],
-			['COM8'],
-			['COM9'],
-			['LPT1'],
-			['LPT2'],
-			['LPT3'],
-			['LPT4'],
-			['LPT5'],
-			['LPT6'],
-			['LPT7'],
-			['LPT8'],
-			['LPT9']
-		];
-	}
-
-	/**
 	 * @dataProvider providesValidPosixPaths
 	 */
 	public function testPathVerificationValidPaths($fileName) {
 		$storage = new Local(['datadir' => '']);
 
 		self::invokePrivate($storage, 'verifyPosixPath', [$fileName]);
-		self::invokePrivate($storage, 'verifyWindowsPath', [$fileName]);
 		// nothing thrown
 		$this->assertTrue(true);
 	}

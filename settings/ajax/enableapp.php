@@ -2,13 +2,13 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Christopher Schäpers <kondou@ts.unde.re>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Kamil Domanski <kdomanski@kdemail.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,5 +35,5 @@ try {
 	OC_JSON::success(['data' => ['update_required' => \OC_App::shouldUpgrade($app)]]);
 } catch (Exception $e) {
 	\OCP\Util::writeLog('core', $e->getMessage(), \OCP\Util::ERROR);
-	OC_JSON::error(array("data" => array("message" => $e->getMessage()) ));
+	OC_JSON::error(["data" => ["message" => $e->getMessage()]]);
 }

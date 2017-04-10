@@ -26,25 +26,24 @@ namespace Test\AppFramework\Http;
 
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Http;
+use Test\TestCase;
 
 
-class TemplateResponseTest extends \Test\TestCase {
+class TemplateResponseTest extends TestCase {
 
-	/**
-	 * @var \OCP\AppFramework\Http\TemplateResponse
-	 */
+	/** @var \OCP\AppFramework\Http\TemplateResponse */
 	private $tpl;
 
-	/**
-	 * @var \OCP\AppFramework\IApi
-	 */
+	/** @var \OCP\AppFramework\IApi */
 	private $api;
 
 	protected function setUp() {
 		parent::setUp();
 
-		$this->api = $this->getMock('OC\AppFramework\Core\API',
-								array('getAppName'), array('test'));
+		$this->api = $this->getMockBuilder('OC\AppFramework\Core\API')
+			->setMethods(['getAppName'])
+			->setConstructorArgs(['test'])
+			->getMock();
 		$this->api->expects($this->any())
 				->method('getAppName')
 				->will($this->returnValue('app'));
@@ -54,26 +53,26 @@ class TemplateResponseTest extends \Test\TestCase {
 
 
 	public function testSetParamsConstructor(){
-		$params = array('hi' => 'yo');
+		$params = ['hi' => 'yo'];
 		$this->tpl = new TemplateResponse($this->api, 'home', $params);
 
-		$this->assertEquals(array('hi' => 'yo'), $this->tpl->getParams());
+		$this->assertEquals(['hi' => 'yo'], $this->tpl->getParams());
 	}
 
 
 	public function testSetRenderAsConstructor(){
 		$renderAs = 'myrender';
-		$this->tpl = new TemplateResponse($this->api, 'home', array(), $renderAs);
+		$this->tpl = new TemplateResponse($this->api, 'home', [], $renderAs);
 
 		$this->assertEquals($renderAs, $this->tpl->getRenderAs());
 	}
 
 
 	public function testSetParams(){
-		$params = array('hi' => 'yo');
+		$params = ['hi' => 'yo'];
 		$this->tpl->setParams($params);
 
-		$this->assertEquals(array('hi' => 'yo'), $this->tpl->getParams());
+		$this->assertEquals(['hi' => 'yo'], $this->tpl->getParams());
 	}
 
 
@@ -88,12 +87,12 @@ class TemplateResponseTest extends \Test\TestCase {
 	}
 
 	public function testChainability() {
-		$params = array('hi' => 'yo');
+		$params = ['hi' => 'yo'];
 		$this->tpl->setParams($params)
 			->setStatus(Http::STATUS_NOT_FOUND);
 
 		$this->assertEquals(Http::STATUS_NOT_FOUND, $this->tpl->getStatus());
-		$this->assertEquals(array('hi' => 'yo'), $this->tpl->getParams());
+		$this->assertEquals(['hi' => 'yo'], $this->tpl->getParams());
 	}
 
 }

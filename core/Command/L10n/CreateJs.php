@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -68,7 +68,7 @@ class CreateJs extends Command {
 	}
 
 	private function getAllLanguages($path) {
-		$result = array();
+		$result = [];
 		foreach (new DirectoryIterator("$path/l10n") as $fileInfo) {
 			if($fileInfo->isDot()) {
 				continue;
@@ -98,7 +98,7 @@ class CreateJs extends Command {
 			return;
 		}
 		$content = "OC.L10N.register(\n    \"$app\",\n    {\n    ";
-		$jsTrans = array();
+		$jsTrans = [];
 		foreach ($translations as $id => $val) {
 			if (is_array($val)) {
 				$val = '[ ' . join(',', $val) . ']';
@@ -118,20 +118,20 @@ class CreateJs extends Command {
 			$output->writeln("File already exists: $jsFile");
 			return;
 		}
-		$content = array('translations' => $translations, 'pluralForm' => $plurals);
+		$content = ['translations' => $translations, 'pluralForm' => $plurals];
 		file_put_contents($jsFile, json_encode($content));
 		$output->writeln("Json translation file generated: $jsFile");
 	}
 
 	private function loadTranslations($path, $lang) {
 		$phpFile = "$path/l10n/$lang.php";
-		$TRANSLATIONS = array();
+		$TRANSLATIONS = [];
 		$PLURAL_FORMS = '';
 		if (!file_exists($phpFile)) {
 			throw new UnexpectedValueException("PHP translation file <$phpFile> does not exist.");
 		}
 		require $phpFile;
 
-		return array($TRANSLATIONS, $PLURAL_FORMS);
+		return [$TRANSLATIONS, $PLURAL_FORMS];
 	}
 }

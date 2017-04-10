@@ -9,10 +9,13 @@
 	<namespace>UpdateNotification</namespace>
 	<default_enable/>
 	<dependencies>
-		<owncloud min-version="9.1" max-version="9.1" />
+		<owncloud min-version="10.0" max-version="10.0" />
 	</dependencies>
 
 	<background-jobs>
 		<job>OCA\UpdateNotification\Notification\BackgroundJob</job>
 	</background-jobs>
+	<settings>
+		<admin>OCA\UpdateNotification\Controller\AdminController</admin>
+	</settings>
 </info>

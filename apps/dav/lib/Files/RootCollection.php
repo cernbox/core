@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,8 +21,10 @@
  */
 namespace OCA\DAV\Files;
 
+use Sabre\DAV\INode;
 use Sabre\DAVACL\AbstractPrincipalCollection;
-use Sabre\DAVACL\IPrincipal;
+use Sabre\HTTP\URLUtil;
+use Sabre\DAV\SimpleCollection;
 
 class RootCollection extends AbstractPrincipalCollection {
 
@@ -33,9 +36,17 @@ class RootCollection extends AbstractPrincipalCollection {
 	 * supplied by the authentication backend.
 	 *
 	 * @param array $principalInfo
-	 * @return IPrincipal
+	 * @return INode
 	 */
 	function getChildForPrincipal(array $principalInfo) {
+		list(,$name) = URLUtil::splitPath($principalInfo['uri']);
+		$user = \OC::$server->getUserSession()->getUser();
+		if (is_null($user) || $name !== $user->getUID()) {
+			// a user is only allowed to see their own home contents, so in case another collection
+			// is accessed, we return a simple empty collection for now
+			// in the future this could be considered to be used for accessing shared files
+			return new SimpleCollection($name);
+		}
 		return new FilesHome($principalInfo);
 	}
 

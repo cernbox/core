@@ -64,10 +64,10 @@ class RepairTest extends TestCase {
 		$this->repair->run();
 
 		$this->assertEquals(
-			array(
+			[
 				'step: Test Name',
 				'info: Simulated info',
-			),
+			],
 			$this->outputArray
 		);
 	}
@@ -78,16 +78,16 @@ class RepairTest extends TestCase {
 		$this->repair->run();
 
 		$this->assertEquals(
-			array(
+			[
 				'step: Test Name',
 				'warning: Simulated warning',
-			),
+			],
 			$this->outputArray
 		);
 	}
 
 	public function testRunRepairStepsWithException() {
-		$mock = $this->getMock('\Test\TestRepairStep');
+		$mock = $this->createMock('\Test\TestRepairStep');
 		$mock->expects($this->any())
 			->method('run')
 			->will($this->throwException(new \Exception()));
@@ -109,9 +109,9 @@ class RepairTest extends TestCase {
 		$this->assertTrue($thrown);
 		// jump out after exception
 		$this->assertEquals(
-			array(
+			[
 				'step: Exception Test',
-			),
+			],
 			$this->outputArray
 		);
 	}
@@ -122,12 +122,12 @@ class RepairTest extends TestCase {
 		$this->repair->run();
 
 		$this->assertEquals(
-			array(
+			[
 				'step: Test Name',
 				'warning: Simulated warning',
 				'step: Test Name',
 				'info: Simulated info',
-			),
+			],
 			$this->outputArray
 		);
 	}

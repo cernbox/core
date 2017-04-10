@@ -7,12 +7,32 @@
 timestampedNode('SLAVE') {
     stage 'Checkout'
         checkout scm
-        sh '''git submodule update --init'''
+        sh '''composer install'''
 
     stage 'JavaScript Testing'
         executeAndReport('tests/autotest-results-js.xml') {
-            sh '''./autotest-js.sh'''
+            sh '''make test-js'''
         }
+
+    stage 'PHPUnit 7.1/sqlite'
+        executeAndReport('tests/autotest-results-sqlite.xml') {
+	        sh '''
+        	export NOCOVERAGE=1
+        	unset USEDOCKER
+        	phpenv local 7.1
+		make test-php TEST_DATABASE=sqlite
+        	'''
+	}
+
+    stage 'phpunit/7.0/mysqlmb4'
+        executeAndReport('tests/autotest-results-sqlite.xml') {
+	        sh '''
+        	export NOCOVERAGE=1
+        	unset USEDOCKER
+        	phpenv local 7.0
+		make test-php TEST_DATABASE=mysqlmb4
+        	'''
+	}
 
     stage 'PHPUnit 7.0/sqlite'
         executeAndReport('tests/autotest-results-sqlite.xml') {
@@ -20,7 +40,7 @@ timestampedNode('SLAVE') {
             export NOCOVERAGE=1
             unset USEDOCKER
             phpenv local 7.0
-            ./autotest.sh sqlite
+            make test-php TEST_DATABASE=sqlite
             '''
         }
 
@@ -30,7 +50,7 @@ timestampedNode('SLAVE') {
             export NOCOVERAGE=1
             unset USEDOCKER
             phpenv local 7.0
-            ./autotest.sh mysql
+            make test-php TEST_DATABASE=mysql
             '''
         }
 
@@ -40,17 +60,17 @@ timestampedNode('SLAVE') {
             export NOCOVERAGE=1
             unset USEDOCKER
             phpenv local 5.6
-            ./autotest.sh pgsql
+            make test-php TEST_DATABASE=pgsql
             '''
         }
 
-    stage 'PHPUnit 5.6/oci'
+    stage 'PHPUnit 7.0/oci'
         executeAndReport('tests/autotest-results-oci.xml') {
             sh '''
             export NOCOVERAGE=1
             unset USEDOCKER
-            phpenv local 5.5
-            ./autotest.sh oci
+            phpenv local 5.6
+            make test-php TEST_DATABASE=oci
             '''
         }
 
@@ -59,7 +79,7 @@ timestampedNode('SLAVE') {
             sh '''phpenv local 7.0
             export NOCOVERAGE=1
             unset USEDOCKER
-            ./autotest-external.sh sqlite webdav-ownCloud
+            make test-external TEST_EXTERNAL_ENV=webdav-ownCloud
             '''
         }
 
@@ -68,7 +88,7 @@ timestampedNode('SLAVE') {
             sh '''phpenv local 7.0
             export NOCOVERAGE=1
             unset USEDOCKER
-            ./autotest-external.sh sqlite smb-silvershell
+            make test-external TEST_EXTERNAL_ENV=smb-silvershell
             '''
         }
 
@@ -77,7 +97,7 @@ timestampedNode('SLAVE') {
             sh '''phpenv local 7.0
             export NOCOVERAGE=1
             unset USEDOCKER
-            ./autotest-external.sh sqlite swift-ceph
+            make test-external TEST_EXTERNAL_ENV=swift-ceph
             '''
         }
 
@@ -86,7 +106,7 @@ timestampedNode('SLAVE') {
             sh '''phpenv local 7.0
             export NOCOVERAGE=1
             unset USEDOCKER
-            ./autotest-external.sh sqlite smb-windows
+            make test-external TEST_EXTERNAL_ENV=smb-windows
             '''
         }
 
@@ -101,44 +121,45 @@ timestampedNode('SLAVE') {
             export PRIMARY_STORAGE_CONFIG="swift"
             unset USEDOCKER
 
-            rm tests/autotest-results-*.xml
-            ./autotest.sh mysql
+            make clean-test-results
+            make test-php TEST_DATABASE=mysql
             '''
         }
 
 	stage 'Integration Testing'
-		executeAndReport('build/integration/output/*.xml') {
+		executeAndReport('tests/integration/output/*.xml') {
 			sh '''phpenv local 7.0
 			rm -rf config/config.php data/*
 			./occ maintenance:install --admin-pass=admin
-			rm -rf build/integration/{output,vendor,composer.lock}
-			cd build/integration && ./run.sh
+			make clean-test-integration
+			make test-integration
 		   '''
 		}
 
 		if (isOnReleaseBranch()) {
-			executeAndReport('build/integration/output/*.xml') {
+
+			executeAndReport('tests/integration/output/*.xml') {
 				sh '''phpenv local 7.0
 				rm -rf config/config.php data/*
 				./occ maintenance:install --admin-pass=admin
-				rm -rf build/integration/{output,vendor,composer.lock}
-				cd build/integration && OC_TEST_ALT_HOME=1 ./run.sh
+				make clean-test-integration
+				make test-integration OC_TEST_ALT_HOME=1
 			   '''
 			}
-			executeAndReport('build/integration/output/*.xml') {
+			executeAndReport('tests/integration/output/*.xml') {
 				sh '''phpenv local 7.0
 				rm -rf config/config.php data/*
 				./occ maintenance:install --admin-pass=admin
-				rm -rf build/integration/{output,vendor,composer.lock}
-				cd build/integration && OC_TEST_ENCRYPTION_ENABLED=1 ./run.sh
+				make clean-test-integration
+				make test-integration OC_TEST_ENCRYPTION_ENABLED=1
 			   '''
 			}
-			executeAndReport('build/integration/output/*.xml') {
+			executeAndReport('tests/integration/output/*.xml') {
 				sh '''phpenv local 7.0
 				rm -rf config/config.php data/*
 				./occ maintenance:install --admin-pass=admin
-				rm -rf build/integration/{output,vendor,composer.lock}
-				cd build/integration && OC_TEST_ENCRYPTION_ENABLED=1 OC_TEST_ALT_HOME=1 ./run.sh
+				make clean-test-integration
+				make test-integration OC_TEST_ALT_HOME=1 OC_TEST_ENCRYPTION_ENABLED=1
 			   '''
 			}
 		}

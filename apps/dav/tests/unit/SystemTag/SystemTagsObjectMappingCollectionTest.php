@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,10 +47,10 @@ class SystemTagsObjectMappingCollectionTest extends \Test\TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->tagManager = $this->getMock('\OCP\SystemTag\ISystemTagManager');
-		$this->tagMapper = $this->getMock('\OCP\SystemTag\ISystemTagObjectMapper');
+		$this->tagManager = $this->createMock('\OCP\SystemTag\ISystemTagManager');
+		$this->tagMapper = $this->createMock('\OCP\SystemTag\ISystemTagObjectMapper');
 
-		$this->user = $this->getMock('\OCP\IUser');
+		$this->user = $this->createMock('\OCP\IUser');
 	}
 
 	public function getNode() {

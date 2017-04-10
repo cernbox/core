@@ -1,15 +1,13 @@
 <?php
 /**
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
- * @author Lukas Reschke <lukas@statuscode.ch>
- * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,22 +23,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-\OCP\App::registerAdmin('files', 'admin');
 
+// required for translation purpose
+// t('Files')
 
-\OC::$server->getNavigationManager()->add(function () {
-	$urlGenerator = \OC::$server->getURLGenerator();
-	$l = \OC::$server->getL10N('files');
-	return [
-		'id' => 'files_index',
-		'order' => 0,
-		'href' => $urlGenerator->linkToRoute('files.view.index'),
-		'icon' => $urlGenerator->imagePath('core', 'places/files.svg'),
-		'name' => $l->t('Files'),
-	];
-});
-
-\OC::$server->getSearch()->registerProvider('OC\Search\Provider\File', array('apps' => array('files')));
+\OC::$server->getSearch()->registerProvider('OC\Search\Provider\File', ['apps' => ['files']]);
 
 $templateManager = \OC_Helper::getFileTemplateManager();
 $templateManager->registerTemplate('text/html', 'core/templates/filetemplates/template.html');

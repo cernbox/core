@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -66,7 +66,7 @@ class Storage {
 		$this->storageId = self::adjustStorageId($this->storageId);
 
 		if ($row = self::getStorageById($this->storageId)) {
-			$this->numericId = $row['numeric_id'];
+			$this->numericId = (int)$row['numeric_id'];
 		} else {
 			self::unsetCache($this->storageId);
 
@@ -91,7 +91,7 @@ class Storage {
 
 			} else {
 				if ($row = self::getStorageById($this->storageId)) {
-					$this->numericId = $row['numeric_id'];
+					$this->numericId = (int)$row['numeric_id'];
 				} else {
 					throw new \RuntimeException('Storage could neither be inserted nor be selected from the database');
 				}
@@ -150,8 +150,17 @@ class Storage {
 	 */
 	private static function getStorageByIdFromDb($storageId) {
 		$sql = 'SELECT * FROM `*PREFIX*storages` WHERE `id` = ?';
-		$result = \OC_DB::executeAudited($sql, array($storageId));
-		return $result->fetchRow();
+		$resultSet = \OC_DB::executeAudited($sql, [$storageId]);
+		return $resultSet->fetchRow();
+	}
+
+	private static function unsetCache($storageId) {
+		// delete from local cache
+		if(self::$localCache !== null) {
+			self::$localCache->remove($storageId);
+		}
+		// delete from distributed cache
+		self::getDistributedCache()->remove($storageId);
 	}
 
 	private static function unsetCache($storageId) {
@@ -194,7 +203,7 @@ class Storage {
 	public static function getStorageId($numericId) {
 
 		$sql = 'SELECT `id` FROM `*PREFIX*storages` WHERE `numeric_id` = ?';
-		$result = \OC_DB::executeAudited($sql, array($numericId));
+		$result = \OC_DB::executeAudited($sql, [$numericId]);
 		if ($row = $result->fetchRow()) {
 			return $row['id'];
 		} else {
@@ -212,7 +221,7 @@ class Storage {
 		$storageId = self::adjustStorageId($storageId);
 
 		if ($row = self::getStorageById($storageId)) {
-			return $row['numeric_id'];
+			return (int)$row['numeric_id'];
 		} else {
 			return null;
 		}
@@ -240,7 +249,7 @@ class Storage {
 		self::unsetCache($this->storageId);
 		$sql = 'UPDATE `*PREFIX*storages` SET `available` = ?, `last_checked` = ? WHERE `id` = ?';
 		$available = $isAvailable ? 1 : 0;
-		\OC_DB::executeAudited($sql, array($available, time(), $this->storageId));
+		\OC_DB::executeAudited($sql, [$available, time(), $this->storageId]);
 	}
 
 	/**
@@ -262,14 +271,14 @@ class Storage {
 		$storageId = self::adjustStorageId($storageId);
 		$numericId = self::getNumericStorageId($storageId);
 		$sql = 'DELETE FROM `*PREFIX*storages` WHERE `id` = ?';
-		\OC_DB::executeAudited($sql, array($storageId));
+		\OC_DB::executeAudited($sql, [$storageId]);
 
 		// delete from local cache
 		self::unsetCache($storageId);
 		// delete from db
 		if (!is_null($numericId)) {
 			$sql = 'DELETE FROM `*PREFIX*filecache` WHERE `storage` = ?';
-			\OC_DB::executeAudited($sql, array($numericId));
+			\OC_DB::executeAudited($sql, [$numericId]);
 		}
 	}
 }

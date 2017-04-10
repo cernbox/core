@@ -2,10 +2,12 @@
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -724,7 +726,7 @@ class Manager implements IManager {
 			} else {
 				$userFolder = $this->rootFolder->getUserFolder($share->getSharedBy());
 			}
-			\OC_Hook::emit('OCP\Share', 'post_update_permissions', array(
+			\OC_Hook::emit('OCP\Share', 'post_update_permissions', [
 				'itemType' => $share->getNode() instanceof \OCP\Files\File ? 'file' : 'folder',
 				'itemSource' => $share->getNode()->getId(),
 				'shareType' => $share->getShareType(),
@@ -732,7 +734,7 @@ class Manager implements IManager {
 				'uidOwner' => $share->getSharedBy(),
 				'permissions' => $share->getPermissions(),
 				'path' => $userFolder->getRelativePath($share->getNode()->getPath()),
-			));
+			]);
 		}
 
 		return $share;
@@ -874,6 +876,54 @@ class Manager implements IManager {
 		$provider->move($share, $recipientId);
 	}
 
+
+	/**
+	 * @inheritdoc
+	 */
+	public function getAllSharesBy($userId, $shareTypes, $nodeIDs, $reshares = false) {
+		// This function requires at least 1 node (parent folder)
+		if (empty($nodeIDs)) {
+			throw new \InvalidArgumentException('Array of nodeIDs empty');
+		}
+		// This will ensure that if there are multiple share providers for the same share type, we will execute it in batches
+		$shares = array();
+		$providerIdMap = array();
+		foreach ($shareTypes as $shareType) {
+			// Get provider and its ID, at this point provider is cached at IProviderFactory instance
+			$provider = $this->factory->getProviderForType($shareType);
+			$providerId = $provider->identifier();
+
+			// Create a key -> multi value map
+			if (!isset($providerIdMap[$providerId])) {
+				$providerIdMap[$providerId] = array();
+			}
+			array_push($providerIdMap[$providerId], $shareType);
+		}
+
+		$today = new \DateTime();
+		foreach ($providerIdMap as $providerId => $shareTypeArray) {
+			// Get provider from cache
+			$provider = $this->factory->getProvider($providerId);
+
+			$queriedShares = $provider->getAllSharesBy($userId, $shareTypeArray, $nodeIDs, $reshares);
+			foreach ($queriedShares as $queriedShare){
+				if ($queriedShare->getShareType() === \OCP\Share::SHARE_TYPE_LINK && $queriedShare->getExpirationDate() !== null &&
+					$queriedShare->getExpirationDate() <= $today
+				) {
+					try {
+						$this->deleteShare($queriedShare);
+					} catch (NotFoundException $e) {
+						//Ignore since this basically means the share is deleted
+					}
+					continue;
+				}
+				array_push($shares, $queriedShare);
+			}
+		}
+
+		return $shares;
+	}
+
 	/**
 	 * @inheritdoc
 	 */
@@ -987,6 +1037,21 @@ class Manager implements IManager {
 	 * @return Share[]
 	 */
 	public function getSharesByPath(\OCP\Files\Node $path, $page=0, $perPage=50) {
+		$types = [\OCP\Share::SHARE_TYPE_USER, \OCP\Share::SHARE_TYPE_GROUP];
+		$providers = [];
+		$results = [];
+
+		foreach ($types as $type) {
+			$provider = $this->factory->getProviderForType($type);
+			// store this way to deduplicate entries by id
+			$providers[$provider->identifier()] = $provider;
+		}
+
+		foreach ($providers as $provider) {
+			$results = array_merge($results, $provider->getSharesByPath($path));
+		}
+
+		return $results;
 	}
 
 	/**

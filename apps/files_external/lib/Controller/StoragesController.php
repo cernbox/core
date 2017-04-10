@@ -1,12 +1,13 @@
 <?php
 /**
  * @author Jesús Macias <jmacias@solidgear.es>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Juan Pablo Villafáñez <jvillafanez@solidgear.es>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,18 +28,18 @@ namespace OCA\Files_External\Controller;
 
 
 use OCP\ILogger;
-use \OCP\IRequest;
-use \OCP\IL10N;
-use \OCP\AppFramework\Http\DataResponse;
-use \OCP\AppFramework\Controller;
-use \OCP\AppFramework\Http;
-use OCA\Files_External\Service\StoragesService;
-use OCA\Files_External\NotFoundException;
-use OCA\Files_External\Lib\StorageConfig;
-use \OCA\Files_External\Lib\Backend\Backend;
-use \OCA\Files_External\Lib\Auth\AuthMechanism;
-use \OCP\Files\StorageNotAvailableException;
-use \OCA\Files_External\Lib\InsufficientDataForMeaningfulAnswerException;
+use OCP\IRequest;
+use OCP\IL10N;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
+use OCP\Files\External\Service\IStoragesService;
+use OCP\Files\External\NotFoundException;
+use OCP\Files\External\IStorageConfig;
+use OCP\Files\External\Backend\Backend;
+use OCP\Files\External\Auth\AuthMechanism;
+use OCP\Files\StorageNotAvailableException;
+use OCP\Files\External\InsufficientDataForMeaningfulAnswerException;
 
 /**
  * Base class for storages controllers
@@ -55,7 +56,7 @@ abstract class StoragesController extends Controller {
 	/**
 	 * Storages service
 	 *
-	 * @var StoragesService
+	 * @var IStoragesService
 	 */
 	protected $service;
 
@@ -70,14 +71,14 @@ abstract class StoragesController extends Controller {
 	 * @param string $AppName application name
 	 * @param IRequest $request request object
 	 * @param IL10N $l10n l10n service
-	 * @param StoragesService $storagesService storage service
+	 * @param IStoragesService $storagesService storage service
 	 * @param ILogger $logger
 	 */
 	public function __construct(
 		$AppName,
 		IRequest $request,
 		IL10N $l10n,
-		StoragesService $storagesService,
+		IStoragesService $storagesService,
 		ILogger $logger
 	) {
 		parent::__construct($AppName, $request);
@@ -98,7 +99,7 @@ abstract class StoragesController extends Controller {
 	 * @param array|null $applicableGroups groups for which to mount the storage
 	 * @param int|null $priority priority
 	 *
-	 * @return StorageConfig|DataResponse
+	 * @return IStorageConfig|DataResponse
 	 */
 	protected function createStorage(
 		$mountPoint,
@@ -135,17 +136,17 @@ abstract class StoragesController extends Controller {
 	/**
 	 * Validate storage config
 	 *
-	 * @param StorageConfig $storage storage config
+	 * @param IStorageConfig $storage storage config
 	 *1
 	 * @return DataResponse|null returns response in case of validation error
 	 */
-	protected function validate(StorageConfig $storage) {
+	protected function validate(IStorageConfig $storage) {
 		$mountPoint = $storage->getMountPoint();
 		if ($mountPoint === '' || $mountPoint === '/') {
 			return new DataResponse(
-				array(
+				[
 					'message' => (string)$this->l10n->t('Invalid mount point')
-				),
+				],
 				Http::STATUS_UNPROCESSABLE_ENTITY
 			);
 		}
@@ -153,9 +154,9 @@ abstract class StoragesController extends Controller {
 		if ($storage->getBackendOption('objectstore')) {
 			// objectstore must not be sent from client side
 			return new DataResponse(
-				array(
+				[
 					'message' => (string)$this->l10n->t('Objectstore forbidden')
-				),
+				],
 				Http::STATUS_UNPROCESSABLE_ENTITY
 			);
 		}
@@ -167,11 +168,11 @@ abstract class StoragesController extends Controller {
 		if ($backend->checkDependencies()) {
 			// invalid backend
 			return new DataResponse(
-				array(
+				[
 					'message' => (string)$this->l10n->t('Invalid storage backend "%s"', [
 						$backend->getIdentifier()
 					])
-				),
+				],
 				Http::STATUS_UNPROCESSABLE_ENTITY
 			);
 		}
@@ -179,22 +180,22 @@ abstract class StoragesController extends Controller {
 		if (!$backend->isVisibleFor($this->service->getVisibilityType())) {
 			// not permitted to use backend
 			return new DataResponse(
-				array(
+				[
 					'message' => (string)$this->l10n->t('Not permitted to use backend "%s"', [
 						$backend->getIdentifier()
 					])
-				),
+				],
 				Http::STATUS_UNPROCESSABLE_ENTITY
 			);
 		}
 		if (!$authMechanism->isVisibleFor($this->service->getVisibilityType())) {
 			// not permitted to use auth mechanism
 			return new DataResponse(
-				array(
+				[
 					'message' => (string)$this->l10n->t('Not permitted to use authentication mechanism "%s"', [
 						$authMechanism->getIdentifier()
 					])
-				),
+				],
 				Http::STATUS_UNPROCESSABLE_ENTITY
 			);
 		}
@@ -202,9 +203,9 @@ abstract class StoragesController extends Controller {
 		if (!$backend->validateStorage($storage)) {
 			// unsatisfied parameters
 			return new DataResponse(
-				array(
+				[
 					'message' => (string)$this->l10n->t('Unsatisfied backend parameters')
-				),
+				],
 				Http::STATUS_UNPROCESSABLE_ENTITY
 			);
 		}
@@ -221,7 +222,7 @@ abstract class StoragesController extends Controller {
 		return null;
 	}
 
-	protected function manipulateStorageConfig(StorageConfig $storage) {
+	protected function manipulateStorageConfig(IStorageConfig $storage) {
 		/** @var AuthMechanism */
 		$authMechanism = $storage->getAuthMechanism();
 		$authMechanism->manipulateStorageConfig($storage);
@@ -236,10 +237,10 @@ abstract class StoragesController extends Controller {
 	 * Note that this operation can be time consuming depending
 	 * on whether the remote storage is available or not.
 	 *
-	 * @param StorageConfig $storage storage configuration
+	 * @param IStorageConfig $storage storage configuration
 	 * @param bool $testOnly whether to storage should only test the connection or do more things
 	 */
-	protected function updateStorageStatus(StorageConfig &$storage, $testOnly = true) {
+	protected function updateStorageStatus(IStorageConfig &$storage, $testOnly = true) {
 		try {
 			$this->manipulateStorageConfig($storage);
 
@@ -304,7 +305,7 @@ abstract class StoragesController extends Controller {
 		} catch (NotFoundException $e) {
 			return new DataResponse(
 				[
-					'message' => (string)$this->l10n->t('Storage with id "%i" not found', array($id))
+					'message' => (string)$this->l10n->t('Storage with id "%i" not found', [$id])
 				],
 				Http::STATUS_NOT_FOUND
 			);
@@ -329,7 +330,7 @@ abstract class StoragesController extends Controller {
 		} catch (NotFoundException $e) {
 			return new DataResponse(
 				[
-					'message' => (string)$this->l10n->t('Storage with id "%i" not found', array($id))
+					'message' => (string)$this->l10n->t('Storage with id "%i" not found', [$id])
 				],
 				Http::STATUS_NOT_FOUND
 			);

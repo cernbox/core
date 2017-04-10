@@ -5,8 +5,9 @@
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +41,7 @@ interface ISearch {
 	 * @deprecated 8.0.0 use searchPaged() with page and size
 	 * @since 7.0.0 - parameter $inApps was added in 8.0.0
 	 */
-	public function search($query, array $inApps = array());
+	public function search($query, array $inApps = []);
 
 	/**
 	 * Search all providers for $query
@@ -51,7 +52,7 @@ interface ISearch {
 	 * @return array An array of OCP\Search\Result's
 	 * @since 8.0.0
 	 */
-	public function searchPaged($query, array $inApps = array(), $page = 1, $size = 30);
+	public function searchPaged($query, array $inApps = [], $page = 1, $size = 30);
 
 	/**
 	 * Register a new search provider to search with
@@ -59,7 +60,7 @@ interface ISearch {
 	 * @param array $options optional
 	 * @since 7.0.0
 	 */
-	public function registerProvider($class, array $options = array());
+	public function registerProvider($class, array $options = []);
 
 	/**
 	 * Remove one existing search provider

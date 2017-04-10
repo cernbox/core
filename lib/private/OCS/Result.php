@@ -10,7 +10,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -58,9 +58,9 @@ class Result {
 	 */
 	public function __construct($data = null, $code = 100, $message = null, $headers = []) {
 		if ($data === null) {
-			$this->data = array();
+			$this->data = [];
 		} elseif (!is_array($data)) {
-			$this->data = array($this->data);
+			$this->data = [$this->data];
 		} else {
 			$this->data = $data;
 		}
@@ -98,7 +98,7 @@ class Result {
 	 * @return array
 	 */
 	public function getMeta() {
-		$meta = array();
+		$meta = [];
 		$meta['status'] = $this->succeeded() ? 'ok' : 'failure';
 		$meta['statuscode'] = $this->statusCode;
 		$meta['message'] = $this->message;

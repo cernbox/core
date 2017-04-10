@@ -4,9 +4,10 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,7 +38,7 @@ try {
 		exit();
 	}
 
-	$data = array();
+	$data = [];
 	$baseUrl = OCP\Util::linkTo('files', 'index.php') . '?dir=';
 
 	$permissions = $dirInfo->getPermissions();
@@ -70,34 +71,33 @@ try {
 		$files = \OCA\Files\Helper::getFiles($dir, $sortAttribute, $sortDirection);
 	}
 
-	$files = \OCA\Files\Helper::populateTags($files);
 	$data['directory'] = $dir;
 	$data['files'] = \OCA\Files\Helper::formatFileInfos($files);
 	$data['permissions'] = $permissions;
 
-	OCP\JSON::success(array('data' => $data));
+	OCP\JSON::success(['data' => $data]);
 } catch (\OCP\Files\StorageNotAvailableException $e) {
 	\OCP\Util::logException('files', $e);
-	OCP\JSON::error(array(
-		'data' => array(
+	OCP\JSON::error([
+		'data' => [
 			'exception' => '\OCP\Files\StorageNotAvailableException',
-			'message' => $l->t('Storage not available')
-		)
-	));
+			'message' => $l->t('Storage is temporarily not available')
+		]
+	]);
 } catch (\OCP\Files\StorageInvalidException $e) {
 	\OCP\Util::logException('files', $e);
-	OCP\JSON::error(array(
-		'data' => array(
+	OCP\JSON::error([
+		'data' => [
 			'exception' => '\OCP\Files\StorageInvalidException',
 			'message' => $l->t('Storage invalid')
-		)
-	));
+		]
+	]);
 } catch (\Exception $e) {
 	\OCP\Util::logException('files', $e);
-	OCP\JSON::error(array(
-		'data' => array(
+	OCP\JSON::error([
+		'data' => [
 			'exception' => '\Exception',
 			'message' => $l->t('Unknown error')
-		)
-	));
+		]
+	]);
 }

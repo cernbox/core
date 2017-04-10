@@ -2,8 +2,9 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,7 +44,7 @@ class MountProviderCollection implements IMountProviderCollection, Emitter {
 	/**
 	 * @var \OCP\Files\Config\IMountProvider[]
 	 */
-	private $providers = array();
+	private $providers = [];
 
 	/**
 	 * @var \OCP\Files\Storage\IStorageFactory
@@ -80,7 +81,7 @@ class MountProviderCollection implements IMountProviderCollection, Emitter {
 		});
 		return array_reduce($mounts, function (array $mounts, array $providerMounts) {
 			return array_merge($mounts, $providerMounts);
-		}, array());
+		}, []);
 	}
 
 	/**

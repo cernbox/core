@@ -66,7 +66,7 @@ class FilesystemTest extends \Test\TestCase {
 	/**
 	 * @var array tmpDirs
 	 */
-	private $tmpDirs = array();
+	private $tmpDirs = [];
 
 	/**
 	 * @return array
@@ -74,7 +74,7 @@ class FilesystemTest extends \Test\TestCase {
 	private function getStorageData() {
 		$dir = \OC::$server->getTempManager()->getTemporaryFolder();
 		$this->tmpDirs[] = $dir;
-		return array('datadir' => $dir);
+		return ['datadir' => $dir];
 	}
 
 	protected function setUp() {
@@ -117,73 +117,73 @@ class FilesystemTest extends \Test\TestCase {
 	}
 
 	public function normalizePathData() {
-		return array(
-			array('/', ''),
-			array('/', '/'),
-			array('/', '//'),
-			array('/', '/', false),
-			array('/', '//', false),
+		return [
+			['/', ''],
+			['/', '/'],
+			['/', '//'],
+			['/', '/', false],
+			['/', '//', false],
 
-			array('/path', '/path/'),
-			array('/path/', '/path/', false),
-			array('/path', 'path'),
+			['/path', '/path/'],
+			['/path/', '/path/', false],
+			['/path', 'path'],
 
-			array('/foo/bar', '/foo//bar/'),
-			array('/foo/bar/', '/foo//bar/', false),
-			array('/foo/bar', '/foo////bar'),
-			array('/foo/bar', '/foo/////bar'),
-			array('/foo/bar', '/foo/bar/.'),
-			array('/foo/bar', '/foo/bar/./'),
-			array('/foo/bar/', '/foo/bar/./', false),
-			array('/foo/bar', '/foo/bar/./.'),
-			array('/foo/bar', '/foo/bar/././'),
-			array('/foo/bar/', '/foo/bar/././', false),
-			array('/foo/bar', '/foo/./bar/'),
-			array('/foo/bar/', '/foo/./bar/', false),
-			array('/foo/.bar', '/foo/.bar/'),
-			array('/foo/.bar/', '/foo/.bar/', false),
-			array('/foo/.bar/tee', '/foo/.bar/tee'),
+			['/foo/bar', '/foo//bar/'],
+			['/foo/bar/', '/foo//bar/', false],
+			['/foo/bar', '/foo////bar'],
+			['/foo/bar', '/foo/////bar'],
+			['/foo/bar', '/foo/bar/.'],
+			['/foo/bar', '/foo/bar/./'],
+			['/foo/bar/', '/foo/bar/./', false],
+			['/foo/bar', '/foo/bar/./.'],
+			['/foo/bar', '/foo/bar/././'],
+			['/foo/bar/', '/foo/bar/././', false],
+			['/foo/bar', '/foo/./bar/'],
+			['/foo/bar/', '/foo/./bar/', false],
+			['/foo/.bar', '/foo/.bar/'],
+			['/foo/.bar/', '/foo/.bar/', false],
+			['/foo/.bar/tee', '/foo/.bar/tee'],
 
 			// Windows paths
-			array('/', ''),
-			array('/', '\\'),
-			array('/', '\\', false),
-			array('/', '\\\\'),
-			array('/', '\\\\', false),
+			['/', ''],
+			['/', '\\'],
+			['/', '\\', false],
+			['/', '\\\\'],
+			['/', '\\\\', false],
 
-			array('/path', '\\path'),
-			array('/path', '\\path', false),
-			array('/path', '\\path\\'),
-			array('/path/', '\\path\\', false),
+			['/path', '\\path'],
+			['/path', '\\path', false],
+			['/path', '\\path\\'],
+			['/path/', '\\path\\', false],
 
-			array('/foo/bar', '\\foo\\\\bar\\'),
-			array('/foo/bar/', '\\foo\\\\bar\\', false),
-			array('/foo/bar', '\\foo\\\\\\\\bar'),
-			array('/foo/bar', '\\foo\\\\\\\\\\bar'),
-			array('/foo/bar', '\\foo\\bar\\.'),
-			array('/foo/bar', '\\foo\\bar\\.\\'),
-			array('/foo/bar/', '\\foo\\bar\\.\\', false),
-			array('/foo/bar', '\\foo\\bar\\.\\.'),
-			array('/foo/bar', '\\foo\\bar\\.\\.\\'),
-			array('/foo/bar/', '\\foo\\bar\\.\\.\\', false),
-			array('/foo/bar', '\\foo\\.\\bar\\'),
-			array('/foo/bar/', '\\foo\\.\\bar\\', false),
-			array('/foo/.bar', '\\foo\\.bar\\'),
-			array('/foo/.bar/', '\\foo\\.bar\\', false),
-			array('/foo/.bar/tee', '\\foo\\.bar\\tee'),
+			['/foo/bar', '\\foo\\\\bar\\'],
+			['/foo/bar/', '\\foo\\\\bar\\', false],
+			['/foo/bar', '\\foo\\\\\\\\bar'],
+			['/foo/bar', '\\foo\\\\\\\\\\bar'],
+			['/foo/bar', '\\foo\\bar\\.'],
+			['/foo/bar', '\\foo\\bar\\.\\'],
+			['/foo/bar/', '\\foo\\bar\\.\\', false],
+			['/foo/bar', '\\foo\\bar\\.\\.'],
+			['/foo/bar', '\\foo\\bar\\.\\.\\'],
+			['/foo/bar/', '\\foo\\bar\\.\\.\\', false],
+			['/foo/bar', '\\foo\\.\\bar\\'],
+			['/foo/bar/', '\\foo\\.\\bar\\', false],
+			['/foo/.bar', '\\foo\\.bar\\'],
+			['/foo/.bar/', '\\foo\\.bar\\', false],
+			['/foo/.bar/tee', '\\foo\\.bar\\tee'],
 
 			// Absolute windows paths NOT marked as absolute
-			array('/C:', 'C:\\'),
-			array('/C:/', 'C:\\', false),
-			array('/C:/tests', 'C:\\tests'),
-			array('/C:/tests', 'C:\\tests', false),
-			array('/C:/tests', 'C:\\tests\\'),
-			array('/C:/tests/', 'C:\\tests\\', false),
+			['/C:', 'C:\\'],
+			['/C:/', 'C:\\', false],
+			['/C:/tests', 'C:\\tests'],
+			['/C:/tests', 'C:\\tests', false],
+			['/C:/tests', 'C:\\tests\\'],
+			['/C:/tests/', 'C:\\tests\\', false],
 
 			// normalize does not resolve '..' (by design)
-			array('/foo/..', '/foo/../'),
-			array('/foo/..', '\\foo\\..\\'),
-		);
+			['/foo/..', '/foo/../'],
+			['/foo/..', '\\foo\\..\\'],
+		];
 	}
 
 	/**
@@ -220,29 +220,29 @@ class FilesystemTest extends \Test\TestCase {
 	}
 
 	public function isValidPathData() {
-		return array(
-			array('/', true),
-			array('/path', true),
-			array('/foo/bar', true),
-			array('/foo//bar/', true),
-			array('/foo////bar', true),
-			array('/foo//\///bar', true),
-			array('/foo/bar/.', true),
-			array('/foo/bar/./', true),
-			array('/foo/bar/./.', true),
-			array('/foo/bar/././', true),
-			array('/foo/bar/././..bar', true),
-			array('/foo/bar/././..bar/a', true),
-			array('/foo/bar/././..', false),
-			array('/foo/bar/././../', false),
-			array('/foo/bar/.././', false),
-			array('/foo/bar/../../', false),
-			array('/foo/bar/../..\\', false),
-			array('..', false),
-			array('../', false),
-			array('../foo/bar', false),
-			array('..\foo/bar', false),
-		);
+		return [
+			['/', true],
+			['/path', true],
+			['/foo/bar', true],
+			['/foo//bar/', true],
+			['/foo////bar', true],
+			['/foo//\///bar', true],
+			['/foo/bar/.', true],
+			['/foo/bar/./', true],
+			['/foo/bar/./.', true],
+			['/foo/bar/././', true],
+			['/foo/bar/././..bar', true],
+			['/foo/bar/././..bar/a', true],
+			['/foo/bar/././..', false],
+			['/foo/bar/././../', false],
+			['/foo/bar/.././', false],
+			['/foo/bar/../../', false],
+			['/foo/bar/../..\\', false],
+			['..', false],
+			['../', false],
+			['../foo/bar', false],
+			['..\foo/bar', false],
+		];
 	}
 
 	/**
@@ -253,47 +253,48 @@ class FilesystemTest extends \Test\TestCase {
 	}
 
 	public function isFileBlacklistedData() {
-		return array(
-			array('/etc/foo/bar/foo.txt', false),
-			array('\etc\foo/bar\foo.txt', false),
-			array('.htaccess', true),
-			array('.htaccess/', true),
-			array('.htaccess\\', true),
-			array('/etc/foo\bar/.htaccess\\', true),
-			array('/etc/foo\bar/.htaccess/', true),
-			array('/etc/foo\bar/.htaccess/foo', false),
-			array('//foo//bar/\.htaccess/', true),
-			array('\foo\bar\.HTAccess', true),
-		);
+		return [
+			['/etc/foo/bar/foo.txt', false],
+			['\etc\foo/bar\foo.txt', false],
+			['.htaccess', true],
+			['.htaccess/', true],
+			['.htaccess\\', true],
+			['/etc/foo\bar/.htaccess\\', true],
+			['/etc/foo\bar/.htaccess/', true],
+			['/etc/foo\bar/.htaccess/foo', true],
+			['//foo//bar/\.htaccess/', true],
+			['\foo\bar\.HTAccess', true],
+		];
 	}
 
 	/**
 	 * @dataProvider isFileBlacklistedData
 	 */
 	public function testIsFileBlacklisted($path, $expected) {
-		$this->assertSame($expected, \OC\Files\Filesystem::isFileBlacklisted($path));
+		$this->assertSame($expected, \OC\Files\Filesystem::isForbiddenFileOrDir($path));
 	}
 
-	public function normalizePathWindowsAbsolutePathData() {
-		return array(
-			array('C:/', 'C:\\'),
-			array('C:/', 'C:\\', false),
-			array('C:/tests', 'C:\\tests'),
-			array('C:/tests', 'C:\\tests', false),
-			array('C:/tests', 'C:\\tests\\'),
-			array('C:/tests/', 'C:\\tests\\', false),
-		);
+	public function isExcludedData() {
+		return [
+			['.snapshot', true],
+			['.snapshot/', true],
+			['.snapshot\\', true],
+			['/etc/foo/bar/foo.txt', false],
+			['/.snapshot/etc/foo/bar/foo.txt', true],
+			['/.snapShot/etc/foo/bar/foo.txt', true],
+			['\.snapshot\etc\foo/bar\foo.txt', true],
+			['/etc/foo/.snapshot', true],
+			['/etc/foo/.snapshot/bar', true],
+		];
 	}
 
 	/**
-	 * @dataProvider normalizePathWindowsAbsolutePathData
+	 * The parameter array can be redesigned if filesystem.php will get a constructor where it is possible to 
+	 * define the excluded directories for unit tests
+	 * @dataProvider isExcludedData
 	 */
-	public function testNormalizePathWindowsAbsolutePath($expected, $path, $stripTrailingSlash = true) {
-		if (!\OC_Util::runningOnWindows()) {
-			$this->markTestSkipped('This test is Windows only');
-		}
-
-		$this->assertEquals($expected, \OC\Files\Filesystem::normalizePath($path, $stripTrailingSlash, true));
+	public function testIsExcluded($path, $expected) {
+		$this->assertSame($expected, \OC\Files\Filesystem::isForbiddenFileOrDir($path, ['.snapshot']));
 	}
 
 	public function testNormalizePathUTF8() {
@@ -321,7 +322,7 @@ class FilesystemTest extends \Test\TestCase {
 		\OC_Hook::clear('OC_Filesystem');
 		\OC_Hook::connect('OC_Filesystem', 'post_write', $this, 'dummyHook');
 
-		\OC\Files\Filesystem::mount('OC\Files\Storage\Temporary', array(), '/');
+		\OC\Files\Filesystem::mount('OC\Files\Storage\Temporary', [], '/');
 
 		$rootView = new \OC\Files\View('');
 		$rootView->mkdir('/' . $user);
@@ -398,7 +399,7 @@ class FilesystemTest extends \Test\TestCase {
 
 		\OC_User::clearBackends();
 		// needed for loginName2UserName mapping
-		$userBackend = $this->getMock('\OC\User\Database');
+		$userBackend = $this->createMock(\OC\User\Database::class);
 		\OC::$server->getUserManager()->registerBackend($userBackend);
 
 		$userBackend->expects($this->once())
@@ -448,37 +449,6 @@ class FilesystemTest extends \Test\TestCase {
 
 		$user = \OC::$server->getUserManager()->get($userId);
 		if ($user !== null) { $user->delete(); }
-	}
-
-	/**
-	 * Tests that the home storage is used in legacy mode
-	 * for the user's mount point
-	 */
-	public function testLegacyHomeMount() {
-		if (getenv('RUN_OBJECTSTORE_TESTS')) {
-			$this->markTestSkipped('legacy storage unrelated to objectstore environments');
-		}
-		$datadir = \OC::$server->getConfig()->getSystemValue("datadirectory", \OC::$SERVERROOT . "/data");
-		$userId = $this->getUniqueID('user_');
-
-		// insert storage into DB by constructing it
-		// to make initMountsPoint find its existence
-		$localStorage = new \OC\Files\Storage\Local(array('datadir' => $datadir . '/' . $userId . '/'));
-		// this will trigger the insert
-		$cache = $localStorage->getCache();
-
-		\OC::$server->getUserManager()->createUser($userId, $userId);
-		\OC\Files\Filesystem::initMountPoints($userId);
-
-		$homeMount = \OC\Files\Filesystem::getStorage('/' . $userId . '/');
-
-		$this->assertTrue($homeMount->instanceOfStorage('\OC\Files\Storage\Home'));
-		$this->assertEquals('local::' . $datadir . '/' . $userId . '/', $homeMount->getId());
-
-		$user = \OC::$server->getUserManager()->get($userId);
-		if ($user !== null) { $user->delete(); }
-		// delete storage entry
-		$cache->clear();
 	}
 
 	public function dummyHook($arguments) {

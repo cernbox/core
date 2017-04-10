@@ -8,7 +8,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +40,7 @@ class OC_DB_StatementWrapper {
 	 */
 	private $statement = null;
 	private $isManipulation = false;
-	private $lastArguments = array();
+	private $lastArguments = [];
 
 	/**
 	 * @param boolean $isManipulation
@@ -54,7 +54,7 @@ class OC_DB_StatementWrapper {
 	 * pass all other function directly to the \Doctrine\DBAL\Driver\Statement
 	 */
 	public function __call($name,$arguments) {
-		return call_user_func_array(array($this->statement,$name), $arguments);
+		return call_user_func_array([$this->statement,$name], $arguments);
 	}
 
 	/**
@@ -63,10 +63,13 @@ class OC_DB_StatementWrapper {
 	 * @param array $input
 	 * @return \OC_DB_StatementWrapper|int
 	 */
-	public function execute($input=array()) {
+	public function execute($input= []) {
 		if(\OC::$server->getSystemConfig()->getValue( "log_query", false)) {
+			$backTrace = debug_backtrace();
+			$class = $backTrace[1]['class'] . ':' . $backTrace[1]['function'];
+			$file = substr($backTrace[0]['file'], strlen(\OC::$SERVERROOT)) . ':' . $backTrace[0]['line'];
 			$params_str = str_replace("\n", " ", var_export($input, true));
-			\OCP\Util::writeLog('core', 'DB execute with arguments : '.$params_str, \OCP\Util::DEBUG);
+			\OCP\Util::writeLog('core', "DB execute with arguments : $params_str in $class; $file", \OCP\Util::DEBUG);
 		}
 		$this->lastArguments = $input;
 		if (count($input) > 0) {

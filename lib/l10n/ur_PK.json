@@ -6,11 +6,12 @@
     "last month" : "پچھلے مہنیے",
     "last year" : "پچھلے سال",
     "seconds ago" : "سیکنڈز پہلے",
+    "Username" : "اسم صارف",
+    "Password" : "پاسورڈ",
     "Apps" : "ایپز",
     "Help" : "مدد",
-    "Personal" : "ذاتی",
+    "Settings" : "ترتیبات",
     "Users" : "یوزرز",
-    "Admin" : "ایڈمن",
     "web services under your control" : "آپ کے اختیار میں ویب سروسیز"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

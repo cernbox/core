@@ -1,15 +1,14 @@
 <?php
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Björn Schießle <bjoern@schiessle.org>
  * @author Julius Haertl <jus@bitgrid.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Peter Prochaska <info@peter-prochaska.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +39,6 @@ use OCP\IUserManager;
 use OCP\Mail\IMailer;
 use OCP\Security\ISecureRandom;
 use \OC_Defaults;
-use OCP\Security\StringUtils;
 
 /**
  * Class LostController
@@ -133,7 +131,7 @@ class LostController extends Controller {
 		} catch (\Exception $e) {
 			return new TemplateResponse(
 				'core', 'error', [
-					"errors" => array(array("error" => $e->getMessage()))
+					"errors" => [["error" => $e->getMessage()]]
 				],
 				'guest'
 			);
@@ -142,15 +140,15 @@ class LostController extends Controller {
 		return new TemplateResponse(
 			'core',
 			'lostpassword/resetpassword',
-			array(
-				'link' => $this->urlGenerator->linkToRouteAbsolute('core.lost.setPassword', array('userId' => $userId, 'token' => $token)),
-			),
+			[
+				'link' => $this->urlGenerator->linkToRouteAbsolute('core.lost.setPassword', ['userId' => $userId, 'token' => $token]),
+			],
 			'guest'
 		);
 	}
 
 	/**
-	 * @param string $userId
+	 * @param string $token
 	 * @param string $userId
 	 * @throws \Exception
 	 */
@@ -159,15 +157,18 @@ class LostController extends Controller {
 
 		$splittedToken = explode(':', $this->config->getUserValue($userId, 'owncloud', 'lostpassword', null));
 		if(count($splittedToken) !== 2) {
+			$this->config->deleteUserValue($userId, 'owncloud', 'lostpassword');
 			throw new \Exception($this->l10n->t('Couldn\'t reset password because the token is invalid'));
 		}
 
 		if ($splittedToken[0] < ($this->timeFactory->getTime() - 60*60*12) ||
 			$user->getLastLogin() > $splittedToken[0]) {
+			$this->config->deleteUserValue($userId, 'owncloud', 'lostpassword');
 			throw new \Exception($this->l10n->t('Couldn\'t reset password because the token is expired'));
 		}
 
-		if (!StringUtils::equals($splittedToken[1], $token)) {
+		if (!hash_equals($splittedToken[1], $token)) {
+			$this->config->deleteUserValue($userId, 'owncloud', 'lostpassword');
 			throw new \Exception($this->l10n->t('Couldn\'t reset password because the token is invalid'));
 		}
 	}
@@ -177,15 +178,15 @@ class LostController extends Controller {
 	 * @param array $additional
 	 * @return array
 	 */
-	private function error($message, array $additional=array()) {
-		return array_merge(array('status' => 'error', 'msg' => $message), $additional);
+	private function error($message, array $additional= []) {
+		return array_merge(['status' => 'error', 'msg' => $message], $additional);
 	}
 
 	/**
 	 * @return array
 	 */
 	private function success() {
-		return array('status'=>'success');
+		return ['status'=>'success'];
 	}
 
 	/**
@@ -215,7 +216,7 @@ class LostController extends Controller {
 	 */
 	public function setPassword($token, $userId, $password, $proceed) {
 		if ($this->isDataEncrypted && !$proceed) {
-			return $this->error('', array('encryption' => true));
+			return $this->error('', ['encryption' => true]);
 		}
 
 		try {
@@ -226,9 +227,7 @@ class LostController extends Controller {
 				throw new \Exception();
 			}
 
-			\OC_Hook::emit('\OC\Core\LostPassword\Controller\LostController', 'post_passwordReset', array('uid' => $userId, 'password' => $password));
-
-			$this->config->deleteUserValue($userId, 'owncloud', 'lostpassword');
+			\OC_Hook::emit('\OC\Core\LostPassword\Controller\LostController', 'post_passwordReset', ['uid' => $userId, 'password' => $password]);
 			@\OC_User::unsetMagicInCookie();
 		} catch (\Exception $e){
 			return $this->error($e->getMessage());
@@ -240,21 +239,42 @@ class LostController extends Controller {
 	/**
 	 * @param string $user
 	 * @throws \Exception
+	 * @return boolean
 	 */
 	protected function sendEmail($user) {
-
 		if ($this->userManager->userExists($user)) {
-
 			$userObject = $this->userManager->get($user);
 			$email = $userObject->getEMailAddress();
 
-			if (!empty($email)) {
-				$token = $this->secureRandom->generate(21,
-					ISecureRandom::CHAR_DIGITS .
-					ISecureRandom::CHAR_LOWER .
-					ISecureRandom::CHAR_UPPER);
-				$this->config->setUserValue($user, 'owncloud', 'lostpassword', $this->timeFactory->getTime() . ':' . $token);
-				$link = $this->urlGenerator->linkToRouteAbsolute('core.lost.resetform', ['userId' => $user, 'token' => $token]);
+			if (empty($email)) {
+				$this->logger->error('Could not send reset email because there is no email address for this username. User: {user}', ['app' => 'core', 'user' => $user]);
+				return false;
+			}
+		} else {
+			$users = $this->userManager->getByEmail($user);
+
+			switch (count($users)) {
+				case 0:
+					$this->logger->error('Could not send reset email because User does not exist. User: {user}', ['app' => 'core', 'user' => $user]);
+					return false;
+				case 1:
+					$this->logger->info('User with input as email address found. User: {user}', ['app' => 'core', 'user' => $user]);
+					$email = $users[0]->getEMailAddress();
+					$user = $users[0]->getUID();
+					break;
+				default:
+					$this->logger->error('Could not send reset email because the email id is not unique. User: {user}', ['app' => 'core', 'user' => $user]);
+					return false;
+			}
+		}
+
+		$token = $this->secureRandom->generate(21,
+			ISecureRandom::CHAR_DIGITS .
+			ISecureRandom::CHAR_LOWER .
+			ISecureRandom::CHAR_UPPER);
+		$this->config->setUserValue($user, 'owncloud', 'lostpassword', $this->timeFactory->getTime() . ':' . $token);
+
+		$link = $this->urlGenerator->linkToRouteAbsolute('core.lost.resetform', ['userId' => $user, 'token' => $token]);
 
 				$tmpl = new \OC_Template('core', 'lostpassword/email');
 				$tmpl->assign('link', $link);
@@ -278,6 +298,8 @@ class LostController extends Controller {
 		} else {
 			$this->logger->error('Could not send reset email because User does not exist. User: {user}', ['app' => 'core', 'user' => $user]);
 		}
+
+		return true;
 	}
 
 }

@@ -5,9 +5,10 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,7 +35,7 @@ if (isset($_POST['allfiles']) && (string)$_POST['allfiles'] === 'true'){
 	$deleteAll = true;
 	if ($folder === '/' || $folder === '') {
 		OCA\Files_Trashbin\Trashbin::deleteAll();
-		$list = array();
+		$list = [];
 	} else {
 		$list[] = $folder;
 		$folder = dirname($folder);
@@ -47,8 +48,8 @@ else {
 }
 
 $folder = rtrim($folder, '/') . '/';
-$error = array();
-$success = array();
+$error = [];
+$success = [];
 
 $i = 0;
 foreach ($list as $file) {
@@ -81,9 +82,9 @@ if ( $error ) {
 		$filelist .= $e.', ';
 	}
 	$l = \OC::$server->getL10N('files_trashbin');
-	$message = $l->t("Couldn't delete %s permanently", array(rtrim($filelist, ', ')));
-	OCP\JSON::error(array("data" => array("message" => $message,
-			                               "success" => $success, "error" => $error)));
+	$message = $l->t("Couldn't delete %s permanently", [rtrim($filelist, ', ')]);
+	OCP\JSON::error(["data" => ["message" => $message,
+			                               "success" => $success, "error" => $error]]);
 } else {
-	OCP\JSON::success(array("data" => array("success" => $success)));
+	OCP\JSON::success(["data" => ["success" => $success]]);
 }

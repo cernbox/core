@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,10 +22,6 @@
  */
 
 namespace OCA\DAV\Tests\unit\SystemTag;
-
-use Sabre\DAV\Exception\NotFound;
-use Sabre\DAV\Exception\MethodNotAllowed;
-use Sabre\DAV\Exception\Conflict;
 
 use OC\SystemTag\SystemTag;
 use OCP\SystemTag\TagNotFoundException;
@@ -46,8 +43,8 @@ class SystemTagNodeTest extends \Test\TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->tagManager = $this->getMock('\OCP\SystemTag\ISystemTagManager');
-		$this->user = $this->getMock('\OCP\IUser');
+		$this->tagManager = $this->createMock('\OCP\SystemTag\ISystemTagManager');
+		$this->user = $this->createMock('\OCP\IUser');
 	}
 
 	protected function getTagNode($isAdmin = true, $tag = null) {

@@ -1,8 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -80,7 +81,7 @@ class L10N implements IL10N {
 	 * Returns the translation. If no translation is found, $text will be
 	 * returned.
 	 */
-	public function t($text, $parameters = array()) {
+	public function t($text, $parameters = []) {
 		return (string) new \OC_L10N_String($this, $text, $parameters);
 	}
 
@@ -99,7 +100,7 @@ class L10N implements IL10N {
 	 * provided by the po file.
 	 *
 	 */
-	public function n($text_singular, $text_plural, $count, $parameters = array()) {
+	public function n($text_singular, $text_plural, $count, $parameters = []) {
 		$identifier = "_${text_singular}_::_${text_plural}_";
 		if (isset($this->translations[$identifier])) {
 			return (string) new \OC_L10N_String($this, $identifier, $parameters, $count);
@@ -134,7 +135,7 @@ class L10N implements IL10N {
 	 *  - firstday: Returns the first day of the week (0 sunday - 6 saturday)
 	 *  - jsdate: Returns the short JS date format
 	 */
-	public function l($type, $data = null, $options = array()) {
+	public function l($type, $data = null, $options = []) {
 		// Use the language of the instance
 		$locale = $this->getLanguageCode();
 		if ($locale === 'sr@latin') {
@@ -158,7 +159,7 @@ class L10N implements IL10N {
 			$value->setTimestamp($data);
 		}
 
-		$options = array_merge(array('width' => 'long'), $options);
+		$options = array_merge(['width' => 'long'], $options);
 		$width = $options['width'];
 		switch ($type) {
 			case 'date':

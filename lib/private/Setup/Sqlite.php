@@ -2,8 +2,9 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +26,7 @@ class Sqlite extends AbstractDatabase {
 	public $dbprettyname = 'Sqlite';
 
 	public function validate($config) {
-		return array();
+		return [];
 	}
 
 	public function initialize($config) {

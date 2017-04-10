@@ -5,8 +5,9 @@
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +39,7 @@ class File extends \OCP\Search\Provider {
 	 */
 	function search($query) {
 		$files = Filesystem::search($query);
-		$results = array();
+		$results = [];
 		// edit results
 		foreach ($files as $fileData) {
 			// skip versions

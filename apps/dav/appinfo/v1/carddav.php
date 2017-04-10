@@ -1,10 +1,12 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Georg Ehrke <georg@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -55,10 +57,10 @@ $principalCollection->disableListing = !$debugging; // Disable listing
 $addressBookRoot = new AddressBookRoot($principalBackend, $cardDavBackend);
 $addressBookRoot->disableListing = !$debugging; // Disable listing
 
-$nodes = array(
+$nodes = [
 	$principalCollection,
 	$addressBookRoot,
-);
+];
 
 // Fire up server
 $server = new \Sabre\DAV\Server($nodes);

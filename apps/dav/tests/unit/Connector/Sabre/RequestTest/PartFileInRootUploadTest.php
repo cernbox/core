@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,9 +23,6 @@
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
 
-use OC\Files\View;
-use Test\Traits\EncryptionTrait;
-
 /**
  * Class PartFileInRootUploadTest
  *
@@ -35,7 +33,7 @@ use Test\Traits\EncryptionTrait;
 class PartFileInRootUploadTest extends UploadTest {
 	protected function setUp() {
 		$config = \OC::$server->getConfig();
-		$mockConfig = $this->getMock('\OCP\IConfig');
+		$mockConfig = $this->createMock('\OCP\IConfig');
 		$mockConfig->expects($this->any())
 			->method('getSystemValue')
 			->will($this->returnCallback(function ($key, $default) use ($config) {

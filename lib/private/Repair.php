@@ -2,14 +2,15 @@
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Georg Ehrke <georg@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,6 +53,7 @@ use OCP\Migration\IOutput;
 use OCP\Migration\IRepairStep;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\GenericEvent;
+use OC\Repair\MoveAvatarOutsideHome;
 
 class Repair implements IOutput{
 	/* @var IRepairStep[] */
@@ -77,7 +79,7 @@ class Repair implements IOutput{
 	 */
 	public function run() {
 		if (count($this->repairSteps) === 0) {
-			$this->emit('\OC\Repair', 'info', array('No repair steps available'));
+			$this->emit('\OC\Repair', 'info', ['No repair steps available']);
 			return;
 		}
 		// run each repair step
@@ -136,6 +138,15 @@ class Repair implements IOutput{
 			new SharePropagation(\OC::$server->getConfig()),
 			new RemoveOldShares(\OC::$server->getDatabaseConnection()),
 			new AvatarPermissions(\OC::$server->getDatabaseConnection()),
+			new MoveAvatarOutsideHome(
+				\OC::$server->getConfig(),
+				\OC::$server->getDatabaseConnection(),
+				\OC::$server->getUserManager(),
+				\OC::$server->getAvatarManager(),
+				\OC::$server->getLazyRootFolder(),
+				\OC::$server->getL10N('core'),
+				\OC::$server->getLogger()
+			),
 			new RemoveRootShares(\OC::$server->getDatabaseConnection(), \OC::$server->getUserManager(), \OC::$server->getLazyRootFolder()),
 			new RepairUnmergedShares(
 				\OC::$server->getConfig(),
@@ -198,7 +209,7 @@ class Repair implements IOutput{
 
 	public function info($string) {
 		// for now just emit as we did in the past
-		$this->emit('\OC\Repair', 'info', array($string));
+		$this->emit('\OC\Repair', 'info', [$string]);
 	}
 
 	/**

@@ -6,8 +6,9 @@
  * @author cmeh <cmeh@users.noreply.github.com>
  * @author Florin Peter <github@florin-peter.de>
  * @author Jesús Macias <jmacias@solidgear.es>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author karakayasemi <karakayasemi@itu.edu.tr>
  * @author Klaas Freitag <freitag@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Luke Policinski <lpolicinski@gmail.com>
@@ -25,7 +26,7 @@
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,8 +57,6 @@ use OCP\Files\InvalidCharacterInPathException;
 use OCP\Files\InvalidPathException;
 use OCP\Files\NotFoundException;
 use OCP\Files\ReservedWordException;
-use OCP\Files\UnseekableException;
-use OCP\Files\Storage\ILockingStorage;
 use OCP\IUser;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
@@ -259,7 +258,7 @@ class View {
 	 * for \OC\Files\Storage\Storage via basicOperation().
 	 */
 	public function mkdir($path) {
-		return $this->basicOperation('mkdir', $path, array('create', 'write'));
+		return $this->basicOperation('mkdir', $path, ['create', 'write']);
 	}
 
 	/**
@@ -277,7 +276,7 @@ class View {
 			$this->lockFile($relPath, ILockingProvider::LOCK_SHARED, true);
 			\OC_Hook::emit(
 				Filesystem::CLASSNAME, "umount",
-				array(Filesystem::signal_param_path => $relPath)
+				[Filesystem::signal_param_path => $relPath]
 			);
 			$this->changeLock($relPath, ILockingProvider::LOCK_EXCLUSIVE, true);
 			$result = $mount->removeMount();
@@ -285,7 +284,7 @@ class View {
 			if ($result) {
 				\OC_Hook::emit(
 					Filesystem::CLASSNAME, "post_umount",
-					array(Filesystem::signal_param_path => $relPath)
+					[Filesystem::signal_param_path => $relPath]
 				);
 			}
 			$this->unlockFile($relPath, ILockingProvider::LOCK_SHARED, true);
@@ -338,7 +337,7 @@ class View {
 			return $this->removeMount($mount, $absolutePath);
 		}
 		if ($this->is_dir($path)) {
-			$result = $this->basicOperation('rmdir', $path, array('delete'));
+			$result = $this->basicOperation('rmdir', $path, ['delete']);
 		} else {
 			$result = false;
 		}
@@ -356,7 +355,7 @@ class View {
 	 * @return resource
 	 */
 	public function opendir($path) {
-		return $this->basicOperation('opendir', $path, array('read'));
+		return $this->basicOperation('opendir', $path, ['read']);
 	}
 
 	/**
@@ -364,7 +363,7 @@ class View {
 	 * @return mixed
 	 */
 	public function readdir($handle) {
-		$fsLocal = new Storage\Local(array('datadir' => '/'));
+		$fsLocal = new Storage\Local(['datadir' => '/']);
 		return $fsLocal->readdir($handle);
 	}
 
@@ -542,7 +541,7 @@ class View {
 			$mtime = strtotime($mtime);
 		}
 
-		$hooks = array('touch');
+		$hooks = ['touch'];
 
 		if (!$this->file_exists($path)) {
 			$hooks[] = 'create';
@@ -559,7 +558,7 @@ class View {
 				$mtime = time();
 			}
 			//if native touch fails, we emulate it by changing the mtime in the cache
-			$this->putFileInfo($path, array('mtime' => $mtime));
+			$this->putFileInfo($path, ['mtime' => $mtime]);
 		}
 		return true;
 	}
@@ -569,7 +568,7 @@ class View {
 	 * @return mixed
 	 */
 	public function file_get_contents($path) {
-		return $this->basicOperation('file_get_contents', $path, array('read'));
+		return $this->basicOperation('file_get_contents', $path, ['read']);
 	}
 
 	/**
@@ -579,20 +578,20 @@ class View {
 	 */
 	protected function emit_file_hooks_pre($exists, $path, &$run) {
 		if (!$exists) {
-			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_create, array(
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_create, [
 				Filesystem::signal_param_path => $this->getHookPath($path),
 				Filesystem::signal_param_run => &$run,
-			));
+			]);
 		} else {
-			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_update, array(
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_update, [
 				Filesystem::signal_param_path => $this->getHookPath($path),
 				Filesystem::signal_param_run => &$run,
-			));
+			]);
 		}
-		\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_write, array(
+		\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_write, [
 			Filesystem::signal_param_path => $this->getHookPath($path),
 			Filesystem::signal_param_run => &$run,
-		));
+		]);
 	}
 
 	/**
@@ -601,17 +600,17 @@ class View {
 	 */
 	protected function emit_file_hooks_post($exists, $path) {
 		if (!$exists) {
-			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_create, array(
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_create, [
 				Filesystem::signal_param_path => $this->getHookPath($path),
-			));
+			]);
 		} else {
-			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_update, array(
+			\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_update, [
 				Filesystem::signal_param_path => $this->getHookPath($path),
-			));
+			]);
 		}
-		\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_write, array(
+		\OC_Hook::emit(Filesystem::CLASSNAME, Filesystem::signal_post_write, [
 			Filesystem::signal_param_path => $this->getHookPath($path),
-		));
+		]);
 	}
 
 	/**
@@ -624,7 +623,7 @@ class View {
 		if (is_resource($data)) { //not having to deal with streams in file_put_contents makes life easier
 			$absolutePath = Filesystem::normalizePath($this->getAbsolutePath($path));
 			if (Filesystem::isValidPath($path)
-				and !Filesystem::isFileBlacklisted($path)
+				and !Filesystem::isForbiddenFileOrDir($path)
 			) {
 				$path = $this->getRelativePath($absolutePath);
 
@@ -667,7 +666,7 @@ class View {
 				return false;
 			}
 		} else {
-			$hooks = ($this->file_exists($path)) ? array('update', 'write') : array('create', 'write');
+			$hooks = ($this->file_exists($path)) ? ['update', 'write'] : ['create', 'write'];
 			return $this->basicOperation('file_put_contents', $path, $hooks, $data);
 		}
 	}
@@ -725,7 +724,7 @@ class View {
 		if (
 			Filesystem::isValidPath($path2)
 			and Filesystem::isValidPath($path1)
-			and !Filesystem::isFileBlacklisted($path2)
+			and !Filesystem::isForbiddenFileOrDir($path2)
 		) {
 			$path1 = $this->getRelativePath($absolutePath1);
 			$path2 = $this->getRelativePath($absolutePath2);
@@ -750,11 +749,11 @@ class View {
 			} elseif ($this->shouldEmitHooks($path1)) {
 				\OC_Hook::emit(
 					Filesystem::CLASSNAME, Filesystem::signal_rename,
-					array(
+					[
 						Filesystem::signal_param_oldpath => $this->getHookPath($path1),
 						Filesystem::signal_param_newpath => $this->getHookPath($path2),
 						Filesystem::signal_param_run => &$run
-					)
+					]
 				);
 			}
 			if ($run) {
@@ -772,7 +771,7 @@ class View {
 				$this->changeLock($path2, ILockingProvider::LOCK_EXCLUSIVE, true);
 
 				if ($internalPath1 === '' and $mount1 instanceof MoveableMount) {
-					if ($this->isTargetAllowed($absolutePath2)) {
+					if ($this->canMove($mount1, $absolutePath2)) {
 						/**
 						 * @var \OC\Files\Mount\MountPoint | \OC\Files\Mount\MoveableMount $mount1
 						 */
@@ -816,10 +815,10 @@ class View {
 						\OC_Hook::emit(
 							Filesystem::CLASSNAME,
 							Filesystem::signal_post_rename,
-							array(
+							[
 								Filesystem::signal_param_oldpath => $this->getHookPath($path1),
 								Filesystem::signal_param_newpath => $this->getHookPath($path2)
-							)
+							]
 						);
 					}
 				}
@@ -846,7 +845,7 @@ class View {
 		if (
 			Filesystem::isValidPath($path2)
 			and Filesystem::isValidPath($path1)
-			and !Filesystem::isFileBlacklisted($path2)
+			and !Filesystem::isForbiddenFileOrDir($path2)
 		) {
 			$path1 = $this->getRelativePath($absolutePath1);
 			$path2 = $this->getRelativePath($absolutePath2);
@@ -868,11 +867,11 @@ class View {
 					\OC_Hook::emit(
 						Filesystem::CLASSNAME,
 						Filesystem::signal_copy,
-						array(
+						[
 							Filesystem::signal_param_oldpath => $this->getHookPath($path1),
 							Filesystem::signal_param_newpath => $this->getHookPath($path2),
 							Filesystem::signal_param_run => &$run
-						)
+						]
 					);
 					$this->emit_file_hooks_pre($exists, $path2, $run);
 				}
@@ -906,10 +905,10 @@ class View {
 						\OC_Hook::emit(
 							Filesystem::CLASSNAME,
 							Filesystem::signal_post_copy,
-							array(
+							[
 								Filesystem::signal_param_oldpath => $this->getHookPath($path1),
 								Filesystem::signal_param_newpath => $this->getHookPath($path2)
-							)
+							]
 						);
 						$this->emit_file_hooks_post($exists, $path2);
 					}
@@ -934,7 +933,7 @@ class View {
 	 * @return resource
 	 */
 	public function fopen($path, $mode) {
-		$hooks = array();
+		$hooks = [];
 		switch ($mode) {
 			case 'r':
 			case 'rb':
@@ -1057,7 +1056,7 @@ class View {
 				\OC_Hook::emit(
 					Filesystem::CLASSNAME,
 					Filesystem::signal_read,
-					array(Filesystem::signal_param_path => $this->getHookPath($path))
+					[Filesystem::signal_param_path => $this->getHookPath($path)]
 				);
 			}
 			list($storage, $internalPath) = Filesystem::resolvePath($absolutePath . $postFix);
@@ -1097,7 +1096,7 @@ class View {
 		$postFix = (substr($path, -1, 1) === '/') ? '/' : '';
 		$absolutePath = Filesystem::normalizePath($this->getAbsolutePath($path));
 		if (Filesystem::isValidPath($path)
-			and !Filesystem::isFileBlacklisted($path)
+			and !Filesystem::isForbiddenFileOrDir($path)
 		) {
 			$path = $this->getRelativePath($absolutePath);
 			if ($path == null) {
@@ -1231,18 +1230,18 @@ class View {
 					\OC_Hook::emit(
 						Filesystem::CLASSNAME,
 						$prefix . $hook,
-						array(
+						[
 							Filesystem::signal_param_run => &$run,
 							Filesystem::signal_param_path => $path
-						)
+						]
 					);
 				} elseif (!$post) {
 					\OC_Hook::emit(
 						Filesystem::CLASSNAME,
 						$prefix . $hook,
-						array(
+						[
 							Filesystem::signal_param_path => $path
-						)
+						]
 					);
 				}
 			}
@@ -1258,7 +1257,7 @@ class View {
 	 * @return bool
 	 */
 	public function hasUpdated($path, $time) {
-		return $this->basicOperation('hasUpdated', $path, array(), $time);
+		return $this->basicOperation('hasUpdated', $path, [], $time);
 	}
 
 	/**
@@ -1362,7 +1361,7 @@ class View {
 						$subStorage = $mount->getStorage();
 						if ($subStorage) {
 							// exclude shared storage ?
-							if ($extOnly && $subStorage instanceof \OC\Files\Storage\Shared) {
+							if ($extOnly && $subStorage instanceof \OCA\Files_Sharing\SharedStorage) {
 								continue;
 							}
 							$subCache = $subStorage->getCache('');
@@ -1413,13 +1412,16 @@ class View {
 			/**
 			 * @var \OC\Files\FileInfo[] $files
 			 */
+			$files = array_filter($contents, function(ICacheEntry $content) {
+				return (!\OC\Files\Filesystem::isForbiddenFileOrDir($content['path']));
+			});
 			$files = array_map(function (ICacheEntry $content) use ($path, $storage, $mount, $sharingDisabled) {
 				if ($sharingDisabled) {
 					$content['permissions'] = $content['permissions'] & ~\OCP\Constants::PERMISSION_SHARE;
 				}
 				$owner = $this->getUserObjectForOwner($storage->getOwner($content['path']));
 				return new FileInfo($path . '/' . $content['name'], $storage, $content['path'], $content, $mount, $owner);
-			}, $contents);
+			}, $files);
 
 			//add a folder for any mountpoint in this directory and add the sizes of other mountpoints to the folders
 			$mounts = Filesystem::getMountManager()->findIn($path);
@@ -1552,7 +1554,7 @@ class View {
 	 * @return FileInfo[]
 	 */
 	public function search($query) {
-		return $this->searchCommon('search', array('%' . $query . '%'));
+		return $this->searchCommon('search', ['%' . $query . '%']);
 	}
 
 	/**
@@ -1562,7 +1564,7 @@ class View {
 	 * @return FileInfo[]
 	 */
 	public function searchRaw($query) {
-		return $this->searchCommon('search', array($query));
+		return $this->searchCommon('search', [$query]);
 	}
 
 	/**
@@ -1572,7 +1574,7 @@ class View {
 	 * @return FileInfo[]
 	 */
 	public function searchByMime($mimetype) {
-		return $this->searchCommon('searchByMime', array($mimetype));
+		return $this->searchCommon('searchByMime', [$mimetype]);
 	}
 
 	/**
@@ -1583,7 +1585,7 @@ class View {
 	 * @return FileInfo[]
 	 */
 	public function searchByTag($tag, $userId) {
-		return $this->searchCommon('searchByTag', array($tag, $userId));
+		return $this->searchCommon('searchByTag', [$tag, $userId]);
 	}
 
 	/**
@@ -1592,7 +1594,7 @@ class View {
 	 * @return FileInfo[]
 	 */
 	private function searchCommon($method, $args) {
-		$files = array();
+		$files = [];
 		$rootLength = strlen($this->fakeRoot);
 
 		$mount = $this->getMount('');
@@ -1601,7 +1603,7 @@ class View {
 		if ($storage) {
 			$cache = $storage->getCache('');
 
-			$results = call_user_func_array(array($cache, $method), $args);
+			$results = call_user_func_array([$cache, $method], $args);
 			foreach ($results as $result) {
 				if (substr($mountPoint . $result['path'], 0, $rootLength + 1) === $this->fakeRoot . '/') {
 					$internalPath = $result['path'];
@@ -1620,7 +1622,7 @@ class View {
 					$cache = $storage->getCache('');
 
 					$relativeMountPoint = substr($mountPoint, $rootLength);
-					$results = call_user_func_array(array($cache, $method), $args);
+					$results = call_user_func_array([$cache, $method], $args);
 					if ($results) {
 						foreach ($results as $result) {
 							$internalPath = $result['path'];
@@ -1730,10 +1732,11 @@ class View {
 	 * It is not allowed to move a mount point into a different mount point or
 	 * into an already shared folder
 	 *
-	 * @param string $target path
+	 * @param MoveableMount $mount1 moveable mount
+	 * @param string $target absolute target path
 	 * @return boolean
 	 */
-	private function isTargetAllowed($target) {
+	private function canMove(MoveableMount $mount1, $target) {
 
 		list($targetStorage, $targetInternalPath) = \OC\Files\Filesystem::resolvePath($target);
 		if (!$targetStorage->instanceOfStorage('\OCP\Files\IHomeStorage')) {
@@ -1743,30 +1746,7 @@ class View {
 			return false;
 		}
 
-		// note: cannot use the view because the target is already locked
-		$fileId = (int)$targetStorage->getCache()->getId($targetInternalPath);
-		if ($fileId === -1) {
-			// target might not exist, need to check parent instead
-			$fileId = (int)$targetStorage->getCache()->getId(dirname($targetInternalPath));
-		}
-
-		// check if any of the parents were shared by the current owner (include collections)
-		$shares = \OCP\Share::getItemShared(
-			'folder',
-			$fileId,
-			\OCP\Share::FORMAT_NONE,
-			null,
-			true
-		);
-
-		if (count($shares) > 0) {
-			\OCP\Util::writeLog('files',
-				'It is not allowed to move one mount point into a shared folder',
-				\OCP\Util::DEBUG);
-			return false;
-		}
-
-		return true;
+		return $mount1->isTargetAllowed($target);
 	}
 
 	/**
@@ -1817,13 +1797,15 @@ class View {
 			throw new InvalidPathException($l10n->t('Dot files are not allowed'));
 		}
 
-		// verify database - e.g. mysql only 3-byte chars
-		if (preg_match('%(?:
+		if (!\OC::$server->getDatabaseConnection()->allows4ByteCharacters()) {
+			// verify database - e.g. mysql only 3-byte chars
+			if (preg_match('%(?:
       \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3
     | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15
     | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16
 )%xs', $fileName)) {
-			throw new InvalidPathException($l10n->t('4-byte characters are not supported in file names'));
+				throw new InvalidPathException($l10n->t('4-byte characters are not supported in file names'));
+			}
 		}
 
 		try {
@@ -1855,7 +1837,7 @@ class View {
 
 		// remove the single file
 		array_pop($parts);
-		$result = array('/');
+		$result = ['/'];
 		$resultPath = '';
 		foreach ($parts as $part) {
 			if ($part) {
@@ -1962,9 +1944,9 @@ class View {
 						$this->lockingProvider
 					);
 				}
-			} catch (\OCP\Lock\LockedException $e) {
+			} catch (LockedException $e) {
 				// rethrow with the a human-readable path
-				throw new \OCP\Lock\LockedException(
+				throw new LockedException(
 					$this->getPathRelativeToFiles($absolutePath),
 					$e
 				);
@@ -2092,7 +2074,7 @@ class View {
 		$parts = explode('/', trim($path, '/'), 3);
 		// "$user", "files", "path/to/dir"
 		if (!isset($parts[1]) || $parts[1] !== 'files') {
-			throw new \InvalidArgumentException('$absolutePath must be relative to "files"');
+			throw new \InvalidArgumentException('"' . $absolutePath . '" must be relative to "files"');
 		}
 		if (isset($parts[2])) {
 			return $parts[2];

@@ -4,8 +4,9 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Ross Nicoll <jrn@jrn.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,7 +42,7 @@ class AjaxController extends Controller {
 	private function generateSshKeys() {
 		$key = $this->rsaMechanism->createKey();
 		// Replace the placeholder label with a more meaningful one
-		$key['publicKey'] = str_replace('phpseclib-generated-key', gethostname(), $key['publickey']);
+		$key['publickey'] = str_replace('phpseclib-generated-key', gethostname(), $key['publickey']);
 
 		return $key;
 	}
@@ -54,11 +55,11 @@ class AjaxController extends Controller {
 	public function getSshKeys() {
 		$key = $this->generateSshKeys();
 		return new JSONResponse(
-			array('data' => array(
+			['data' => [
 				'private_key' => $key['privatekey'],
 				'public_key' => $key['publickey']
-			),
+			],
 			'status' => 'success'
-		));
+			]);
 	}
 }

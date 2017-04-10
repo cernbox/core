@@ -4,9 +4,10 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Florin Peter <github@florin-peter.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -14,9 +15,10 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Sam Tuke <mail@samtuke.com>
  * @author Stephan Peijnik <speijnik@anexia-it.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -79,7 +81,7 @@ class Filesystem {
 	 */
 	static private $defaultInstance;
 
-	static private $usersSetup = array();
+	static private $usersSetup = [];
 
 	static private $normalizedPathCache = null;
 
@@ -296,7 +298,7 @@ class Filesystem {
 		if (!self::$mounts) {
 			\OC_Util::setupFS();
 		}
-		$result = array();
+		$result = [];
 		$mounts = self::$mounts->findIn($path);
 		foreach ($mounts as $mount) {
 			$result[] = $mount->getMountPoint();
@@ -352,9 +354,9 @@ class Filesystem {
 		}
 		$mount = self::$mounts->find($path);
 		if ($mount) {
-			return array($mount->getStorage(), rtrim($mount->getInternalPath($path), '/'));
+			return [$mount->getStorage(), rtrim($mount->getInternalPath($path), '/')];
 		} else {
-			return array(null, null);
+			return [null, null];
 		}
 	}
 
@@ -441,13 +443,13 @@ class Filesystem {
 		// Chance to mount for other storages
 		if ($userObject) {
 			$mounts = $mountConfigManager->getMountsForUser($userObject);
-			array_walk($mounts, array(self::$mounts, 'addMount'));
+			array_walk($mounts, [self::$mounts, 'addMount']);
 			$mounts[] = $homeMount;
 			$mountConfigManager->registerMounts($userObject, $mounts);
 		}
 
 		self::listenForNewMountProviders($mountConfigManager, $userManager);
-		\OC_Hook::emit('OC_Filesystem', 'post_initMountPoints', array('user' => $user));
+		\OC_Hook::emit('OC_Filesystem', 'post_initMountPoints', ['user' => $user]);
 	}
 
 	/**
@@ -464,7 +466,7 @@ class Filesystem {
 					$userObject = $userManager->get($user);
 					if ($userObject) {
 						$mounts = $provider->getMountsForUser($userObject, Filesystem::getLoader());
-						array_walk($mounts, array(self::$mounts, 'addMount'));
+						array_walk($mounts, [self::$mounts, 'addMount']);
 					}
 				}
 			});
@@ -507,7 +509,7 @@ class Filesystem {
 	 */
 	public static function clearMounts() {
 		if (self::$mounts) {
-			self::$usersSetup = array();
+			self::$usersSetup = [];
 			self::$mounts->clear();
 		}
 	}
@@ -585,29 +587,26 @@ class Filesystem {
 	 *
 	 * @param array $data from hook
 	 */
-	static public function isBlacklisted($data) {
+	static public function isForbiddenFileOrDir_Hook($data) {
 		if (isset($data['path'])) {
 			$path = $data['path'];
 		} else if (isset($data['newpath'])) {
 			$path = $data['newpath'];
 		}
 		if (isset($path)) {
-			if (self::isFileBlacklisted($path)) {
+			if (self::isForbiddenFileOrDir($path)) {
 				$data['run'] = false;
 			}
 		}
 	}
 
 	/**
+	 * depriciated, replaced by isForbiddenFileOrDir
 	 * @param string $filename
-	 * @return bool
+	 * @return boolean
 	 */
 	static public function isFileBlacklisted($filename) {
-		$filename = self::normalizePath($filename);
-
-		$blacklist = \OC::$server->getConfig()->getSystemValue('blacklisted_files', array('.htaccess'));
-		$filename = strtolower(basename($filename));
-		return in_array($filename, $blacklist);
+		return self::isForbiddenFileOrDir($filename);
 	}
 
 	/**
@@ -619,6 +618,54 @@ class Filesystem {
 	 */
 	static public function isIgnoredDir($dir) {
 		if ($dir === '.' || $dir === '..') {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	* Check if the directory path / file name contains a Blacklisted or Excluded name
+	* config.php parameter arrays can contain file names to be blacklisted or directory names to be excluded
+	* Blacklist ... files that may harm the owncloud environment like a foreign .htaccess file
+	* Excluded  ... directories that are excluded from beeing further processed, like snapshot directories
+	* The parameter $ed is only used in conjunction with unit tests as we handover here the excluded
+	* directory name to be tested against. $ed and the query with can be redesigned if filesystem.php will get 
+	* a constructor where it is then possible to define the excluded directory names for unit tests.
+	* @param string $FileOrDir
+	* @param array $ed
+	* @return boolean
+	*/
+	static public function isForbiddenFileOrDir($FileOrDir, $ed = []) {
+		$excluded = [];
+		$blacklist = [];
+		$path_parts = [];
+		$ppx = [];
+		$blacklist = \OC::$server->getSystemConfig()->getValue('blacklisted_files', ['.htaccess']);
+		if ($ed) {
+			$excluded = $ed;
+		} else {
+			$excluded = \OC::$server->getSystemConfig()->getValue('excluded_directories', $ed);
+		}
+		// explode '/'
+		$ppx = array_filter(explode('/', $FileOrDir), 'strlen');
+		$ppx = array_map('strtolower', $ppx);
+		// further explode each array element with '\' and add to result array if found  
+		foreach($ppx as $pp) {
+			// only add an array element if strlen != 0
+			$path_parts = array_merge($path_parts, array_filter(explode('\\', $pp), 'strlen'));
+		}
+		if ($excluded) {
+			$excluded = array_map('trim', $excluded);
+			$excluded = array_map('strtolower', $excluded);
+			$match = array_intersect($path_parts, $excluded);
+			if ($match) {
+				return true;
+			}
+		}
+		$blacklist = array_map('trim', $blacklist);
+		$blacklist = array_map('strtolower', $blacklist);
+		$match = array_intersect($path_parts, $blacklist);
+		if ($match) {
 			return true;
 		}
 		return false;

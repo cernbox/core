@@ -1,12 +1,14 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -67,17 +69,17 @@ class CertificateManager implements ICertificateManager {
 	public function listCertificates() {
 
 		if (!$this->config->getSystemValue('installed', false)) {
-			return array();
+			return [];
 		}
 
 		$path = $this->getPathToCertificates() . 'uploads/';
 		if (!$this->view->is_dir($path)) {
-			return array();
+			return [];
 		}
-		$result = array();
+		$result = [];
 		$handle = $this->view->opendir($path);
 		if (!is_resource($handle)) {
-			return array();
+			return [];
 		}
 		while (false !== ($file = readdir($handle))) {
 			if ($file != '.' && $file != '..') {
@@ -137,7 +139,7 @@ class CertificateManager implements ICertificateManager {
 	 * @throws \Exception If the certificate could not get added
 	 */
 	public function addCertificate($certificate, $name) {
-		if (!Filesystem::isValidPath($name) or Filesystem::isFileBlacklisted($name)) {
+		if (!Filesystem::isValidPath($name) or Filesystem::isForbiddenFileOrDir($name)) {
 			throw new \Exception('Filename is not valid');
 		}
 

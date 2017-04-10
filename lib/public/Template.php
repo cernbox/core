@@ -4,14 +4,14 @@
  * @author Frank Karlitschek <frank@karlitschek.de>
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -129,7 +129,7 @@ function simple_file_size($bytes) {
  * @return string html options
  * @deprecated 8.0.0 Use \OCP\Template::html_select_options() instead
  */
-function html_select_options($options, $selected, $params=array()) {
+function html_select_options($options, $selected, $params= []) {
 	return(\html_select_options($options, $selected, $params));
 }
 
@@ -224,7 +224,7 @@ class Template extends \OC_Template {
 	 * @return string html options
 	 * @since 8.0.0
 	 */
-	public static function html_select_options($options, $selected, $params=array()) {
+	public static function html_select_options($options, $selected, $params= []) {
 		return \html_select_options($options, $selected, $params);
 	}
 }

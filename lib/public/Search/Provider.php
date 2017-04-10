@@ -5,8 +5,9 @@
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -48,7 +49,7 @@ abstract class Provider {
 	 * @param array $options as key => value
 	 * @since 7.0.0 - default value for $options was added in 8.0.0
 	 */
-	public function __construct($options = array()) {
+	public function __construct($options = []) {
 		$this->options = $options;
 	}
 
@@ -75,7 +76,7 @@ abstract class Provider {
 	 * @return bool
 	 * @since 8.0.0
 	 */
-	public function providesResultsFor(array $apps = array()) {
+	public function providesResultsFor(array $apps = []) {
 		$forApps = $this->getOption(self::OPTION_APPS);
 		return empty($apps) || empty($forApps) || array_intersect($forApps, $apps);
 	}

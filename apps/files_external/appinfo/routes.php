@@ -1,14 +1,14 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Ross Nicoll <jrn@jrn.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,21 +30,21 @@
  **/
 \OC_Mount_Config::$app->registerRoutes(
 	$this,
-	array(
-		'resources' => array(
-			'global_storages' => array('url' => '/globalstorages'),
-			'user_storages' => array('url' => '/userstorages'),
-			'user_global_storages' => array('url' => '/userglobalstorages'),
-		),
-		'routes' => array(
-			array(
+	[
+		'resources' => [
+			'global_storages' => ['url' => '/globalstorages'],
+			'user_storages' => ['url' => '/userstorages'],
+			'user_global_storages' => ['url' => '/userglobalstorages'],
+		],
+		'routes' => [
+			[
 				'name' => 'Ajax#getSshKeys',
 				'url' => '/ajax/public_key.php',
 				'verb' => 'POST',
-				'requirements' => array()
-			)
-		)
-	)
+				'requirements' => []
+			]
+		]
+	]
 );
 
 $this->create('files_external_oauth1', 'ajax/oauth1.php')
@@ -58,6 +58,6 @@ $this->create('files_external_list_applicable', '/applicable')
 
 \OCP\API::register('get',
 		'/apps/files_external/api/v1/mounts',
-		array('\OCA\Files_External\Lib\Api', 'getUserMounts'),
+		['\OCA\Files_External\Lib\Api', 'getUserMounts'],
 		'files_external');
 

@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -122,7 +123,7 @@ class Activity implements IExtension {
 	 */
 	public function getDefaultTypes($method) {
 		if ($method === self::METHOD_STREAM) {
-			$settings = array();
+			$settings = [];
 			$settings[] = self::TYPE_SHARE_CREATED;
 			$settings[] = self::TYPE_SHARE_CHANGED;
 			$settings[] = self::TYPE_SHARE_DELETED;

@@ -3,8 +3,9 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,7 +43,7 @@ class Constants {
 
 	protected static $shareTypeUserAndGroups = -1;
 	protected static $shareTypeGroupUserUnique = 2;
-	protected static $backends = array();
-	protected static $backendTypes = array();
+	protected static $backends = [];
+	protected static $backendTypes = [];
 	protected static $isResharingAllowed;
 }

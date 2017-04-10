@@ -4,14 +4,15 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,6 +37,7 @@ use OCP\Files\ForbiddenException;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use Sabre\DAV\Exception\Locked;
+use Sabre\DAV\Exception\NotFound;
 
 class Directory extends \OCA\DAV\Connector\Sabre\Node
 	implements \Sabre\DAV\ICollection, \Sabre\DAV\IQuota {
@@ -106,7 +108,19 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node
 	 */
 	public function createFile($name, $data = null) {
 
+		# the check here is necessary, because createFile uses put covered in sabre/file.php 
+		# and not touch covered in files/view.php
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($name)) {
+			throw new \Sabre\DAV\Exception\Forbidden();
+		}
+
 		try {
+			# the check here is necessary, because createFile uses put covered in sabre/file.php 
+			# and not touch covered in files/view.php
+			if (\OC\Files\Filesystem::isForbiddenFileOrDir($name)) {
+				throw new \Sabre\DAV\Exception\Forbidden();
+			}
+
 			// for chunked upload also updating a existing file is a "createFile"
 			// because we create all the chunks before re-assemble them to the existing file.
 			if (isset($_SERVER['HTTP_OC_CHUNKED'])) {
@@ -130,7 +144,7 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node
 
 			$path = $this->fileView->getAbsolutePath($this->path) . '/' . $name;
 			// using a dummy FileInfo is acceptable here since it will be refreshed after the put is complete
-			$info = new \OC\Files\FileInfo($path, null, null, array(), null);
+			$info = new \OC\Files\FileInfo($path, null, null, [], null);
 			$node = new \OCA\DAV\Connector\Sabre\File($this->fileView, $info);
 			$node->acquireLock(ILockingProvider::LOCK_SHARED);
 			return $node->put($data);
@@ -155,7 +169,18 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node
 	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
 	 */
 	public function createDirectory($name) {
+
+		# the check here is necessary, because createDirectory does not use the methods in files/view.php
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($name)) {
+			throw new \Sabre\DAV\Exception\Forbidden();
+		}
+
 		try {
+			# the check here is necessary, because createDirectory does not use the methods in files/view.php
+			if (\OC\Files\Filesystem::isForbiddenFileOrDir($name)) {
+				throw new \Sabre\DAV\Exception\Forbidden();
+			}
+
 			if (!$this->info->isCreatable()) {
 				throw new \Sabre\DAV\Exception\Forbidden();
 			}
@@ -187,6 +212,11 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node
 	 * @throws \Sabre\DAV\Exception\ServiceUnavailable
 	 */
 	public function getChild($name, $info = null) {
+		if (!$this->info->isReadable()) {
+			// avoid detecting files through this way
+			throw new NotFound();
+		}
+
 		$path = $this->path . '/' . $name;
 		if (is_null($info)) {
 			try {
@@ -226,12 +256,17 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node
 			return $this->dirContent;
 		}
 		try {
+			if (!$this->info->isReadable()) {
+				// return 403 instead of 404 because a 404 would make
+				// the caller believe that the collection itself does not exist
+				throw new Forbidden('No read permissions');
+			}
 			$folderContent = $this->fileView->getDirectoryContent($this->path);
 		} catch (LockedException $e) {
 			throw new Locked();
 		}
 
-		$nodes = array();
+		$nodes = [];
 		foreach ($folderContent as $info) {
 			$node = $this->getChild($info->getName(), $info);
 			$nodes[] = $node;
@@ -300,13 +335,13 @@ class Directory extends \OCA\DAV\Connector\Sabre\Node
 			} else {
 				$free = $storageInfo['free'];
 			}
-			$this->quotaInfo = array(
+			$this->quotaInfo = [
 				$storageInfo['used'],
 				$free
-			);
+			];
 			return $this->quotaInfo;
 		} catch (\OCP\Files\StorageNotAvailableException $e) {
-			return array(0, 0);
+			return [0, 0];
 		}
 	}
 

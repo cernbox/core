@@ -1,8 +1,10 @@
 <?php
 /**
+ * @author Aaron Wood <aaronjwood@gmail.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -238,7 +240,7 @@ class Database extends \OC\Group\Backend {
 
 		$stmt = \OC_DB::prepare('SELECT `gid` FROM `*PREFIX*groups`' . $searchLike . ' ORDER BY `gid` ASC', $limit, $offset);
 		$result = $stmt->execute($parameters);
-		$groups = array();
+		$groups = [];
 		while ($row = $result->fetchRow()) {
 			$groups[] = $row['gid'];
 		}
@@ -293,7 +295,7 @@ class Database extends \OC\Group\Backend {
 			$limit,
 			$offset);
 		$result = $stmt->execute($parameters);
-		$users = array();
+		$users = [];
 		while ($row = $result->fetchRow()) {
 			$users[] = $row['uid'];
 		}

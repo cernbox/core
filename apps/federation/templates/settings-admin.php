@@ -2,12 +2,12 @@
 /** @var array $_ */
 use OCA\Federation\TrustedServers;
 
-/** @var OC_L10N $l */
+/** @var \OCP\IL10N $l */
 script('federation', 'settings-admin');
 style('federation', 'settings-admin')
 ?>
 <div id="ocFederationSettings" class="section">
-	<h2><?php p($l->t('Federation')); ?></h2>
+	<h2 class="app-name><?php p($l->t('Federation')); ?></h2>
 	<em><?php p($l->t('ownCloud Federation allows you to connect with other trusted ownClouds to exchange the user directory. For example this will be used to auto-complete external users for federated sharing.')); ?></em>
 
 	<p>
@@ -19,6 +19,7 @@ style('federation', 'settings-admin')
 	<p id="ocFederationAddServer">
 		<button id="ocFederationAddServerButton" class=""><?php p($l->t('+ Add ownCloud server')); ?></button>
 		<input id="serverUrl" class="hidden" type="text" value="" placeholder="<?php p($l->t('ownCloud Server')); ?>" name="server_url"/>
+		<button id="ocFederationSubmit" class="hidden"><?php p($l->t('Add')); ?></button>
 		<span class="msg"></span>
 	</p>
 	<ul id="listOfTrustedServers">

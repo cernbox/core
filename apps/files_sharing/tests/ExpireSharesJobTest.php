@@ -2,8 +2,9 @@
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -131,15 +132,16 @@ class ExpireSharesJobTest extends \Test\TestCase {
 	public function testExpireLinkShare($addExpiration, $interval, $addInterval, $shouldExpire) {
 		$this->loginAsUser($this->user1);
 
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/test');
+		$userFolder = \OC::$server->getUserFolder($this->user1);
+		$sharedFolder = $userFolder->newFolder('test');
 
-		$fileInfo = $view->getFileInfo('files/test');
-
-		$this->assertNotNull(
-			\OCP\Share::shareItem('folder', $fileInfo->getId(), \OCP\Share::SHARE_TYPE_LINK, null, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared "test" by link.'
-		);
+		$shareManager = \OC::$server->getShareManager();
+		$share = $shareManager->newShare();
+		$share->setSharedBy($this->user1);
+		$share->setShareType(\OCP\Share::SHARE_TYPE_LINK);
+		$share->setNode($sharedFolder);
+		$share->setPermissions(\OCP\Constants::PERMISSION_READ);
+		$shareManager->createShare($share);
 
 		$shares = $this->getShares();
 		$this->assertCount(1, $shares);
@@ -185,15 +187,17 @@ class ExpireSharesJobTest extends \Test\TestCase {
 	public function testDoNotExpireOtherShares() {
 		$this->loginAsUser($this->user1);
 
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/test');
+		$userFolder = \OC::$server->getUserFolder($this->user1);
+		$sharedFolder = $userFolder->newFolder('test');
 
-		$fileInfo = $view->getFileInfo('files/test');
-
-		$this->assertNotNull(
-			\OCP\Share::shareItem('folder', $fileInfo->getId(), \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared "test" by link with user2.'
-		);
+		$shareManager = \OC::$server->getShareManager();
+		$share = $shareManager->newShare();
+		$share->setSharedBy($this->user1);
+		$share->setSharedWith($this->user2);
+		$share->setShareType(\OCP\Share::SHARE_TYPE_USER);
+		$share->setNode($sharedFolder);
+		$share->setPermissions(\OCP\Constants::PERMISSION_READ);
+		$shareManager->createShare($share);
 
 		$shares = $this->getShares();
 		$this->assertCount(1, $shares);

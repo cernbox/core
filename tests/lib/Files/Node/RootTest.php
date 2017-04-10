@@ -33,17 +33,17 @@ class RootTest extends \Test\TestCase {
 		/**
 		 * @var \OC\Files\Storage\Storage $storage
 		 */
-		$storage = $this->getMock('\OC\Files\Storage\Storage');
+		$storage = $this->createMock('\OC\Files\Storage\Storage');
 		/**
 		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->getMock('\OC\Files\View');
+		$view = $this->createMock('\OC\Files\View');
 		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
 
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(array('fileid' => 10, 'path' => 'bar/foo', 'name', 'mimetype' => 'text/plain'))));
+			->will($this->returnValue($this->getFileInfo(['fileid' => 10, 'path' => 'bar/foo', 'name', 'mimetype' => 'text/plain'])));
 
 		$root->mount($storage, '');
 		$node = $root->get('/bar/foo');
@@ -59,11 +59,11 @@ class RootTest extends \Test\TestCase {
 		/**
 		 * @var \OC\Files\Storage\Storage $storage
 		 */
-		$storage = $this->getMock('\OC\Files\Storage\Storage');
+		$storage = $this->createMock('\OC\Files\Storage\Storage');
 		/**
 		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->getMock('\OC\Files\View');
+		$view = $this->createMock('\OC\Files\View');
 		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
 
 		$view->expects($this->once())
@@ -83,7 +83,7 @@ class RootTest extends \Test\TestCase {
 		/**
 		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->getMock('\OC\Files\View');
+		$view = $this->createMock('\OC\Files\View');
 		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
 
 		$root->get('/../foo');
@@ -97,7 +97,7 @@ class RootTest extends \Test\TestCase {
 		/**
 		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->getMock('\OC\Files\View');
+		$view = $this->createMock('\OC\Files\View');
 		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
 
 		$root->get('/bar/foo');
@@ -116,7 +116,7 @@ class RootTest extends \Test\TestCase {
 
 		\OC_User::clearBackends();
 		// needed for loginName2UserName mapping
-		$userBackend = $this->getMock('\OC\User\Database');
+		$userBackend = $this->createMock(\OC\User\Database::class);
 		\OC::$server->getUserManager()->registerBackend($userBackend);
 
 		$userBackend->expects($this->any())

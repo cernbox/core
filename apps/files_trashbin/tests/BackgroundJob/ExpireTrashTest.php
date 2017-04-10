@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,11 +28,11 @@ use \OCA\Files_Trashbin\BackgroundJob\ExpireTrash;
 class ExpireTrashTest extends \Test\TestCase {
 	public function testConstructAndRun() {
 		$backgroundJob = new ExpireTrash(
-			$this->getMock('OCP\IUserManager'),
+			$this->createMock('OCP\IUserManager'),
 			$this->getMockBuilder('OCA\Files_Trashbin\Expiration')->disableOriginalConstructor()->getMock()
 		);
 
-		$jobList = $this->getMock('\OCP\BackgroundJob\IJobList');
+		$jobList = $this->createMock('\OCP\BackgroundJob\IJobList');
 
 		/** @var \OC\BackgroundJob\JobList $jobList */
 		$backgroundJob->execute($jobList);

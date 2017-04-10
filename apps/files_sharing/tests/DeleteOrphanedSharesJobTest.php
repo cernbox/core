@@ -1,10 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -127,17 +127,19 @@ class DeleteOrphanedSharesJobTest extends \Test\TestCase {
 	public function testClearShares() {
 		$this->loginAsUser($this->user1);
 
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/test');
-		$view->mkdir('files/test/sub');
+		$folder = \OC::$server->getUserFolder($this->user1);
+		$testFolder = $folder->newFolder('test');
+		$sharedFolder = $folder->newFolder('test/sub');
 
-		$fileInfo = $view->getFileInfo('files/test/sub');
-		$fileId = $fileInfo->getId();
+		$shareManager = \OC::$server->getShareManager();
+		$share = $shareManager->newShare();
+		$share->setSharedBy($this->user1);
+		$share->setShareType(\OCP\Share::SHARE_TYPE_USER);
+		$share->setNode($sharedFolder);
+		$share->setSharedWith($this->user2);
+		$share->setPermissions(\OCP\Constants::PERMISSION_READ);
 
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared "test/sub" with user 2.'
-		);
+		$shareManager->createShare($share);
 
 		$this->assertCount(1, $this->getShares());
 
@@ -145,7 +147,7 @@ class DeleteOrphanedSharesJobTest extends \Test\TestCase {
 
 		$this->assertCount(1, $this->getShares(), 'Linked shares not deleted');
 
-		$view->unlink('files/test');
+		$testFolder->delete();
 
 		$this->job->run([]);
 

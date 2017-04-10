@@ -1,10 +1,11 @@
 <?php
 /**
  * @author Carla Schroder <carla@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -109,7 +110,8 @@ class TransferOwnership extends Command {
 			return 2;
 		}
 
-		$date = date('c');
+		// use a date format compatible across client OS
+		$date = date('Ymd_his');
 		$this->finalTarget = "$this->destinationUser/files/transferred from $this->sourceUser on $date";
 
 		// setup filesystem

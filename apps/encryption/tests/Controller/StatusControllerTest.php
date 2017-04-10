@@ -1,9 +1,10 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -48,7 +49,7 @@ class StatusControllerTest extends TestCase {
 
 		$this->sessionMock = $this->getMockBuilder('OCA\Encryption\Session')
 			->disableOriginalConstructor()->getMock();
-		$this->requestMock = $this->getMock('OCP\IRequest');
+		$this->requestMock = $this->createMock('OCP\IRequest');
 
 		$this->l10nMock = $this->getMockBuilder('OCP\IL10N')
 			->disableOriginalConstructor()->getMock();
@@ -80,12 +81,12 @@ class StatusControllerTest extends TestCase {
 	}
 
 	public function dataTestGetStatus() {
-		return array(
-			array(Session::RUN_MIGRATION, 'interactionNeeded'),
-			array(Session::INIT_EXECUTED, 'interactionNeeded'),
-			array(Session::INIT_SUCCESSFUL, 'success'),
-			array(Session::NOT_INITIALIZED, 'interactionNeeded'),
-			array('unknown', 'error'),
-		);
+		return [
+			[Session::RUN_MIGRATION, 'interactionNeeded'],
+			[Session::INIT_EXECUTED, 'interactionNeeded'],
+			[Session::INIT_SUCCESSFUL, 'success'],
+			[Session::NOT_INITIALIZED, 'interactionNeeded'],
+			['unknown', 'error'],
+		];
 	}
 }

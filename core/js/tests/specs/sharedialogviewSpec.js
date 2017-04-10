@@ -444,7 +444,7 @@ describe('OC.Share.ShareDialogView', function() {
 				dialog.render();
 
 				dialog.$el.find('.emailPrivateLinkForm .emailField').val('a@b.c');
-				dialog.$el.find('.emailPrivateLinkForm').trigger('submit');
+				dialog.$el.find('#emailButton').trigger('click');
 
 				expect(sendEmailPrivateLinkStub.callCount).toEqual(1);
 				expect(dialog.$el.find('.emailPrivateLinkForm .emailField').val()).toEqual('Sending ...');
@@ -463,7 +463,7 @@ describe('OC.Share.ShareDialogView', function() {
 				dialog.render();
 
 				dialog.$el.find('.emailPrivateLinkForm .emailField').val('a@b.c');
-				dialog.$el.find('.emailPrivateLinkForm').trigger('submit');
+				dialog.$el.find('#emailButton').trigger('click');
 
 				expect(sendEmailPrivateLinkStub.callCount).toEqual(1);
 				expect(dialog.$el.find('.emailPrivateLinkForm .emailField').val()).toEqual('Sending ...');
@@ -580,6 +580,80 @@ describe('OC.Share.ShareDialogView', function() {
 		});
 	});
 	describe('autocompletion of users', function() {
+		it('is sorted naturally', function () {
+			dialog.render();
+			var response = sinon.stub();
+			dialog.autocompleteHandler({term: 'p'}, response);
+			var jsonData = JSON.stringify({
+				'ocs' : {
+					'meta' : {
+						'status' : 'success',
+						'statuscode' : 100,
+						'message' : null
+					},
+					'data' : {
+						'exact' : {
+							'users'  : [],
+							'groups' : [],
+							'remotes': []
+						},
+						'users'  : [{
+							"label": "Peter A.",
+							"value": {
+								"shareType": 0,
+								"shareWith": "Peter A."
+							}
+						},
+							{
+								"label": "Petra",
+								"value": {
+									"shareType": 0,
+									"shareWith": "Petra"
+								}
+							},
+							{
+								"label": "peter B.",
+								"value": {
+									"shareType": 0,
+									"shareWith": "peter B."
+								}
+							}],
+						'groups' : [],
+						'remotes': []
+					}
+				}
+			});
+
+			fakeServer.requests[0].respond(
+				200,
+				{'Content-Type': 'application/json'},
+				jsonData
+			);
+
+			expect(response.calledWithExactly([
+				{
+					"label": "Peter A.",
+					"value": {
+						"shareType": 0,
+						"shareWith": "Peter A."
+					}
+				},
+				{
+					"label": "peter B.",
+					"value": {
+						"shareType": 0,
+						"shareWith": "peter B."
+					}
+				},
+				{
+					"label": "Petra",
+					"value": {
+						"shareType": 0,
+						"shareWith": "Petra"
+					}
+				}
+			])).toEqual(true);
+		});
 		it('triggers autocomplete display and focus with data when ajax search succeeds', function () {
 			dialog.render();
 			var response = sinon.stub();
@@ -1038,16 +1112,35 @@ describe('OC.Share.ShareDialogView', function() {
 			dialog.render();
 			expect(dialog.$el.find('.shareWithField').prop('disabled')).toEqual(true);
 		});
-		it('shows reshare owner', function() {
+		it('shows reshare owner for single user share', function() {
 			shareModel.set({
 				reshare: {
-					uid_owner: 'user1'
+					uid_owner: 'user1',
+					displayname_owner: 'User One',
+					share_type: OC.Share.SHARE_TYPE_USER
 				},
 				shares: [],
 				permissions: OC.PERMISSION_READ
 			});
 			dialog.render();
 			expect(dialog.$el.find('.resharerInfoView .reshare').length).toEqual(1);
+			expect(dialog.$el.find('.resharerInfoView .reshare').text().trim()).toEqual('Shared with you by User One');
+		});
+		it('shows reshare owner for single user share', function() {
+			shareModel.set({
+				reshare: {
+					uid_owner: 'user1',
+					displayname_owner: 'User One',
+					share_with: 'group2',
+					share_with_displayname: 'Group Two',
+					share_type: OC.Share.SHARE_TYPE_GROUP
+				},
+				shares: [],
+				permissions: OC.PERMISSION_READ
+			});
+			dialog.render();
+			expect(dialog.$el.find('.resharerInfoView .reshare').length).toEqual(1);
+			expect(dialog.$el.find('.resharerInfoView .reshare').text().trim()).toEqual('Shared with you and the group Group Two by User One');
 		});
 		it('does not show reshare owner if owner is current user', function() {
 			shareModel.set({

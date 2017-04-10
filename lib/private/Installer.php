@@ -8,7 +8,7 @@
  * @author Frank Karlitschek <frank@karlitschek.de>
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Kamil Domanski <kdomanski@kdemail.net>
  * @author Lukas Reschke <lukas@statuscode.ch>
@@ -16,11 +16,10 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
- * @author root <root@oc.(none)>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -84,7 +83,7 @@ class Installer {
 	 * @throws \Exception
 	 * @return integer
 	 */
-	public static function installApp( $data = array()) {
+	public static function installApp( $data = []) {
 		$l = \OC::$server->getL10N('lib');
 
 		list($extractDir, $path) = self::downloadApp($data);
@@ -111,7 +110,7 @@ class Installer {
 			if($data['source']=='http') {
 				unlink($path);
 			}
-			throw new \Exception($l->t("Can't create app folder. Please fix permissions. %s", array($basedir)));
+			throw new \Exception($l->t("Can't create app folder. Please fix permissions. %s", [$basedir]));
 		}
 
 		$extractDir .= '/' . $info['id'];
@@ -125,11 +124,16 @@ class Installer {
 		OC_Helper::rmdirr($extractDir);
 
 		//install the database
-		if(is_file($basedir.'/appinfo/database.xml')) {
-			if (\OC::$server->getAppConfig()->getValue($info['id'], 'installed_version') === null) {
-				OC_DB::createDbFromStructure($basedir.'/appinfo/database.xml');
-			} else {
-				OC_DB::updateDbFromStructure($basedir.'/appinfo/database.xml');
+		if (isset($appData['use-migrations']) && $appData['use-migrations'] === 'true') {
+			$ms = new \OC\DB\MigrationService($appId, \OC::$server->getDatabaseConnection());
+			$ms->migrate();
+		} else {
+			if(is_file($basedir.'/appinfo/database.xml')) {
+				if (\OC::$server->getAppConfig()->getValue($info['id'], 'installed_version') === null) {
+					OC_DB::createDbFromStructure($basedir . '/appinfo/database.xml');
+				} else {
+					OC_DB::updateDbFromStructure($basedir . '/appinfo/database.xml');
+				}
 			}
 		}
 
@@ -167,7 +171,7 @@ class Installer {
 	 *
 	 * Checks whether or not an app is installed, i.e. registered in apps table.
 	 */
-	public static function 	isInstalled( $app ) {
+	public static function isInstalled( $app ) {
 		return (\OC::$server->getConfig()->getAppValue($app, "installed_version", null) !== null);
 	}
 
@@ -205,7 +209,7 @@ class Installer {
 	 * upgrade.php can determine the current installed version of the app using
 	 * "\OC::$server->getAppConfig()->getValue($appid, 'installed_version')"
 	 */
-	public static function updateApp($info=array(), $isShipped=false) {
+	public static function updateApp($info= [], $isShipped=false) {
 		list($extractDir, $path) = self::downloadApp($info);
 		$info = self::checkAppsIntegrity($info, $extractDir, $path, $isShipped);
 
@@ -234,41 +238,11 @@ class Installer {
 	}
 
 	/**
-	 * update an app by it's id
-	 *
-	 * @param integer $ocsId
-	 * @return bool
-	 * @throws \Exception
-	 */
-	public static function updateAppByOCSId($ocsId) {
-		$ocsClient = new OCSClient(
-			\OC::$server->getHTTPClientService(),
-			\OC::$server->getConfig(),
-			\OC::$server->getLogger()
-		);
-		$appData = $ocsClient->getApplication($ocsId, \OCP\Util::getVersion());
-		$download = $ocsClient->getApplicationDownload($ocsId, \OCP\Util::getVersion());
-
-		if (isset($download['downloadlink']) && trim($download['downloadlink']) !== '') {
-			$download['downloadlink'] = str_replace(' ', '%20', $download['downloadlink']);
-			$info = array(
-				'source' => 'http',
-				'href' => $download['downloadlink'],
-				'appdata' => $appData
-			);
-		} else {
-			throw new \Exception('Could not fetch app info!');
-		}
-
-		return self::updateApp($info);
-	}
-
-	/**
 	 * @param array $data
 	 * @return array
 	 * @throws \Exception
 	 */
-	public static function downloadApp($data = array()) {
+	public static function downloadApp($data = []) {
 		$l = \OC::$server->getL10N('lib');
 
 		if(!isset($data['source'])) {
@@ -295,7 +269,7 @@ class Installer {
 		//detect the archive type
 		$mime = \OC::$server->getMimeTypeDetector()->detect($path);
 		if ($mime !=='application/zip' && $mime !== 'application/x-gzip' && $mime !== 'application/x-bzip2') {
-			throw new \Exception($l->t("Archives of type %s are not supported", array($mime)));
+			throw new \Exception($l->t("Archives of type %s are not supported", [$mime]));
 		}
 
 		//extract the archive in a temporary folder
@@ -312,10 +286,10 @@ class Installer {
 			throw new \Exception($l->t("Failed to open archive when installing app"));
 		}
 
-		return array(
+		return [
 			$extractDir,
 			$path
-		);
+		];
 	}
 
 	/**
@@ -410,52 +384,6 @@ class Installer {
 		}
 
 		return $info;
-	}
-
-	/**
-	 * Check if an update for the app is available
-	 * @param string $app
-	 * @return string|false false or the version number of the update
-	 *
-	 * The function will check if an update for a version is available
-	 */
-	public static function isUpdateAvailable( $app ) {
-		static $isInstanceReadyForUpdates = null;
-
-		if ($isInstanceReadyForUpdates === null) {
-			$installPath = OC_App::getInstallPath();
-			if ($installPath === false || $installPath === null) {
-				$isInstanceReadyForUpdates = false;
-			} else {
-				$isInstanceReadyForUpdates = true;
-			}
-		}
-
-		if ($isInstanceReadyForUpdates === false) {
-			return false;
-		}
-
-		$ocsid=\OC::$server->getAppConfig()->getValue( $app, 'ocsid', '');
-
-		if($ocsid<>'') {
-			$ocsClient = new OCSClient(
-				\OC::$server->getHTTPClientService(),
-				\OC::$server->getConfig(),
-				\OC::$server->getLogger()
-			);
-			$ocsdata = $ocsClient->getApplication($ocsid, \OCP\Util::getVersion());
-			$ocsversion= (string) $ocsdata['version'];
-			$currentversion=OC_App::getAppVersion($app);
-			if (version_compare($ocsversion, $currentversion, '>')) {
-				return($ocsversion);
-			}else{
-				return false;
-			}
-
-		}else{
-			return false;
-		}
-
 	}
 
 	/**
@@ -557,20 +485,27 @@ class Installer {
 	 * @return integer
 	 */
 	public static function installShippedApp($app) {
+
+		$info = OC_App::getAppInfo($app);
+		if (is_null($info)) {
+			return false;
+		}
+
 		//install the database
 		$appPath = OC_App::getAppPath($app);
-		if(is_file("$appPath/appinfo/database.xml")) {
-			OC_DB::createDbFromStructure("$appPath/appinfo/database.xml");
+		if (isset($info['use-migrations']) && $info['use-migrations'] === 'true') {
+			$ms = new \OC\DB\MigrationService($app, \OC::$server->getDatabaseConnection());
+			$ms->migrate();
+		} else {
+			if(is_file($appPath.'/appinfo/database.xml')) {
+				OC_DB::createDbFromStructure($appPath . '/appinfo/database.xml');
+			}
 		}
 
 		//run appinfo/install.php
 		\OC_App::registerAutoloading($app, $appPath);
 		self::includeAppScript("$appPath/appinfo/install.php");
 
-		$info = OC_App::getAppInfo($app);
-		if (is_null($info)) {
-			return false;
-		}
 		\OC_App::setupBackgroundJobs($info['background-jobs']);
 
 		OC_App::executeRepairSteps($app, $info['repair-steps']['install']);

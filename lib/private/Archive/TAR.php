@@ -1,10 +1,9 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Christian Weiske <cweiske@cweiske.de>
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Felix Moeller <mail@felixmoeller.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Remco Brenninkmeijer <requist1@starmail.nl>
@@ -13,7 +12,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,7 +49,7 @@ class TAR extends Archive {
 	 * @param string $source
 	 */
 	function __construct($source) {
-		$types = array(null, 'gz', 'bz2');
+		$types = [null, 'gz', 'bz2'];
 		$this->path = $source;
 		$this->tar = new \Archive_Tar($source, $types[self::getTarType($source)]);
 	}
@@ -103,7 +102,7 @@ class TAR extends Archive {
 				mkdir($folder);
 			}
 		}
-		$result = $this->tar->addModify(array($tmpBase . $path), '', $tmpBase);
+		$result = $this->tar->addModify([$tmpBase . $path], '', $tmpBase);
 		rmdir($tmpBase . $path);
 		$this->fileList = false;
 		$this->cachedHeaders = false;
@@ -144,9 +143,9 @@ class TAR extends Archive {
 		rename($tmp . $source, $tmp . $dest);
 		$this->tar = null;
 		unlink($this->path);
-		$types = array(null, 'gz', 'bz');
+		$types = [null, 'gz', 'bz'];
 		$this->tar = new \Archive_Tar($this->path, $types[self::getTarType($this->path)]);
-		$this->tar->createModify(array($tmp), '', $tmp . '/');
+		$this->tar->createModify([$tmp], '', $tmp . '/');
 		$this->fileList = false;
 		$this->cachedHeaders = false;
 		return true;
@@ -201,7 +200,7 @@ class TAR extends Archive {
 	 */
 	function getFolder($path) {
 		$files = $this->getFiles();
-		$folderContent = array();
+		$folderContent = [];
 		$pathLength = strlen($path);
 		foreach ($files as $file) {
 			if ($file[0] == '/') {
@@ -232,7 +231,7 @@ class TAR extends Archive {
 		if (!$this->cachedHeaders) {
 			$this->cachedHeaders = $this->tar->listContent();
 		}
-		$files = array();
+		$files = [];
 		foreach ($this->cachedHeaders as $header) {
 			$files[] = $header['filename'];
 		}
@@ -263,9 +262,9 @@ class TAR extends Archive {
 			return false;
 		}
 		if ($this->fileExists('/' . $path)) {
-			$success = $this->tar->extractList(array('/' . $path), $tmp);
+			$success = $this->tar->extractList(['/' . $path], $tmp);
 		} else {
-			$success = $this->tar->extractList(array($path), $tmp);
+			$success = $this->tar->extractList([$path], $tmp);
 		}
 		if ($success) {
 			rename($tmp . $path, $dest);
@@ -332,7 +331,7 @@ class TAR extends Archive {
 		$this->tar = null;
 		unlink($this->path);
 		$this->reopen();
-		$this->tar->createModify(array($tmp), '', $tmp);
+		$this->tar->createModify([$tmp], '', $tmp);
 		return true;
 	}
 
@@ -358,13 +357,13 @@ class TAR extends Archive {
 		if ($mode == 'r' or $mode == 'rb') {
 			return fopen($tmpFile, $mode);
 		} else {
-			\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
+			\OC\Files\Stream\Close::registerCallback($tmpFile, [$this, 'writeBack']);
 			self::$tempFiles[$tmpFile] = $path;
 			return fopen('close://' . $tmpFile, $mode);
 		}
 	}
 
-	private static $tempFiles = array();
+	private static $tempFiles = [];
 
 	/**
 	 * write back temporary files
@@ -384,7 +383,7 @@ class TAR extends Archive {
 			$this->tar->_close();
 			$this->tar = null;
 		}
-		$types = array(null, 'gz', 'bz');
+		$types = [null, 'gz', 'bz'];
 		$this->tar = new \Archive_Tar($this->path, $types[self::getTarType($this->path)]);
 	}
 }

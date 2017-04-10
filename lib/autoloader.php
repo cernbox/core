@@ -2,7 +2,7 @@
 /**
  * @author Andreas Fischer <bantu@owncloud.com>
  * @author Georg Ehrke <georg@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Markus Goetz <markus@woboq.com>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -12,7 +12,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -90,7 +90,7 @@ class Autoloader {
 	public function findClass($class) {
 		$class = trim($class, '\\');
 
-		$paths = array();
+		$paths = [];
 		if ($this->useGlobalClassPath && array_key_exists($class, \OC::$CLASSPATH)) {
 			$paths[] = \OC::$CLASSPATH[$class];
 			/**
@@ -151,7 +151,7 @@ class Autoloader {
 
 		if (!is_array($pathsToRequire)) {
 			// No cache or cache miss
-			$pathsToRequire = array();
+			$pathsToRequire = [];
 			foreach ($this->findClass($class) as $path) {
 				$fullPath = stream_resolve_include_path($path);
 				if ($fullPath && $this->isValidPath($fullPath)) {

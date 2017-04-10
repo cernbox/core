@@ -1,10 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +38,8 @@ class AdapterMySQL extends Adapter {
 	}
 
 	public function fixupStatement($statement) {
-		$statement = str_replace(' ILIKE ', ' COLLATE utf8_general_ci LIKE ', $statement);
+		$characterSet = \OC::$server->getConfig()->getSystemValue('mysql.utf8mb4', false) ? 'utf8mb4' : 'utf8';
+		$statement = str_replace(' ILIKE ', ' COLLATE ' . $characterSet . '_general_ci LIKE ', $statement);
 		return $statement;
 	}
 }

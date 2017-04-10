@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,17 +22,14 @@
 
 namespace OCA\Files_External\Lib\Backend;
 
-use \OCP\IL10N;
-use \OCA\Files_External\Lib\Backend\Backend;
-use \OCA\Files_External\Lib\DefinitionParameter;
-use \OCA\Files_External\Lib\Auth\AuthMechanism;
-use \OCA\Files_External\Service\BackendService;
-
-use \OCA\Files_External\Lib\Auth\Password\Password;
+use OCP\IL10N;
+use OCP\Files\External\DefinitionParameter;
+use OCP\Files\External\Auth\AuthMechanism;
+use OCP\Files\External\Backend\Backend;
 
 class OwnCloud extends Backend {
 
-	public function __construct(IL10N $l, Password $legacyAuth) {
+	public function __construct(IL10N $l) {
 		$this
 			->setIdentifier('owncloud')
 			->addIdentifierAlias('\OC\Files\Storage\OwnCloud') // legacy compat
@@ -45,7 +43,6 @@ class OwnCloud extends Backend {
 					->setType(DefinitionParameter::VALUE_BOOLEAN),
 			])
 			->addAuthScheme(AuthMechanism::SCHEME_PASSWORD)
-			->setLegacyAuthMechanism($legacyAuth)
 		;
 	}
 

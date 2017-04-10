@@ -1,10 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
 
-use OC\Connector\Sabre\Exception\FileLocked;
 use OCP\AppFramework\Http;
 use OCP\Lock\ILockingProvider;
 
@@ -87,6 +86,7 @@ class UploadTest extends RequestTest {
 	public function testUploadOverWriteWriteLocked() {
 		$user = $this->getUniqueID();
 		$view = $this->setupUser($user, 'pass');
+		$this->loginAsUser($user);
 
 		$view->file_put_contents('foo.txt', 'bar');
 

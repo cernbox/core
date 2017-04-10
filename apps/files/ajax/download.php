@@ -8,8 +8,10 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Piotr Filiciak <piotr@filiciak.pl>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,13 +32,13 @@
 OCP\User::checkLoggedIn();
 \OC::$server->getSession()->close();
 
-$files = isset($_GET['files']) ? (string)$_GET['files'] : '';
+// files can be an array with multiple "files[]=one.txt&files[]=two.txt" or a single file with "files=filename.txt"
+$files_list = isset($_GET['files']) ? $_GET['files'] : '';
 $dir = isset($_GET['dir']) ? (string)$_GET['dir'] : '';
 
-$files_list = json_decode($files);
 // in case we get only a single file
 if (!is_array($files_list)) {
-	$files_list = array($files);
+	$files_list = [(string)$files_list];
 }
 
 /**
@@ -50,7 +52,7 @@ if(isset($_GET['downloadStartSecret'])
 	setcookie('ocDownloadStarted', $_GET['downloadStartSecret'], time() + 20, '/');
 }
 
-$server_params = array( 'head' => \OC::$server->getRequest()->getMethod() == 'HEAD' );
+$server_params = ['head' => \OC::$server->getRequest()->getMethod() == 'HEAD'];
 
 /**
  * Http range requests support

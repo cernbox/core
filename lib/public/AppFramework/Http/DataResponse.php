@@ -2,8 +2,9 @@
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -49,8 +50,8 @@ class DataResponse extends Response {
 	 * @param array $headers additional key value based headers
 	 * @since 8.0.0
 	 */
-	public function __construct($data=array(), $statusCode=Http::STATUS_OK,
-	                            array $headers=array()) {
+	public function __construct($data= [], $statusCode=Http::STATUS_OK,
+								array $headers= []) {
 		$this->data = $data;
 		$this->setStatus($statusCode);
 		$this->setHeaders(array_merge($this->getHeaders(), $headers));

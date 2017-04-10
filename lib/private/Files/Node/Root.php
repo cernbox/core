@@ -1,14 +1,16 @@
 <?php
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Stefan Weil <sw@weilnetz.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -114,7 +116,7 @@ class Root extends Folder implements IRootFolder {
 	 * @param string $method
 	 * @param Node[] $arguments
 	 */
-	public function emit($scope, $method, $arguments = array()) {
+	public function emit($scope, $method, $arguments = []) {
 		$this->emitter->emit($scope, $method, $arguments);
 	}
 
@@ -123,7 +125,7 @@ class Root extends Folder implements IRootFolder {
 	 * @param string $mountPoint
 	 * @param array $arguments
 	 */
-	public function mount($storage, $mountPoint, $arguments = array()) {
+	public function mount($storage, $mountPoint, $arguments = []) {
 		$mount = new MountPoint($storage, $mountPoint, $arguments);
 		$this->mountManager->addMount($mount);
 	}
@@ -358,7 +360,6 @@ class Root extends Folder implements IRootFolder {
 			$folder = $folder->get($dir);
 		} catch (NotFoundException $e) {
 			$folder = $folder->newFolder($dir);
-			\OC_Util::copySkeleton($userId, $folder);
 		}
 
 		return $folder;

@@ -1,10 +1,11 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -76,13 +77,13 @@ class TrustedServersTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 		$this->dispatcher = $this->getMockBuilder('Symfony\Component\EventDispatcher\EventDispatcherInterface')
 			->disableOriginalConstructor()->getMock();
-		$this->httpClientService = $this->getMock('OCP\Http\Client\IClientService');
-		$this->httpClient = $this->getMock('OCP\Http\Client\IClient');
-		$this->response = $this->getMock('OCP\Http\Client\IResponse');
-		$this->logger = $this->getMock('OCP\ILogger');
-		$this->jobList = $this->getMock('OCP\BackgroundJob\IJobList');
-		$this->secureRandom = $this->getMock('OCP\Security\ISecureRandom');
-		$this->config = $this->getMock('OCP\IConfig');
+		$this->httpClientService = $this->createMock('OCP\Http\Client\IClientService');
+		$this->httpClient = $this->createMock('OCP\Http\Client\IClient');
+		$this->response = $this->createMock('OCP\Http\Client\IResponse');
+		$this->logger = $this->createMock('OCP\ILogger');
+		$this->jobList = $this->createMock('OCP\BackgroundJob\IJobList');
+		$this->secureRandom = $this->createMock('OCP\Security\ISecureRandom');
+		$this->config = $this->createMock('OCP\IConfig');
 
 		$this->trustedServers = new TrustedServers(
 			$this->dbHandler,
@@ -170,7 +171,7 @@ class TrustedServersTest extends TestCase {
 	 */
 	public function testGetAutoAddServers($status, $expected) {
 		$this->config->expects($this->once())->method('getAppValue')
-			->with('federation', 'autoAddServers', '1')->willReturn($status);
+			->with('federation', 'autoAddServers', '0')->willReturn($status);
 
 		$this->assertSame($expected,
 			$this->trustedServers->getAutoAddServers()

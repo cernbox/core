@@ -2,13 +2,13 @@
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Christoph Wurst <christoph@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,6 +32,8 @@ use OC\User\Session;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUser;
+use Sabre\HTTP\RequestInterface;
+use Sabre\HTTP\ResponseInterface;
 use Test\TestCase;
 
 /**
@@ -229,10 +231,10 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenForNonGet() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 				->disableOriginalConstructor()
 				->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 				->disableOriginalConstructor()
 				->getMock();
 		$this->userSession
@@ -265,17 +267,17 @@ class AuthTest extends TestCase {
 
 		$expectedResponse = [
 			false,
-			"No 'Authorization: Basic' header found. Either the client didn't send one, or the server is mis-configured",
+			"No 'Authorization: Basic' header found. Either the client didn't send one, or the server is misconfigured",
 		];
 		$response = $this->auth->check($request, $response);
 		$this->assertSame($expectedResponse, $response);
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenAndCorrectlyDavAuthenticated() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -322,10 +324,10 @@ class AuthTest extends TestCase {
 	 * @expectedExceptionMessage 2FA challenge not passed.
 	 */
 	public function testAuthenticateAlreadyLoggedInWithoutTwoFactorChallengePassed() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -375,10 +377,10 @@ class AuthTest extends TestCase {
 	 * @expectedExceptionMessage CSRF check not passed.
 	 */
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenAndIncorrectlyDavAuthenticated() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -421,10 +423,10 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenForNonGetAndDesktopClient() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -468,10 +470,10 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenForGet() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -503,10 +505,10 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithCsrfTokenForGet() {
-		$request = $this->getMockBuilder('Sabre\HTTP\RequestInterface')
+		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$response = $this->getMockBuilder('Sabre\HTTP\ResponseInterface')
+		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -541,14 +543,14 @@ class AuthTest extends TestCase {
 		$server = $this->getMockBuilder('\Sabre\DAV\Server')
 			->disableOriginalConstructor()
 			->getMock();
-		$server->httpRequest = $this->getMockBuilder('\Sabre\HTTP\RequestInterface')
+		$server->httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$server->httpResponse = $this->getMockBuilder('\Sabre\HTTP\ResponseInterface')
+		$server->httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$response = $this->auth->check($server->httpRequest, $server->httpResponse);
-		$this->assertEquals([false, 'No \'Authorization: Basic\' header found. Either the client didn\'t send one, or the server is mis-configured'], $response);
+		$this->assertEquals([false, 'No \'Authorization: Basic\' header found. Either the client didn\'t send one, or the server is misconfigured'], $response);
 	}
 
 	/**
@@ -557,11 +559,11 @@ class AuthTest extends TestCase {
 	 */
 	public function testAuthenticateNoBasicAuthenticateHeadersProvidedWithAjax() {
 		/** @var \Sabre\HTTP\RequestInterface $httpRequest */
-		$httpRequest = $this->getMockBuilder('\Sabre\HTTP\RequestInterface')
+		$httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		/** @var \Sabre\HTTP\ResponseInterface $httpResponse */
-		$httpResponse = $this->getMockBuilder('\Sabre\HTTP\ResponseInterface')
+		$httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -578,15 +580,15 @@ class AuthTest extends TestCase {
 
 	public function testAuthenticateNoBasicAuthenticateHeadersProvidedWithAjaxButUserIsStillLoggedIn() {
 		/** @var \Sabre\HTTP\RequestInterface $httpRequest */
-		$httpRequest = $this->getMockBuilder('\Sabre\HTTP\RequestInterface')
+		$httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		/** @var \Sabre\HTTP\ResponseInterface $httpResponse */
-		$httpResponse = $this->getMockBuilder('\Sabre\HTTP\ResponseInterface')
+		$httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		/** @var IUser */
-		$user = $this->getMock('OCP\IUser');
+		$user = $this->createMock('OCP\IUser');
 		$user->method('getUID')->willReturn('MyTestUser');
 		$this->userSession
 			->expects($this->any())
@@ -620,7 +622,7 @@ class AuthTest extends TestCase {
 		$server = $this->getMockBuilder('\Sabre\DAV\Server')
 			->disableOriginalConstructor()
 			->getMock();
-		$server->httpRequest = $this->getMockBuilder('\Sabre\HTTP\RequestInterface')
+		$server->httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$server->httpRequest
@@ -633,7 +635,7 @@ class AuthTest extends TestCase {
 			->method('getHeader')
 			->with('Authorization')
 			->will($this->returnValue('basic dXNlcm5hbWU6cGFzc3dvcmQ='));
-		$server->httpResponse = $this->getMockBuilder('\Sabre\HTTP\ResponseInterface')
+		$server->httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession
@@ -659,7 +661,7 @@ class AuthTest extends TestCase {
 		$server = $this->getMockBuilder('\Sabre\DAV\Server')
 			->disableOriginalConstructor()
 			->getMock();
-		$server->httpRequest = $this->getMockBuilder('\Sabre\HTTP\RequestInterface')
+		$server->httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$server->httpRequest
@@ -672,7 +674,7 @@ class AuthTest extends TestCase {
 			->method('getHeader')
 			->with('Authorization')
 			->will($this->returnValue('basic dXNlcm5hbWU6cGFzc3dvcmQ='));
-		$server->httpResponse = $this->getMockBuilder('\Sabre\HTTP\ResponseInterface')
+		$server->httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->userSession

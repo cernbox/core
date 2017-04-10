@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,9 +27,9 @@ use OCA\Files_External\Command\Applicable;
 class ApplicableTest extends CommandTest {
 	private function getInstance($storageService) {
 		/** @var \OCP\IUserManager|\PHPUnit_Framework_MockObject_MockObject $userManager */
-		$userManager = $this->getMock('\OCP\IUserManager');
+		$userManager = $this->createMock('\OCP\IUserManager');
 		/** @var \OCP\IGroupManager|\PHPUnit_Framework_MockObject_MockObject $groupManager */
-		$groupManager = $this->getMock('\OCP\IGroupManager');
+		$groupManager = $this->createMock('\OCP\IGroupManager');
 
 		$userManager->expects($this->any())
 			->method('userExists')

@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,7 +47,7 @@ class BrowserErrorPagePlugin extends ServerPlugin {
 	 */
 	function initialize(Server $server) {
 		$this->server = $server;
-		$server->on('exception', array($this, 'logException'), 1000);
+		$server->on('exception', [$this, 'logException'], 1000);
 	}
 
 	/**

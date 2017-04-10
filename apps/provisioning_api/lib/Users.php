@@ -1,15 +1,16 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author michag86 <micha_g@arcor.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -214,6 +215,7 @@ class Users {
 		$data['quota'] = $this->fillStorageInfo($userId);
 		$data['email'] = $targetUserObject->getEMailAddress();
 		$data['displayname'] = $targetUserObject->getDisplayName();
+		$data['home'] = $targetUserObject->getHome();
 		$data['two_factor_auth_enabled'] = $this->twoFactorAuthManager->isTwoFactorAuthenticated($targetUserObject) ? 'true' : 'false';
 
 		return new Result($data);
@@ -414,7 +416,7 @@ class Users {
 		if($targetUser->getUID() === $loggedInUser->getUID() || $this->groupManager->isAdmin($loggedInUser->getUID())) {
 			// Self lookup or admin lookup
 			return new Result([
-				'groups' => $this->groupManager->getUserGroupIds($targetUser)
+				'groups' => $this->groupManager->getUserGroupIds($targetUser, 'management')
 			]);
 		} else {
 			$subAdminManager = $this->groupManager->getSubAdmin();
@@ -430,7 +432,7 @@ class Users {
 					$getSubAdminsGroups,
 					$this->groupManager->getUserGroupIds($targetUser)
 				);
-				return new Result(array('groups' => $groups));
+				return new Result(['groups' => $groups]);
 			} else {
 				// Not permitted
 				return new Result(null, 997);

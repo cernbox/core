@@ -2,8 +2,9 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +26,7 @@ namespace OCA\Federation\Tests\API;
 
 
 use OC\BackgroundJob\JobList;
-use OCA\Federation\API\OCSAuthAPI;
+use OCA\Federation\Controller\OCSAuthAPIController;
 use OCA\Federation\DbHandler;
 use OCA\Federation\TrustedServers;
 use OCP\AppFramework\Http;
@@ -54,24 +55,25 @@ class OCSAuthAPITest extends TestCase {
 	/** @var \PHPUnit_Framework_MockObject_MockObject | ILogger */
 	private $logger;
 
-	/** @var  OCSAuthApi */
+	/** @var  OCSAuthAPIController */
 	private $ocsAuthApi;
 
 	public function setUp() {
 		parent::setUp();
 
-		$this->request = $this->getMock('OCP\IRequest');
-		$this->secureRandom = $this->getMock('OCP\Security\ISecureRandom');
-		$this->trustedServers = $this->getMockBuilder('OCA\Federation\TrustedServers')
+		$this->request = $this->createMock(IRequest::class);
+		$this->secureRandom = $this->createMock(ISecureRandom::class);
+		$this->trustedServers = $this->getMockBuilder(TrustedServers::class)
 			->disableOriginalConstructor()->getMock();
-		$this->dbHandler = $this->getMockBuilder('OCA\Federation\DbHandler')
+		$this->dbHandler = $this->getMockBuilder(DbHandler::class)
 			->disableOriginalConstructor()->getMock();
-		$this->jobList = $this->getMockBuilder('OC\BackgroundJob\JobList')
+		$this->jobList = $this->getMockBuilder(JobList::class)
 			->disableOriginalConstructor()->getMock();
-		$this->logger = $this->getMockBuilder('OCP\ILogger')
+		$this->logger = $this->getMockBuilder(ILogger::class)
 			->disableOriginalConstructor()->getMock();
 
-		$this->ocsAuthApi = new OCSAuthAPI(
+		$this->ocsAuthApi = new OCSAuthAPIController(
+			'federation',
 			$this->request,
 			$this->secureRandom,
 			$this->jobList,
@@ -94,8 +96,6 @@ class OCSAuthAPITest extends TestCase {
 
 		$url = 'url';
 
-		$this->request->expects($this->at(0))->method('getParam')->with('url')->willReturn($url);
-		$this->request->expects($this->at(1))->method('getParam')->with('token')->willReturn($token);
 		$this->trustedServers
 			->expects($this->once())
 			->method('isTrustedServer')->with($url)->willReturn($isTrustedServer);
@@ -112,8 +112,8 @@ class OCSAuthAPITest extends TestCase {
 			$this->jobList->expects($this->never())->method('remove');
 		}
 
-		$result = $this->ocsAuthApi->requestSharedSecret();
-		$this->assertSame($expected, $result->getStatusCode());
+		$result = $this->ocsAuthApi->requestSharedSecret($url, $token);
+		$this->assertSame($expected, $result['statuscode']);
 	}
 
 	public function dataTestRequestSharedSecret() {
@@ -136,13 +136,11 @@ class OCSAuthAPITest extends TestCase {
 		$url = 'url';
 		$token = 'token';
 
-		$this->request->expects($this->at(0))->method('getParam')->with('url')->willReturn($url);
-		$this->request->expects($this->at(1))->method('getParam')->with('token')->willReturn($token);
-
-		/** @var OCSAuthAPI | \PHPUnit_Framework_MockObject_MockObject $ocsAuthApi */
-		$ocsAuthApi = $this->getMockBuilder('OCA\Federation\API\OCSAuthAPI')
+		/** @var OCSAuthAPIController | \PHPUnit_Framework_MockObject_MockObject $ocsAuthApi */
+		$ocsAuthApi = $this->getMockBuilder(OCSAuthAPIController::class)
 			->setConstructorArgs(
 				[
+					'federation',
 					$this->request,
 					$this->secureRandom,
 					$this->jobList,
@@ -172,12 +170,12 @@ class OCSAuthAPITest extends TestCase {
 			$this->dbHandler->expects($this->never())->method('addToken');
 		}
 
-		$result = $ocsAuthApi->getSharedSecret();
+		$result = $ocsAuthApi->getSharedSecret($url, $token);
 
-		$this->assertSame($expected, $result->getStatusCode());
+		$this->assertSame($expected, $result['statuscode']);
 
 		if ($expected === Http::STATUS_OK) {
-			$data =  $result->getData();
+			$data =  $result['data'];
 			$this->assertSame('secret', $data['sharedSecret']);
 		}
 	}

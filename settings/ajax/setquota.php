@@ -4,14 +4,13 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christopher Schäpers <kondou@ts.unde.re>
- * @author Felix Moeller <mail@felixmoeller.de>
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,7 +43,7 @@ if(($username === '' && !OC_User::isAdminUser(OC_User::getUser()))
 	|| (!OC_User::isAdminUser(OC_User::getUser())
 		&& !$isUserAccessible)) {
 	$l = \OC::$server->getL10N('core');
-	OC_JSON::error(array( 'data' => array( 'message' => $l->t('Authentication error') )));
+	OC_JSON::error(['data' => ['message' => $l->t('Authentication error')]]);
 	exit();
 }
 
@@ -64,5 +63,5 @@ if($username) {
 	}
 	\OC::$server->getAppConfig()->setValue('files', 'default_quota', $quota);
 }
-OC_JSON::success(array("data" => array( "username" => $username , 'quota' => $quota)));
+OC_JSON::success(["data" => ["username" => $username , 'quota' => $quota]]);
 

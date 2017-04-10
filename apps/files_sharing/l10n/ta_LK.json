@@ -1,7 +1,9 @@
 { "translations": {
     "Cancel" : "இரத்து செய்க",
+    "Share" : "பகிர்வு",
     "Password" : "கடவுச்சொல்",
     "Name" : "பெயர்",
+    "Expiration date" : "காலவதியாகும் திகதி",
     "Download" : "பதிவிறக்குக"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

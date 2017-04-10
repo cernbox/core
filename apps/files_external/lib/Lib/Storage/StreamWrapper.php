@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 namespace OCA\Files_External\Lib\Storage;
 
-abstract class StreamWrapper extends \OC\Files\Storage\Common {
+abstract class StreamWrapper extends \OCP\Files\Storage\StorageAdapter {
 
 	/**
 	 * @param string $path

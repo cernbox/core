@@ -3,9 +3,9 @@
  * @author Frank Karlitschek <frank@karlitschek.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@
  *
  */
 
-require_once '../lib/base.php';
+require_once __DIR__ . '/../lib/base.php';
 
 header('Content-type: application/xml');
 

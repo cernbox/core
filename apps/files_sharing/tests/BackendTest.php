@@ -1,12 +1,12 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ class BackendTest extends TestCase {
 		$this->assertTrue(\OCP\Share::shareItem('folder', $fileinfo2['fileid'], \OCP\Share::SHARE_TYPE_USER,
 				self::TEST_FILES_SHARING_API_USER3, 31));
 
-		$backend = new \OC_Share_Backend_Folder();
+		$backend = new \OCA\Files_Sharing\ShareBackend\Folder();
 
 		$result = $backend->getParents($fileinfo3['fileid']);
 		$this->assertSame(2, count($result));

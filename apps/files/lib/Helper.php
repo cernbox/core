@@ -4,6 +4,7 @@
  * @author brumsel <brumsel@losecatcher.de>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Michael Jobst <mjobst+github@tecratech.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
@@ -11,7 +12,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,10 +45,10 @@ class Helper {
 	public static function buildFileStorageStatistics($dir) {
 		// information about storage capacities
 		$storageInfo = \OC_Helper::getStorageInfo($dir);
-		$l = new \OC_L10N('files');
+		$l = \OC::$server->getL10NFactory()->get('files');
 		$maxUploadFileSize = \OCP\Util::maxUploadFilesize($dir, $storageInfo['free']);
 		$maxHumanFileSize = \OCP\Util::humanFileSize($maxUploadFileSize);
-		$maxHumanFileSize = $l->t('Upload (max. %s)', array($maxHumanFileSize));
+		$maxHumanFileSize = $l->t('Upload (max. %s)', [$maxHumanFileSize]);
 
 		return [
 			'uploadMaxFilesize' => $maxUploadFileSize,
@@ -134,7 +135,7 @@ class Helper {
 	 * @return array formatted file info
 	 */
 	public static function formatFileInfo(FileInfo $i) {
-		$entry = array();
+		$entry = [];
 
 		$entry['id'] = $i['fileid'];
 		$entry['parentId'] = $i['parent'];
@@ -179,7 +180,7 @@ class Helper {
 	 * @return array
 	 */
 	public static function formatFileInfos($fileInfos) {
-		$files = array();
+		$files = [];
 		foreach ($fileInfos as $i) {
 			$files[] = self::formatFileInfo($i);
 		}
@@ -207,19 +208,40 @@ class Helper {
 	 * Populate the result set with file tags
 	 *
 	 * @param array $fileList
+	 * @param string $fileIdentifier identifier attribute name for values in $fileList
 	 * @return array file list populated with tags
 	 */
-	public static function populateTags(array $fileList) {
-		$filesById = array();
+	public static function populateTags(array $fileList, $fileIdentifier = 'fileid') {
+		$filesById = [];
 		foreach ($fileList as $fileData) {
-			$filesById[$fileData['fileid']] = $fileData;
+			$filesById[$fileData[$fileIdentifier]] = $fileData;
 		}
 		$tagger = \OC::$server->getTagManager()->load('files');
 		$tags = $tagger->getTagsForObjects(array_keys($filesById));
-		if ($tags) {
+
+		if (!is_array($tags)) {
+			throw new \UnexpectedValueException('$tags must be an array');
+		}
+
+		if (!empty($tags)) {
 			foreach ($tags as $fileId => $fileTags) {
 				$filesById[$fileId]['tags'] = $fileTags;
 			}
+
+			foreach ($filesById as $key => $fileWithTags) {
+				foreach($fileList as $key2 => $file){
+					if( $file[$fileIdentifier] == $key){
+						$fileList[$key2] = $fileWithTags;
+					}
+				}
+			}
+
+			foreach ($fileList as $key => $file) {
+				if (!array_key_exists('tags', $file)) {
+					$fileList[$key]['tags'] = [];
+				}
+			}
+
 		}
 		return $fileList;
 	}
@@ -239,7 +261,7 @@ class Helper {
 		} else if ($sortAttribute === 'size') {
 			$sortFunc = 'compareSize';
 		}
-		usort($files, array('\OCA\Files\Helper', $sortFunc));
+		usort($files, ['\OCA\Files\Helper', $sortFunc]);
 		if ($sortDescending) {
 			$files = array_reverse($files);
 		}

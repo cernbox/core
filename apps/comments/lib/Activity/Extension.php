@@ -1,8 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -79,12 +80,12 @@ class Extension implements IExtension {
 	public function getNotificationTypes($languageCode) {
 		$l = $this->getL10N($languageCode);
 
-		return array(
+		return [
 			self::APP_NAME => [
 				'desc' => (string) $l->t('<strong>Comments</strong> for files <em>(always listed in stream)</em>'),
 				'methods' => [self::METHOD_MAIL], // self::METHOD_STREAM is forced true by the default value
 			],
-		);
+		];
 	}
 
 	/**
@@ -158,7 +159,7 @@ class Extension implements IExtension {
 				}
 				return (string) $l->t('%1$s commented', $params);
 			case self::ADD_COMMENT_MESSAGE:
-				return $this->convertParameterToComment($params[0], 120);
+				return $this->convertParameterToComment($params[0]);
 		}
 
 		return false;
@@ -195,7 +196,6 @@ class Extension implements IExtension {
 		try {
 			return strip_tags($user) === $this->activityManager->getCurrentUserId();
 		} catch (\UnexpectedValueException $e) {
-			// FIXME this is awkward, but we have no access to the current user in emails
 			return false;
 		}
 	}
@@ -303,21 +303,12 @@ class Extension implements IExtension {
 	 * @param string $parameter
 	 * @return string
 	 */
-	protected function convertParameterToComment($parameter, $maxLength = 0) {
+	protected function convertParameterToComment($parameter) {
 		if (preg_match('/^\<parameter\>(\d*)\<\/parameter\>$/', $parameter, $matches)) {
 			try {
 				$comment = $this->commentsManager->get((int) $matches[1]);
 				$message = $comment->getMessage();
 				$message = str_replace("\n", '<br />', str_replace(['<', '>'], ['&lt;', '&gt;'], $message));
-
-				if ($maxLength && isset($message[$maxLength + 20])) {
-					$findSpace = strpos($message, ' ', $maxLength);
-					if ($findSpace !== false && $findSpace < $maxLength + 20) {
-						return substr($message, 0, $findSpace) . '…';
-					}
-					return substr($message, 0, $maxLength + 20) . '…';
-				}
-
 				return $message;
 			} catch (NotFoundException $e) {
 				return '';

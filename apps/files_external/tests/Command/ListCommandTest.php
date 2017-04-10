@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,11 +24,12 @@
 namespace OCA\Files_External\Tests\Command;
 
 use OCA\Files_External\Command\ListCommand;
-use OCA\Files_External\Lib\Auth\NullMechanism;
-use OCA\Files_External\Lib\Auth\Password\Password;
-use OCA\Files_External\Lib\Auth\Password\SessionCredentials;
+use OC\Files\External\Auth\NullMechanism;
+use OC\Files\External\Auth\Password\Password;
+use OC\Files\External\Auth\Password\SessionCredentials;
 use OCA\Files_External\Lib\Backend\Local;
-use OCA\Files_External\Lib\StorageConfig;
+use OC\Files\External\StorageConfig;
+use OCP\Files\External\IStorageConfig;
 use Symfony\Component\Console\Output\BufferedOutput;
 
 class ListCommandTest extends CommandTest {
@@ -35,29 +37,30 @@ class ListCommandTest extends CommandTest {
 	 * @return \OCA\Files_External\Command\ListCommand|\PHPUnit_Framework_MockObject_MockObject
 	 */
 	private function getInstance() {
-		/** @var \OCA\Files_External\Service\GlobalStoragesService|\PHPUnit_Framework_MockObject_MockObject $globalService */
-		$globalService = $this->getMock('\OCA\Files_External\Service\GlobalStoragesService', null, [], '', false);
-		/** @var \OCA\Files_External\Service\UserStoragesService|\PHPUnit_Framework_MockObject_MockObject $userService */
-		$userService = $this->getMock('\OCA\Files_External\Service\UserStoragesService', null, [], '', false);
+		/** @var \OCP\Files\External\Service\IGlobalStoragesService|\PHPUnit_Framework_MockObject_MockObject $globalService */
+		$globalService = $this->createMock('\OCP\Files\External\Service\IGlobalStoragesService');
+		/** @var \OC\Files\External\Service\IUserStoragesService|\PHPUnit_Framework_MockObject_MockObject $userService */
+		$userService = $this->createMock('\OCP\Files\External\Service\IUserStoragesService');
 		/** @var \OCP\IUserManager|\PHPUnit_Framework_MockObject_MockObject $userManager */
-		$userManager = $this->getMock('\OCP\IUserManager');
+		$userManager = $this->createMock('\OCP\IUserManager');
 		/** @var \OCP\IUserSession|\PHPUnit_Framework_MockObject_MockObject $userSession */
-		$userSession = $this->getMock('\OCP\IUserSession');
+		$userSession = $this->createMock('\OCP\IUserSession');
 
 		return new ListCommand($globalService, $userService, $userSession, $userManager);
 	}
 
 	public function testListAuthIdentifier() {
-		$l10n = $this->getMock('\OC_L10N', null, [], '', false);
-		$session = $this->getMock('\OCP\ISession');
-		$crypto = $this->getMock('\OCP\Security\ICrypto');
+		$l10n = $this->createMock('\OCP\IL10N', null, [], '', false);
+		$session = $this->createMock('\OCP\ISession');
+		$crypto = $this->createMock('\OCP\Security\ICrypto');
 		$instance = $this->getInstance();
+		// FIXME: use mock of IStorageConfig
 		$mount1 = new StorageConfig();
-		$mount1->setAuthMechanism(new Password($l10n));
-		$mount1->setBackend(new Local($l10n, new NullMechanism($l10n)));
+		$mount1->setAuthMechanism(new Password());
+		$mount1->setBackend(new Local($l10n, new NullMechanism()));
 		$mount2 = new StorageConfig();
-		$mount2->setAuthMechanism(new SessionCredentials($l10n, $session, $crypto));
-		$mount2->setBackend(new Local($l10n, new NullMechanism($l10n)));
+		$mount2->setAuthMechanism(new SessionCredentials($session, $crypto));
+		$mount2->setBackend(new Local($l10n, new NullMechanism()));
 		$input = $this->getInput($instance, [], [
 			'output' => 'json'
 		]);

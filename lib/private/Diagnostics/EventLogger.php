@@ -2,8 +2,9 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +29,7 @@ class EventLogger implements IEventLogger {
 	/**
 	 * @var \OC\Diagnostics\Event[]
 	 */
-	private $events = array();
+	private $events = [];
 
 	public function start($id, $description) {
 		$this->events[$id] = new Event($id, $description, microtime(true));

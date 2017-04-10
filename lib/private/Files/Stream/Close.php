@@ -3,8 +3,9 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,10 +28,10 @@ namespace OC\Files\Stream;
  * stream wrapper that provides a callback on stream close
  */
 class Close {
-	private static $callBacks = array();
+	private static $callBacks = [];
 	private $path = '';
 	private $source;
-	private static $open = array();
+	private static $open = [];
 
 	public function stream_open($path, $mode, $options, &$opened_path) {
 		$path = substr($path, strlen('close://'));

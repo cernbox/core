@@ -4,9 +4,10 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -63,11 +64,11 @@ class ApiControllerTest extends TestCase {
 		$this->request = $this->getMockBuilder('\OCP\IRequest')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->user = $this->getMock('\OCP\IUser');
+		$this->user = $this->createMock('\OCP\IUser');
 		$this->user->expects($this->any())
 			->method('getUID')
 			->will($this->returnValue('user1'));
-		$userSession = $this->getMock('\OCP\IUserSession');
+		$userSession = $this->createMock('\OCP\IUserSession');
 		$userSession->expects($this->any())
 			->method('getUser')
 			->will($this->returnValue($this->user));
@@ -80,7 +81,7 @@ class ApiControllerTest extends TestCase {
 		$this->preview = $this->getMockBuilder('\OCP\IPreview')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->config = $this->getMock('\OCP\IConfig');
+		$this->config = $this->createMock('\OCP\IConfig');
 
 		$this->apiController = new ApiController(
 			$this->appName,
@@ -91,182 +92,6 @@ class ApiControllerTest extends TestCase {
 			$this->shareManager,
 			$this->config
 		);
-	}
-
-	public function testGetFilesByTagEmpty() {
-		$tagName = 'MyTagName';
-		$this->tagService->expects($this->once())
-			->method('getFilesByTag')
-			->with($this->equalTo([$tagName]))
-			->will($this->returnValue([]));
-
-		$expected = new DataResponse(['files' => []]);
-		$this->assertEquals($expected, $this->apiController->getFilesByTag([$tagName]));
-	}
-
-	public function testGetFilesByTagSingle() {
-		$tagName = 'MyTagName';
-		$fileInfo = new FileInfo(
-			'/root.txt',
-			$this->getMockBuilder('\OC\Files\Storage\Storage')
-				->disableOriginalConstructor()
-				->getMock(),
-			'/var/www/root.txt',
-			[
-				'mtime' => 55,
-				'mimetype' => 'application/pdf',
-				'permissions' => 31,
-				'size' => 1234,
-				'etag' => 'MyEtag',
-			],
-			$this->getMockBuilder('\OCP\Files\Mount\IMountPoint')
-				->disableOriginalConstructor()
-				->getMock()
-		);
-		$node = $this->getMockBuilder('\OC\Files\Node\File')
-			->disableOriginalConstructor()
-			->getMock();
-		$node->expects($this->once())
-			->method('getFileInfo')
-			->will($this->returnValue($fileInfo));
-		$this->tagService->expects($this->once())
-			->method('getFilesByTag')
-			->with($this->equalTo([$tagName]))
-			->will($this->returnValue([$node]));
-
-		$this->shareManager->expects($this->any())
-			->method('getSharesBy')
-			->with(
-				$this->equalTo('user1'),
-				$this->anything(),
-				$node,
-				$this->equalTo(false),
-				$this->equalTo(1)
-			)
-			->will($this->returnCallback(function($userId, $shareType) {
-				if ($shareType === \OCP\Share::SHARE_TYPE_USER || $shareType === \OCP\Share::SHARE_TYPE_LINK) {
-					return ['dummy_share'];
-				}
-				return [];
-			}));
-
-		$expected = new DataResponse([
-			'files' => [
-				[
-					'id' => null,
-					'parentId' => null,
-					'mtime' => 55000,
-					'name' => 'root.txt',
-					'permissions' => 31,
-					'mimetype' => 'application/pdf',
-					'size' => 1234,
-					'type' => 'file',
-					'etag' => 'MyEtag',
-					'path' => '/',
-					'tags' => [
-						[
-							'MyTagName'
-						]
-					],
-					'shareTypes' => [\OCP\Share::SHARE_TYPE_USER, \OCP\Share::SHARE_TYPE_LINK]
-				],
-			],
-		]);
-		$this->assertEquals($expected, $this->apiController->getFilesByTag([$tagName]));
-	}
-
-	public function testGetFilesByTagMultiple() {
-		$tagName = 'MyTagName';
-		$fileInfo1 = new FileInfo(
-			'/root.txt',
-			$this->getMockBuilder('\OC\Files\Storage\Storage')
-				->disableOriginalConstructor()
-				->getMock(),
-			'/var/www/root.txt',
-			[
-				'mtime' => 55,
-				'mimetype' => 'application/pdf',
-				'permissions' => 31,
-				'size' => 1234,
-				'etag' => 'MyEtag',
-			],
-			$this->getMockBuilder('\OCP\Files\Mount\IMountPoint')
-				->disableOriginalConstructor()
-				->getMock()
-		);
-		$fileInfo2 = new FileInfo(
-			'/root.txt',
-			$this->getMockBuilder('\OC\Files\Storage\Storage')
-				->disableOriginalConstructor()
-				->getMock(),
-			'/var/www/some/sub.txt',
-			[
-				'mtime' => 999,
-				'mimetype' => 'application/binary',
-				'permissions' => 31,
-				'size' => 9876,
-				'etag' => 'SubEtag',
-			],
-			$this->getMockBuilder('\OCP\Files\Mount\IMountPoint')
-				->disableOriginalConstructor()
-				->getMock()
-		);
-		$node1 = $this->getMockBuilder('\OC\Files\Node\File')
-			->disableOriginalConstructor()
-			->getMock();
-		$node1->expects($this->once())
-			->method('getFileInfo')
-			->will($this->returnValue($fileInfo1));
-		$node2 = $this->getMockBuilder('\OC\Files\Node\File')
-			->disableOriginalConstructor()
-			->getMock();
-		$node2->expects($this->once())
-			->method('getFileInfo')
-			->will($this->returnValue($fileInfo2));
-		$this->tagService->expects($this->once())
-			->method('getFilesByTag')
-			->with($this->equalTo([$tagName]))
-			->will($this->returnValue([$node1, $node2]));
-
-		$expected = new DataResponse([
-			'files' => [
-				[
-					'id' => null,
-					'parentId' => null,
-					'mtime' => 55000,
-					'name' => 'root.txt',
-					'permissions' => 31,
-					'mimetype' => 'application/pdf',
-					'size' => 1234,
-					'type' => 'file',
-					'etag' => 'MyEtag',
-					'path' => '/',
-					'tags' => [
-						[
-							'MyTagName'
-						]
-					],
-				],
-				[
-					'id' => null,
-					'parentId' => null,
-					'mtime' => 999000,
-					'name' => 'root.txt',
-					'permissions' => 31,
-					'mimetype' => 'application/binary',
-					'size' => 9876,
-					'type' => 'file',
-					'etag' => 'SubEtag',
-					'path' => '/',
-					'tags' => [
-						[
-							'MyTagName'
-						]
-					],
-				]
-			],
-		]);
-		$this->assertEquals($expected, $this->apiController->getFilesByTag([$tagName]));
 	}
 
 	public function testUpdateFileTagsEmpty() {

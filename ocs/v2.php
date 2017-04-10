@@ -1,8 +1,9 @@
 <?php
 /**
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,4 +20,4 @@
  *
  */
 
-require_once 'v1.php';
+require_once __DIR__ . '/v1.php';

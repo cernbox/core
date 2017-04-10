@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +22,7 @@
 
 namespace OCA\Files_External\Tests;
 
-use \OCA\Files_External\Lib\MissingDependency;
+use \OC\Files\External\MissingDependency;
 
 class LegacyDependencyCheckPolyfillTest extends \Test\TestCase {
 

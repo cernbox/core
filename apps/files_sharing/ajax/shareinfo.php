@@ -1,13 +1,14 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Stefan Weil <sw@weilnetz.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -60,7 +61,7 @@ $path = $data['realPath'];
 $isWritable = $linkItem['permissions'] & (\OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_CREATE);
 if (!$isWritable) {
 	\OC\Files\Filesystem::addStorageWrapper('readonly', function ($mountPoint, $storage) {
-		return new \OC\Files\Storage\Wrapper\PermissionsMask(array('storage' => $storage, 'mask' => \OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_SHARE));
+		return new \OC\Files\Storage\Wrapper\PermissionsMask(['storage' => $storage, 'mask' => \OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_SHARE]);
 	});
 }
 
@@ -78,7 +79,7 @@ $sharePermissions= (int)$share->getPermissions();
  */
 function getChildInfo($dir, $view, $sharePermissions) {
 	$children = $view->getDirectoryContent($dir->getPath());
-	$result = array();
+	$result = [];
 	foreach ($children as $child) {
 		$formatted = \OCA\Files\Helper::formatFileInfo($child);
 		if ($child->getType() === 'dir') {
@@ -100,4 +101,4 @@ if ($rootInfo->getType() === 'dir') {
 	$result['children'] = getChildInfo($rootInfo, $rootView, $sharePermissions);
 }
 
-OCP\JSON::success(array('data' => $result));
+OCP\JSON::success(['data' => $result]);

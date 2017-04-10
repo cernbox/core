@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -71,9 +72,9 @@ class Extension implements IExtension {
 	public function getNotificationTypes($languageCode) {
 		$l = $this->getL10N($languageCode);
 
-		return array(
+		return [
 			self::APP_NAME => (string) $l->t('<strong>System tags</strong> for a file have been modified'),
-		);
+		];
 	}
 
 	/**
@@ -233,24 +234,24 @@ class Extension implements IExtension {
 			switch ($text) {
 				case self::CREATE_TAG:
 				case self::DELETE_TAG:
-					return array(
+					return [
 						0 => 'username',
 						//1 => 'systemtag description',
-					);
+					];
 				case self::UPDATE_TAG:
-					return array(
+					return [
 						0 => 'username',
 						//1 => 'systemtag description',
 						//2 => 'systemtag description',
-					);
+					];
 
 				case self::ASSIGN_TAG:
 				case self::UNASSIGN_TAG:
-					return array(
+					return [
 						0 => 'username',
 						1 => 'file',
 						//2 => 'systemtag description',
-					);
+					];
 			}
 		}
 

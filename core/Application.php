@@ -4,11 +4,12 @@
  * @author Christoph Wurst <christoph@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Peter Prochaska <info@peter-prochaska.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,6 +31,7 @@ namespace OC\Core;
 use OC\AppFramework\Utility\SimpleContainer;
 use OC\AppFramework\Utility\TimeFactory;
 use OC\Core\Controller\AvatarController;
+use OC\Core\Controller\CloudController;
 use OC\Core\Controller\LoginController;
 use OC\Core\Controller\LostController;
 use OC\Core\Controller\OccController;
@@ -50,7 +52,7 @@ class Application extends App {
 	/**
 	 * @param array $urlParams
 	 */
-	public function __construct(array $urlParams=array()){
+	public function __construct(array $urlParams= []){
 		parent::__construct('core', $urlParams);
 
 		$container = $this->getContainer();
@@ -125,6 +127,12 @@ class Application extends App {
 				$c->query('ServerContainer')->query('OC\Authentication\Token\IProvider'),
 				$c->query('TwoFactorAuthManager'),
 				$c->query('SecureRandom')
+			);
+		});
+		$container->registerService('CloudController', function(SimpleContainer $c) {
+			return new CloudController(
+				$c->query('AppName'),
+				$c->query('Request')
 			);
 		});
 

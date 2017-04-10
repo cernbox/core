@@ -3,9 +3,10 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,7 +35,7 @@ class Storage extends Wrapper {
 	private $mountPoint;
 	// remember already deleted files to avoid infinite loops if the trash bin
 	// move files across storages
-	private $deletedFiles = array();
+	private $deletedFiles = [];
 
 	/**
 	 * Disable trash logic
@@ -59,6 +60,30 @@ class Storage extends Wrapper {
 		// in cross-storage cases, a rename is a copy + unlink,
 		// that last unlink must not go to trash
 		self::$disableTrash = true;
+
+		$path1 = $params[Filesystem::signal_param_oldpath];
+		$path2 = $params[Filesystem::signal_param_newpath];
+
+		$view = Filesystem::getView();
+		$absolutePath1 = Filesystem::normalizePath($view->getAbsolutePath($path1));
+
+		$mount1 = $view->getMount($path1);
+		$mount2 = $view->getMount($path2);
+		$sourceStorage = $mount1->getStorage();
+		$targetStorage = $mount2->getStorage();
+		$sourceInternalPath = $mount1->getInternalPath($absolutePath1);
+		// check whether this is a cross-storage move from a *local* shared storage
+		if ($sourceInternalPath !== '' && $sourceStorage !== $targetStorage && $sourceStorage->instanceOfStorage('OCA\Files_Sharing\SharedStorage')) {
+			$ownerPath = $sourceStorage->getSourcePath($sourceInternalPath);
+			$owner = $sourceStorage->getOwner($sourceInternalPath);
+			if ($owner !== null && $owner !== '' && $ownerPath !== null && substr($ownerPath, 0, 6) === 'files/') {
+				// ownerPath is in the format "files/path/to/file.txt", strip "files"
+				$ownerPath = substr($ownerPath, 6);
+
+				// make a backup copy for the owner
+				\OCA\Files_Trashbin\Trashbin::copyBackupForOwner($ownerPath, $owner, time());
+			}
+		}
 	}
 
 	/**
@@ -180,7 +205,7 @@ class Storage extends Wrapper {
 	public static function setupStorage() {
 		\OC\Files\Filesystem::addStorageWrapper('oc_trashbin', function ($mountPoint, $storage) {
 			return new \OCA\Files_Trashbin\Storage(
-				array('storage' => $storage, 'mountPoint' => $mountPoint),
+				['storage' => $storage, 'mountPoint' => $mountPoint],
 				\OC::$server->getUserManager()
 			);
 		}, 1);

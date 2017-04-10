@@ -1,9 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,7 +45,12 @@ class SystemPrincipalBackendTest extends TestCase {
 			[[[
 				'uri' => 'principals/system/system',
 				'{DAV:}displayname' => 'system',
-			]], 'principals/system'],
+			],
+			[
+				'uri' => 'principals/system/public',
+				'{DAV:}displayname' => 'public',
+			]
+			], 'principals/system'],
 		];
 	}
 

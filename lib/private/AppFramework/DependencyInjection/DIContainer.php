@@ -2,7 +2,7 @@
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Christoph Wurst <christoph@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -11,7 +11,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,6 +44,8 @@ use OC\AppFramework\Utility\SimpleContainer;
 use OC\Core\Middleware\TwoFactorMiddleware;
 use OCP\AppFramework\IApi;
 use OCP\AppFramework\IAppContainer;
+use OCP\Files\Mount\IMountManager;
+use OCP\IDateTimeFormatter;
 
 
 class DIContainer extends SimpleContainer implements IAppContainer {
@@ -51,13 +53,13 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 	/**
 	 * @var array
 	 */
-	private $middleWares = array();
+	private $middleWares = [];
 
 	/**
 	 * Put your class dependencies in here
 	 * @param string $appName the name of the app
 	 */
-	public function __construct($appName, $urlParams = array()){
+	public function __construct($appName, $urlParams = []){
 		parent::__construct();
 		$this['AppName'] = $appName;
 		$this['urlParams'] = $urlParams;
@@ -289,6 +291,13 @@ class DIContainer extends SimpleContainer implements IAppContainer {
 
 		$this->registerService('OCP\\AppFramework\\IAppContainer', function ($c) {
 			return $c;
+		});
+
+		$this->registerService(IDateTimeFormatter::class, function () {
+			return $this->getServer()->getDateTimeFormatter();
+		});
+		$this->registerService(IMountManager::class, function () {
+			return $this->getServer()->getMountManager();
 		});
 
 		// commonly used attributes

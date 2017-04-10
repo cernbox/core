@@ -1,8 +1,11 @@
 <?php
 /**
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -87,7 +90,6 @@ class DiscoveryManager {
 		if (defined('PHPUNIT_RUN') && !$this->underTest) {
 			return $discoveredServices;
 		}
-
 		// Read the data from the response body
 		try {
 			$response = $this->client->get($remote . '/ocs-provider/', [

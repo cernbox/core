@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,7 +64,7 @@ class CalendarObject extends \Sabre\CalDAV\CalendarObject {
 			$vElement = $vObject->VTODO;
 		}
 		if(!is_null($vElement)) {
-			foreach ($vElement->children as &$property) {
+			foreach ($vElement->children() as &$property) {
 				/** @var Property $property */
 				switch($property->name) {
 					case 'CREATED':

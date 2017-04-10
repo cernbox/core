@@ -2,17 +2,17 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
- * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -67,11 +67,13 @@ class Router implements IRouter {
 	/**
 	 * @param ILogger $logger
 	 */
-	public function __construct(ILogger $logger) {
+	public function __construct(ILogger $logger, $baseUrl = null) {
 		$this->logger = $logger;
-		$baseUrl = \OC::$WEBROOT;
+		if (is_null($baseUrl)) {
+			$baseUrl = \OC::$WEBROOT;
+		}
 		if(!(getenv('front_controller_active') === 'true')) {
-			$baseUrl = \OC::$server->getURLGenerator()->linkTo('', 'index.php');
+			$baseUrl = rtrim($baseUrl, '/') . '/index.php';
 		}
 		if (!\OC::$CLI) {
 			$method = $_SERVER['REQUEST_METHOD'];
@@ -94,7 +96,7 @@ class Router implements IRouter {
 	public function getRoutingFiles() {
 		if (!isset($this->routingFiles)) {
 			$this->routingFiles = [];
-			foreach (\OC_APP::getEnabledApps() as $app) {
+			foreach (\OC_App::getEnabledApps() as $app) {
 				$appPath = \OC_App::getAppPath($app);
 				if($appPath !== false) {
 					$file = $appPath . '/appinfo/routes.php';
@@ -150,6 +152,11 @@ class Router implements IRouter {
 				$collection = $this->getCollection($app);
 				$collection->addPrefix('/apps/' . $app);
 				$this->root->addCollection($collection);
+
+				// Also add the OCS collection
+				$collection = $this->getCollection($app.'.ocs');
+				$collection->addPrefix('/ocsapp/apps/' . $app);
+				$this->root->addCollection($collection);
 			}
 		}
 		if (!isset($this->loadedApps['core'])) {
@@ -157,6 +164,11 @@ class Router implements IRouter {
 			$this->useCollection('root');
 			require_once __DIR__ . '/../../../settings/routes.php';
 			require_once __DIR__ . '/../../../core/routes.php';
+
+			// Also add the OCS collection
+			$collection = $this->getCollection('root.ocs');
+			$collection->addPrefix('/ocsapp');
+			$this->root->addCollection($collection);
 		}
 		if ($this->loaded) {
 			// include ocs routes, must be loaded last for /ocs prefix
@@ -237,6 +249,13 @@ class Router implements IRouter {
 		if (substr($url, 0, 6) === '/apps/') {
 			// empty string / 'apps' / $app / rest of the route
 			list(, , $app,) = explode('/', $url, 4);
+
+			$app = \OC_App::cleanAppId($app);
+			\OC::$REQUESTEDAPP = $app;
+			$this->loadRoutes($app);
+		} else if (substr($url, 0, 13) === '/ocsapp/apps/') {
+			// empty string / 'ocsapp' / 'apps' / $app / rest of the route
+			list(, , , $app,) = explode('/', $url, 5);
 
 			$app = \OC_App::cleanAppId($app);
 			\OC::$REQUESTEDAPP = $app;

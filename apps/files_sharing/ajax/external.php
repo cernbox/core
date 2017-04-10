@@ -1,14 +1,15 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,7 +37,7 @@ $federatedShareProvider = $federatedSharingApp->getFederatedShareProvider();
 
 // check if server admin allows to mount public links from other servers
 if ($federatedShareProvider->isIncomingServer2serverShareEnabled() === false) {
-	\OCP\JSON::error(array('data' => array('message' => $l->t('Server to server sharing is not enabled on this server'))));
+	\OCP\JSON::error(['data' => ['message' => $l->t('Server to server sharing is not enabled on this server')]]);
 	exit();
 }
 
@@ -49,14 +50,14 @@ $password = $_POST['password'];
 
 // Check for invalid name
 if(!\OCP\Util::isValidFileName($name)) {
-	\OCP\JSON::error(array('data' => array('message' => $l->t('The mountpoint name contains invalid characters.'))));
+	\OCP\JSON::error(['data' => ['message' => $l->t('The mountpoint name contains invalid characters.')]]);
 	exit();
 }
 
 $currentUser = \OC::$server->getUserSession()->getUser()->getUID();
 $currentServer = \OC::$server->getURLGenerator()->getAbsoluteURL('/');
 if (\OC\Share\Helper::isSameUserOnSameServer($owner, $remote, $currentUser, $currentServer )) {
-	\OCP\JSON::error(array('data' => array('message' => $l->t('Not allowed to create a federated share with the same user server'))));
+	\OCP\JSON::error(['data' => ['message' => $l->t('Not allowed to create a federated share with the same user server')]]);
 	exit();
 }
 
@@ -82,7 +83,7 @@ if (substr($remote, 0, 5) === 'https') {
 			'connect_timeout' => 10,
 		])->getBody();
 	} catch (\Exception $e) {
-		\OCP\JSON::error(array('data' => array('message' => $l->t('Invalid or untrusted SSL certificate'))));
+		\OCP\JSON::error(['data' => ['message' => $l->t('Invalid or untrusted SSL certificate')]]);
 		exit;
 	}
 }
@@ -104,11 +105,11 @@ try {
 		\OCP\Util::DEBUG
 	);
 	\OCP\JSON::error(
-		array(
-			'data' => array(
+		[
+			'data' => [
 				'message' => $l->t('Could not authenticate to remote share, password might be wrong')
-			)
-		)
+			]
+		]
 	);
 	exit();
 } catch (\Exception $e) {
@@ -118,7 +119,7 @@ try {
 		\OCP\Util::DEBUG
 	);
 	$externalManager->removeShare($mount->getMountPoint());
-	\OCP\JSON::error(array('data' => array('message' => $l->t('Storage not valid'))));
+	\OCP\JSON::error(['data' => ['message' => $l->t('Storage not valid')]]);
 	exit();
 }
 $result = $storage->file_exists('');
@@ -132,14 +133,14 @@ if ($result) {
 			'Invalid remote storage: ' . get_class($e) . ': ' . $e->getMessage(),
 			\OCP\Util::DEBUG
 		);
-		\OCP\JSON::error(array('data' => array('message' => $l->t('Storage not valid'))));
+		\OCP\JSON::error(['data' => ['message' => $l->t('Storage not valid')]]);
 	} catch (\Exception $e) {
 		\OCP\Util::writeLog(
 			'files_sharing',
 			'Invalid remote storage: ' . get_class($e) . ': ' . $e->getMessage(),
 			\OCP\Util::DEBUG
 		);
-		\OCP\JSON::error(array('data' => array('message' => $l->t('Couldn\'t add remote share'))));
+		\OCP\JSON::error(['data' => ['message' => $l->t('Couldn\'t add remote share')]]);
 	}
 } else {
 	$externalManager->removeShare($mount->getMountPoint());
@@ -148,6 +149,6 @@ if ($result) {
 		'Couldn\'t add remote share',
 		\OCP\Util::DEBUG
 	);
-	\OCP\JSON::error(array('data' => array('message' => $l->t('Couldn\'t add remote share'))));
+	\OCP\JSON::error(['data' => ['message' => $l->t('Couldn\'t add remote share')]]);
 }
 

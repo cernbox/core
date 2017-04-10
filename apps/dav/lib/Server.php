@@ -1,12 +1,14 @@
 <?php
 /**
- * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
+ * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Georg Ehrke <georg@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,11 +31,15 @@ use OCA\DAV\CardDAV\ImageExportPlugin;
 use OCA\DAV\Comments\CommentsPlugin;
 use OCA\DAV\Connector\Sabre\Auth;
 use OCA\DAV\Connector\Sabre\BlockLegacyClientPlugin;
+use OCA\DAV\Connector\Sabre\CommentPropertiesPlugin;
 use OCA\DAV\Connector\Sabre\CopyEtagHeaderPlugin;
 use OCA\DAV\Connector\Sabre\DavAclPlugin;
 use OCA\DAV\Connector\Sabre\DummyGetResponsePlugin;
 use OCA\DAV\Connector\Sabre\FakeLockerPlugin;
 use OCA\DAV\Connector\Sabre\FilesPlugin;
+use OCA\DAV\Connector\Sabre\FilesReportPlugin;
+use OCA\DAV\Connector\Sabre\SharesPlugin;
+use OCA\DAV\DAV\PublicAuth;
 use OCA\DAV\Connector\Sabre\QuotaPlugin;
 use OCA\DAV\Files\BrowserErrorPagePlugin;
 use OCA\DAV\Files\CustomPropertiesBackend;
@@ -42,6 +48,8 @@ use OCP\IRequest;
 use OCP\SabrePluginEvent;
 use Sabre\CardDAV\VCFExportPlugin;
 use Sabre\DAV\Auth\Plugin;
+use OCA\DAV\Connector\Sabre\TagsPlugin;
+use OCA\DAV\AppInfo\PluginManager;
 
 class Server {
 
@@ -72,6 +80,7 @@ class Server {
 
 		$this->server->addPlugin(new BlockLegacyClientPlugin(\OC::$server->getConfig()));
 		$authPlugin = new Plugin();
+		$authPlugin->addBackend(new PublicAuth());
 		$this->server->addPlugin($authPlugin);
 
 		// allow setup of additional auth backends
@@ -101,13 +110,17 @@ class Server {
 		$this->server->addPlugin($acl);
 
 		// calendar plugins
-		$this->server->addPlugin(new \Sabre\CalDAV\Plugin());
+		$this->server->addPlugin(new \OCA\DAV\CalDAV\Plugin());
 		$this->server->addPlugin(new \Sabre\CalDAV\ICSExportPlugin());
 		$this->server->addPlugin(new \Sabre\CalDAV\Schedule\Plugin());
 		$this->server->addPlugin(new IMipPlugin($mailer, $logger));
 		$this->server->addPlugin(new \Sabre\CalDAV\Subscriptions\Plugin());
 		$this->server->addPlugin(new \Sabre\CalDAV\Notifications\Plugin());
 		$this->server->addPlugin(new DAV\Sharing\Plugin($authBackend, \OC::$server->getRequest()));
+		$this->server->addPlugin(new \OCA\DAV\CalDAV\Publishing\PublishPlugin(
+			\OC::$server->getConfig(),
+			\OC::$server->getURLGenerator()
+		));
 
 		// addressbook plugins
 		$this->server->addPlugin(new \OCA\DAV\CardDAV\Plugin());
@@ -121,11 +134,7 @@ class Server {
 			\OC::$server->getUserSession()
 		));
 
-		// comments plugin
-		$this->server->addPlugin(new CommentsPlugin(
-			\OC::$server->getCommentsManager(),
-			\OC::$server->getUserSession()
-		));
+		$this->server->addPlugin(new CopyEtagHeaderPlugin());
 
 		$this->server->addPlugin(new CopyEtagHeaderPlugin());
 
@@ -143,15 +152,15 @@ class Server {
 		}
 
 		// wait with registering these until auth is handled and the filesystem is setup
-		$this->server->on('beforeMethod', function () {
+		$this->server->on('beforeMethod', function () use ($root) {
 			// custom properties plugin must be the last one
-			$user = \OC::$server->getUserSession()->getUser();
+			$userSession = \OC::$server->getUserSession();
+			$user = $userSession->getUser();
 			if (!is_null($user)) {
 				$view = \OC\Files\Filesystem::getView();
 				$this->server->addPlugin(
 					new FilesPlugin(
 						$this->server->tree,
-						$view,
 						\OC::$server->getConfig(),
 						$this->request,
 						false,
@@ -168,8 +177,51 @@ class Server {
 						)
 					)
 				);
+				if (!is_null($view)) {
+					$this->server->addPlugin(
+						new QuotaPlugin($view));
+				}
 				$this->server->addPlugin(
-					new QuotaPlugin($view));
+					new TagsPlugin(
+						$this->server->tree, \OC::$server->getTagManager()
+					)
+				);
+				// TODO: switch to LazyUserFolder
+				$userFolder = \OC::$server->getUserFolder();
+				$this->server->addPlugin(new SharesPlugin(
+					$this->server->tree,
+					$userSession,
+					$userFolder,
+					\OC::$server->getShareManager()
+				));
+				$this->server->addPlugin(new CommentPropertiesPlugin(
+					\OC::$server->getCommentsManager(),
+					$userSession
+				));
+				if (!is_null($view)) {
+					$this->server->addPlugin(new FilesReportPlugin(
+						$this->server->tree,
+						$view,
+						\OC::$server->getSystemTagManager(),
+						\OC::$server->getSystemTagObjectMapper(),
+						\OC::$server->getTagManager(),
+						$userSession,
+						\OC::$server->getGroupManager(),
+						$userFolder
+					));
+				}
+			}
+
+			// register plugins from apps
+			$pluginManager = new PluginManager(
+				\OC::$server,
+				\OC::$server->getAppManager()
+			);
+			foreach ($pluginManager->getAppPlugins() as $appPlugin) {
+				$this->server->addPlugin($appPlugin);
+			}
+			foreach ($pluginManager->getAppCollections() as $appCollection) {
+				$root->addChild($appCollection);
 			}
 		});
 	}

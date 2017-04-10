@@ -1,5 +1,6 @@
 { "translations": {
     "Cancel" : "បោះបង់",
+    "Share" : "ចែក​រំលែក",
     "Shared by" : "បាន​ចែក​រំលែក​ដោយ",
     "Sharing" : "ការ​ចែក​រំលែក",
     "A file or folder has been <strong>shared</strong>" : "<strong>បាន​ចែករំលែក</strong> ឯកសារ​ឬ​ថត",
@@ -12,6 +13,7 @@
     "The password is wrong. Try again." : "ពាក្យ​សម្ងាត់​ខុស​ហើយ។ ព្យាយាម​ម្ដង​ទៀត។",
     "Password" : "ពាក្យសម្ងាត់",
     "Name" : "ឈ្មោះ",
+    "Expiration date" : "ពេល​ផុត​កំណត់",
     "Sorry, this link doesn’t seem to work anymore." : "សូម​ទោស តំណ​នេះ​ហាក់​ដូច​ជា​លែង​ដើរ​ហើយ។",
     "Reasons might be:" : "មូលហេតុ​អាច​ជា៖",
     "the item was removed" : "របស់​ត្រូវ​បាន​ដក​ចេញ",

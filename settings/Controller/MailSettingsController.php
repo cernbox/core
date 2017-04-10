@@ -1,10 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -111,12 +112,12 @@ class MailSettingsController extends Controller {
 
 		$this->config->setSystemValues($configs);
 
-		return array('data' =>
-			array('message' =>
+		return ['data' =>
+			['message' =>
 				(string) $this->l10n->t('Saved')
-			),
+			],
 			'status' => 'success'
-		);
+		];
 	}
 
 	/**
@@ -131,12 +132,12 @@ class MailSettingsController extends Controller {
 			'mail_smtppassword'	=> $mail_smtppassword,
 		]);
 
-		return array('data' =>
-			array('message' =>
+		return ['data' =>
+			['message' =>
 				(string) $this->l10n->t('Saved')
-			),
+			],
 			'status' => 'success'
-		);
+		];
 	}
 
 	/**
@@ -162,20 +163,20 @@ class MailSettingsController extends Controller {
 				];
 			}
 
-			return array('data' =>
-				array('message' =>
+			return ['data' =>
+				['message' =>
 					(string) $this->l10n->t('Email sent')
-				),
+				],
 				'status' => 'success'
-			);
+			];
 		}
 
-		return array('data' =>
-			array('message' =>
+		return ['data' =>
+			['message' =>
 				(string) $this->l10n->t('You need to set your user email before being able to send test emails.'),
-			),
+			],
 			'status' => 'error'
-		);
+		];
 	}
 
 }

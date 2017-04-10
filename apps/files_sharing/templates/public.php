@@ -1,5 +1,6 @@
 <?php
-/** @var $l OC_L10N */
+/** @var $l \OCP\IL10N */
+/** @var $theme OC_Defaults */
 /** @var $_ array */
 
 OCP\Util::addScript('files', 'file-upload');
@@ -19,11 +20,19 @@ OCP\Util::addScript('files', 'fileinfomodel');
 OCP\Util::addScript('files', 'newfilemenu');
 OCP\Util::addScript('files', 'files');
 OCP\Util::addScript('files', 'filelist');
-OCP\Util::addscript('files', 'keyboardshortcuts');
+OCP\Util::addScript('files', 'keyboardshortcuts');
+
+// OpenGraph Support: http://ogp.me/
+OCP\Util::addHeader('meta', ['property' => "og:title", 'content' => $theme->getName() . ' - ' . $theme->getSlogan()]);
+OCP\Util::addHeader('meta', ['property' => "og:description", 'content' => $l->t('%s is publicly shared', [$_['filename']])]);
+OCP\Util::addHeader('meta', ['property' => "og:site_name", 'content' => $theme->getName()]);
+OCP\Util::addHeader('meta', ['property' => "og:url", 'content' => $_['shareUrl']]);
+OCP\Util::addHeader('meta', ['property' => "og:type", 'content' => "object"]);
+OCP\Util::addHeader('meta', ['property' => "og:image", 'content' => $_['previewImage']]);
 ?>
 
 <?php if ($_['previewSupported']): /* This enables preview images for links (e.g. on Facebook, Google+, ...)*/?>
-	<link rel="image_src" href="<?php p(\OC::$server->getURLGenerator()->linkToRoute( 'core_ajax_public_preview', array('x' => $_['previewMaxX'], 'y' => $_['previewMaxY'], 'file' => $_['directory_path'], 't' => $_['dirToken']))); ?>" />
+	<link rel="image_src" href="<?php p($_['previewImage']); ?>" />
 <?php endif; ?>
 
 <div id="notification-container">
@@ -53,7 +62,7 @@ OCP\Util::addscript('files', 'keyboardshortcuts');
 		<div class="header-appname-container">
 			<h1 class="header-appname">
 				<?php
-					if(OC_Util::getEditionString() === '') {
+					if(OC_Util::getEditionString() === OC_Util::EDITION_COMMUNITY) {
 						p($theme->getName());
 					} else {
 						print_unescaped($theme->getHTMLName());
@@ -103,7 +112,7 @@ OCP\Util::addscript('files', 'keyboardshortcuts');
 				<div class="directDownload">
 					<a href="<?php p($_['downloadURL']); ?>" id="downloadFile" class="button">
 						<img class="svg" alt="" src="<?php print_unescaped(image_path("core", "actions/download.svg")); ?>"/>
-						<?php p($l->t('Download %s', array($_['filename'])))?> (<?php p($_['fileSize']) ?>)
+						<?php p($l->t('Download %s', [$_['filename']]))?> (<?php p($_['fileSize']) ?>)
 					</a>
 				</div>
 				<div class="directLink">

@@ -145,7 +145,9 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 		// fail hard if xml errors have not been cleaned up
 		$errors = libxml_get_errors();
 		libxml_clear_errors();
-		$this->assertEquals([], $errors);
+		if (!empty($errors)) {
+			self::assertEquals([], $errors, "There have been xml parsing errors");
+		}
 
 		// tearDown the traits
 		$traits = $this->getTestTraits();
@@ -165,7 +167,7 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 	 * @param array $parameters
 	 * @return mixed
 	 */
-	protected static function invokePrivate($object, $methodName, array $parameters = array()) {
+	protected static function invokePrivate($object, $methodName, array $parameters = []) {
 		if (is_string($object)) {
 			$className = $object;
 		} else {
@@ -271,13 +273,13 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 	 * @param string $dataDir
 	 */
 	static protected function tearDownAfterClassCleanStrayDataFiles($dataDir) {
-		$knownEntries = array(
+		$knownEntries = [
 			'owncloud.log' => true,
 			'owncloud.db' => true,
 			'.ocdata' => true,
 			'..' => true,
 			'.' => true,
-		);
+		];
 
 		if ($dh = opendir($dataDir)) {
 			while (($file = readdir($dh)) !== false) {
@@ -336,6 +338,10 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 		self::logout();
 		\OC\Files\Filesystem::tearDown();
 		\OC_User::setUserId($user);
+		$userObject = \OC::$server->getUserManager()->get($user);
+		if (!is_null($userObject)) {
+			$userObject->updateLastLoginTimestamp();
+		}
 		\OC_Util::setupFS($user);
 		if (\OC_User::userExists($user)) {
 			\OC::$server->getUserFolder($user);
@@ -441,11 +447,11 @@ abstract class TestCase extends \PHPUnit_Framework_TestCase {
 		$l10n
 			->expects($this->any())
 			->method('t')
-			->will($this->returnCallback(function($text, $parameters = array()) {
+			->will($this->returnCallback(function($text, $parameters = []) {
 				return vsprintf($text, $parameters);
 			}));
 
-		$t = new Base($template, $requestToken, $l10n, $theme);
+		$t = new Base($template, $requestToken, $l10n, null, $theme);
 		$buf = $t->fetchPage($vars);
 		$this->assertHtmlStringEqualsHtmlString($expectedHtml, $buf);
 	}

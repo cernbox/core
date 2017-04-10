@@ -2,7 +2,7 @@
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Frank Karlitschek <frank@karlitschek.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -11,7 +11,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,8 +34,8 @@ use OC\Hooks\BasicEmitter;
 use OC\IntegrityCheck\Checker;
 use OC_App;
 use OCP\IConfig;
-use OC\Setup;
 use OCP\ILogger;
+use OCP\Util;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
@@ -59,12 +59,6 @@ class Updater extends BasicEmitter {
 	private $checker;
 
 	/** @var bool */
-	private $simulateStepEnabled;
-
-	/** @var bool */
-	private $updateStepEnabled;
-
-	/** @var bool */
 	private $skip3rdPartyAppsDisable;
 
 	private $logLevelNames = [
@@ -86,29 +80,6 @@ class Updater extends BasicEmitter {
 		$this->log = $log;
 		$this->config = $config;
 		$this->checker = $checker;
-		$this->simulateStepEnabled = true;
-		$this->updateStepEnabled = true;
-	}
-
-	/**
-	 * Sets whether the database migration simulation must
-	 * be enabled.
-	 * This can be set to false to skip this test.
-	 *
-	 * @param bool $flag true to enable simulation, false otherwise
-	 */
-	public function setSimulateStepEnabled($flag) {
-		$this->simulateStepEnabled = $flag;
-	}
-
-	/**
-	 * Sets whether the update must be performed.
-	 * This can be set to false to skip the actual update.
-	 *
-	 * @param bool $flag true to enable update, false otherwise
-	 */
-	public function setUpdateStepEnabled($flag) {
-		$this->updateStepEnabled = $flag;
 	}
 
 	/**
@@ -130,9 +101,9 @@ class Updater extends BasicEmitter {
 	public function upgrade() {
 		$this->emitRepairEvents();
 
-		$logLevel = $this->config->getSystemValue('loglevel', \OCP\Util::WARN);
+		$logLevel = $this->config->getSystemValue('loglevel', Util::WARN);
 		$this->emit('\OC\Updater', 'setDebugLogLevel', [ $logLevel, $this->logLevelNames[$logLevel] ]);
-		$this->config->setSystemValue('loglevel', \OCP\Util::DEBUG);
+		$this->config->setSystemValue('loglevel', Util::DEBUG);
 
 		$wasMaintenanceModeEnabled = $this->config->getSystemValue('maintenance', false);
 
@@ -142,19 +113,19 @@ class Updater extends BasicEmitter {
 		}
 
 		$installedVersion = $this->config->getSystemValue('version', '0.0.0');
-		$currentVersion = implode('.', \OCP\Util::getVersion());
-		$this->log->debug('starting upgrade from ' . $installedVersion . ' to ' . $currentVersion, array('app' => 'core'));
+		$currentVersion = implode('.', Util::getVersion());
+		$this->log->debug('starting upgrade from ' . $installedVersion . ' to ' . $currentVersion, ['app' => 'core']);
 
 		$success = true;
 		try {
 			$this->doUpgrade($currentVersion, $installedVersion);
 		} catch (\Exception $exception) {
 			$this->log->logException($exception, ['app' => 'core']);
-			$this->emit('\OC\Updater', 'failure', array(get_class($exception) . ': ' .$exception->getMessage()));
+			$this->emit('\OC\Updater', 'failure', [get_class($exception) . ': ' .$exception->getMessage()]);
 			$success = false;
 		}
 
-		$this->emit('\OC\Updater', 'updateEnd', array($success));
+		$this->emit('\OC\Updater', 'updateEnd', [$success]);
 
 		if(!$wasMaintenanceModeEnabled && $success) {
 			$this->config->setSystemValue('maintenance', false);
@@ -183,6 +154,18 @@ class Updater extends BasicEmitter {
 	}
 
 	/**
+	 * Return vendor from which this version was published
+	 *
+	 * @return string Get the vendor
+	 */
+	private function getVendor() {
+		// this should really be a JSON file
+		require \OC::$SERVERROOT . '/version.php';
+		/** @var string $vendor */
+		return (string) $vendor;
+	}
+
+	/**
 	 * Whether an upgrade to a specified version is possible
 	 * @param string $oldVersion
 	 * @param string $newVersion
@@ -190,8 +173,22 @@ class Updater extends BasicEmitter {
 	 * @return bool
 	 */
 	public function isUpgradePossible($oldVersion, $newVersion, $allowedPreviousVersion) {
-		return (version_compare($allowedPreviousVersion, $oldVersion, '<=')
+		$allowedUpgrade =  (version_compare($allowedPreviousVersion, $oldVersion, '<=')
 			&& (version_compare($oldVersion, $newVersion, '<=') || $this->config->getSystemValue('debug', false)));
+
+		if ($allowedUpgrade) {
+			return $allowedUpgrade;
+		}
+
+		// Upgrade not allowed, someone switching vendor?
+		if ($this->getVendor() !== $this->config->getAppValue('core', 'vendor', '')) {
+			$oldVersion = explode('.', $oldVersion);
+			$newVersion = explode('.', $newVersion);
+
+			return $oldVersion[0] === $newVersion[0] && $oldVersion[1] === $newVersion[1];
+		}
+
+		return false;
 	}
 
 	/**
@@ -227,116 +224,60 @@ class Updater extends BasicEmitter {
 		$repair = new Repair(Repair::getBeforeUpgradeRepairSteps(), \OC::$server->getEventDispatcher());
 		$repair->run();
 
-		// simulate DB upgrade
-		if ($this->simulateStepEnabled) {
-			$this->checkCoreUpgrade();
+		$this->doCoreUpgrade();
 
-			// simulate apps DB upgrade
-			$this->checkAppUpgrade($currentVersion);
-
+		try {
+			// TODO: replace with the new repair step mechanism https://github.com/owncloud/core/pull/24378
+			Setup::installBackgroundJobs();
+		} catch (\Exception $e) {
+			throw new \Exception($e->getMessage());
 		}
 
-		if ($this->updateStepEnabled) {
-			$this->doCoreUpgrade();
+		// update all shipped apps
+		$disabledApps = $this->checkAppsRequirements();
+		$this->doAppUpgrade();
 
-			try {
-				// TODO: replace with the new repair step mechanism https://github.com/owncloud/core/pull/24378
-				Setup::installBackgroundJobs();
-			} catch (\Exception $e) {
-				throw new \Exception($e->getMessage());
-			}
+		// upgrade appstore apps
+		$this->upgradeAppStoreApps($disabledApps);
 
-			// update all shipped apps
-			$disabledApps = $this->checkAppsRequirements();
-			$this->doAppUpgrade();
-
-			// upgrade appstore apps
-			$this->upgradeAppStoreApps($disabledApps);
-
-			// install new shipped apps on upgrade
-			OC_App::loadApps('authentication');
-			$errors = Installer::installShippedApps(true);
-			foreach ($errors as $appId => $exception) {
-				/** @var \Exception $exception */
-				$this->log->logException($exception, ['app' => $appId]);
-				$this->emit('\OC\Updater', 'failure', [$appId . ': ' . $exception->getMessage()]);
-			}
-
-			// post-upgrade repairs
-			$repair = new Repair(Repair::getRepairSteps(), \OC::$server->getEventDispatcher());
-			$repair->run();
-
-			//Invalidate update feed
-			$this->config->setAppValue('core', 'lastupdatedat', 0);
-
-			// Check for code integrity if not disabled
-			if(\OC::$server->getIntegrityCodeChecker()->isCodeCheckEnforced()) {
-				$this->emit('\OC\Updater', 'startCheckCodeIntegrity');
-				$this->checker->runInstanceVerification();
-				$this->emit('\OC\Updater', 'finishedCheckCodeIntegrity');
-			}
-
-			// only set the final version if everything went well
-			$this->config->setSystemValue('version', implode('.', \OCP\Util::getVersion()));
+		// install new shipped apps on upgrade
+		OC_App::loadApps('authentication');
+		$errors = Installer::installShippedApps(true);
+		foreach ($errors as $appId => $exception) {
+			/** @var \Exception $exception */
+			$this->log->logException($exception, ['app' => $appId]);
+			$this->emit('\OC\Updater', 'failure', [$appId . ': ' . $exception->getMessage()]);
 		}
-	}
 
-	protected function checkCoreUpgrade() {
-		$this->emit('\OC\Updater', 'dbSimulateUpgradeBefore');
+		// post-upgrade repairs
+		$repair = new Repair(Repair::getRepairSteps(), \OC::$server->getEventDispatcher());
+		$repair->run();
 
-		// simulate core DB upgrade
-		\OC_DB::simulateUpdateDbFromStructure(\OC::$SERVERROOT . '/db_structure.xml');
+		//Invalidate update feed
+		$this->config->setAppValue('core', 'lastupdatedat', 0);
 
-		$this->emit('\OC\Updater', 'dbSimulateUpgrade');
+		// Check for code integrity if not disabled
+		if(\OC::$server->getIntegrityCodeChecker()->isCodeCheckEnforced()) {
+			$this->emit('\OC\Updater', 'startCheckCodeIntegrity');
+			$this->checker->runInstanceVerification();
+			$this->emit('\OC\Updater', 'finishedCheckCodeIntegrity');
+		}
+
+		// only set the final version if everything went well
+		$this->config->setSystemValue('version', implode('.', Util::getVersion()));
+		$this->config->setAppValue('core', 'vendor', $this->getVendor());
 	}
 
 	protected function doCoreUpgrade() {
 		$this->emit('\OC\Updater', 'dbUpgradeBefore');
 
-		// do the real upgrade
-		\OC_DB::updateDbFromStructure(\OC::$SERVERROOT . '/db_structure.xml');
-
-		$this->emit('\OC\Updater', 'dbUpgrade');
-	}
-
-	/**
-	 * @param string $version the oc version to check app compatibility with
-	 */
-	protected function checkAppUpgrade($version) {
-		$apps = \OC_App::getEnabledApps();
-		$this->emit('\OC\Updater', 'appUpgradeCheckBefore');
-
-		foreach ($apps as $appId) {
-			$info = \OC_App::getAppInfo($appId);
-			$compatible = \OC_App::isAppCompatible($version, $info);
-			$isShipped = \OC_App::isShipped($appId);
-
-			if ($compatible && $isShipped && \OC_App::shouldUpgrade($appId)) {
-				/**
-				 * FIXME: The preupdate check is performed before the database migration, otherwise database changes
-				 * are not possible anymore within it. - Consider this when touching the code.
-				 * @link https://github.com/owncloud/core/issues/10980
-				 * @see \OC_App::updateApp
-				 */
-				if (file_exists(\OC_App::getAppPath($appId) . '/appinfo/preupdate.php')) {
-					$this->includePreUpdate($appId);
-				}
-				if (file_exists(\OC_App::getAppPath($appId) . '/appinfo/database.xml')) {
-					$this->emit('\OC\Updater', 'appSimulateUpdate', array($appId));
-					\OC_DB::simulateUpdateDbFromStructure(\OC_App::getAppPath($appId) . '/appinfo/database.xml');
-				}
-			}
+		// execute core migrations
+		if (is_dir(\OC::$SERVERROOT."/core/Migrations")) {
+			$ms = new \OC\DB\MigrationService('core', \OC::$server->getDatabaseConnection());
+			$ms->migrate();
 		}
 
-		$this->emit('\OC\Updater', 'appUpgradeCheck');
-	}
-
-	/**
-	 * Includes the pre-update file. Done here to prevent namespace mixups.
-	 * @param string $appId
-	 */
-	private function includePreUpdate($appId) {
-		include \OC_App::getAppPath($appId) . '/appinfo/preupdate.php';
+		$this->emit('\OC\Updater', 'dbUpgrade');
 	}
 
 	/**
@@ -347,15 +288,15 @@ class Updater extends BasicEmitter {
 	 */
 	protected function doAppUpgrade() {
 		$apps = \OC_App::getEnabledApps();
-		$priorityTypes = array('authentication', 'filesystem', 'logging');
+		$priorityTypes = ['authentication', 'filesystem', 'logging'];
 		$pseudoOtherType = 'other';
-		$stacks = array($pseudoOtherType => array());
+		$stacks = [$pseudoOtherType => []];
 
 		foreach ($apps as $appId) {
 			$priorityType = false;
 			foreach ($priorityTypes as $type) {
 				if(!isset($stacks[$type])) {
-					$stacks[$type] = array();
+					$stacks[$type] = [];
 				}
 				if (\OC_App::isType($appId, $type)) {
 					$stacks[$type][] = $appId;
@@ -396,14 +337,14 @@ class Updater extends BasicEmitter {
 	private function checkAppsRequirements() {
 		$isCoreUpgrade = $this->isCodeUpgrade();
 		$apps = OC_App::getEnabledApps();
-		$version = \OCP\Util::getVersion();
+		$version = Util::getVersion();
 		$disabledApps = [];
 		foreach ($apps as $app) {
 			// check if the app is compatible with this version of ownCloud
 			$info = OC_App::getAppInfo($app);
 			if(!OC_App::isAppCompatible($version, $info)) {
 				OC_App::disable($app);
-				$this->emit('\OC\Updater', 'incompatibleAppDisabled', array($app));
+				$this->emit('\OC\Updater', 'incompatibleAppDisabled', [$app]);
 			}
 			// no need to disable any app in case this is a non-core upgrade
 			if (!$isCoreUpgrade) {
@@ -422,7 +363,7 @@ class Updater extends BasicEmitter {
 			if(!$this->skip3rdPartyAppsDisable) {
 				\OC_App::disable($app);
 				$disabledApps[]= $app;
-				$this->emit('\OC\Updater', 'thirdPartyAppDisabled', array($app));
+				$this->emit('\OC\Updater', 'thirdPartyAppDisabled', [$app]);
 			};
 		}
 		return $disabledApps;
@@ -433,7 +374,7 @@ class Updater extends BasicEmitter {
 	 */
 	private function isCodeUpgrade() {
 		$installedVersion = $this->config->getSystemValue('version', '0.0.0');
-		$currentVersion = implode('.', \OCP\Util::getVersion());
+		$currentVersion = implode('.', Util::getVersion());
 		if (version_compare($currentVersion, $installedVersion, '>')) {
 			return true;
 		}
@@ -445,18 +386,23 @@ class Updater extends BasicEmitter {
 	 * @throws \Exception
 	 */
 	private function upgradeAppStoreApps(array $disabledApps) {
-		foreach($disabledApps as $app) {
-			try {
-				if (Installer::isUpdateAvailable($app)) {
-					$ocsId = \OC::$server->getConfig()->getAppValue($app, 'ocsid', '');
 
-					$this->emit('\OC\Updater', 'upgradeAppStoreApp', array($app));
-					Installer::updateAppByOCSId($ocsId);
-				}
-			} catch (\Exception $ex) {
-				$this->log->logException($ex, ['app' => 'core']);
-			}
-		}
+		//
+		// TODO: integrate market app in here
+		//
+
+//		foreach($disabledApps as $app) {
+//			try {
+//				if (Installer::isUpdateAvailable($app)) {
+//					$ocsId = \OC::$server->getConfig()->getAppValue($app, 'ocsid', '');
+//
+//					$this->emit('\OC\Updater', 'upgradeAppStoreApp', [$app]);
+//					Installer::updateAppByOCSId($ocsId);
+//				}
+//			} catch (\Exception $ex) {
+//				$this->log->logException($ex, ['app' => 'core']);
+//			}
+//		}
 	}
 
 	/**

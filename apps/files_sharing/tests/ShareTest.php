@@ -1,13 +1,13 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -71,9 +71,9 @@ class ShareTest extends TestCase {
 
 	public function testUnshareFromSelf() {
 
-		\OC_Group::createGroup('testGroup');
-		\OC_Group::addToGroup(self::TEST_FILES_SHARING_API_USER2, 'testGroup');
-		\OC_Group::addToGroup(self::TEST_FILES_SHARING_API_USER3, 'testGroup');
+		$g = \OC::$server->getGroupManager()->createGroup('testGroup');
+		$g->addUser(\OC::$server->getUserManager()->get(self::TEST_FILES_SHARING_API_USER2));
+		$g->addUser(\OC::$server->getUserManager()->get(self::TEST_FILES_SHARING_API_USER3));
 
 		$share1 = $this->share(
 			\OCP\Share::SHARE_TYPE_USER,
@@ -221,13 +221,13 @@ class ShareTest extends TestCase {
 		$permission5 = \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_DELETE;
 		$permission6 = \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE;
 
-		return array(
-			array($permission1, false),
-			array($permission3, true),
-			array($permission4, true),
-			array($permission5, false),
-			array($permission6, false),
-		);
+		return [
+			[$permission1, false],
+			[$permission3, true],
+			[$permission4, true],
+			[$permission5, false],
+			[$permission6, false],
+		];
 	}
 
 	public function testFileOwner() {

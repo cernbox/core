@@ -6,7 +6,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -87,6 +87,9 @@ class InfoParser {
 		if (!array_key_exists('two-factor-providers', $array)) {
 			$array['two-factor-providers'] = [];
 		}
+		if (!array_key_exists('commands', $array)) {
+			$array['commands'] = [];
+		}
 
 		if (array_key_exists('types', $array)) {
 			if (is_array($array['types'])) {
@@ -118,6 +121,9 @@ class InfoParser {
 		if (isset($array['background-jobs']['job']) && is_array($array['background-jobs']['job'])) {
 			$array['background-jobs'] = $array['background-jobs']['job'];
 		}
+		if (isset($array['commands']['command']) && is_array($array['commands']['command'])) {
+			$array['commands'] = $array['commands']['command'];
+		}
 		return $array;
 	}
 
@@ -135,7 +141,7 @@ class InfoParser {
 			$totalElement = count($xml->{$element});
 
 			if (!isset($array[$element])) {
-				$array[$element] = "";
+				$array[$element] = $totalElement > 1 ? [] : "";
 			}
 			/** @var \SimpleXMLElement $node */
 			// Has attributes

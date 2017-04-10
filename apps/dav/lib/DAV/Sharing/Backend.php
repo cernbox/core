@@ -1,10 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -105,6 +106,14 @@ class Backend {
 		$query = $this->db->getQueryBuilder();
 		$query->delete('dav_shares')
 			->where($query->expr()->eq('resourceid', $query->createNamedParameter($resourceId)))
+			->andWhere($query->expr()->eq('type', $query->createNamedParameter($this->resourceType)))
+			->execute();
+	}
+
+	public function deleteAllSharesByUser($principaluri) {
+		$query = $this->db->getQueryBuilder();
+		$query->delete('dav_shares')
+			->where($query->expr()->eq('principaluri', $query->createNamedParameter($principaluri)))
 			->andWhere($query->expr()->eq('type', $query->createNamedParameter($this->resourceType)))
 			->execute();
 	}

@@ -8,7 +8,7 @@
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -100,7 +100,7 @@ class JSON {
 	 * @return string json formatted string.
 	 * @deprecated 8.1.0 Use a AppFramework JSONResponse instead
 	 */
-	public static function success( $data = array() ) {
+	public static function success( $data = []) {
 		\OC_JSON::success($data);
 	}
 
@@ -123,7 +123,7 @@ class JSON {
 	 * @return string json formatted error string.
 	 * @deprecated 8.1.0 Use a AppFramework JSONResponse instead
 	 */
-	public static function error( $data = array() ) {
+	public static function error( $data = []) {
 		\OC_JSON::error( $data );
 	}
 

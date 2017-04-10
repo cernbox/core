@@ -1,10 +1,10 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Robin Appelman <icewind@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,17 +44,10 @@ class Application extends \OCP\AppFramework\App {
 	/**
 	 * @param array $urlParams
 	 */
-	public function __construct($urlParams = array()) {
+	public function __construct($urlParams = []) {
 		parent::__construct('federation', $urlParams);
 		$this->registerService();
 		$this->registerMiddleware();
-	}
-
-	/**
-	 * register setting scripts
-	 */
-	public function registerSettings() {
-		App::registerAdmin('federation', 'settings/settings-admin');
 	}
 
 	private function registerService() {
@@ -102,41 +95,7 @@ class Application extends \OCP\AppFramework\App {
 
 	private function registerMiddleware() {
 		$container = $this->getContainer();
-		$container->registerMiddleware('addServerMiddleware');
-	}
-
-	/**
-	 * register OCS API Calls
-	 */
-	public function registerOCSApi() {
-
-		$container = $this->getContainer();
-		$server = $container->getServer();
-
-		$auth = new OCSAuthAPI(
-			$server->getRequest(),
-			$server->getSecureRandom(),
-			$server->getJobList(),
-			$container->query('TrustedServers'),
-			$container->query('DbHandler'),
-			$server->getLogger()
-
-		);
-
-		API::register('get',
-			'/apps/federation/api/v1/shared-secret',
-			array($auth, 'getSharedSecret'),
-			'federation',
-			API::GUEST_AUTH
-		);
-
-		API::register('post',
-			'/apps/federation/api/v1/request-shared-secret',
-			array($auth, 'requestSharedSecret'),
-			'federation',
-			API::GUEST_AUTH
-		);
-
+		$container->registerMiddleWare('addServerMiddleware');
 	}
 
 	/**

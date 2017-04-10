@@ -1,5 +1,7 @@
 { "translations": {
     "Cancel" : "Kanseleer",
-    "Password" : "Wagwoord"
+    "Share" : "Deel",
+    "Password" : "Wagwoord",
+    "Expiration date" : "Verval datum"
 },"pluralForm" :"nplurals=2; plural=(n != 1);"
 }

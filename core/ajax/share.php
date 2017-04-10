@@ -6,18 +6,19 @@
  * @author Craig Morrissey <craig@owncloud.com>
  * @author dampfklon <me@dampfklon.de>
  * @author Felix Böhm <felixboehm@gmx.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Leonardo Diez <leio10@users.noreply.github.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author neumann <node512@gmail.com>
  * @author Ramiro Aparicio <rapariciog@gmail.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,6 +42,61 @@ OCP\JSON::callCheck();
 
 $defaults = new \OCP\Defaults();
 
+/**
+ * @return mixed
+ */
+function getGroups($search = '', $limit = null, $offset = null) {
+	$groups = \OC::$server->getGroupManager()->search($search, $limit, $offset);
+	$groupIds = [];
+	foreach ($groups as $group) {
+		$groupIds[] = $group->getGID();
+	}
+	return $groupIds;
+}
+
+/**
+ * @param $gids
+ * @param $limit
+ * @param $offset
+ * @return mixed
+ */
+function displayNamesInGroups($gids, $search = '', $limit = -1, $offset = 0) {
+	$displayNames = [];
+	foreach ($gids as $gid) {
+		// TODO Need to apply limits to groups as total
+		$diff = array_diff(
+			\OC::$server->getGroupManager()->displayNamesInGroup($gid, $search, $limit, $offset),
+			$displayNames
+		);
+		if ($diff) {
+			// A fix for LDAP users. array_merge loses keys...
+			$displayNames = $diff + $displayNames;
+		}
+	}
+	return $displayNames;
+}
+
+/**
+ * @param $gid
+ * @param string $search
+ * @param int $limit
+ * @param int $offset
+ * @return array
+ */
+function usersInGroup($gid, $search = '', $limit = -1, $offset = 0) {
+	$group = \OC::$server->getGroupManager()->get($gid);
+	if ($group) {
+		$users = $group->searchUsers($search, $limit, $offset);
+		$userIds = [];
+		foreach ($users as $user) {
+			$userIds[] = $user->getUID();
+		}
+		return $userIds;
+	} else {
+		return [];
+	}
+}
+
 if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSource'])) {
 	switch ($_POST['action']) {
 		case 'informRecipients':
@@ -55,7 +111,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			if($shareType === \OCP\Share::SHARE_TYPE_USER) {
 				$recipientList[] = $userManager->get($recipient);
 			} elseif ($shareType === \OCP\Share::SHARE_TYPE_GROUP) {
-				$recipientList = \OC_Group::usersInGroup($recipient);
+				$recipientList = usersInGroup($recipient);
 				$group = \OC::$server->getGroupManager()->get($recipient);
 				$recipientList = $group->searchUsers('');
 			}
@@ -80,13 +136,13 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 			if (empty($result)) {
 				OCP\JSON::success();
 			} else {
-				OCP\JSON::error(array(
-					'data' => array(
+				OCP\JSON::error([
+					'data' => [
 						'message' => $l->t("Couldn't send mail to following users: %s ",
 								implode(', ', $result)
 								)
-						)
-					));
+					]
+				]);
 			}
 			break;
 		case 'informRecipientsDisabled':
@@ -159,13 +215,13 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				\OCP\JSON::success();
 			} else {
 				$l = \OC::$server->getL10N('core');
-				OCP\JSON::error(array(
-					'data' => array(
+				OCP\JSON::error([
+					'data' => [
 						'message' => $l->t("Couldn't send mail to following users: %s ",
 								implode(', ', $result)
 							)
-					)
-				));
+					]
+				]);
 			}
 
 			break;
@@ -175,7 +231,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 		case 'getItemsSharedStatuses':
 			if (isset($_GET['itemType'])) {
 				$return = OCP\Share::getItemsShared((string)$_GET['itemType'], OCP\Share::FORMAT_STATUSES);
-				is_array($return) ? OC_JSON::success(array('data' => $return)) : OC_JSON::error();
+				is_array($return) ? OC_JSON::success(['data' => $return]) : OC_JSON::error();
 			}
 			break;
 		case 'getItem':
@@ -205,11 +261,11 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				} else {
 					$shares = false;
 				}
-				OC_JSON::success(array('data' => array('reshare' => $reshare, 'shares' => $shares)));
+				OC_JSON::success(['data' => ['reshare' => $reshare, 'shares' => $shares]]);
 			}
 			break;
 		case 'getShareWithEmail':
-			$result = array();
+			$result = [];
 			if (isset($_GET['search'])) {
 				$cm = OC::$server->getContactsManager();
 
@@ -217,7 +273,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 					->getAppValue('core', 'shareapi_allow_share_dialog_user_enumeration', 'yes') == 'yes';
 
 				if (!is_null($cm) && $cm->isEnabled() && $userEnumerationAllowed) {
-					$contacts = $cm->search((string)$_GET['search'], array('FN', 'EMAIL'));
+					$contacts = $cm->search((string)$_GET['search'], ['FN', 'EMAIL']);
 					foreach ($contacts as $contact) {
 						if (!isset($contact['EMAIL'])) {
 							continue;
@@ -225,27 +281,30 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 
 						$emails = $contact['EMAIL'];
 						if (!is_array($emails)) {
-							$emails = array($emails);
+							$emails = [$emails];
 						}
 
 						foreach($emails as $email) {
-							$result[] = array(
+							$result[] = [
 								'email' => $email,
 								'displayname' => $contact['FN'],
-							);
+							];
 						}
 					}
 				}
 			}
-			OC_JSON::success(array('data' => $result));
+			OC_JSON::success(['data' => $result]);
 			break;
 		case 'getShareWith':
 			if (isset($_GET['search'])) {
 				$shareWithinGroupOnly = OC\Share\Share::shareWithGroupMembersOnly();
-				$shareWith = array();
-				$groups = OC_Group::getGroups((string)$_GET['search']);
+				$shareWith = [];
+				$groups = getGroups((string)$_GET['search']);
 				if ($shareWithinGroupOnly) {
-					$usergroups = OC_Group::getUserGroups(OC_User::getUser());
+					$usergroups = \OC::$server->getGroupManager()->getUserIdGroups(OC_User::getUser());
+					$usergroups = array_values(array_map(function(\OCP\IGroup $g) {
+						return $g->getGID();
+					}, $usergroups));
 					$groups = array_intersect($groups, $usergroups);
 				}
 
@@ -264,7 +323,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				}
 
 				$count = 0;
-				$users = array();
+				$users = [];
 				$limit = 0;
 				$offset = 0;
 				// limit defaults to 15 if not specified via request parameter and can be no larger than 500
@@ -272,7 +331,7 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				while ($count < $request_limit && count($users) == $limit) {
 					$limit = $request_limit - $count;
 					if ($shareWithinGroupOnly) {
-						$users = OC_Group::displayNamesInGroups($usergroups, (string)$_GET['search'], $limit, $offset);
+						$users = displayNamesInGroups($usergroups, (string)$_GET['search'], $limit, $offset);
 					} else {
 						$users = OC_User::getDisplayNames((string)$_GET['search'], $limit, $offset);
 					}
@@ -287,12 +346,12 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							|| !is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_USER])
 							|| !in_array($uid, $_GET['itemShares'][OCP\Share::SHARE_TYPE_USER]))
 							&& $uid != OC_User::getUser()) {
-							$shareWith[] = array(
+							$shareWith[] = [
 								'label' => $displayName,
-								'value' => array(
+								'value' => [
 									'shareType' => OCP\Share::SHARE_TYPE_USER,
-									'shareWith' => $uid)
-							);
+									'shareWith' => $uid]
+							];
 							$count++;
 						}
 					}
@@ -312,13 +371,13 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 							|| !isset($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
 							|| !is_array($_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])
 							|| !in_array($group, $_GET['itemShares'][OCP\Share::SHARE_TYPE_GROUP])) {
-							$shareWith[] = array(
+							$shareWith[] = [
 								'label' => $group,
-								'value' => array(
+								'value' => [
 									'shareType' => OCP\Share::SHARE_TYPE_GROUP,
 									'shareWith' => $group
-								)
-							);
+								]
+							];
 							$count++;
 						}
 					} else {
@@ -330,26 +389,26 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				$backend = \OCP\Share::getBackend((string)$_GET['itemType']);
 				if ($backend->isShareTypeAllowed(\OCP\Share::SHARE_TYPE_REMOTE)) {
 					if (substr_count((string)$_GET['search'], '@') >= 1) {
-						$shareWith[] = array(
+						$shareWith[] = [
 							'label' => (string)$_GET['search'],
-							'value' => array(
+							'value' => [
 								'shareType' => \OCP\Share::SHARE_TYPE_REMOTE,
 								'shareWith' => (string)$_GET['search']
-							)
-						);
+							]
+						];
 					}
 					$contactManager = \OC::$server->getContactsManager();
 					$addressBookContacts = $contactManager->search($_GET['search'], ['CLOUD', 'FN']);
 					foreach ($addressBookContacts as $contact) {
 						if (isset($contact['CLOUD'])) {
 							foreach ($contact['CLOUD'] as $cloudId) {
-								$shareWith[] = array(
+								$shareWith[] = [
 									'label' => $contact['FN'] . ' (' . $cloudId . ')',
-									'value' => array(
+									'value' => [
 										'shareType' => \OCP\Share::SHARE_TYPE_REMOTE,
 										'shareWith' => $cloudId
-									)
-								);
+									]
+								];
 							}
 						}
 					}
@@ -369,8 +428,8 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				$sorter = new \OC\Share\SearchResultSorter((string)$_GET['search'],
 														   'label',
 														   \OC::$server->getLogger());
-				usort($shareWith, array($sorter, 'sort'));
-				OC_JSON::success(array('data' => $shareWith));
+				usort($shareWith, [$sorter, 'sort']);
+				OC_JSON::success(['data' => $shareWith]);
 			}
 			break;
 	}

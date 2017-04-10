@@ -3,8 +3,9 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,7 +25,7 @@
 namespace OC\Files\Stream;
 
 class Dir {
-	private static $dirs = array();
+	private static $dirs = [];
 	private $name;
 	private $index;
 
@@ -32,7 +33,7 @@ class Dir {
 		$this->name = substr($path, strlen('fakedir://'));
 		$this->index = 0;
 		if (!isset(self::$dirs[$this->name])) {
-			self::$dirs[$this->name] = array();
+			self::$dirs[$this->name] = [];
 		}
 		return true;
 	}

@@ -2,10 +2,13 @@
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
+ * @author Sergio Bertolín <sbertolin@solidgear.es>
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,6 +34,7 @@ namespace OCP\AppFramework;
 
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\OCSResponse;
+use OCP\AppFramework\Http\Response;
 use OCP\IRequest;
 
 
@@ -100,4 +104,34 @@ abstract class OCSController extends ApiController {
 		);
 	}
 
+	/**
+	 * Serializes and formats a response
+	 * @param mixed $response the value that was returned from a controller and
+	 * is not a Response instance
+	 * @param string $format the format for which a formatter has been registered
+	 * @throws \DomainException if format does not match a registered formatter
+	 * @return Response
+	 * @since 7.0.0
+	 */
+	function buildResponse($response, $format = 'json') {
+		$format = $this->request->getParam('format');
+		if (is_null($format)) {
+			$format = 'xml';
+		}
+		/** @var OCSResponse $resp */
+		$resp = parent::buildResponse($response, $format);
+		$script = $this->request->getScriptName();
+
+		if (substr($script, -11) === '/ocs/v2.php') {
+			$statusCode = \OC_API::mapStatusCodes($resp->getStatusCode());
+			if (!is_null($statusCode)) {
+				// HTTP code
+				$resp->setStatus($statusCode);
+				// OCS code
+				$resp->setStatusCode($statusCode);
+			}
+		}
+
+		return $resp;
+	}
 }

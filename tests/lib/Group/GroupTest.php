@@ -16,30 +16,30 @@ class GroupTest extends \Test\TestCase {
 	 * @return \OC\User\Manager | \OC\User\Manager
 	 */
 	protected function getUserManager() {
-		$userManager = $this->getMock('\OC\User\Manager');
-		$backend = $this->getMock('\OC_User_Backend');
+		$userManager = $this->createMock('\OC\User\Manager');
+		$backend = $this->createMock('\OC_User_Backend');
 		$user1 = new User('user1', $backend);
 		$user2 = new User('user2', $backend);
 		$user3 = new User('user3', $backend);
 		$userManager->expects($this->any())
 			->method('get')
-			->will($this->returnValueMap(array(
-				array('user1', $user1),
-				array('user2', $user2),
-				array('user3', $user3)
-			)));
+			->will($this->returnValueMap([
+				['user1', $user1],
+				['user2', $user2],
+				['user3', $user3]
+			]));
 		return $userManager;
 	}
 
 	public function testGetUsersSingleBackend() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('usersInGroup')
 			->with('group1')
-			->will($this->returnValue(array('user1', 'user2')));
+			->will($this->returnValue(['user1', 'user2']));
 
 		$users = $group->getUsers();
 
@@ -51,20 +51,20 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testGetUsersMultipleBackends() {
-		$backend1 = $this->getMock('OC\Group\Database');
-		$backend2 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
+		$backend2 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend1, $backend2), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend1, $backend2], $userManager);
 
 		$backend1->expects($this->once())
 			->method('usersInGroup')
 			->with('group1')
-			->will($this->returnValue(array('user1', 'user2')));
+			->will($this->returnValue(['user1', 'user2']));
 
 		$backend2->expects($this->once())
 			->method('usersInGroup')
 			->with('group1')
-			->will($this->returnValue(array('user2', 'user3')));
+			->will($this->returnValue(['user2', 'user3']));
 
 		$users = $group->getUsers();
 
@@ -78,10 +78,10 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testInGroupSingleBackend() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('inGroup')
@@ -92,11 +92,11 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testInGroupMultipleBackends() {
-		$backend1 = $this->getMock('OC\Group\Database');
-		$backend2 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
+		$backend2 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend1, $backend2), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend1, $backend2], $userManager);
 
 		$backend1->expects($this->once())
 			->method('inGroup')
@@ -112,10 +112,10 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testAddUser() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('inGroup')
@@ -133,10 +133,10 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testAddUserAlreadyInGroup() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('inGroup')
@@ -153,10 +153,10 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testRemoveUser() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('inGroup')
@@ -174,10 +174,10 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testRemoveUserNotInGroup() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('inGroup')
@@ -194,11 +194,11 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testRemoveUserMultipleBackends() {
-		$backend1 = $this->getMock('OC\Group\Database');
-		$backend2 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
+		$backend2 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$userBackend = $this->getMock('\OC_User_Backend');
-		$group = new \OC\Group\Group('group1', array($backend1, $backend2), $userManager);
+		$userBackend = $this->createMock('\OC_User_Backend');
+		$group = new \OC\Group\Group('group1', [$backend1, $backend2], $userManager);
 
 		$backend1->expects($this->once())
 			->method('inGroup')
@@ -228,14 +228,14 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testSearchUsers() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('usersInGroup')
 			->with('group1', '2')
-			->will($this->returnValue(array('user2')));
+			->will($this->returnValue(['user2']));
 
 		$users = $group->searchUsers('2');
 
@@ -245,19 +245,19 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testSearchUsersMultipleBackends() {
-		$backend1 = $this->getMock('OC\Group\Database');
-		$backend2 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
+		$backend2 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend1, $backend2), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend1, $backend2], $userManager);
 
 		$backend1->expects($this->once())
 			->method('usersInGroup')
 			->with('group1', '2')
-			->will($this->returnValue(array('user2')));
+			->will($this->returnValue(['user2']));
 		$backend2->expects($this->once())
 			->method('usersInGroup')
 			->with('group1', '2')
-			->will($this->returnValue(array('user2')));
+			->will($this->returnValue(['user2']));
 
 		$users = $group->searchUsers('2');
 
@@ -267,14 +267,14 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testSearchUsersLimitAndOffset() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('usersInGroup')
 			->with('group1', 'user', 1, 1)
-			->will($this->returnValue(array('user2')));
+			->will($this->returnValue(['user2']));
 
 		$users = $group->searchUsers('user', 1, 1);
 
@@ -284,19 +284,19 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testSearchUsersMultipleBackendsLimitAndOffset() {
-		$backend1 = $this->getMock('OC\Group\Database');
-		$backend2 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
+		$backend2 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend1, $backend2), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend1, $backend2], $userManager);
 
 		$backend1->expects($this->once())
 			->method('usersInGroup')
 			->with('group1', 'user', 2, 1)
-			->will($this->returnValue(array('user2')));
+			->will($this->returnValue(['user2']));
 		$backend2->expects($this->once())
 			->method('usersInGroup')
 			->with('group1', 'user', 2, 1)
-			->will($this->returnValue(array('user1')));
+			->will($this->returnValue(['user1']));
 
 		$users = $group->searchUsers('user', 2, 1);
 
@@ -308,9 +308,9 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testCountUsers() {
-		$backend1 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend1), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend1], $userManager);
 
 		$backend1->expects($this->once())
 			->method('countUsersInGroup')
@@ -327,10 +327,10 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testCountUsersMultipleBackends() {
-		$backend1 = $this->getMock('OC\Group\Database');
-		$backend2 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
+		$backend2 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend1, $backend2), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend1, $backend2], $userManager);
 
 		$backend1->expects($this->once())
 			->method('countUsersInGroup')
@@ -354,9 +354,9 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testCountUsersNoMethod() {
-		$backend1 = $this->getMock('OC\Group\Database');
+		$backend1 = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend1), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend1], $userManager);
 
 		$backend1->expects($this->never())
 			->method('countUsersInGroup');
@@ -370,9 +370,9 @@ class GroupTest extends \Test\TestCase {
 	}
 
 	public function testDelete() {
-		$backend = $this->getMock('OC\Group\Database');
+		$backend = $this->createMock('OC\Group\Database');
 		$userManager = $this->getUserManager();
-		$group = new \OC\Group\Group('group1', array($backend), $userManager);
+		$group = new \OC\Group\Group('group1', [$backend], $userManager);
 
 		$backend->expects($this->once())
 			->method('deleteGroup')

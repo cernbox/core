@@ -1,12 +1,15 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Michael Jobst <mjobst+github@tecratech.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +28,12 @@
 
 namespace OC\Template;
 
+use OC\Theme\Theme;
+
 abstract class ResourceLocator {
+	/**
+	 * @var Theme
+	 */
 	protected $theme;
 
 	protected $mapping;
@@ -33,14 +41,14 @@ abstract class ResourceLocator {
 	protected $thirdpartyroot;
 	protected $webroot;
 
-	protected $resources = array();
+	protected $resources = [];
 
 	/** @var \OCP\ILogger */
 	protected $logger;
 
 	/**
 	 * @param \OCP\ILogger $logger
-	 * @param string $theme
+	 * @param Theme $theme
 	 * @param array $core_map
 	 * @param array $party_map
 	 */
@@ -83,22 +91,25 @@ abstract class ResourceLocator {
 					$this->doFindTheme($resource);
 				} catch (ResourceNotFoundException $e) {
 					$resourceApp = substr($resource, 0, strpos($resource, '/'));
-					$this->logger->error('Could not find resource file "' . $e->getResourcePath() . '"', ['app' => $resourceApp]);
+					$this->logger->error('Could not find resource file in theme "' . $e->getResourcePath() . '"', ['app' => $resourceApp]);
 				}
 			}
 		}
 	}
 
 	/**
-	 * append the $file resource if exist at $root
+	 * append the $file resource once if exist at $root
 	 *
 	 * @param string $root path to check
 	 * @param string $file the filename
 	 * @param string|null $webRoot base for path, default map $root to $webRoot
 	 * @return bool True if the resource was found, false otherwise
 	 */
-	protected function appendIfExist($root, $file, $webRoot = null) {
-		if (is_file($root.'/'.$file)) {
+	protected function appendOnceIfExist($root, $file, $webRoot = null) {
+
+		$path = $this->buildPath([$root, $file]);
+		
+		if (!isset( $this->resources[$path] ) && is_file($path)) {
 			$this->append($root, $file, $webRoot, false);
 			return true;
 		}
@@ -118,11 +129,23 @@ abstract class ResourceLocator {
 		if (!$webRoot) {
 			$webRoot = $this->mapping[$root];
 		}
-		$this->resources[] = array($root, $webRoot, $file);
+		
+		$path = $this->buildPath([$root, $file]);
+		$this->resources[$path] = [$root, $webRoot, $file];
 
-		if ($throw && !is_file($root . '/' . $file)) {
+		if ($throw && !is_file($path) ) {
 			throw new ResourceNotFoundException($file, $webRoot);
 		}
+	}
+	
+	/**
+	 * build a path by given parts concatenated with a '/' (DIRECTORY_SEPARATOR)
+	 *
+	 * @param string[] $parts path parts to concatenate
+	 * @return string $parts concatenated
+	 */
+	private function buildPath($parts){
+		return join(DIRECTORY_SEPARATOR, $parts);
 	}
 
 	/**

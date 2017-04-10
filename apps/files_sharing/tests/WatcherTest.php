@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -109,9 +109,9 @@ class WatcherTest extends TestCase {
 
 		$textData = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$dataLen = strlen($textData);
-		$this->sharedCache->put('bar.txt', array('mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain'));
+		$this->sharedCache->put('bar.txt', ['mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain']);
 		$this->sharedStorage->file_put_contents('bar.txt', $textData);
-		$this->sharedCache->put('', array('mtime' => 10, 'storage_mtime' => 10, 'size' => '-1', 'mimetype' => 'httpd/unix-directory'));
+		$this->sharedCache->put('', ['mtime' => 10, 'storage_mtime' => 10, 'size' => '-1', 'mimetype' => 'httpd/unix-directory']);
 
 		// run the propagation code
 		$this->sharedStorage->getWatcher()->checkUpdate('');
@@ -139,9 +139,9 @@ class WatcherTest extends TestCase {
 
 		$textData = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 		$dataLen = strlen($textData);
-		$this->sharedCache->put('subdir/bar.txt', array('mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain'));
+		$this->sharedCache->put('subdir/bar.txt', ['mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain']);
 		$this->sharedStorage->file_put_contents('subdir/bar.txt', $textData);
-		$this->sharedCache->put('subdir', array('mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain'));
+		$this->sharedCache->put('subdir', ['mtime' => 10, 'storage_mtime' => 10, 'size' => $dataLen, 'mimetype' => 'text/plain']);
 
 		// run the propagation code
 		$this->sharedStorage->getWatcher()->checkUpdate('subdir');
@@ -167,7 +167,7 @@ class WatcherTest extends TestCase {
 	 * @param string $path
 	 */
 	function getOwnerDirSizes($path) {
-		$result = array();
+		$result = [];
 
 		while ($path != '' && $path != '' && $path != '.') {
 			$cachedData = $this->ownerCache->get($path);

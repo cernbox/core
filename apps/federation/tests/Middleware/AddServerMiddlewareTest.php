@@ -3,7 +3,7 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -48,8 +48,8 @@ class AddServerMiddlewareTest extends TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->logger = $this->getMock('OCP\ILogger');
-		$this->l10n = $this->getMock('OCP\IL10N');
+		$this->logger = $this->createMock('OCP\ILogger');
+		$this->l10n = $this->createMock('OCP\IL10N');
 		$this->controller = $this->getMockBuilder('OCP\AppFramework\Controller')
 			->disableOriginalConstructor()->getMock();
 

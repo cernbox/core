@@ -8,7 +8,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -62,7 +62,7 @@ class SetupController {
 		if(isset($post['install']) AND $post['install']=='true') {
 			// We have to launch the installation process :
 			$e = $this->setupHelper->install($post);
-			$errors = array('errors' => $e);
+			$errors = ['errors' => $e];
 
 			if(count($e) > 0) {
 				$options = array_merge($opts, $post, $errors);
@@ -77,7 +77,7 @@ class SetupController {
 	}
 
 	public function display($post) {
-		$defaults = array(
+		$defaults = [
 			'adminlogin' => '',
 			'adminpass' => '',
 			'dbuser' => '',
@@ -86,7 +86,7 @@ class SetupController {
 			'dbtablespace' => '',
 			'dbhost' => 'localhost',
 			'dbtype' => '',
-		);
+		];
 		$parameters = array_merge($defaults, $post);
 
 		\OC_Util::addVendorScript('strengthify/jquery.strengthify');
@@ -106,7 +106,7 @@ class SetupController {
 	public function loadAutoConfig($post) {
 		if( file_exists($this->autoConfigFile)) {
 			\OCP\Util::writeLog('core', 'Autoconfig file found, setting up ownCloud…', \OCP\Util::INFO);
-			$AUTOCONFIG = array();
+			$AUTOCONFIG = [];
 			include $this->autoConfigFile;
 			$post = array_merge ($post, $AUTOCONFIG);
 		}

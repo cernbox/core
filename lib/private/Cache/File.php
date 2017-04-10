@@ -1,12 +1,12 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -188,11 +188,11 @@ class File implements ICache {
 						}
 					} catch (\OCP\Lock\LockedException $e) {
 						// ignore locked chunks
-						\OC::$server->getLogger()->debug('Could not cleanup locked chunk "' . $file . '"', array('app' => 'core'));
+						\OC::$server->getLogger()->debug('Could not cleanup locked chunk "' . $file . '"', ['app' => 'core']);
 					} catch (\OCP\Files\ForbiddenException $e) {
-						\OC::$server->getLogger()->debug('Could not cleanup forbidden chunk "' . $file . '"', array('app' => 'core'));
+						\OC::$server->getLogger()->debug('Could not cleanup forbidden chunk "' . $file . '"', ['app' => 'core']);
 					} catch (\OCP\Files\LockNotAcquiredException $e) {
-						\OC::$server->getLogger()->debug('Could not cleanup locked chunk "' . $file . '"', array('app' => 'core'));
+						\OC::$server->getLogger()->debug('Could not cleanup locked chunk "' . $file . '"', ['app' => 'core']);
 					}
 				}
 			}

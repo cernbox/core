@@ -17,11 +17,11 @@ class ComposerStaticInit98fe9b281934250b3a93f69a5ce843b3
     public static $prefixDirsPsr4 = array (
         'Icewind\\Streams\\' => 
         array (
-            __DIR__ . '/..' . '/icewind/streams/src',
+            0 => __DIR__ . '/..' . '/icewind/streams/src',
         ),
         'Icewind\\SMB\\' => 
         array (
-            __DIR__ . '/..' . '/icewind/smb/src',
+            0 => __DIR__ . '/..' . '/icewind/smb/src',
         ),
     );
 

@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,11 +26,9 @@ OCP\User::checkLoggedIn();
 $config = \OC::$server->getConfig();
 // TODO: move this to the generated config.js
 $publicUploadEnabled = $config->getAppValue('core', 'shareapi_allow_public_upload', 'yes');
-$uploadLimit=OCP\Util::uploadLimit();
 
 // renders the controls and table headers template
 $tmpl = new OCP\Template('files', 'list', '');
-$tmpl->assign('uploadLimit', $uploadLimit); // PHP upload limit
 $tmpl->assign('publicUploadEnabled', $publicUploadEnabled);
 $tmpl->printPage();
 

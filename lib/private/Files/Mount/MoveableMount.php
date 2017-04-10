@@ -2,8 +2,9 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,4 +42,15 @@ interface MoveableMount {
 	 * @return bool
 	 */
 	public function removeMount();
+
+	/**
+	 * Returns whether this mount point is allowed to be moved into the given absolute target
+	 *
+	 * @param string $target absolute target path
+	 *
+	 * @return bool true if allowed, false otherwise
+	 *
+	 * @since 10.0
+	 */
+	public function isTargetAllowed($target);
 }

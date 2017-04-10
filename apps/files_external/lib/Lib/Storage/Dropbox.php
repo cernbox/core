@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -10,7 +10,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,15 +36,15 @@ use OCP\Files\StorageNotAvailableException;
 
 require_once __DIR__ . '/../../../3rdparty/Dropbox/autoload.php';
 
-class Dropbox extends \OC\Files\Storage\Common {
+class Dropbox extends \OCP\Files\Storage\StorageAdapter {
 
 	private $dropbox;
 	private $root;
 	private $id;
-	private $metaData = array();
+	private $metaData = [];
 	private $oauth;
 
-	private static $tempFiles = array();
+	private static $tempFiles = [];
 
 	public function __construct($params) {
 		if (isset($params['configured']) && $params['configured'] == 'true'
@@ -101,7 +101,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 					\OCP\Util::writeLog('files_external', $exception->getMessage(), \OCP\Util::ERROR);
 					return false;
 				}
-				$contents = array();
+				$contents = [];
 				if ($response && isset($response['contents'])) {
 					// Cache folder's contents
 					foreach ($response['contents'] as $file) {
@@ -166,7 +166,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 	public function opendir($path) {
 		$contents = $this->getDropBoxMetaData($path, true);
 		if ($contents !== false) {
-			$files = array();
+			$files = [];
 			foreach ($contents as $file) {
 				$files[] = basename($file['path']);
 			}
@@ -304,7 +304,7 @@ class Dropbox extends \OC\Files\Storage\Common {
 					$ext = '';
 				}
 				$tmpFile = \OCP\Files::tmpFile($ext);
-				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
+				\OC\Files\Stream\Close::registerCallback($tmpFile, [$this, 'writeBack']);
 				if ($this->file_exists($path)) {
 					$source = $this->fopen($path, 'r');
 					file_put_contents($tmpFile, $source);

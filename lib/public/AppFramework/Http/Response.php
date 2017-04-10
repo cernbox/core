@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -45,16 +45,16 @@ class Response {
 	 * Headers - defaults to ['Cache-Control' => 'no-cache, must-revalidate']
 	 * @var array
 	 */
-	private $headers = array(
+	private $headers = [
 		'Cache-Control' => 'no-cache, must-revalidate'
-	);
+	];
 
 
 	/**
 	 * Cookies that will be need to be constructed as header
 	 * @var array
 	 */
-	private $cookies = array();
+	private $cookies = [];
 
 
 	/**
@@ -111,7 +111,7 @@ class Response {
 	 * @since 8.0.0
 	 */
 	public function addCookie($name, $value, \DateTime $expireDate = null) {
-		$this->cookies[$name] = array('value' => $value, 'expireDate' => $expireDate);
+		$this->cookies[$name] = ['value' => $value, 'expireDate' => $expireDate];
 		return $this;
 	}
 

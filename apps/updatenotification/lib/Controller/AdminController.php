@@ -1,9 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Michael Jobst <mjobst+github@tecratech.de>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,8 +35,9 @@ use OCP\IDateTimeFormatter;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\Security\ISecureRandom;
+use OCP\Settings\ISettings;
 
-class AdminController extends Controller {
+class AdminController extends Controller implements ISettings {
 	/** @var IJobList */
 	private $jobList;
 	/** @var ISecureRandom */
@@ -80,6 +83,18 @@ class AdminController extends Controller {
 		$this->dateTimeFormatter = $dateTimeFormatter;
 	}
 
+	public function getPriority() {
+		return 0;
+	}
+
+	public function getSectionID() {
+		return 'general';
+	}
+
+	public function getPanel() {
+		return $this->displayPanel();
+	}
+
 	/**
 	 * @return TemplateResponse
 	 */
@@ -103,13 +118,27 @@ class AdminController extends Controller {
 		$updateState = $this->updateChecker->getUpdateState();
 
 		$notifyGroups = json_decode($this->config->getAppValue('updatenotification', 'notify_groups', '["admin"]'), true);
+		
+		$isNewVersionAvailable = ($updateState === []) ? false : true;
+		$newVersionString = ($updateState === []) ? '' : $updateState['updateVersion'];
+		
+		$changeLogUrl = null;
+		if( $isNewVersionAvailable === true ){
+			$varsionParts = explode(' ', $newVersionString);
+			if( count($varsionParts) >= 2){
+				$versionParts = explode('.', $varsionParts[1]); // remove the 'ownCloud' prefix
+				array_splice($versionParts, 2); // remove minor version info from parts
+				$changeLogUrl = 'https://owncloud.org/changelog/#latest' . implode('.', $versionParts);
+			}
+		}
 
 		$params = [
-			'isNewVersionAvailable' => ($updateState === []) ? false : true,
+			'isNewVersionAvailable' => $isNewVersionAvailable,
 			'lastChecked' => $lastUpdateCheck,
 			'currentChannel' => $currentChannel,
 			'channels' => $channels,
-			'newVersionString' => ($updateState === []) ? '' : $updateState['updateVersion'],
+			'newVersionString' => $newVersionString,
+			'changeLogUrl' => $changeLogUrl,
 
 			'notify_groups' => implode('|', $notifyGroups),
 		];

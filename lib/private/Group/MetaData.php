@@ -1,13 +1,13 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Stephan Peijnik <speijnik@anexia-it.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@ class MetaData {
 	/** @var bool */
 	protected $isAdmin;
 	/** @var array */
-	protected $metaData = array();
+	protected $metaData = [];
 	/** @var \OCP\IGroupManager */
 	protected $groupManager;
 	/** @var bool */
@@ -80,12 +80,12 @@ class MetaData {
 			return $this->metaData[$key];
 		}
 
-		$adminGroups = array();
-		$groups = array();
+		$adminGroups = [];
+		$groups = [];
 		$sortGroupsIndex = 0;
-		$sortGroupsKeys = array();
+		$sortGroupsKeys = [];
 		$sortAdminGroupsIndex = 0;
-		$sortAdminGroupsKeys = array();
+		$sortAdminGroupsKeys = [];
 
 		foreach($this->getGroups($groupSearch) as $group) {
 			$groupMetaData = $this->generateGroupMetaData($group, $userSearch);
@@ -111,7 +111,7 @@ class MetaData {
 		$this->sort($groups, $sortGroupsKeys);
 		$this->sort($adminGroups, $sortAdminGroupsKeys);
 
-		$this->metaData[$key] = array($adminGroups, $groups);
+		$this->metaData[$key] = [$adminGroups, $groups];
 		return $this->metaData[$key];
 	}
 
@@ -157,11 +157,11 @@ class MetaData {
 	 * @return array with the keys 'id', 'name' and 'usercount'
 	 */
 	private function generateGroupMetaData(\OCP\IGroup $group, $userSearch) {
-		return array(
+		return [
 				'id' => $group->getGID(),
 				'name' => $group->getGID(),
 				'usercount' => $this->sorting === self::SORT_USERCOUNT ? $group->count($userSearch) : 0,
-			);
+		];
 	}
 
 	/**
@@ -185,7 +185,7 @@ class MetaData {
 	 */
 	protected function getGroups($search = '') {
 		if($this->isAdmin) {
-			return $this->groupManager->search($search);
+			return $this->groupManager->search($search, null, null, 'management');
 		} else {
 			$userObject = $this->userSession->getUser();
 			if($userObject !== null) {

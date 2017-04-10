@@ -1,12 +1,13 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -57,8 +58,8 @@ class GroupsTest extends \Test\TestCase {
 			->method('getSubAdmin')
 			->willReturn($this->subAdminManager);
 
-		$this->userSession = $this->getMock('OCP\IUserSession');
-		$this->request = $this->getMock('OCP\IRequest');
+		$this->userSession = $this->createMock('OCP\IUserSession');
+		$this->request = $this->createMock('OCP\IRequest');
 		$this->api = new Groups(
 			$this->groupManager,
 			$this->userSession,
@@ -71,7 +72,7 @@ class GroupsTest extends \Test\TestCase {
 	 * @return \OCP\IGroup|\PHPUnit_Framework_MockObject_MockObject
 	 */
 	private function createGroup($gid) {
-		$group = $this->getMock('OCP\IGroup');
+		$group = $this->createMock('OCP\IGroup');
 		$group
 			->method('getGID')
 			->willReturn($gid);
@@ -83,7 +84,7 @@ class GroupsTest extends \Test\TestCase {
 	 * @return \OCP\IUser|\PHPUnit_Framework_MockObject_MockObject
 	 */
 	private function createUser($uid) {
-		$user = $this->getMock('OCP\IUser');
+		$user = $this->createMock('OCP\IUser');
 		$user
 			->method('getUID')
 			->willReturn($uid);

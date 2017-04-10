@@ -1,11 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,8 +39,11 @@ class DirectoryTest extends \Test\TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->view = $this->getMock('OC\Files\View', array(), array(), '', false);
-		$this->info = $this->getMock('OC\Files\FileInfo', array(), array(), '', false);
+		$this->view = $this->createMock('OC\Files\View', [], [], '', false);
+		$this->info = $this->createMock('OC\Files\FileInfo', [], [], '', false);
+		$this->info->expects($this->any())
+			->method('isReadable')
+			->will($this->returnValue(true));
 	}
 
 	private function getDir($path = '/') {
@@ -160,7 +163,7 @@ class DirectoryTest extends \Test\TestCase {
 		$this->view->expects($this->once())
 			->method('getDirectoryContent')
 			->with('')
-			->will($this->returnValue(array($info1, $info2)));
+			->will($this->returnValue([$info1, $info2]));
 
 		$this->view->expects($this->any())
 			->method('getRelativePath')
@@ -174,6 +177,36 @@ class DirectoryTest extends \Test\TestCase {
 		// calling a second time just returns the cached values,
 		// does not call getDirectoryContents again
 		$dir->getChildren();
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\Forbidden
+	 */
+	public function testGetChildrenNoPermission() {
+		$info = $this->getMockBuilder('OC\Files\FileInfo')
+			->disableOriginalConstructor()
+			->getMock();
+		$info->expects($this->any())
+			->method('isReadable')
+			->will($this->returnValue(false));
+
+		$dir = new \OCA\DAV\Connector\Sabre\Directory($this->view, $info);
+		$dir->getChildren();
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\NotFound
+	 */
+	public function testGetChildNoPermission() {
+		$info = $this->getMockBuilder('OC\Files\FileInfo')
+			->disableOriginalConstructor()
+			->getMock();
+		$info->expects($this->any())
+			->method('isReadable')
+			->will($this->returnValue(false));
+
+		$dir = new \OCA\DAV\Connector\Sabre\Directory($this->view, $info);
+		$dir->getChild('test');
 	}
 
 	/**
@@ -210,7 +243,7 @@ class DirectoryTest extends \Test\TestCase {
 		$storage->expects($this->any())
 			->method('instanceOfStorage')
 			->will($this->returnValueMap([
-				'\OC\Files\Storage\Shared' => false,
+				'\OCA\Files_Sharing\SharedStorage' => false,
 				'\OC\Files\Storage\Wrapper\Quota' => false,
 			]));
 
@@ -241,7 +274,7 @@ class DirectoryTest extends \Test\TestCase {
 		$storage->expects($this->any())
 			->method('instanceOfStorage')
 			->will($this->returnValueMap([
-				['\OC\Files\Storage\Shared', false],
+				['\OCA\Files_Sharing\SharedStorage', false],
 				['\OC\Files\Storage\Wrapper\Quota', true],
 			]));
 

@@ -3,6 +3,7 @@
  * @author Arthur Schiwon <blizzz@owncloud.com>
  * @author Jesús Macias <jmacias@solidgear.es>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Juan Pablo Villafañez <jvillafanez@solidgear.es>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Philipp Kapfer <philipp.kapfer@gmx.at>
@@ -11,7 +12,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,7 +48,7 @@ use OC\Files\Storage\Common;
 use OCP\Files\StorageNotAvailableException;
 use OCP\Util;
 
-class SMB extends Common {
+class SMB extends \OCP\Files\Storage\StorageAdapter {
 	/**
 	 * @var \Icewind\SMB\Server
 	 */
@@ -241,8 +242,15 @@ class SMB extends Common {
 		return $result;
 	}
 
+	private function removeFromCache($path) {
+		$path = trim($path, '/');
+		// TODO The CappedCache does not really clear by prefix. It just clears all.
+		//$this->dirCache->clear($path);
+		$this->statCache->clear($path);
+		//$this->xattrCache->clear($path);
+	}
 	/**
-	 * Rename the files. If the source or the target is the root, the rename won't happen.
+	 * Rename the files
 	 *
 	 * @param string $source the old name of the path
 	 * @param string $target the new name of the path
@@ -250,12 +258,6 @@ class SMB extends Common {
 	 */
 	public function rename($source, $target) {
 		$this->log("enter: rename('$source', '$target')", Util::DEBUG);
-
-		if ($this->isRootDir($source) || $this->isRootDir($target)) {
-			$this->log("refusing to rename \"$source\" to \"$target\"");
-			return $this->leave(__FUNCTION__, false);
-		}
-
 		try {
 			$result = $this->share->rename($this->root . $source, $this->root . $target);
 			$this->removeFromCache($this->root . $source);
@@ -336,12 +338,6 @@ class SMB extends Common {
 	 */
 	public function unlink($path) {
 		$this->log('enter: '.__FUNCTION__."($path)");
-
-		if ($this->isRootDir($path)) {
-			$this->log("refusing to unlink \"$path\"");
-			return $this->leave(__FUNCTION__, false);
-		}
-
 		$result = false;
 		try {
 			if ($this->is_dir($path)) {
@@ -454,12 +450,6 @@ class SMB extends Common {
 
 	public function rmdir($path) {
 		$this->log('enter: '.__FUNCTION__."($path)");
-
-		if ($this->isRootDir($path)) {
-			$this->log("refusing to delete \"$path\"");
-			return $this->leave(__FUNCTION__, false);
-		}
-
 		$result = false;
 		try {
 			$this->removeFromCache($path);
@@ -691,6 +681,23 @@ class SMB extends Common {
 				.' message: '.$exception->getMessage()
 				.' trace: '.$exception->getTraceAsString(), Util::DEBUG);
 		}
+		return $result;
+	}
+
+	private function swallow($function, \Exception $exception) {
+		if (\OC::$server->getConfig()->getSystemValue('wnd.logging.enable', false) === true) {
+			Util::writeLog('wnd', "$function swallowing ".get_class($exception)
+				.' - code: '.$exception->getCode()
+				.' message: '.$exception->getMessage()
+				.' trace: '.$exception->getTraceAsString(), Util::DEBUG);
+		}
+	}
+
+	/**
+	 * immediately close / free connection
+	 */
+	public function __destruct() {
+		unset($this->share);
 	}
 
 	/**

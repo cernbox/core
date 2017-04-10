@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,8 +42,8 @@ class ScanFilesTest extends TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->config = $this->getMock('\OCP\IConfig');
-		$this->userManager = $this->getMock('\OCP\IUserManager');
+		$this->config = $this->createMock('\OCP\IConfig');
+		$this->userManager = $this->createMock('\OCP\IUserManager');
 
 		$this->scanFiles = $this->getMockBuilder('\OCA\Files\BackgroundJob\ScanFiles')
 				->setConstructorArgs([
@@ -78,7 +79,7 @@ class ScanFilesTest extends TestCase {
 	}
 
 	public function testRunWithUsers() {
-		$fakeUser = $this->getMock('\OCP\IUser');
+		$fakeUser = $this->createMock('\OCP\IUser');
 		$this->config
 				->expects($this->at(0))
 				->method('getAppValue')

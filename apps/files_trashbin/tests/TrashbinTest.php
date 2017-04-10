@@ -2,14 +2,14 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Clark Tomlinson <fallen013@gmail.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -111,7 +111,7 @@ class TrashbinTest extends \Test\TestCase {
 
 		\OC::$server->getAppManager()->enableApp('files_trashbin');
 		$config = \OC::$server->getConfig();
-		$mockConfig = $this->getMock('\OCP\IConfig');
+		$mockConfig = $this->createMock('\OCP\IConfig');
 		$mockConfig->expects($this->any())
 			->method('getSystemValue')
 			->will($this->returnCallback(function ($key, $default) use ($config) {
@@ -257,14 +257,14 @@ class TrashbinTest extends \Test\TestCase {
 		$filesInTrashUser2AfterDelete = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER2);
 
 		// user2-1.txt should have been expired
-		$this->verifyArray($filesInTrashUser2AfterDelete, array('user2-2.txt', 'user1-4.txt'));
+		$this->verifyArray($filesInTrashUser2AfterDelete, ['user2-2.txt', 'user1-4.txt']);
 
 		self::loginHelper(self::TEST_TRASHBIN_USER1);
 
 		// user1-1.txt and user1-3.txt should have been expired
 		$filesInTrashUser1AfterDelete = OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_TRASHBIN_USER1);
 
-		$this->verifyArray($filesInTrashUser1AfterDelete, array('user1-2.txt', 'user1-4.txt'));
+		$this->verifyArray($filesInTrashUser1AfterDelete, ['user1-2.txt', 'user1-4.txt']);
 	}
 
 	/**

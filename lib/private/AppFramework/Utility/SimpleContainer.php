@@ -1,13 +1,13 @@
 <?php
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -61,7 +61,16 @@ class SimpleContainer extends Container implements IContainer {
 					$resolveName = $parameterClass->name;
 				}
 
-				$parameters[] = $this->query($resolveName);
+				try {
+					$parameters[] = $this->query($resolveName);
+				} catch (QueryException $ex) {
+					if ($parameter->isDefaultValueAvailable()) {
+						$default = $parameter->getDefaultValue();
+						$parameters[] = $default;
+					} else {
+						throw $ex;
+					}
+				}
 			}
 			return $class->newInstanceArgs($parameters);
 		}

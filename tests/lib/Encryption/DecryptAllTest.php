@@ -78,7 +78,7 @@ class DecryptAllTest extends TestCase {
 			->disableOriginalConstructor()->getMock();
 
 		$this->outputInterface->expects($this->any())->method('getFormatter')
-			->willReturn($this->getMock('\Symfony\Component\Console\Formatter\OutputFormatterInterface'));
+			->willReturn($this->createMock('\Symfony\Component\Console\Formatter\OutputFormatterInterface'));
 
 		$this->instance = new DecryptAll($this->encryptionManager, $this->userManager, $this->view);
 
@@ -239,7 +239,7 @@ class DecryptAllTest extends TestCase {
 	}
 
 	public function testDecryptUsersFiles() {
-		$storage = $this->getMockBuilder('OC\Files\Storage\Shared')
+		$storage = $this->getMockBuilder('OCA\Files_Sharing\SharedStorage')
 			->disableOriginalConstructor()
 			->getMock();
 

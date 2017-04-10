@@ -4,7 +4,7 @@
  * @author Clark Tomlinson <fallen013@gmail.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,7 +56,7 @@ class Application extends \OCP\AppFramework\App {
 	 * @param array $urlParams
 	 * @param bool $encryptionSystemReady
 	 */
-	public function __construct($urlParams = array(), $encryptionSystemReady = true) {
+	public function __construct($urlParams = [], $encryptionSystemReady = true) {
 		parent::__construct('encryption', $urlParams);
 		$this->encryptionManager = \OC::$server->getEncryptionManager();
 		$this->config = \OC::$server->getConfig();
@@ -266,9 +266,4 @@ class Application extends \OCP\AppFramework\App {
 
 	}
 
-	public function registerSettings() {
-		// Register settings scripts
-		App::registerAdmin('encryption', 'settings/settings-admin');
-		App::registerPersonal('encryption', 'settings/settings-personal');
-	}
 }

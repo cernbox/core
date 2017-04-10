@@ -1,12 +1,13 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,23 +26,18 @@
 
 namespace OCA\Provisioning_API;
 
-use OC\OCSClient;
 use \OC_OCS_Result;
 use \OC_App;
 
 class Apps {
 	/** @var \OCP\App\IAppManager */
 	private $appManager;
-	/** @var OCSClient */
-	private $ocsClient;
 
 	/**
 	 * @param \OCP\App\IAppManager $appManager
 	 */
-	public function __construct(\OCP\App\IAppManager $appManager,
-								OCSClient $ocsClient) {
+	public function __construct(\OCP\App\IAppManager $appManager) {
 		$this->appManager = $appManager;
-		$this->ocsClient = $ocsClient;
 	}
 
 	/**
@@ -49,7 +45,7 @@ class Apps {
 	 * @return OC_OCS_Result
 	 */
 	public function getApps($parameters) {
-		$apps = OC_App::listAllApps(false, true, $this->ocsClient);
+		$apps = OC_App::listAllApps(false, true);
 		$list = [];
 		foreach($apps as $app) {
 			$list[] = $app['id'];
@@ -58,11 +54,11 @@ class Apps {
 		if($filter){
 			switch($filter){
 				case 'enabled':
-					return new OC_OCS_Result(array('apps' => \OC_App::getEnabledApps()));
+					return new OC_OCS_Result(['apps' => \OC_App::getEnabledApps()]);
 					break;
 				case 'disabled':
 					$enabled = OC_App::getEnabledApps();
-					return new OC_OCS_Result(array('apps' => array_diff($list, $enabled)));
+					return new OC_OCS_Result(['apps' => array_diff($list, $enabled)]);
 					break;
 				default:
 					// Invalid filter variable
@@ -71,7 +67,7 @@ class Apps {
 			}
 
 		} else {
-			return new OC_OCS_Result(array('apps' => $list));
+			return new OC_OCS_Result(['apps' => $list]);
 		}
 	}
 

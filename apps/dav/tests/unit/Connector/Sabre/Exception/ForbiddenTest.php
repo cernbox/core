@@ -1,8 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,7 +48,7 @@ class ForbiddenTest extends \Test\TestCase {
 EOD;
 
 		$ex = new Forbidden($message, $retry);
-		$server = $this->getMock('Sabre\DAV\Server');
+		$server = $this->createMock('Sabre\DAV\Server');
 		$ex->serialize($server, $error);
 
 		// assert

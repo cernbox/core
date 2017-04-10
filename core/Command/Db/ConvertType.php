@@ -2,13 +2,12 @@
 /**
  * @author Andreas Fischer <bantu@owncloud.com>
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author tbelau666 <thomas.belau@gmx.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author unclejamal3000 <andreas.pramhaas@posteo.de>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,10 +30,12 @@ use \OCP\IConfig;
 use OC\DB\Connection;
 use OC\DB\ConnectionFactory;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\Question;
 
 class ConvertType extends Command {
 	/**
@@ -157,13 +158,11 @@ class ConvertType extends Command {
 
 		// Read password by interacting
 		if ($input->isInteractive()) {
-			/** @var $dialog \Symfony\Component\Console\Helper\DialogHelper */
-			$dialog = $this->getHelperSet()->get('dialog');
-			$password = $dialog->askHiddenResponse(
-				$output,
-				'<question>What is the database password?</question>',
-				false
-			);
+			/** @var $dialog \Symfony\Component\Console\Helper\QuestionHelper */
+			$dialog = $this->getHelperSet()->get('question');
+			$q = new Question('<question>Enter a new password: </question>', false);
+			$q->setHidden(true);
+			$password = $dialog->ask($input, $output, $q);
 			$input->setOption('password', $password);
 			return;
 		}
@@ -194,13 +193,9 @@ class ConvertType extends Command {
 				$output->writeln('<comment>Please note that tables belonging to available but currently not installed apps</comment>');
 				$output->writeln('<comment>can be included by specifying the --all-apps option.</comment>');
 			}
-			/** @var $dialog \Symfony\Component\Console\Helper\DialogHelper */
-			$dialog = $this->getHelperSet()->get('dialog');
-			if (!$dialog->askConfirmation(
-				$output,
-				'<question>Continue with the conversion (y/n)? [n] </question>',
-				false
-			)) {
+			/** @var $dialog \Symfony\Component\Console\Helper\QuestionHelper */
+			$dialog = $this->getHelperSet()->get('question');
+			if (!$dialog->ask($input, $output, new Question('<question>Continue with the conversion (y/n)? [n] </question>', false))) {
 				return;
 			}
 		}
@@ -222,13 +217,13 @@ class ConvertType extends Command {
 
 	protected function getToDBConnection(InputInterface $input, OutputInterface $output) {
 		$type = $input->getArgument('type');
-		$connectionParams = array(
+		$connectionParams = [
 			'host' => $input->getArgument('hostname'),
 			'user' => $input->getArgument('username'),
 			'password' => $input->getOption('password'),
 			'dbname' => $input->getArgument('database'),
 			'tablePrefix' => $this->config->getSystemValue('dbtableprefix', 'oc_'),
-		);
+		];
 		if ($input->getOption('port')) {
 			$connectionParams['port'] = $input->getOption('port');
 		}
@@ -255,8 +250,7 @@ class ConvertType extends Command {
 	protected function copyTable(Connection $fromDB, Connection $toDB, $table, InputInterface $input, OutputInterface $output) {
 		$chunkSize = $input->getOption('chunk-size');
 
-		/** @var $progress \Symfony\Component\Console\Helper\ProgressHelper */
-		$progress = $this->getHelperSet()->get('progress');
+		$progress = new ProgressBar($output);
 
 		$query = $fromDB->getQueryBuilder();
 		$query->automaticTablePrefix(false);
@@ -271,7 +265,7 @@ class ConvertType extends Command {
 			$output->writeln('chunked query, ' . $numChunks . ' chunks');
 		}
 
-		$progress->start($output, $count);
+		$progress->start($count);
 		$redraw = $count > $chunkSize ? 100 : ($count > 100 ? 5 : 1);
 		$progress->setRedrawFrequency($redraw);
 

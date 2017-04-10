@@ -1,10 +1,11 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,6 +36,7 @@ use OC\Share20\Exception\InvalidShare;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Files\NotFoundException;
 use OCP\IDBConnection;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\Node;
 
 /**
@@ -142,7 +144,7 @@ class FederatedShareProvider implements IShareProvider {
 		$alreadyShared = $this->getSharedWith($shareWith, self::SHARE_TYPE_REMOTE, $share->getNode(), 1, 0);
 		if (!empty($alreadyShared)) {
 			$message = 'Sharing %s failed, because this item is already shared with %s';
-			$message_t = $this->l->t('Sharing %s failed, because this item is already shared with %s', array($share->getNode()->getName(), $shareWith));
+			$message_t = $this->l->t('Sharing %s failed, because this item is already shared with %s', [$share->getNode()->getName(), $shareWith]);
 			$this->logger->debug(sprintf($message, $share->getNode()->getName(), $shareWith), ['app' => 'Federated File Sharing']);
 			throw new \Exception($message_t);
 		}
@@ -547,6 +549,61 @@ class FederatedShareProvider implements IShareProvider {
 		return;
 	}
 
+	/**
+	 * @inheritdoc
+	 */
+	public function getAllSharesBy($userId, $shareTypes, $nodeIDs, $reshares) {
+		$shares = [];
+		$qb = $this->dbConnection->getQueryBuilder();
+
+		$nodeIdsChunks = array_chunk($nodeIDs, 100);
+		foreach ($nodeIdsChunks as $nodeIdsChunk) {
+			// In federates sharing currently we have only one share_type_remote
+			$qb->select('*')
+				->from('share');
+
+			$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter(self::SHARE_TYPE_REMOTE)));
+
+			/**
+			 * Reshares for this user are shares where they are the owner.
+			 */
+			if ($reshares === false) {
+				//Special case for old shares created via the web UI
+				$or1 = $qb->expr()->andX(
+					$qb->expr()->eq('uid_owner', $qb->createNamedParameter($userId)),
+					$qb->expr()->isNull('uid_initiator')
+				);
+
+				$qb->andWhere(
+					$qb->expr()->orX(
+						$qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)),
+						$or1
+					)
+				);
+			} else {
+				$qb->andWhere(
+					$qb->expr()->orX(
+						$qb->expr()->eq('uid_owner', $qb->createNamedParameter($userId)),
+						$qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId))
+					)
+				);
+			}
+
+			$qb->andWhere($qb->expr()->in('file_source', $qb->createParameter('file_source_ids')));
+			$qb->setParameter('file_source_ids', $nodeIdsChunk, IQueryBuilder::PARAM_INT_ARRAY);
+
+			$qb->orderBy('id');
+
+			$cursor = $qb->execute();
+			while($data = $cursor->fetch()) {
+				$shares[] = $this->createShareObject($data);
+			}
+			$cursor->closeCursor();
+		}
+		
+		return $shares;
+	}
+	
 	/**
 	 * @inheritdoc
 	 */

@@ -10,13 +10,15 @@
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Olivier Paroz <github@oparoz.com>
  * @author Pellaeon Lin <nfsmwlin@gmail.com>
+ * @author RealRancor <fisch.666@gmx.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
@@ -25,7 +27,7 @@
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -142,7 +144,7 @@ class OC_Helper {
 			return floatval($str);
 		}
 
-		$bytes_array = array(
+		$bytes_array = [
 			'b' => 1,
 			'k' => 1024,
 			'kb' => 1024,
@@ -154,7 +156,7 @@ class OC_Helper {
 			't' => 1024 * 1024 * 1024 * 1024,
 			'pb' => 1024 * 1024 * 1024 * 1024 * 1024,
 			'p' => 1024 * 1024 * 1024 * 1024 * 1024,
-		);
+		];
 
 		$bytes = floatval($str);
 
@@ -186,7 +188,7 @@ class OC_Helper {
 					self::copyr("$src/$file", "$dest/$file");
 				}
 			}
-		} elseif (file_exists($src) && !\OC\Files\Filesystem::isFileBlacklisted($src)) {
+		} elseif (file_exists($src) && !\OC\Files\Filesystem::isForbiddenFileOrDir($src)) {
 			copy($src, $dest);
 		}
 	}
@@ -253,16 +255,9 @@ class OC_Helper {
 		if ($path === false) {
 			$path = getenv("PATH");
 		}
-		// check method depends on operating system
-		if (!strncmp(PHP_OS, "WIN", 3)) {
-			// on Windows an appropriate COM or EXE file needs to exist
-			$exts = array(".exe", ".com");
-			$check_fn = "file_exists";
-		} else {
-			// anywhere else we look for an executable file of that name
-			$exts = array("");
-			$check_fn = "is_executable";
-		}
+		// we look for an executable file of that name
+		$exts = [""];
+		$check_fn = "is_executable";
 		// Default check will be done with $path directories :
 		$dirs = explode(PATH_SEPARATOR, $path);
 		// WARNING : We have to check if open_basedir is enabled :
@@ -293,7 +288,7 @@ class OC_Helper {
 	 */
 	public static function streamCopy($source, $target) {
 		if (!$source or !$target) {
-			return array(0, false);
+			return [0, false];
 		}
 		$bufSize = 8192;
 		$result = true;
@@ -314,7 +309,7 @@ class OC_Helper {
 				break;
 			}
 		}
-		return array($count, $result);
+		return [$count, $result];
 	}
 
 	/**
@@ -416,7 +411,7 @@ class OC_Helper {
 	 */
 	public static function mb_array_change_key_case($input, $case = MB_CASE_LOWER, $encoding = 'UTF-8') {
 		$case = ($case != MB_CASE_UPPER) ? MB_CASE_LOWER : MB_CASE_UPPER;
-		$ret = array();
+		$ret = [];
 		foreach ($input as $k => $v) {
 			$ret[mb_convert_case($k, $case, $encoding)] = $v;
 		}
@@ -523,7 +518,6 @@ class OC_Helper {
 
 	/**
 	 * Try to find a program
-	 * Note: currently windows is not supported
 	 *
 	 * @param string $program
 	 * @return null|string
@@ -534,7 +528,7 @@ class OC_Helper {
 			return $memcache->get($program);
 		}
 		$result = null;
-		if (!\OC_Util::runningOnWindows() && self::is_function_enabled('exec')) {
+		if (self::is_function_enabled('exec')) {
 			$exeSniffer = new ExecutableFinder();
 			// Returns null if nothing is found
 			$result = $exeSniffer->find($program);
@@ -582,7 +576,7 @@ class OC_Helper {
 		$quota = \OCP\Files\FileInfo::SPACE_UNLIMITED;
 		$storage = $rootInfo->getStorage();
 		$sourceStorage = $storage;
-		if ($storage->instanceOfStorage('\OC\Files\Storage\Shared')) {
+		if ($storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
 			$includeExtStorage = false;
 			$sourceStorage = $storage->getSourceStorage();
 		}
@@ -660,7 +654,7 @@ class OC_Helper {
 			$relative = 0;
 		}
 
-		return array('free' => $free, 'used' => $used, 'total' => $total, 'relative' => $relative);
+		return ['free' => $free, 'used' => $used, 'total' => $total, 'relative' => $relative];
 
 	}
 

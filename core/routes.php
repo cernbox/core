@@ -2,18 +2,17 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Christoph Wurst <christoph@owncloud.com>
  * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Christoph Wurst <christoph@owncloud.com>
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,6 +52,10 @@ $application->registerRoutes($this, [
 		['name' => 'TwoFactorChallenge#showChallenge', 'url' => '/login/challenge/{challengeProviderId}', 'verb' => 'GET'],
 		['name' => 'TwoFactorChallenge#solveChallenge', 'url' => '/login/challenge/{challengeProviderId}', 'verb' => 'POST'],
 	],
+	'ocs' => [
+		['name' => 'Cloud#getCapabilities', 'url' => '/cloud/capabilities', 'verb' => 'GET'],
+		['name' => 'Cloud#getCurrentUser', 'url' => '/cloud/user', 'verb' => 'GET'],
+	]
 ]);
 
 // Post installation check
@@ -68,43 +71,6 @@ $this->create('core_ajax_appconfig', '/core/ajax/appconfig.php')
 // Share
 $this->create('core_ajax_share', '/core/ajax/share.php')
 	->actionInclude('core/ajax/share.php');
-// Tags
-$this->create('core_tags_tags', '/tags/{type}')
-	->get()
-	->action('OC\Core\Tags\Controller', 'getTags')
-	->requirements(array('type'));
-$this->create('core_tags_favorites', '/tags/{type}/favorites')
-	->get()
-	->action('OC\Core\Tags\Controller', 'getFavorites')
-	->requirements(array('type'));
-$this->create('core_tags_ids_for_tag', '/tags/{type}/ids')
-	->get()
-	->action('OC\Core\Tags\Controller', 'getIdsForTag')
-	->requirements(array('type'));
-$this->create('core_tags_favorite', '/tags/{type}/favorite/{id}/')
-	->post()
-	->action('OC\Core\Tags\Controller', 'favorite')
-	->requirements(array('type', 'id'));
-$this->create('core_tags_unfavorite', '/tags/{type}/unfavorite/{id}/')
-	->post()
-	->action('OC\Core\Tags\Controller', 'unFavorite')
-	->requirements(array('type', 'id'));
-$this->create('core_tags_tag', '/tags/{type}/tag/{id}/')
-	->post()
-	->action('OC\Core\Tags\Controller', 'tagAs')
-	->requirements(array('type', 'id'));
-$this->create('core_tags_untag', '/tags/{type}/untag/{id}/')
-	->post()
-	->action('OC\Core\Tags\Controller', 'unTag')
-	->requirements(array('type', 'id'));
-$this->create('core_tags_add', '/tags/{type}/add')
-	->post()
-	->action('OC\Core\Tags\Controller', 'addTag')
-	->requirements(array('type'));
-$this->create('core_tags_delete', '/tags/{type}/delete')
-	->post()
-	->action('OC\Core\Tags\Controller', 'deleteTags')
-	->requirements(array('type'));
 // oC JS config
 $this->create('js_config', '/core/js/oc.js')
 	->actionInclude('core/js/config.php');

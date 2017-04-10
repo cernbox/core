@@ -6,9 +6,10 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,14 +36,19 @@ use OCP\Route\IRouter;
  * @package OC\AppFramework\routing
  */
 class RouteConfig {
+	/** @var DIContainer */
 	private $container;
+	/** @var IRouter */
 	private $router;
+	/** @var array */
 	private $routes;
+	/** @var string */
 	private $appName;
 
 	/**
 	 * @param \OC\AppFramework\DependencyInjection\DIContainer $container
 	 * @param \OCP\Route\IRouter $router
+	 * @param $routes
 	 * @internal param $appName
 	 */
 	public function __construct(DIContainer $container, IRouter $router, $routes) {
@@ -62,6 +68,61 @@ class RouteConfig {
 
 		// parse resources
 		$this->processResources($this->routes);
+
+		/*
+		 * OCS routes go into a different collection
+		 */
+		$oldCollection = $this->router->getCurrentCollection();
+		$this->router->useCollection($oldCollection.'.ocs');
+
+		// parse ocs simple routes
+		$this->processOCS($this->routes);
+
+		$this->router->useCollection($oldCollection);
+	}
+
+	private function processOCS(array $routes) {
+		$ocsRoutes = isset($routes['ocs']) ? $routes['ocs'] : [];
+		foreach ($ocsRoutes as $ocsRoute) {
+			$name = $ocsRoute['name'];
+			$postFix = '';
+
+			if (isset($ocsRoute['postfix'])) {
+				$postFix = $ocsRoute['postfix'];
+			}
+
+			$url = $ocsRoute['url'];
+			$verb = isset($ocsRoute['verb']) ? strtoupper($ocsRoute['verb']) : 'GET';
+
+			$split = explode('#', $name, 2);
+			if (count($split) != 2) {
+				throw new \UnexpectedValueException('Invalid route name');
+			}
+			$controller = $split[0];
+			$action = $split[1];
+
+			$controllerName = $this->buildControllerName($controller);
+			$actionName = $this->buildActionName($action);
+
+			// register the route
+			$handler = new RouteActionHandler($this->container, $controllerName, $actionName);
+
+			$router = $this->router->create('ocs.'.$this->appName.'.'.$controller.'.'.$action . $postFix, $url)
+				->method($verb)
+				->action($handler);
+
+			// optionally register requirements for route. This is used to
+			// tell the route parser how url parameters should be matched
+			if(array_key_exists('requirements', $ocsRoute)) {
+				$router->requirements($ocsRoute['requirements']);
+			}
+
+			// optionally register defaults for route. This is used to
+			// tell the route parser how url parameters should be default valued
+			if(array_key_exists('defaults', $ocsRoute)) {
+				$router->defaults($ocsRoute['defaults']);
+			}
+		}
 	}
 
 	/**
@@ -71,7 +132,7 @@ class RouteConfig {
 	 */
 	private function processSimpleRoutes($routes)
 	{
-		$simpleRoutes = isset($routes['routes']) ? $routes['routes'] : array();
+		$simpleRoutes = isset($routes['routes']) ? $routes['routes'] : [];
 		foreach ($simpleRoutes as $simpleRoute) {
 			$name = $simpleRoute['name'];
 			$postfix = '';
@@ -127,15 +188,15 @@ class RouteConfig {
 	private function processResources($routes)
 	{
 		// declaration of all restful actions
-		$actions = array(
-			array('name' => 'index', 'verb' => 'GET', 'on-collection' => true),
-			array('name' => 'show', 'verb' => 'GET'),
-			array('name' => 'create', 'verb' => 'POST', 'on-collection' => true),
-			array('name' => 'update', 'verb' => 'PUT'),
-			array('name' => 'destroy', 'verb' => 'DELETE'),
-		);
+		$actions = [
+			['name' => 'index', 'verb' => 'GET', 'on-collection' => true],
+			['name' => 'show', 'verb' => 'GET'],
+			['name' => 'create', 'verb' => 'POST', 'on-collection' => true],
+			['name' => 'update', 'verb' => 'PUT'],
+			['name' => 'destroy', 'verb' => 'DELETE'],
+		];
 
-		$resources = isset($routes['resources']) ? $routes['resources'] : array();
+		$resources = isset($routes['resources']) ? $routes['resources'] : [];
 		foreach ($resources as $resource => $config) {
 
 			// the url parameter used as id to the resource

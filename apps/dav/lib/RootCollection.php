@@ -1,11 +1,10 @@
 <?php
 /**
- * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,6 +24,7 @@ namespace OCA\DAV;
 
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\DAV\CalDAV\CalendarRoot;
+use OCA\DAV\CalDAV\PublicCalendarRoot;
 use OCA\DAV\CardDAV\AddressBookRoot;
 use OCA\DAV\CardDAV\CardDavBackend;
 use OCA\DAV\Connector\Sabre\Principal;
@@ -37,6 +37,7 @@ class RootCollection extends SimpleCollection {
 
 	public function __construct() {
 		$config = \OC::$server->getConfig();
+		$random = \OC::$server->getSecureRandom();
 		$db = \OC::$server->getDatabaseConnection();
 		$dispatcher = \OC::$server->getEventDispatcher();
 		$userPrincipalBackend = new Principal(
@@ -58,9 +59,11 @@ class RootCollection extends SimpleCollection {
 		$systemPrincipals->disableListing = $disableListing;
 		$filesCollection = new Files\RootCollection($userPrincipalBackend, 'principals/users');
 		$filesCollection->disableListing = $disableListing;
-		$caldavBackend = new CalDavBackend($db, $userPrincipalBackend);
+		$caldavBackend = new CalDavBackend($db, $userPrincipalBackend, $config, $random);
 		$calendarRoot = new CalendarRoot($userPrincipalBackend, $caldavBackend, 'principals/users');
 		$calendarRoot->disableListing = $disableListing;
+		$publicCalendarRoot = new PublicCalendarRoot($caldavBackend);
+		$publicCalendarRoot->disableListing = $disableListing;
 
 		$systemTagCollection = new SystemTag\SystemTagsByIdCollection(
 			\OC::$server->getSystemTagManager(),
@@ -73,13 +76,6 @@ class RootCollection extends SimpleCollection {
 			\OC::$server->getUserSession(),
 			\OC::$server->getGroupManager(),
 			\OC::$server->getRootFolder()
-		);
-		$commentsCollection = new Comments\RootCollection(
-			\OC::$server->getCommentsManager(),
-			\OC::$server->getUserManager(),
-			\OC::$server->getUserSession(),
-			\OC::$server->getEventDispatcher(),
-			\OC::$server->getLogger()
 		);
 
 		$usersCardDavBackend = new CardDavBackend($db, $userPrincipalBackend, $dispatcher);
@@ -100,12 +96,12 @@ class RootCollection extends SimpleCollection {
 						$systemPrincipals]),
 				$filesCollection,
 				$calendarRoot,
+				$publicCalendarRoot,
 				new SimpleCollection('addressbooks', [
 						$usersAddressBookRoot,
 						$systemAddressBookRoot]),
 				$systemTagCollection,
 				$systemTagRelationsCollection,
-				$commentsCollection,
 				$uploadCollection,
 		];
 

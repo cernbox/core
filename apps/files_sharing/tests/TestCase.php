@@ -1,17 +1,18 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,8 +31,10 @@
 
 namespace OCA\Files_Sharing\Tests;
 
+use OC\Files\Cache\Storage;
 use OC\Files\Filesystem;
 use OCA\Files_Sharing\AppInfo\Application;
+use OCA\Files_Sharing\SharedStorage;
 use OCP\ICache;
 
 /**
@@ -72,7 +75,7 @@ abstract class TestCase extends \Test\TestCase {
 		
 		// reset backend
 		\OC_User::clearBackends();
-		\OC_Group::clearBackends();
+		\OC::$server->getGroupManager()->clearBackends();
 
 		// clear share hooks
 		\OC_Hook::clear('OCP\\Share');
@@ -100,7 +103,7 @@ abstract class TestCase extends \Test\TestCase {
 		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER3, 'group2');
 		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER4, 'group3');
 		$groupBackend->addToGroup(self::TEST_FILES_SHARING_API_USER2, self::TEST_FILES_SHARING_API_GROUP1);
-		\OC_Group::useBackend($groupBackend);
+		\OC::$server->getGroupManager()->addBackend($groupBackend);
 	}
 
 	protected function setUp() {
@@ -133,7 +136,8 @@ abstract class TestCase extends \Test\TestCase {
 		if ($user !== null) { $user->delete(); }
 
 		// delete group
-		\OC_Group::deleteGroup(self::TEST_FILES_SHARING_API_GROUP1);
+		$group = \OC::$server->getGroupManager()->get(self::TEST_FILES_SHARING_API_GROUP1);
+		if ($group !== null) { $group->delete(); }
 
 		\OC_Util::tearDownFS();
 		\OC_User::setUserId('');
@@ -142,8 +146,8 @@ abstract class TestCase extends \Test\TestCase {
 		// reset backend
 		\OC_User::clearBackends();
 		\OC_User::useBackend('database');
-		\OC_Group::clearBackends();
-		\OC_Group::useBackend(new \OC\Group\Database());
+		\OC::$server->getGroupManager()->clearBackends();
+		\OC::$server->getGroupManager()->addBackend(new \OC\Group\Database());
 
 		parent::tearDownAfterClass();
 	}
@@ -161,8 +165,8 @@ abstract class TestCase extends \Test\TestCase {
 
 		if ($create) {
 			\OC::$server->getUserManager()->createUser($user, $password);
-			\OC_Group::createGroup('group');
-			\OC_Group::addToGroup($user, 'group');
+			\OC::$server->getGroupManager()->createGroup('group');
+			\OC::$server->getGroupManager()->addToGroup($user, 'group');
 		}
 
 		self::resetStorage();
@@ -180,13 +184,13 @@ abstract class TestCase extends \Test\TestCase {
 	 * reset init status for the share storage
 	 */
 	protected static function resetStorage() {
-		$storage = new \ReflectionClass('\OC\Files\Storage\Shared');
+		$storage = new \ReflectionClass(SharedStorage::class);
 		$isInitialized = $storage->getProperty('initialized');
 		$isInitialized->setAccessible(true);
 		$isInitialized->setValue($storage, false);
 		$isInitialized->setAccessible(false);
 
-		$storage = new \ReflectionClass('OC\Files\Cache\Storage');
+		$storage = new \ReflectionClass(Storage::class);
 		$property = $storage->getProperty('localCache');
 		$property->setAccessible(true);
 		/** @var ICache $localCache */
@@ -212,7 +216,7 @@ abstract class TestCase extends \Test\TestCase {
 	 */
 	protected function getShareFromId($shareID) {
 		$sql = 'SELECT `item_source`, `share_type`, `share_with`, `item_type`, `permissions` FROM `*PREFIX*share` WHERE `id` = ?';
-		$args = array($shareID);
+		$args = [$shareID];
 		$query = \OCP\DB::prepare($sql);
 		$result = $query->execute($args);
 
@@ -235,8 +239,12 @@ abstract class TestCase extends \Test\TestCase {
 	 * @return \OCP\Share\IShare
 	 */
 	protected function share($type, $path, $initiator, $recipient, $permissions) {
-		$userFolder = $this->rootFolder->getUserFolder($initiator);
-		$node = $userFolder->get($path);
+		if (is_string($path)) {
+			$userFolder = $this->rootFolder->getUserFolder($initiator);
+			$node = $userFolder->get($path);
+		} else {
+			$node = $path;
+		}
 
 		$share = $this->shareManager->newShare();
 		$share->setShareType($type)

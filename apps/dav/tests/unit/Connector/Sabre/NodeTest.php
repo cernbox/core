@@ -1,12 +1,12 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,17 +33,17 @@ namespace OCA\DAV\Tests\unit\Connector\Sabre;
  */
 class NodeTest extends \Test\TestCase {
 	public function davPermissionsProvider() {
-		return array(
-			array(\OCP\Constants::PERMISSION_ALL, 'file', false, false, 'RDNVW'),
-			array(\OCP\Constants::PERMISSION_ALL, 'dir', false, false, 'RDNVCK'),
-			array(\OCP\Constants::PERMISSION_ALL, 'file', true, false, 'SRDNVW'),
-			array(\OCP\Constants::PERMISSION_ALL, 'file', true, true, 'SRMDNVW'),
-			array(\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_SHARE, 'file', true, false, 'SDNVW'),
-			array(\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_UPDATE, 'file', false, false, 'RD'),
-			array(\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_DELETE, 'file', false, false, 'RNVW'),
-			array(\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE, 'file', false, false, 'RDNVW'),
-			array(\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE, 'dir', false, false, 'RDNV'),
-		);
+		return [
+			[\OCP\Constants::PERMISSION_ALL, 'file', false, false, 'RDNVW'],
+			[\OCP\Constants::PERMISSION_ALL, 'dir', false, false, 'RDNVCK'],
+			[\OCP\Constants::PERMISSION_ALL, 'file', true, false, 'SRDNVW'],
+			[\OCP\Constants::PERMISSION_ALL, 'file', true, true, 'SRMDNVW'],
+			[\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_SHARE, 'file', true, false, 'SDNVW'],
+			[\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_UPDATE, 'file', false, false, 'RD'],
+			[\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_DELETE, 'file', false, false, 'RNVW'],
+			[\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE, 'file', false, false, 'RDNVW'],
+			[\OCP\Constants::PERMISSION_ALL - \OCP\Constants::PERMISSION_CREATE, 'dir', false, false, 'RDNV'],
+		];
 	}
 
 	/**
@@ -52,7 +52,7 @@ class NodeTest extends \Test\TestCase {
 	public function testDavPermissions($permissions, $type, $shared, $mounted, $expected) {
 		$info = $this->getMockBuilder('\OC\Files\FileInfo')
 			->disableOriginalConstructor()
-			->setMethods(array('getPermissions', 'isShared', 'isMounted', 'getType'))
+			->setMethods(['getPermissions', 'isShared', 'isMounted', 'getType'])
 			->getMock();
 		$info->expects($this->any())
 			->method('getPermissions')
@@ -66,7 +66,7 @@ class NodeTest extends \Test\TestCase {
 		$info->expects($this->any())
 			->method('getType')
 			->will($this->returnValue($type));
-		$view = $this->getMock('\OC\Files\View');
+		$view = $this->createMock('\OC\Files\View');
 
 		$node = new  \OCA\DAV\Connector\Sabre\File($view, $info);
 		$this->assertEquals($expected, $node->getDavPermissions());
@@ -116,10 +116,10 @@ class NodeTest extends \Test\TestCase {
 	 * @dataProvider sharePermissionsProvider
 	 */
 	public function testSharePermissions($type, $user, $permissions, $expected) {
-		$storage = $this->getMock('\OCP\Files\Storage');
+		$storage = $this->createMock('\OCP\Files\Storage');
 		$storage->method('getPermissions')->willReturn($permissions);
 
-		$mountpoint = $this->getMock('\OCP\Files\Mount\IMountPoint');
+		$mountpoint = $this->createMock('\OCP\Files\Mount\IMountPoint');
 		$mountpoint->method('getMountPoint')->willReturn('myPath');
 		$shareManager = $this->getMockBuilder('OCP\Share\IManager')->disableOriginalConstructor()->getMock();
 		$share = $this->getMockBuilder('OCP\Share\IShare')->disableOriginalConstructor()->getMock();
@@ -142,7 +142,7 @@ class NodeTest extends \Test\TestCase {
 		$info->method('getType')->willReturn($type);
 		$info->method('getMountPoint')->willReturn($mountpoint);
 
-		$view = $this->getMock('\OC\Files\View');
+		$view = $this->createMock('\OC\Files\View');
 
 		$node = new  \OCA\DAV\Connector\Sabre\File($view, $info);
 		$this->invokePrivate($node, 'shareManager', [$shareManager]);

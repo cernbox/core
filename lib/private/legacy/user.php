@@ -3,8 +3,8 @@
  * @author Aldo "xoen" Giambelluca <xoen@xoen.org>
  * @author Andreas Fischer <bantu@owncloud.com>
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bartek Przybylski <bart.p.pl@gmail.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christoph Wurst <christoph@owncloud.com>
  * @author Georg Ehrke <georg@owncloud.com>
@@ -18,8 +18,9 @@
  * @author shkdee <louis.traynard@m4x.org>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -63,9 +64,9 @@ class OC_User {
 		return OC::$server->getUserSession();
 	}
 
-	private static $_usedBackends = array();
+	private static $_usedBackends = [];
 
-	private static $_setupedBackends = array();
+	private static $_setupedBackends = [];
 
 	// bool, stores if a user want to access a resource anonymously, e.g if they open a public link
 	private static $incognitoMode = false;
@@ -116,7 +117,7 @@ class OC_User {
 	 * remove all used backends
 	 */
 	public static function clearBackends() {
-		self::$_usedBackends = array();
+		self::$_usedBackends = [];
 		\OC::$server->getUserManager()->clearBackends();
 	}
 
@@ -124,9 +125,16 @@ class OC_User {
 	 * setup the configured backends in config.php
 	 */
 	public static function setupBackends() {
-		OC_App::loadApps(array('prelogin'));
-		$backends = \OC::$server->getSystemConfig()->getValue('user_backends', array());
+		OC_App::loadApps(['prelogin']);
+		$backends = \OC::$server->getSystemConfig()->getValue('user_backends', []);
+		if (isset($backends['default']) && !$backends['default']) {
+			// clear default backends
+			self::clearBackends();
+		}
 		foreach ($backends as $i => $config) {
+			if (!is_array($config)) {
+				continue;
+			}
 			$class = $config['class'];
 			$arguments = $config['arguments'];
 			if (class_exists($class)) {
@@ -173,7 +181,7 @@ class OC_User {
 
 		$uid = $backend->getCurrentUserId();
 		$run = true;
-		OC_Hook::emit("OC_User", "pre_login", array("run" => &$run, "uid" => $uid));
+		OC_Hook::emit("OC_User", "pre_login", ["run" => &$run, "uid" => $uid]);
 
 		if ($uid) {
 			if (self::getUser() !== $uid) {
@@ -190,7 +198,7 @@ class OC_User {
 				// completed before we can safely create the users folder.
 				// For example encryption needs to initialize the users keys first
 				// before we can create the user folder with the skeleton files
-				OC_Hook::emit("OC_User", "post_login", array("uid" => $uid, 'password' => ''));
+				OC_Hook::emit("OC_User", "post_login", ["uid" => $uid, 'password' => '']);
 				//trigger creation of user home and /files folder
 				\OC::$server->getUserFolder($uid);
 			}
@@ -315,7 +323,7 @@ class OC_User {
 	 * @return bool
 	 */
 	public static function isAdminUser($uid) {
-		if (OC_Group::inGroup($uid, 'admin') && self::$incognitoMode === false) {
+		if (\OC::$server->getGroupManager()->inGroup($uid, 'admin') && self::$incognitoMode === false) {
 			return true;
 		}
 		return false;
@@ -488,7 +496,7 @@ class OC_User {
 	 */
 	public static function getUsers($search = '', $limit = null, $offset = null) {
 		$users = \OC::$server->getUserManager()->search($search, $limit, $offset);
-		$uids = array();
+		$uids = [];
 		foreach ($users as $user) {
 			$uids[] = $user->getUID();
 		}
@@ -507,7 +515,7 @@ class OC_User {
 	 * @deprecated Use \OC::$server->getUserManager->searchDisplayName($search, $limit, $offset) instead.
 	 */
 	public static function getDisplayNames($search = '', $limit = null, $offset = null) {
-		$displayNames = array();
+		$displayNames = [];
 		$users = \OC::$server->getUserManager()->searchDisplayName($search, $limit, $offset);
 		foreach ($users as $user) {
 			$displayNames[$user->getUID()] = $user->getDisplayName();

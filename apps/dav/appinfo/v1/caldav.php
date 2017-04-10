@@ -1,10 +1,13 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Claudemir Todo Bom <claudemir@todobom.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,7 +46,9 @@ $principalBackend = new Principal(
 	'principals/'
 );
 $db = \OC::$server->getDatabaseConnection();
-$calDavBackend = new CalDavBackend($db, $principalBackend);
+$config = \OC::$server->getConfig();
+$random = \OC::$server->getSecureRandom();
+$calDavBackend = new CalDavBackend($db, $principalBackend, $config, $random);
 
 $debugging = \OC::$server->getConfig()->getSystemValue('debug', false);
 
@@ -54,10 +59,10 @@ $principalCollection->disableListing = !$debugging; // Disable listing
 $addressBookRoot = new CalendarRoot($principalBackend, $calDavBackend);
 $addressBookRoot->disableListing = !$debugging; // Disable listing
 
-$nodes = array(
+$nodes = [
 	$principalCollection,
 	$addressBookRoot,
-);
+];
 
 // Fire up server
 $server = new \Sabre\DAV\Server($nodes);

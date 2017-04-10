@@ -2,8 +2,9 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,7 +34,7 @@ class QueryLogger implements IQueryLogger {
 	/**
 	 * @var \OC\Diagnostics\Query[]
 	 */
-	protected $queries = array();
+	protected $queries = [];
 
 	/**
 	 * @param string $sql

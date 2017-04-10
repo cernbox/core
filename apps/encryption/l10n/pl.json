@@ -20,11 +20,12 @@
     "The current log-in password was not correct, please try again." : "Obecne hasło logowania nie było poprawne. Spróbuj ponownie.",
     "Private key password successfully updated." : "Pomyślnie zaktualizowano hasło klucza prywatnego.",
     "Invalid private key for Encryption App. Please update your private key password in your personal settings to recover access to your encrypted files." : "Klucz prywatny nie jest poprawny! Może Twoje hasło zostało zmienione z zewnątrz. Można zaktualizować hasło klucza prywatnego w ustawieniach osobistych w celu odzyskania dostępu do plików",
-    "Encryption App is enabled but your keys are not initialized, please log-out and log-in again" : "Aplikacja szyfrująca jest aktywna, ale twoje klucze nie zostały zainicjowane, prosze wyloguj się i zaloguj ponownie.",
     "Encryption App is enabled and ready" : "Aplikacja szyfrowania jest włączona i gotowa do pracy",
     "Can not decrypt this file, probably this is a shared file. Please ask the file owner to reshare the file with you." : "Nie można odszyfrować tego pliku, prawdopodobnie jest to plik udostępniony. Poproś właściciela pliku o ponowne udostępnianie pliku Tobie.",
     "The share will expire on %s." : "Ten zasób wygaśnie %s",
     "Cheers!" : "Dzięki!",
+    "Encryption" : "Szyfrowanie",
+    "Encryption App is enabled but your keys are not initialized, please log-out and log-in again" : "Aplikacja szyfrująca jest aktywna, ale twoje klucze nie zostały zainicjowane, prosze wyloguj się i zaloguj ponownie.",
     "Enable recovery key" : "Włącz klucz odzyskiwania",
     "Disable recovery key" : "Wyłącz klucz odzyskiwania",
     "Recovery key password" : "Hasło klucza odzyskiwania",
@@ -44,5 +45,5 @@
     "Enabling this option will allow you to reobtain access to your encrypted files in case of password loss" : "Włączenie tej opcji umożliwia otrzymać dostęp do zaszyfrowanych plików w przypadku utraty hasła",
     "Enabled" : "Włączone",
     "Disabled" : "Wyłączone"
-},"pluralForm" :"nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);"
+},"pluralForm" :"nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>=14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);"
 }

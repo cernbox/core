@@ -5,21 +5,24 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Bernhard Reiter <ockham@raz.or.at>
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Christoph Wurst <christoph@owncloud.com>
  * @author Christopher Schäpers <kondou@ts.unde.re>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Christoph Wurst <christoph@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Sander <brantje@gmail.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Tom Needham <tom@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -86,12 +89,22 @@ use OC\Security\CredentialsManager;
 use OC\Security\SecureRandom;
 use OC\Security\TrustedDomainHelper;
 use OC\Session\CryptoWrapper;
+use OC\Settings\Panels\Helper;
+use OC\Settings\SettingsManager;
 use OC\Tagging\TagMapper;
+use OC\URLGenerator;
+use OC\Theme\ThemeService;
+use OCP\IDateTimeFormatter;
 use OCP\IL10N;
 use OCP\IServerContainer;
 use OCP\Security\IContentSecurityPolicyManager;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use OC\Files\External\StoragesBackendService;
+use OC\Files\External\Service\UserStoragesService;
+use OC\Files\External\Service\UserGlobalStoragesService;
+use OC\Files\External\Service\GlobalStoragesService;
+use OC\Files\External\Service\DBConfigService;
 
 /**
  * Class Server
@@ -111,6 +124,25 @@ class Server extends ServerContainer implements IServerContainer {
 	public function __construct($webRoot, \OC\Config $config) {
 		parent::__construct();
 		$this->webRoot = $webRoot;
+
+		$this->registerService('SettingsManager', function($c) {
+			return new SettingsManager(
+				$c->getL10N('core'),
+				$c->getAppManager(),
+				$c->getUserSession(),
+				$c->getLogger(),
+				$c->getGroupManager(),
+				$c->getConfig(),
+				new \OCP\Defaults(),
+				$c->getURLGenerator(),
+				new Helper(),
+				$c->getLockingProvider(),
+				$c->getDatabaseConnection(),
+				$c->getCertificateManager(),
+				$c->getL10NFactory()
+
+			);
+		});
 
 		$this->registerService('ContactsManager', function ($c) {
 			return new ContactsManager();
@@ -203,24 +235,24 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('GroupManager', function (Server $c) {
 			$groupManager = new \OC\Group\Manager($this->getUserManager());
 			$groupManager->listen('\OC\Group', 'preCreate', function ($gid) {
-				\OC_Hook::emit('OC_Group', 'pre_createGroup', array('run' => true, 'gid' => $gid));
+				\OC_Hook::emit('OC_Group', 'pre_createGroup', ['run' => true, 'gid' => $gid]);
 			});
 			$groupManager->listen('\OC\Group', 'postCreate', function (\OC\Group\Group $gid) {
-				\OC_Hook::emit('OC_User', 'post_createGroup', array('gid' => $gid->getGID()));
+				\OC_Hook::emit('OC_User', 'post_createGroup', ['gid' => $gid->getGID()]);
 			});
 			$groupManager->listen('\OC\Group', 'preDelete', function (\OC\Group\Group $group) {
-				\OC_Hook::emit('OC_Group', 'pre_deleteGroup', array('run' => true, 'gid' => $group->getGID()));
+				\OC_Hook::emit('OC_Group', 'pre_deleteGroup', ['run' => true, 'gid' => $group->getGID()]);
 			});
 			$groupManager->listen('\OC\Group', 'postDelete', function (\OC\Group\Group $group) {
-				\OC_Hook::emit('OC_User', 'post_deleteGroup', array('gid' => $group->getGID()));
+				\OC_Hook::emit('OC_User', 'post_deleteGroup', ['gid' => $group->getGID()]);
 			});
 			$groupManager->listen('\OC\Group', 'preAddUser', function (\OC\Group\Group $group, \OC\User\User $user) {
-				\OC_Hook::emit('OC_Group', 'pre_addToGroup', array('run' => true, 'uid' => $user->getUID(), 'gid' => $group->getGID()));
+				\OC_Hook::emit('OC_Group', 'pre_addToGroup', ['run' => true, 'uid' => $user->getUID(), 'gid' => $group->getGID()]);
 			});
 			$groupManager->listen('\OC\Group', 'postAddUser', function (\OC\Group\Group $group, \OC\User\User $user) {
-				\OC_Hook::emit('OC_Group', 'post_addToGroup', array('uid' => $user->getUID(), 'gid' => $group->getGID()));
+				\OC_Hook::emit('OC_Group', 'post_addToGroup', ['uid' => $user->getUID(), 'gid' => $group->getGID()]);
 				//Minimal fix to keep it backward compatible TODO: clean up all the GroupManager hooks
-				\OC_Hook::emit('OC_User', 'post_addToGroup', array('uid' => $user->getUID(), 'gid' => $group->getGID()));
+				\OC_Hook::emit('OC_User', 'post_addToGroup', ['uid' => $user->getUID(), 'gid' => $group->getGID()]);
 			});
 			return $groupManager;
 		});
@@ -248,45 +280,44 @@ class Server extends ServerContainer implements IServerContainer {
 			} else {
 				$defaultTokenProvider = null;
 			}
-			
-			//$userSession = new \OC\User\Session($manager, $session, $timeFactory, $defaultTokenProvider, $c->getConfig());
-			$userSession = new UserSession($manager, $session, $timeFactory, $defaultTokenProvider, $c->getConfig());
+
+			$userSession = new \OC\User\Session($manager, $session, $timeFactory, $defaultTokenProvider, $c->getConfig());
 			$userSession->listen('\OC\User', 'preCreateUser', function ($uid, $password) {
-				\OC_Hook::emit('OC_User', 'pre_createUser', array('run' => true, 'uid' => $uid, 'password' => $password));
+				\OC_Hook::emit('OC_User', 'pre_createUser', ['run' => true, 'uid' => $uid, 'password' => $password]);
 			});
 			$userSession->listen('\OC\User', 'postCreateUser', function ($user, $password) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'post_createUser', array('uid' => $user->getUID(), 'password' => $password));
+				\OC_Hook::emit('OC_User', 'post_createUser', ['uid' => $user->getUID(), 'password' => $password]);
 			});
 			$userSession->listen('\OC\User', 'preDelete', function ($user) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'pre_deleteUser', array('run' => true, 'uid' => $user->getUID()));
+				\OC_Hook::emit('OC_User', 'pre_deleteUser', ['run' => true, 'uid' => $user->getUID()]);
 			});
 			$userSession->listen('\OC\User', 'postDelete', function ($user) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'post_deleteUser', array('uid' => $user->getUID()));
+				\OC_Hook::emit('OC_User', 'post_deleteUser', ['uid' => $user->getUID()]);
 			});
 			$userSession->listen('\OC\User', 'preSetPassword', function ($user, $password, $recoveryPassword) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'pre_setPassword', array('run' => true, 'uid' => $user->getUID(), 'password' => $password, 'recoveryPassword' => $recoveryPassword));
+				\OC_Hook::emit('OC_User', 'pre_setPassword', ['run' => true, 'uid' => $user->getUID(), 'password' => $password, 'recoveryPassword' => $recoveryPassword]);
 			});
 			$userSession->listen('\OC\User', 'postSetPassword', function ($user, $password, $recoveryPassword) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'post_setPassword', array('run' => true, 'uid' => $user->getUID(), 'password' => $password, 'recoveryPassword' => $recoveryPassword));
+				\OC_Hook::emit('OC_User', 'post_setPassword', ['run' => true, 'uid' => $user->getUID(), 'password' => $password, 'recoveryPassword' => $recoveryPassword]);
 			});
 			$userSession->listen('\OC\User', 'preLogin', function ($uid, $password) {
-				\OC_Hook::emit('OC_User', 'pre_login', array('run' => true, 'uid' => $uid, 'password' => $password));
+				\OC_Hook::emit('OC_User', 'pre_login', ['run' => true, 'uid' => $uid, 'password' => $password]);
 			});
 			$userSession->listen('\OC\User', 'postLogin', function ($user, $password) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'post_login', array('run' => true, 'uid' => $user->getUID(), 'password' => $password));
+				\OC_Hook::emit('OC_User', 'post_login', ['run' => true, 'uid' => $user->getUID(), 'password' => $password]);
 			});
 			$userSession->listen('\OC\User', 'logout', function () {
-				\OC_Hook::emit('OC_User', 'logout', array());
+				\OC_Hook::emit('OC_User', 'logout', []);
 			});
 			$userSession->listen('\OC\User', 'changeUser', function ($user, $feature, $value) {
 				/** @var $user \OC\User\User */
-				\OC_Hook::emit('OC_User', 'changeUser', array('run' => true, 'user' => $user, 'feature' => $feature, 'value' => $value));
+				\OC_Hook::emit('OC_User', 'changeUser', ['run' => true, 'user' => $user, 'feature' => $feature, 'value' => $value]);
 			});
 			return $userSession;
 		});
@@ -295,8 +326,12 @@ class Server extends ServerContainer implements IServerContainer {
 			return new \OC\Authentication\TwoFactorAuth\Manager($c->getAppManager(), $c->getSession(), $c->getConfig());
 		});
 
-		$this->registerService('NavigationManager', function ($c) {
-			return new \OC\NavigationManager();
+		$this->registerService('NavigationManager', function (Server $c) {
+			return new \OC\NavigationManager($c->getAppManager(),
+				$c->getURLGenerator(),
+				$c->getL10NFactory(),
+				$c->getUserSession(),
+				$c->getGroupManager());
 		});
 		$this->registerService('AllConfig', function (Server $c) {
 			return new \OC\AllConfig(
@@ -320,9 +355,11 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('URLGenerator', function (Server $c) {
 			$config = $c->getConfig();
 			$cacheFactory = $c->getMemCacheFactory();
-			return new \OC\URLGenerator(
+			$router = $c->getRouter();
+			return new URLGenerator(
 				$config,
-				$cacheFactory
+				$cacheFactory,
+				$router
 			);
 		});
 		$this->registerService('AppHelper', function ($c) {
@@ -376,7 +413,7 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('Logger', function (Server $c) {
 			$logClass = $c->query('AllConfig')->getSystemValue('log_type', 'owncloud');
 			$logger = 'OC\\Log\\' . ucfirst($logClass);
-			call_user_func(array($logger, 'init'));
+			call_user_func([$logger, 'init']);
 
 			return new Log($logger);
 		});
@@ -407,6 +444,7 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('Crypto', function (Server $c) {
 			return new Crypto($c->getConfig(), $c->getSecureRandom());
 		});
+		$this->registerAlias('OCP\Security\ICrypto', 'Crypto');
 		$this->registerService('Hasher', function (Server $c) {
 			return new Hasher($c->getConfig());
 		});
@@ -414,13 +452,13 @@ class Server extends ServerContainer implements IServerContainer {
 			return new CredentialsManager($c->getCrypto(), $c->getDatabaseConnection());
 		});
 		$this->registerService('DatabaseConnection', function (Server $c) {
-			$factory = new \OC\DB\ConnectionFactory();
 			$systemConfig = $c->getSystemConfig();
+			$factory = new \OC\DB\ConnectionFactory($systemConfig);
 			$type = $systemConfig->getValue('dbtype', 'sqlite');
 			if (!$factory->isValidType($type)) {
 				throw new \OC\DatabaseException('Invalid database type');
 			}
-			$connectionParams = $factory->createConnectionParams($systemConfig);
+			$connectionParams = $factory->createConnectionParams();
 			$connection = $factory->getConnection($type, $connectionParams);
 			$connection->getConfiguration()->setSQLLogger($c->getQueryLogger());
 			return $connection;
@@ -505,6 +543,14 @@ class Server extends ServerContainer implements IServerContainer {
 			$manager->registerHomeProvider(new ObjectHomeMountProvider($config));
 			$manager->registerHomeProvider(new \OC\CernBox\Storage\Eos\HomeMountProvider($config));
 
+			// external storage
+			if ($config->getAppValue('core', 'enable_external_storage', 'no') === 'yes') {
+				$manager->registerProvider(new \OC\Files\External\ConfigAdapter(
+					$c->query('UserStoragesService'),
+					$c->query('UserGlobalStoragesService')
+				));
+			}
+
 			return $manager;
 		});
 		$this->registerService('IniWrapper', function ($c) {
@@ -577,13 +623,6 @@ class Server extends ServerContainer implements IServerContainer {
 				$c->getConfig(),
 				$c->getLogger(),
 				new \OC_Defaults()
-			);
-		});
-		$this->registerService('OcsClient', function (Server $c) {
-			return new OCSClient(
-				$this->getHTTPClientService(),
-				$this->getConfig(),
-				$this->getLogger()
 			);
 		});
 		$this->registerService('LockingProvider', function (Server $c) {
@@ -673,6 +712,67 @@ class Server extends ServerContainer implements IServerContainer {
 		$this->registerService('ContentSecurityPolicyManager', function (Server $c) {
 			return new ContentSecurityPolicyManager();
 		});
+		$this->registerService('StoragesDBConfigService', function (Server $c) {
+			return new DBConfigService(
+				$c->getDatabaseConnection(),
+				$c->getCrypto()
+			);
+		});
+		$this->registerService('StoragesBackendService', function (Server $c) {
+			$service = new StoragesBackendService($c->query('AllConfig'));
+
+			// register auth mechanisms provided by core
+			$provider = new \OC\Files\External\Auth\CoreAuthMechanismProvider($c, [
+				// AuthMechanism::SCHEME_NULL mechanism
+				'OC\Files\External\Auth\NullMechanism',
+
+				// AuthMechanism::SCHEME_BUILTIN mechanism
+				'OC\Files\External\Auth\Builtin',
+
+				// AuthMechanism::SCHEME_PASSWORD mechanisms
+				'OC\Files\External\Auth\Password\Password',
+			]);
+
+			$service->registerAuthMechanismProvider($provider);
+
+			// force-load the session one as it will register hooks...
+			// TODO: obsolete it and use the TokenProvider to get the user's password from the session
+			$sessionCreds = new \OC\Files\External\Auth\Password\SessionCredentials(
+				$c->getSession(),
+				$c->getCrypto()
+			);
+			$service->registerAuthMechanism($sessionCreds);
+
+			return $service;
+		});
+		$this->registerAlias('OCP\Files\External\IStoragesBackendService', 'StoragesBackendService');
+		$this->registerService('GlobalStoragesService', function (Server $c) {
+			return new GlobalStoragesService(
+				$c->query('StoragesBackendService'),
+				$c->query('StoragesDBConfigService'),
+				$c->query('UserMountCache')
+			);
+		});
+		$this->registerAlias('OCP\Files\External\Service\IGlobalStoragesService', 'GlobalStoragesService');
+		$this->registerService('UserGlobalStoragesService', function (Server $c) {
+			return new UserGlobalStoragesService(
+				$c->query('StoragesBackendService'),
+				$c->query('StoragesDBConfigService'),
+				$c->query('UserSession'),
+				$c->query('GroupManager'),
+				$c->query('UserMountCache')
+			);
+		});
+		$this->registerAlias('OCP\Files\External\Service\IUserGlobalStoragesService', 'UserGlobalStoragesService');
+		$this->registerService('UserStoragesService', function (Server $c) {
+			return new UserStoragesService(
+				$c->query('StoragesBackendService'),
+				$c->query('StoragesDBConfigService'),
+				$c->query('UserSession'),
+				$c->query('UserMountCache')
+			);
+		});
+		$this->registerAlias('OCP\Files\External\Service\IUserStoragesService', 'UserStoragesService');
 		$this->registerService('ShareManager', function(Server $c) {
 			$config = $c->getConfig();
 			$factoryClass = $config->getSystemValue('sharing.managerFactory', '\OC\Share20\ProviderFactory');
@@ -695,34 +795,11 @@ class Server extends ServerContainer implements IServerContainer {
 			return $manager;
 		});
 
-		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
-			$requestCache = new RequestCache();
-			//$redisCache = new RedisCache(new Redis());
-			//$multiCache = new MultiCache(array($requestCache));
-			$multiCache = new MultiCache(array());
-			return $multiCache;
+		$this->registerService('ThemeService', function ($c) {
+			return new ThemeService($this->getSystemConfig()->getValue('theme'));
 		});
-
-
-		$this->registerService('CernBoxEosUtil', function (Server $c) {
-			return new Util($c->getCernBoxMetaDataCache());
-		});
-
-		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
-			return new InstanceManager();
-		});
-
-		$this->registerService('CernBoxShareUtil', function (Server $c) {
-			return new \OC\CernBox\Share\Util();
-		});
-
-		$this->registerService('CernBoxProjectMapper', function (Server $c) {
-			return new DBProjectMapper();
-		});
-
-		$this->registerService('CernBoxRedis', function (Server $c) {
-			return new Redis();
-		});
+		$this->registerAlias('OCP\IUserSession', 'UserSession');
+		$this->registerAlias('OCP\Security\ICrypto', 'Crypto');
 	}
 
 	/**
@@ -1041,6 +1118,16 @@ class Server extends ServerContainer implements IServerContainer {
 	}
 
 	/**
+	 * Returns a logger instance
+	 *
+	 * @return \OCP\Settings\ISettingsManager
+	 */
+	public function getSettingsManager() {
+		return $this->query('SettingsManager');
+	}
+
+
+	/**
 	 * Returns a router for generating and matching urls
 	 *
 	 * @return \OCP\Route\IRouter
@@ -1209,13 +1296,6 @@ class Server extends ServerContainer implements IServerContainer {
 	}
 
 	/**
-	 * @return \OC\OCSClient
-	 */
-	public function getOcsClient() {
-		return $this->query('OcsClient');
-	}
-
-	/**
 	 * @return \OCP\IDateTimeZone
 	 */
 	public function getDateTimeZone() {
@@ -1361,39 +1441,31 @@ class Server extends ServerContainer implements IServerContainer {
 	}
 
 	/**
-	 * Not a public API as of 8.2, wait for 9.0
-	 *
-	 * @return \OCA\Files_External\Service\BackendService
+	 * @return \OCP\Files\External\IStoragesBackendService
 	 */
 	public function getStoragesBackendService() {
-		return \OC_Mount_Config::$app->getContainer()->query('OCA\\Files_External\\Service\\BackendService');
+		return $this->query('StoragesBackendService');
 	}
 
 	/**
-	 * Not a public API as of 8.2, wait for 9.0
-	 *
-	 * @return \OCA\Files_External\Service\GlobalStoragesService
+	 * @return \OCP\Files\External\Service\IGlobalStoragesService
 	 */
 	public function getGlobalStoragesService() {
-		return \OC_Mount_Config::$app->getContainer()->query('OCA\\Files_External\\Service\\GlobalStoragesService');
+		return $this->query('GlobalStoragesService');
 	}
 
 	/**
-	 * Not a public API as of 8.2, wait for 9.0
-	 *
-	 * @return \OCA\Files_External\Service\UserGlobalStoragesService
+	 * @return \OCP\Files\External\Service\IUserGlobalStoragesService
 	 */
 	public function getUserGlobalStoragesService() {
-		return \OC_Mount_Config::$app->getContainer()->query('OCA\\Files_External\\Service\\UserGlobalStoragesService');
+		return $this->query('UserGlobalStoragesService');
 	}
 
 	/**
-	 * Not a public API as of 8.2, wait for 9.0
-	 *
-	 * @return \OCA\Files_External\Service\UserStoragesService
+	 * @return \OCP\Files\External\Service\IUserStoragesService
 	 */
 	public function getUserStoragesService() {
-		return \OC_Mount_Config::$app->getContainer()->query('OCA\\Files_External\\Service\\UserStoragesService');
+		return $this->query('UserStoragesService');
 	}
 
 	/**

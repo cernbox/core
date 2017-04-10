@@ -27,7 +27,22 @@
   "userBlacklist": [
     "owncloud-bot",
     "scrutinizer-auto-fixer",
+    "owncloud-news-gitter-bot",
     "th3fallen",
-    "zander"
+    "zander",
+    "icewind1991",
+    "schiessle",
+    "LukasReschke",
+    "blizzz",
+    "jancborchardt",
+    "nickvergessen",
+    "Xenopathic",
+    "MorrisJobke",
+    "rullzer",
+    "georgehrke",
+    "ChristophWurst",
+    "jospoortvliet",
+    "karlitschek",
+    "BernhardPosselt"
   ]
 }

@@ -2,10 +2,11 @@
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Christian Kampka <christian@kampka.net>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,6 +31,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\Question;
 
 class Install extends Command {
 
@@ -132,24 +134,20 @@ class Install extends Command {
 				throw new InvalidArgumentException("Database name not provided.");
 			}
 			if (is_null($dbPass)) {
-				/** @var $dialog \Symfony\Component\Console\Helper\DialogHelper */
-				$dialog = $this->getHelperSet()->get('dialog');
-				$dbPass = $dialog->askHiddenResponse(
-					$output,
-					"<question>What is the password to access the database with user <$dbUser>?</question>",
-					false
-				);
+				/** @var $dialog \Symfony\Component\Console\Helper\QuestionHelper */
+				$dialog = $this->getHelperSet()->get('question');
+				$q = new Question("<question>What is the password to access the database with user <$dbUser>?</question>", false);
+				$q->setHidden(true);
+				$dbPass = $dialog->ask($input, $output, $q);
 			}
 		}
 
 		if (is_null($adminPassword)) {
-			/** @var $dialog \Symfony\Component\Console\Helper\DialogHelper */
-			$dialog = $this->getHelperSet()->get('dialog');
-			$adminPassword = $dialog->askHiddenResponse(
-				$output,
-				"<question>What is the password you like to use for the admin account <$adminLogin>?</question>",
-				false
-			);
+			/** @var $dialog \Symfony\Component\Console\Helper\QuestionHelper */
+			$dialog = $this->getHelperSet()->get('question');
+			$q = new Question("<question>What is the password you like to use for the admin account <$adminLogin>?</question>", false);
+			$q->setHidden(true);
+			$adminPassword = $dialog->ask($input, $output, $q);
 		}
 
 		$options = [

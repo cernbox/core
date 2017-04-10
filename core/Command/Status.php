@@ -1,10 +1,11 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,12 +38,12 @@ class Status extends Base {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		$values = array(
+		$values = [
 			'installed' => (bool) \OC::$server->getConfig()->getSystemValue('installed', false),
 			'version' => implode('.', \OCP\Util::getVersion()),
 			'versionstring' => \OC_Util::getVersionString(),
 			'edition' => \OC_Util::getEditionString(),
-		);
+		];
 
 		$this->writeArrayInOutputFormat($input, $output, $values);
 	}

@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -10,7 +10,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -163,7 +163,7 @@ if (OC::checkUpgrade(false)) {
 		$eventSource->send('success', (string)$l->t('Checked database schema update for apps'));
 	});
 	$updater->listen('\OC\Updater', 'appUpgrade', function ($app, $version) use ($eventSource, $l) {
-		$eventSource->send('success', (string)$l->t('Updated "%s" to %s', array($app, $version)));
+		$eventSource->send('success', (string)$l->t('Updated "%s" to %s', [$app, $version]));
 	});
 	$updater->listen('\OC\Updater', 'incompatibleAppDisabled', function ($app) use (&$incompatibleApps) {
 		$incompatibleApps[]= $app;

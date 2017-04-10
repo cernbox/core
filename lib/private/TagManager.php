@@ -2,10 +2,11 @@
 /**
  * @author Bernhard Reiter <ockham@raz.or.at>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -76,7 +77,7 @@ class TagManager implements \OCP\ITagManager {
 	* logged in user
 	* @return \OCP\ITags
 	*/
-	public function load($type, $defaultTags = array(), $includeShared = false, $userId = null) {
+	public function load($type, $defaultTags = [], $includeShared = false, $userId = null) {
 		if (is_null($userId)) {
 			$user = $this->userSession->getUser();
 			if ($user === null) {

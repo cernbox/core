@@ -5,9 +5,10 @@
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -243,7 +244,7 @@ class Updater implements IUpdater {
 		if ($parentId != -1) {
 			$mtime = $this->storage->filemtime($parent);
 			if ($mtime !== false) {
-				$this->cache->update($parentId, array('storage_mtime' => $mtime));
+				$this->cache->update($parentId, ['storage_mtime' => $mtime]);
 			}
 		}
 	}

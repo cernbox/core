@@ -4,7 +4,7 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christoph Wurst <christoph@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
@@ -15,7 +15,7 @@
  * @author Tom Needham <tom@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -102,7 +102,7 @@ class OC_API {
 	/**
 	 * api actions
 	 */
-	protected static $actions = array();
+	protected static $actions = [];
 	private static $logoutRequired = false;
 	private static $isLoggedIn = false;
 
@@ -118,10 +118,10 @@ class OC_API {
 	 */
 	public static function register($method, $url, $action, $app,
 				$authLevel = API::USER_AUTH,
-				$defaults = array(),
-				$requirements = array()) {
+				$defaults = [],
+				$requirements = []) {
 		$name = strtolower($method).$url;
-		$name = str_replace(array('/', '{', '}'), '_', $name);
+		$name = str_replace(['/', '{', '}'], '_', $name);
 		if(!isset(self::$actions[$name])) {
 			$oldCollection = OC::$server->getRouter()->getCurrentCollection();
 			OC::$server->getRouter()->useCollection('ocs');
@@ -130,10 +130,10 @@ class OC_API {
 				->defaults($defaults)
 				->requirements($requirements)
 				->action('OC_API', 'call');
-			self::$actions[$name] = array();
+			self::$actions[$name] = [];
 			OC::$server->getRouter()->useCollection($oldCollection);
 		}
-		self::$actions[$name][] = array('app' => $app, 'action' => $action, 'authlevel' => $authLevel);
+		self::$actions[$name][] = ['app' => $app, 'action' => $action, 'authlevel' => $authLevel];
 	}
 
 	/**
@@ -152,31 +152,31 @@ class OC_API {
 		}
 		$name = $parameters['_route'];
 		// Foreach registered action
-		$responses = array();
+		$responses = [];
 		foreach(self::$actions[$name] as $action) {
 			// Check authentication and availability
 			if(!self::isAuthorised($action)) {
-				$responses[] = array(
+				$responses[] = [
 					'app' => $action['app'],
-					'response' => new OC_OCS_Result(null, API::RESPOND_UNAUTHORISED, 'Unauthorised'),
+					'response' => new \OC\OCS\Result(null, API::RESPOND_UNAUTHORISED, 'Unauthorised'),
 					'shipped' => OC_App::isShipped($action['app']),
-					);
+				];
 				continue;
 			}
 			if(!is_callable($action['action'])) {
-				$responses[] = array(
+				$responses[] = [
 					'app' => $action['app'],
-					'response' => new OC_OCS_Result(null, API::RESPOND_NOT_FOUND, 'Api method not found'),
+					'response' => new \OC\OCS\Result(null, API::RESPOND_NOT_FOUND, 'Api method not found'),
 					'shipped' => OC_App::isShipped($action['app']),
-					);
+				];
 				continue;
 			}
 			// Run the action
-			$responses[] = array(
+			$responses[] = [
 				'app' => $action['app'],
 				'response' => call_user_func($action['action'], $parameters),
 				'shipped' => OC_App::isShipped($action['app']),
-				);
+			];
 		}
 		$response = self::mergeResponses($responses);
 		$format = self::requestedFormat();
@@ -190,18 +190,18 @@ class OC_API {
 	/**
 	 * merge the returned result objects into one response
 	 * @param array $responses
-	 * @return OC_OCS_Result
+	 * @return \OC\OCS\Result
 	 */
 	public static function mergeResponses($responses) {
 		// Sort into shipped and third-party
-		$shipped = array(
-			'succeeded' => array(),
-			'failed' => array(),
-			);
-		$thirdparty = array(
-			'succeeded' => array(),
-			'failed' => array(),
-			);
+		$shipped = [
+			'succeeded' => [],
+			'failed' => [],
+		];
+		$thirdparty = [
+			'succeeded' => [],
+			'failed' => [],
+		];
 
 		foreach($responses as $response) {
 			if($response['shipped'] || ($response['app'] === 'core')) {
@@ -226,7 +226,7 @@ class OC_API {
 			// Which response code should we return?
 			// Maybe any that are not \OCP\API::RESPOND_SERVER_ERROR
 			// Merge failed responses if more than one
-			$data = array();
+			$data = [];
 			foreach($shipped['failed'] as $failure) {
 				$data = array_merge_recursive($data, $failure['response']->getData());
 			}
@@ -234,13 +234,13 @@ class OC_API {
 			$code = $picked['response']->getStatusCode();
 			$meta = $picked['response']->getMeta();
 			$headers = $picked['response']->getHeaders();
-			$response = new OC_OCS_Result($data, $code, $meta['message'], $headers);
+			$response = new \OC\OCS\Result($data, $code, $meta['message'], $headers);
 			return $response;
 		} elseif(!empty($shipped['succeeded'])) {
 			$responses = array_merge($shipped['succeeded'], $thirdparty['succeeded']);
 		} elseif(!empty($thirdparty['failed'])) {
 			// Merge failed responses if more than one
-			$data = array();
+			$data = [];
 			foreach($thirdparty['failed'] as $failure) {
 				$data = array_merge_recursive($data, $failure['response']->getData());
 			}
@@ -248,7 +248,7 @@ class OC_API {
 			$code = $picked['response']->getStatusCode();
 			$meta = $picked['response']->getMeta();
 			$headers = $picked['response']->getHeaders();
-			$response = new OC_OCS_Result($data, $code, $meta['message'], $headers);
+			$response = new \OC\OCS\Result($data, $code, $meta['message'], $headers);
 			return $response;
 		} else {
 			$responses = $thirdparty['succeeded'];
@@ -280,7 +280,7 @@ class OC_API {
 			}
 		}
 
-		return new OC_OCS_Result($data, $statusCode, $statusMessage, $header);
+		return new \OC\OCS\Result($data, $statusCode, $statusMessage, $header);
 	}
 
 	/**
@@ -383,7 +383,7 @@ class OC_API {
 
 	/**
 	 * respond to a call
-	 * @param OC_OCS_Result $result
+	 * @param \OC\OCS\Result $result
 	 * @param string $format the format xml|json
 	 */
 	public static function respond($result, $format='xml') {
@@ -444,7 +444,7 @@ class OC_API {
 	 * @return string
 	 */
 	public static function requestedFormat() {
-		$formats = array('json', 'xml');
+		$formats = ['json', 'xml'];
 
 		$format = !empty($_GET['format']) && in_array($_GET['format'], $formats) ? $_GET['format'] : 'xml';
 		return $format;
@@ -510,12 +510,12 @@ class OC_API {
 	 * @return string
 	 */
 	public static function renderResult($format, $meta, $data) {
-		$response = array(
-			'ocs' => array(
+		$response = [
+			'ocs' => [
 				'meta' => $meta,
 				'data' => $data,
-			),
-		);
+			],
+		];
 		if ($format == 'json') {
 			return OC_JSON::encode($response);
 		}
@@ -527,5 +527,15 @@ class OC_API {
 		self::toXML($response, $writer);
 		$writer->endDocument();
 		return $writer->outputMemory(true);
+	}
+
+	/**
+	 * Called when a not existing OCS endpoint has been called
+	 */
+	public static function notFound() {
+		$format = \OC::$server->getRequest()->getParam('format', 'xml');
+		$txt='Invalid query, please check the syntax. API specifications are here:'
+			.' http://www.freedesktop.org/wiki/Specifications/open-collaboration-services. DEBUG OUTPUT:'."\n";
+		OC_API::respond(new \OC\OCS\Result(null, API::RESPOND_UNKNOWN_ERROR, $txt), $format);
 	}
 }

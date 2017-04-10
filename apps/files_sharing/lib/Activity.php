@@ -1,10 +1,11 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -109,11 +110,11 @@ class Activity implements IExtension {
 	public function getNotificationTypes($languageCode) {
 		$l = $this->getL10N($languageCode);
 
-		return array(
+		return [
 			self::TYPE_SHARED => (string) $l->t('A file or folder has been <strong>shared</strong>'),
 			self::TYPE_REMOTE_SHARE => (string) $l->t('A file or folder was shared from <strong>another server</strong>'),
 			self::TYPE_PUBLIC_LINKS => (string) $l->t('A public shared file or folder was <strong>downloaded</strong>'),
-		);
+		];
 	}
 
 	/**
@@ -321,21 +322,21 @@ class Activity implements IExtension {
 			switch ($text) {
 				case self::SUBJECT_REMOTE_SHARE_RECEIVED:
 				case self::SUBJECT_REMOTE_SHARE_UNSHARED:
-					return array(
+					return [
 						0 => 'federated_cloud_id',
 						//1 => 'file', in theory its a file, but it does not exist yet/anymore
-					);
+					];
 				case self::SUBJECT_REMOTE_SHARE_ACCEPTED:
 				case self::SUBJECT_REMOTE_SHARE_DECLINED:
-					return array(
+					return [
 						0 => 'federated_cloud_id',
 						1 => 'file',
-					);
+					];
 				case self::SUBJECT_PUBLIC_SHARED_FOLDER_DOWNLOADED:
 				case self::SUBJECT_PUBLIC_SHARED_FILE_DOWNLOADED:
-					return array(
+					return [
 						0 => 'file',
-					);
+					];
 				case self::SUBJECT_SHARED_LINK_SELF:
 				case self::SUBJECT_UNSHARED_LINK_SELF:
 				case self::SUBJECT_LINK_EXPIRED:
@@ -347,10 +348,10 @@ class Activity implements IExtension {
 						2 => '',
 					];
 				case self::SUBJECT_SHARED_EMAIL:
-					return array(
+					return [
 						0 => 'file',
 						1 => '',// 'email' is neither supported nor planned for now
-					);
+					];
 
 				case self::SUBJECT_SHARED_USER_SELF:
 				case self::SUBJECT_SHARED_WITH_BY:

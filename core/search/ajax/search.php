@@ -7,7 +7,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,10 +37,10 @@ if (isset($_GET['query'])) {
 if (isset($_GET['inApps'])) {
 	$inApps = $_GET['inApps'];
 	if (is_string($inApps)) {
-		$inApps = array($inApps);
+		$inApps = [$inApps];
 	}
 } else {
-	$inApps = array();
+	$inApps = [];
 }
 if (isset($_GET['page'])) {
 	$page = (int)$_GET['page'];

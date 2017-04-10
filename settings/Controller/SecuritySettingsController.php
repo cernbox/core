@@ -2,8 +2,9 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -49,9 +50,9 @@ class SecuritySettingsController extends Controller {
 	 * @return array
 	 */
 	protected function returnSuccess() {
-		return array(
+		return [
 			'status' => 'success'
-		);
+		];
 	}
 
 	/**
@@ -60,7 +61,7 @@ class SecuritySettingsController extends Controller {
 	 * @return array
 	 */
 	public function trustedDomains($newTrustedDomain) {
-		$trustedDomains = $this->config->getSystemValue('trusted_domains');
+		$trustedDomains = $this->config->getSystemValue('trusted_domains', []);
 		$trustedDomains[] = $newTrustedDomain;
 		$this->config->setSystemValue('trusted_domains', $trustedDomains);
 

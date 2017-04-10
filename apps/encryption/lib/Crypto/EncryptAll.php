@@ -4,7 +4,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -117,7 +117,7 @@ class EncryptAll {
 		$this->questionHelper = $questionHelper;
 		$this->secureRandom = $secureRandom;
 		// store one time passwords for the users
-		$this->userPasswords = array();
+		$this->userPasswords = [];
 	}
 
 	/**
@@ -259,7 +259,7 @@ class EncryptAll {
 	protected function encryptUsersFiles($uid, ProgressBar $progress, $userCount) {
 
 		$this->setupUserFS($uid);
-		$directories = array();
+		$directories = [];
 		$directories[] =  '/' . $uid . '/files';
 
 		while($root = array_pop($directories)) {
@@ -310,11 +310,11 @@ class EncryptAll {
 	 */
 	protected function outputPasswords() {
 		$table = new Table($this->output);
-		$table->setHeaders(array('Username', 'Private key password'));
+		$table->setHeaders(['Username', 'Private key password']);
 
 		//create rows
-		$newPasswords = array();
-		$unchangedPasswords = array();
+		$newPasswords = [];
+		$unchangedPasswords = [];
 		foreach ($this->userPasswords as $uid => $password) {
 			if (empty($password)) {
 				$unchangedPasswords[] = $uid;
@@ -439,7 +439,7 @@ class EncryptAll {
 			$this->output->writeln("\n\nPassword successfully send to all users");
 		} else {
 			$table = new Table($this->output);
-			$table->setHeaders(array('Username', 'Private key password'));
+			$table->setHeaders(['Username', 'Private key password']);
 			$this->output->writeln("\n\nCould not send password to following users:\n");
 			$rows = [];
 			foreach ($noMail as $uid) {

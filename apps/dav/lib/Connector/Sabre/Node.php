@@ -4,16 +4,18 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Jakob Sack <mail@jakobsack.de>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Klaas Freitag <freitag@owncloud.com>
  * @author Markus Goetz <markus@woboq.com>
+ * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -115,6 +117,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @param string $name The new name
 	 * @throws \Sabre\DAV\Exception\BadRequest
 	 * @throws \Sabre\DAV\Exception\Forbidden
+	 * @throws InvalidPath
 	 */
 	public function setName($name) {
 
@@ -188,7 +191,7 @@ abstract class Node implements \Sabre\DAV\INode {
 	 * @return int file id of updated file or -1 on failure
 	 */
 	public function setETag($etag) {
-		return $this->fileView->putFileInfo($this->path, array('etag' => $etag));
+		return $this->fileView->putFileInfo($this->path, ['etag' => $etag]);
 	}
 
 	/**
@@ -249,8 +252,8 @@ abstract class Node implements \Sabre\DAV\INode {
 
 		$path = $this->info->getInternalPath();
 
-		if ($storage->instanceOfStorage('\OC\Files\Storage\Shared')) {
-			/** @var \OC\Files\Storage\Shared $storage */
+		if ($storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
+			/** @var \OCA\Files_Sharing\SharedStorage $storage */
 			$permissions = (int)$storage->getShare()->getPermissions();
 		} else {
 			$permissions = $storage->getPermissions($path);
@@ -319,6 +322,10 @@ abstract class Node implements \Sabre\DAV\INode {
 	}
 
 	protected function verifyPath() {
+		if (\OC\Files\Filesystem::isForbiddenFileOrDir($this->info->getPath())) {
+			throw new \Sabre\DAV\Exception\Forbidden();
+		}
+
 		try {
 			$fileName = basename($this->info->getPath());
 			$this->fileView->verifyPath($this->path, $fileName);

@@ -1,8 +1,9 @@
 <?php
 /**
+ * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,6 +44,7 @@ class CreateCalendar extends Command {
 
 	/**
 	 * @param IUserManager $userManager
+	 * @param IGroupManager $groupManager
 	 * @param IDBConnection $dbConnection
 	 */
 	function __construct(IUserManager $userManager, IGroupManager $groupManager, IDBConnection $dbConnection) {
@@ -73,9 +75,11 @@ class CreateCalendar extends Command {
 			$this->userManager,
 			$this->groupManager
 		);
+		$config = \OC::$server->getConfig();
+		$random = \OC::$server->getSecureRandom();
 
 		$name = $input->getArgument('name');
-		$caldav = new CalDavBackend($this->dbConnection, $principalBackend);
+		$caldav = new CalDavBackend($this->dbConnection, $principalBackend, $config, $random);
 		$caldav->createCalendar("principals/users/$user", $name, []);
 	}
 }

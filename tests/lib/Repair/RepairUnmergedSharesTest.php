@@ -30,6 +30,7 @@ use Test\TestCase;
 use OC\Share20\DefaultShareProvider;
 use OCP\IUserManager;
 use OCP\IGroupManager;
+use OCP\IConfig;
 
 /**
  * Tests for repairing invalid shares
@@ -64,13 +65,13 @@ class RepairUnmergedSharesTest extends TestCase {
 		$config->expects($this->any())
 			->method('getSystemValue')
 			->with('version')
-			->will($this->returnValue('9.0.3.0'));
+			->will($this->returnValue('9.1.0.0'));
 
 		$this->connection = \OC::$server->getDatabaseConnection();
 		$this->deleteAllShares();
 
-		$this->userManager = $this->getMock('\OCP\IUserManager');
-		$this->groupManager = $this->getMock('\OCP\IGroupManager');
+		$this->userManager = $this->createMock(IUserManager::class);
+		$this->groupManager = $this->createMock(IGroupManager::class);
 
 		// used to generate incremental stimes
 		$this->lastShareTime = time();
@@ -81,15 +82,12 @@ class RepairUnmergedSharesTest extends TestCase {
 
 	public function versionsProvider() {
 		return [
-			['9.0.0', true],
-			['9.0.1', true],
-			['9.0.3', true],
-			['9.0.3.2', true],
-			['9.0.4', false],
 			['9.1.0', true],
 			['9.1.0.15', true],
 			['9.1.0.16', false],
 			['9.1.3', false],
+			['9.2.0', false],
+			['10.0.0', false],
 		];
 	}
 
@@ -97,9 +95,7 @@ class RepairUnmergedSharesTest extends TestCase {
 	 * @dataProvider versionsProvider
 	 */
 	public function testDisabledVersions($version, $ran) {
-		$config = $this->getMockBuilder('OCP\IConfig')
-			->disableOriginalConstructor()
-			->getMock();
+		$config = $this->createMock(IConfig::class);
 		$config->expects($this->any())
 			->method('getSystemValue')
 			->with('version')
@@ -107,9 +103,9 @@ class RepairUnmergedSharesTest extends TestCase {
 
 		$this->connection = \OC::$server->getDatabaseConnection();
 
-		$this->userManager = $this->getMock('\OCP\IUserManager');
+		$this->userManager = $this->createMock(IUserManager::class);
 
-		$this->groupManager = $this->getMock('\OCP\IGroupManager');
+		$this->groupManager = $this->createMock(IGroupManager::class);
 
 		/** @var \OCP\IConfig $config */
 		$this->repair = new RepairUnmergedShares($config, $this->connection, $this->userManager, $this->groupManager);
@@ -540,12 +536,12 @@ class RepairUnmergedSharesTest extends TestCase {
 	 * @dataProvider sharesDataProvider
 	 */
 	public function testMergeGroupShares($shares, $expectedShares) {
-		$user1 = $this->getMock('\OCP\IUser');
+		$user1 = $this->createMock('\OCP\IUser');
 		$user1->expects($this->any())
 			->method('getUID')
 			->will($this->returnValue('user1'));
 
-		$user2 = $this->getMock('\OCP\IUser');
+		$user2 = $this->createMock('\OCP\IUser');
 		$user2->expects($this->any())
 			->method('getUID')
 			->will($this->returnValue('user2'));
@@ -556,9 +552,9 @@ class RepairUnmergedSharesTest extends TestCase {
 			->method('getUserGroupIds')
 			->will($this->returnValueMap([
 				// owner
-				[$user1, ['samegroup1', 'samegroup2']],
+				[$user1, null, ['samegroup1', 'samegroup2']],
 				// recipient
-				[$user2, ['recipientgroup1', 'recipientgroup2']],
+				[$user2, null, ['recipientgroup1', 'recipientgroup2']],
 			]));
 
 		$this->userManager->expects($this->once())

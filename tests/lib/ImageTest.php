@@ -75,10 +75,6 @@ class ImageTest extends \Test\TestCase {
 		$img = new \OC_Image(null);
 		$this->assertEquals('', $img->mimeType());
 
-		if (\OC_Util::runningOnWindows()) {
-			$this->markTestSkipped('[Windows] Images created with imagecreate() are pngs on windows');
-		}
-
 		$img = new \OC_Image(file_get_contents(OC::$SERVERROOT.'/tests/data/testimage.jpg'));
 		$this->assertEquals('image/jpeg', $img->mimeType());
 
@@ -320,11 +316,11 @@ class ImageTest extends \Test\TestCase {
 	}
 
 	function convertDataProvider() {
-		return array(
-			array( 'image/gif'),
-			array( 'image/jpeg'),
-			array( 'image/png'),
-		);
+		return [
+			['image/gif'],
+			['image/jpeg'],
+			['image/png'],
+		];
 	}
 
 	/**

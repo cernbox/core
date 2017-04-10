@@ -3,6 +3,7 @@ OC.L10N.register(
     {
     "Server to server sharing is not enabled on this server" : "Compartir entre servidores no está habilitado en este servidor",
     "Cancel" : "Cancelar",
+    "Share" : "Compartir",
     "Shared by" : "Compartido por",
     "Sharing" : "Compartiendo",
     "A file or folder has been <strong>shared</strong>" : "Un archivo o carpeta ha sido <strong>compartido</strong>",
@@ -15,6 +16,7 @@ OC.L10N.register(
     "The password is wrong. Try again." : "La contraseña no es correcta. Probá de nuevo.",
     "Password" : "Contraseña",
     "Name" : "Nombre",
+    "Expiration date" : "Fecha de vencimiento",
     "Sorry, this link doesn’t seem to work anymore." : "Perdón, este enlace parece no funcionar más.",
     "Reasons might be:" : "Las causas podrían ser:",
     "the item was removed" : "el elemento fue borrado",

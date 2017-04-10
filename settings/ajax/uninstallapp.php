@@ -3,8 +3,9 @@
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,8 +37,8 @@ if($result !== false) {
 	// FIXME: Clear the cache - move that into some sane helper method
 	\OC::$server->getMemCacheFactory()->create('settings')->remove('listApps-0');
 	\OC::$server->getMemCacheFactory()->create('settings')->remove('listApps-1');
-	OC_JSON::success(array('data' => array('appid' => $appId)));
+	OC_JSON::success(['data' => ['appid' => $appId]]);
 } else {
 	$l = \OC::$server->getL10N('settings');
-	OC_JSON::error(array("data" => array( "message" => $l->t("Couldn't remove app.") )));
+	OC_JSON::error(["data" => ["message" => $l->t("Couldn't remove app.")]]);
 }

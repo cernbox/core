@@ -9,6 +9,10 @@
     <namespace>FederatedFileSharing</namespace>
     <category>other</category>
     <dependencies>
-		<owncloud min-version="9.1" max-version="9.1" />
+		<owncloud min-version="10.0" max-version="10.0" />
     </dependencies>
+    <settings>
+        <admin>OCA\FederatedFileSharing\AdminPanel</admin>
+        <personal>OCA\FederatedFileSharing\PersonalPanel</personal>
+    </settings>
 </info>

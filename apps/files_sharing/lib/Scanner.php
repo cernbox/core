@@ -1,11 +1,12 @@
 <?php
 /**
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -54,7 +55,7 @@ class Scanner extends \OC\Files\Cache\Scanner {
 		if ($this->sourceScanner) {
 			return $this->sourceScanner;
 		}
-		if ($this->storage->instanceOfStorage('\OC\Files\Storage\Shared')) {
+		if ($this->storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage')) {
 			/** @var \OC\Files\Storage\Storage $storage */
 			list($storage) = $this->storage->resolvePath('');
 			$this->sourceScanner = $storage->getScanner();

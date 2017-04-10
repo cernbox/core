@@ -4,8 +4,9 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,9 +30,14 @@ class OracleConnection extends Connection {
 	 * Quote the keys of the array
 	 */
 	private function quoteKeys(array $data) {
-		$return = array();
+		$return = [];
+		$c = $this->getDatabasePlatform()->getIdentifierQuoteCharacter();
 		foreach($data as $key => $value) {
-			$return[$this->quoteIdentifier($key)] = $value;
+			if ($key[0] !== $c) {
+				$return[$this->quoteIdentifier($key)] = $value;
+			} else {
+				$return[$key] = $value;
+			}
 		}
 		return $return;
 	}
@@ -39,8 +45,10 @@ class OracleConnection extends Connection {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function insert($tableName, array $data, array $types = array()) {
-		$tableName = $this->quoteIdentifier($tableName);
+	public function insert($tableName, array $data, array $types = []) {
+		if ($tableName[0] !== $this->getDatabasePlatform()->getIdentifierQuoteCharacter()) {
+			$tableName = $this->quoteIdentifier($tableName);
+		}
 		$data = $this->quoteKeys($data);
 		return parent::insert($tableName, $data, $types);
 	}
@@ -48,8 +56,10 @@ class OracleConnection extends Connection {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function update($tableName, array $data, array $identifier, array $types = array()) {
-		$tableName = $this->quoteIdentifier($tableName);
+	public function update($tableName, array $data, array $identifier, array $types = []) {
+		if ($tableName[0] !== $this->getDatabasePlatform()->getIdentifierQuoteCharacter()) {
+			$tableName = $this->quoteIdentifier($tableName);
+		}
 		$data = $this->quoteKeys($data);
 		$identifier = $this->quoteKeys($identifier);
 		return parent::update($tableName, $data, $identifier, $types);
@@ -58,10 +68,12 @@ class OracleConnection extends Connection {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function delete($tableExpression, array $identifier, array $types = array()) {
-		$tableName = $this->quoteIdentifier($tableExpression);
+	public function delete($tableExpression, array $identifier, array $types = []) {
+		if ($tableExpression[0] !== $this->getDatabasePlatform()->getIdentifierQuoteCharacter()) {
+			$tableExpression = $this->quoteIdentifier($tableExpression);
+		}
 		$identifier = $this->quoteKeys($identifier);
-		return parent::delete($tableName, $identifier);
+		return parent::delete($tableExpression, $identifier);
 	}
 
 	/**
@@ -73,7 +85,7 @@ class OracleConnection extends Connection {
 		$table = $this->tablePrefix . trim($table);
 		$table = $this->quoteIdentifier($table);
 		$schema = $this->getSchemaManager();
-		if($schema->tablesExist(array($table))) {
+		if($schema->tablesExist([$table])) {
 			$schema->dropTable($table);
 		}
 	}
@@ -88,6 +100,6 @@ class OracleConnection extends Connection {
 		$table = $this->tablePrefix . trim($table);
 		$table = $this->quoteIdentifier($table);
 		$schema = $this->getSchemaManager();
-		return $schema->tablesExist(array($table));
+		return $schema->tablesExist([$table]);
 	}
 }

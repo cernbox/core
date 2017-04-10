@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,14 +23,7 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use Sabre\DAV\Exception\NotFound;
-use Sabre\DAV\IFile;
 use Sabre\DAV\INode;
-use \Sabre\DAV\PropFind;
-use \Sabre\DAV\PropPatch;
-use Sabre\DAVACL\Exception\NeedPrivileges;
-use \Sabre\HTTP\RequestInterface;
-use \Sabre\HTTP\ResponseInterface;
-use Sabre\HTTP\URLUtil;
 
 /**
  * Class DavAclPlugin is a wrapper around \Sabre\DAVACL\Plugin that returns 404
@@ -43,6 +36,7 @@ use Sabre\HTTP\URLUtil;
 class DavAclPlugin extends \Sabre\DAVACL\Plugin {
 	public function __construct() {
 		$this->hideNodesFromListings = true;
+		$this->allowUnauthenticatedAccess = false;
 	}
 
 	function checkPrivileges($uri, $privileges, $recursion = self::R_PARENT, $throwExceptions = true) {

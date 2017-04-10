@@ -1,9 +1,11 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
+ * @author Boris Rybalkin <ribalkin@gmail.com>
  * @author Brice Maron <brice@bmaron.net>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Klaas Freitag <freitag@owncloud.com>
  * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
@@ -15,7 +17,7 @@
  * @author Tigran Mkrtchyan <tigran.mkrtchyan@desy.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -96,7 +98,7 @@ class Local extends \OC\Files\Storage\Common {
 				 * @var \SplFileInfo $file
 				 */
 				$file = $it->current();
-				if (in_array($file->getBasename(), array('.', '..'))) {
+				if (in_array($file->getBasename(), ['.', '..'])) {
 					$it->next();
 					continue;
 				} elseif ($file->isDir()) {
@@ -172,8 +174,15 @@ class Local extends \OC\Files\Storage\Common {
 	}
 
 	public function filemtime($path) {
-		clearstatcache($this->getSourcePath($path));
-		return $this->file_exists($path) ? filemtime($this->getSourcePath($path)) : false;
+		$fullPath = $this->getSourcePath($path);
+		clearstatcache($fullPath);
+		if (!$this->file_exists($path)) {
+			return false;
+		}
+		if (PHP_INT_SIZE === 4) {
+			return (int) exec ('stat -c %Y '. escapeshellarg ($fullPath));
+		}
+		return filemtime($fullPath);
 	}
 
 	public function touch($path, $mtime = null) {
@@ -196,18 +205,7 @@ class Local extends \OC\Files\Storage\Common {
 	}
 
 	public function file_get_contents($path) {
-		// file_get_contents() has a memory leak: https://bugs.php.net/bug.php?id=61961
-		$fileName = $this->getSourcePath($path);
-
-		$fileSize = filesize($fileName);
-		if ($fileSize === 0) {
-			return '';
-		}
-
-		$handle = fopen($fileName, 'rb');
-		$content = fread($handle, $fileSize);
-		fclose($handle);
-		return $content;
+		return file_get_contents($this->getSourcePath($path));
 	}
 
 	public function file_put_contents($path, $data) {
@@ -316,7 +314,7 @@ class Local extends \OC\Files\Storage\Common {
 	 * @return array
 	 */
 	protected function searchInDir($query, $dir = '') {
-		$files = array();
+		$files = [];
 		$physicalDir = $this->getSourcePath($dir);
 		foreach (scandir($physicalDir) as $item) {
 			if (\OC\Files\Filesystem::isIgnoredDir($item))

@@ -22,7 +22,6 @@ OC.L10N.register(
     "Invalid mount point" : "Nieprawidłowy punkt montowania",
     "Invalid storage backend \"%s\"" : "Nieprawidłowy magazyn zaplecza \"%s\"",
     "Access key" : "Klucz dostępu",
-    "None" : "Nic",
     "App key" : "Klucz aplikacji",
     "App secret" : "Hasło aplikacji",
     "Client ID" : "ID klienta",
@@ -42,11 +41,10 @@ OC.L10N.register(
     "Remote subfolder" : "Zdalny podfolder",
     "Secure https://" : "Bezpieczny https://",
     "Dropbox" : "Dropbox",
-    "Host" : "Host",
-    "Secure ftps://" : "Bezpieczny ftps://",
     "Local" : "Lokalny",
     "Location" : "Lokalizacja",
     "ownCloud" : "ownCloud",
+    "Host" : "Host",
     "Root" : "Root",
     "SFTP with secret key login" : "Logowanie tajnym kluczem do SFTP",
     "Share" : "Udostępnij",
@@ -55,7 +53,6 @@ OC.L10N.register(
     "OpenStack Object Storage" : "Magazyn obiektów OpenStack",
     "<b>Note:</b> " : "<b>Uwaga:</b> ",
     "<b>Note:</b> The cURL support in PHP is not enabled or installed. Mounting of %s is not possible. Please ask your system administrator to install it." : "<b>Uwaga:</b> Wsparcie dla cURL w PHP nie zostało włączone lub zainstalowane. Zamontowanie %s nie jest możliwe. Proszę poproś Twojego administratora o zainstalowanie go.",
-    "<b>Note:</b> The FTP support in PHP is not enabled or installed. Mounting of %s is not possible. Please ask your system administrator to install it." : "<b>Uwaga:</b> Wsparcie dla FTP w PHP nie zostało włączone lub zainstalowane. Zamontowanie %s nie jest możliwe. Proszę poproś Twojego administratora o zainstalowanie go.",
     "<b>Note:</b> \"%s\" is not installed. Mounting of %s is not possible. Please ask your system administrator to install it." : "<b>Uwaga:</b> \"%s\" nie jest zainstalowane. Zamontowanie %s nie jest możliwe. Proszę poproś Twojego administratora o zainstalowanie go.",
     "No external storage configured" : "Nie skonfigurowano żadnego zewnętrznego nośnika",
     "You can add external storages in the personal settings" : "W ustawieniach osobistych możesz dodać zewnętrzne magazyny przechowywania",
@@ -76,4 +73,4 @@ OC.L10N.register(
     "Delete" : "Usuń",
     "Allow users to mount the following external storage" : "Pozwól użytkownikom montować następujące zewnętrzne zasoby dyskowe"
 },
-"nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);");
+"nplurals=4; plural=(n==1 ? 0 : (n%10>=2 && n%10<=4) && (n%100<12 || n%100>=14) ? 1 : n!=1 && (n%10>=0 && n%10<=1) || (n%10>=5 && n%10<=9) || (n%100>=12 && n%100<=14) ? 2 : 3);");

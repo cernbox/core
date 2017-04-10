@@ -2,11 +2,11 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Clark Tomlinson <fallen013@gmail.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -68,19 +68,19 @@ class KeyManagerTest extends TestCase {
 		parent::setUp();
 		$this->userId = 'user1';
 		$this->systemKeyId = 'systemKeyId';
-		$this->keyStorageMock = $this->getMock('OCP\Encryption\Keys\IStorage');
+		$this->keyStorageMock = $this->createMock('OCP\Encryption\Keys\IStorage');
 		$this->cryptMock = $this->getMockBuilder('OCA\Encryption\Crypto\Crypt')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->configMock = $this->getMock('OCP\IConfig');
+		$this->configMock = $this->createMock('OCP\IConfig');
 		$this->configMock->expects($this->any())
 			->method('getAppValue')
 			->willReturn($this->systemKeyId);
-		$this->userMock = $this->getMock('OCP\IUserSession');
+		$this->userMock = $this->createMock('OCP\IUserSession');
 		$this->sessionMock = $this->getMockBuilder('OCA\Encryption\Session')
 			->disableOriginalConstructor()
 			->getMock();
-		$this->logMock = $this->getMock('OCP\ILogger');
+		$this->logMock = $this->createMock('OCP\ILogger');
 		$this->utilMock = $this->getMockBuilder('OCA\Encryption\Util')
 			->disableOriginalConstructor()
 			->getMock();
@@ -307,7 +307,7 @@ class KeyManagerTest extends TestCase {
 
 		$this->assertTrue(
 			$this->instance->setRecoveryKey('pass',
-				array('publicKey' => 'publicKey', 'privateKey' => 'privateKey'))
+				['publicKey' => 'publicKey', 'privateKey' => 'privateKey'])
 		);
 	}
 
@@ -490,12 +490,12 @@ class KeyManagerTest extends TestCase {
 	 * @return array
 	 */
 	public function dataTestAddSystemKeys() {
-		return array(
-			array(['public' => true],[], 'user1', ['publicShareKey', 'recoveryKey']),
-			array(['public' => false], [], 'user1', ['recoveryKey']),
-			array(['public' => true],[], 'user2', ['publicShareKey']),
-			array(['public' => false], [], 'user2', []),
-		);
+		return [
+			[['public' => true],[], 'user1', ['publicShareKey', 'recoveryKey']],
+			[['public' => false], [], 'user1', ['recoveryKey']],
+			[['public' => true],[], 'user2', ['publicShareKey']],
+			[['public' => false], [], 'user2', []],
+		];
 	}
 
 	public function testGetMasterKeyId() {

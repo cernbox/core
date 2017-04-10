@@ -6,8 +6,9 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -90,7 +91,7 @@ interface IRouter {
 	 * @since 7.0.0
 	 * @deprecated 9.0.0
 	 */
-	public function create($name, $pattern, array $defaults = array(), array $requirements = array());
+	public function create($name, $pattern, array $defaults = [], array $requirements = []);
 
 	/**
 	 * Find the route matching $url.
@@ -121,6 +122,6 @@ interface IRouter {
 	 * @since 7.0.0
 	 * @deprecated 9.0.0
 	 */
-	public function generate($name, $parameters = array(), $absolute = false);
+	public function generate($name, $parameters = [], $absolute = false);
 
 }

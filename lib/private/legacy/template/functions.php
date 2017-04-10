@@ -2,7 +2,7 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -11,7 +11,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -128,11 +128,11 @@ function component($app, $file) {
 	if(is_array($file)) {
 		foreach($file as $f) {
 			$url = link_to($app, 'component/' . $f . '.html');
-			OC_Util::addHeader('link', array('rel' => 'import', 'href' => $url));
+			OC_Util::addHeader('link', ['rel' => 'import', 'href' => $url]);
 		}
 	} else {
 		$url = link_to($app, 'component/' . $file . '.html');
-		OC_Util::addHeader('link', array('rel' => 'import', 'href' => $url));
+		OC_Util::addHeader('link', ['rel' => 'import', 'href' => $url]);
 	}
 }
 
@@ -145,7 +145,7 @@ function component($app, $file) {
  *
  * For further information have a look at \OCP\IURLGenerator::linkTo
  */
-function link_to( $app, $file, $args = array() ) {
+function link_to( $app, $file, $args = []) {
 	return \OC::$server->getURLGenerator()->linkTo($app, $file, $args);
 }
 
@@ -235,9 +235,9 @@ function relative_modified_date($timestamp, $fromTime = null, $dateOnly = false)
 	return $formatter->formatTimeSpan($timestamp, $fromTime);
 }
 
-function html_select_options($options, $selected, $params=array()) {
+function html_select_options($options, $selected, $params= []) {
 	if (!is_array($selected)) {
-		$selected=array($selected);
+		$selected= [$selected];
 	}
 	if (isset($params['combine']) && $params['combine']) {
 		$options = array_combine($options, $options);

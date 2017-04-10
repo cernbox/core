@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,7 +44,7 @@ class Http extends BaseHttp {
 		$this->server = $server;
 		$this->protocolVersion = $protocolVersion;
 
-		$this->headers = array(
+		$this->headers = [
 			self::STATUS_CONTINUE => 'Continue',
 			self::STATUS_SWITCHING_PROTOCOLS => 'Switching Protocols',
 			self::STATUS_PROCESSING => 'Processing',
@@ -104,7 +104,7 @@ class Http extends BaseHttp {
 			self::STATUS_BANDWIDTH_LIMIT_EXCEEDED => 'Bandwidth Limit Exceeded', // non-standard
 			self::STATUS_NOT_EXTENDED => 'Not extended',
 			self::STATUS_NETWORK_AUTHENTICATION_REQUIRED => 'Network Authentication Required', // draft-nottingham-http-new-status
-		);
+		];
 	}
 
 

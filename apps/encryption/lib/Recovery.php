@@ -3,8 +3,9 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Clark Tomlinson <fallen013@gmail.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -226,7 +227,7 @@ class Recovery {
 				$fileKey = $this->keyManager->getFileKey($filePath, $this->user->getUID());
 				if (!empty($fileKey)) {
 					$accessList = $this->file->getAccessList($filePath);
-					$publicKeys = array();
+					$publicKeys = [];
 					foreach ($accessList['users'] as $uid) {
 						$publicKeys[$uid] = $this->keyManager->getPublicKey($uid);
 					}
@@ -312,7 +313,7 @@ class Recovery {
 
 		if (!empty($fileKey)) {
 			$accessList = $this->file->getAccessList($path);
-			$publicKeys = array();
+			$publicKeys = [];
 			foreach ($accessList['users'] as $user) {
 				$publicKeys[$user] = $this->keyManager->getPublicKey($user);
 			}

@@ -20,6 +20,7 @@
 		<link rel="icon" href="<?php print_unescaped(image_path($_['appid'], 'favicon.ico')); /* IE11+ supports png */ ?>">
 		<link rel="apple-touch-icon-precomposed" href="<?php print_unescaped(image_path($_['appid'], 'favicon-touch.png')); ?>">
 		<link rel="mask-icon" sizes="any" href="<?php print_unescaped(image_path($_['appid'], 'favicon-mask.svg')); ?>" color="#1d2d44">
+		<link rel="manifest" href="<?php print_unescaped(image_path($_['appid'], 'manifest.json')); ?>">
 		<?php foreach($_['cssfiles'] as $cssfile): ?>
 			<link rel="stylesheet" href="<?php print_unescaped($cssfile); ?>">
 		<?php endforeach; ?>
@@ -49,7 +50,7 @@
 			<a href="#" class="header-appname-container menutoggle" tabindex="2">
 				<h1 class="header-appname">
 					<?php
-						if(OC_Util::getEditionString() === '') {
+						if(OC_Util::getEditionString() === OC_Util::EDITION_COMMUNITY) {
 							p(!empty($_['application'])?$_['application']: $l->t('Apps'));
 						} else {
 							print_unescaped($theme->getHTMLName());
@@ -121,22 +122,6 @@
 						</a>
 					</li>
 				<?php endforeach; ?>
-				<?php
-					/* show "More apps" link to app administration directly in app navigation, as last entry */
-					if(OC_User::isAdminUser(OC_User::getUser())):
-				?>
-					<li id="apps-management">
-						<a href="<?php print_unescaped(\OC::$server->getURLGenerator()->linkToRoute('settings.AppSettings.viewApps')); ?>" tabindex="4"
-							<?php if( $_['appsmanagement_active'] ): ?> class="active"<?php endif; ?>>
-							<img class="app-icon svg" alt="" src="<?php print_unescaped(image_path('settings', 'apps.svg')); ?>">
-							<div class="icon-loading-dark" style="display:none;"></div>
-							<span>
-								<?php p($l->t('Apps')); ?>
-							</span>
-						</a>
-					</li>
-				<?php endif; ?>
-
 				</ul>
 			</div>
 		</div></nav>

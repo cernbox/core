@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
@@ -10,7 +10,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -109,7 +109,7 @@ class MailNotifications {
 
 			$items = $this->getItemSharedWithUser($itemSource, $itemType, $recipient);
 			$filename = trim($items[0]['file_target'], '/');
-			$subject = (string) $this->l->t('%s shared »%s« with you', array($this->senderDisplayName, $filename));
+			$subject = (string) $this->l->t('%s shared »%s« with you', [$this->senderDisplayName, $filename]);
 			$expiration = null;
 			if (isset($items[0]['expiration'])) {
 				try {

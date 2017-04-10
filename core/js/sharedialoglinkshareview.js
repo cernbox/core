@@ -15,6 +15,7 @@
 
 	var PASSWORD_PLACEHOLDER = '**********';
 	var PASSWORD_PLACEHOLDER_MESSAGE = t('core', 'Choose a password for the public link');
+	var PASSWORD_PLACEHOLDER_MESSAGE_OPTIONAL = t('core', 'Choose a password for the public link or press enter');
 
 	var TEMPLATE =
 			'{{#if shareAllowed}}' +
@@ -22,8 +23,11 @@
 			'<input type="checkbox" name="linkCheckbox" id="linkCheckbox-{{cid}}" class="checkbox linkCheckbox" value="1" {{#if isLinkShare}}checked="checked"{{/if}} />' +
 			'<label for="linkCheckbox-{{cid}}">{{linkShareLabel}}</label>' +
 			'<br />' +
+			'<div class="oneline">' +
 			'<label for="linkText-{{cid}}" class="hidden-visually">{{urlLabel}}</label>' +
 			'<input id="linkText-{{cid}}" class="linkText {{#unless isLinkShare}}hidden{{/unless}}" type="text" readonly="readonly" value="{{shareLinkURL}}" />' +
+			'<a class="{{#unless isLinkShare}}hidden-visually{{/unless}} clipboardButton icon icon-clippy" data-clipboard-target="#linkText-{{cid}}"></a>' +
+			'</div>' +
 			'    {{#if publicUpload}}' +
 			'<div id="allowPublicUploadWrapper">' +
 			'    <span class="icon-loading-small hidden"></span>' +
@@ -37,7 +41,11 @@
 			'    {{/if}}' +
 			'<div id="linkPass" class="linkPass {{#unless isPasswordSet}}hidden{{/unless}}">' +
 			'    <label for="linkPassText-{{cid}}" class="hidden-visually">{{passwordLabel}}</label>' +
+			'    {{#if showPasswordCheckBox}}' +
 			'    <input id="linkPassText-{{cid}}" class="linkPassText" type="password" placeholder="{{passwordPlaceholder}}" />' +
+			'    {{else}}' +
+			'    <input id="linkPassText-{{cid}}" class="linkPassText" type="password" placeholder="{{passwordPlaceholderInitial}}" />' +
+			'    {{/if}}' +
 			'    <span class="icon-loading-small hidden"></span>' +
 			'</div>' +
 			'{{else}}' +
@@ -112,6 +120,38 @@
 				'onShowPasswordClick',
 				'onAllowPublicUploadChange'
 			);
+
+			var clipboard = new Clipboard('.clipboardButton');
+			clipboard.on('success', function(e) {
+				$input = $(e.trigger);
+				$input.tooltip({placement: 'bottom', trigger: 'manual', title: t('core', 'Copied!')});
+				$input.tooltip('show');
+				_.delay(function() {
+					$input.tooltip('hide');
+				}, 3000);
+			});
+			clipboard.on('error', function (e) {
+				$input = $(e.trigger);
+				var actionMsg = '';
+				if (bowser.ios) {
+					actionMsg = t('core', 'Not supported!');
+				} else if (bowser.mac) {
+					actionMsg = t('core', 'Press ⌘-C to copy.');
+				} else {
+					actionMsg = t('core', 'Press Ctrl-C to copy.');
+				}
+
+				$input.tooltip({
+					placement: 'bottom',
+					trigger: 'manual',
+					title: actionMsg
+				});
+				$input.tooltip('show');
+				_.delay(function () {
+					$input.tooltip('hide');
+				}, 3000);
+			});
+
 		},
 
 		onLinkCheckBoxChange: function() {
@@ -122,7 +162,7 @@
 			}
 
 			if($checkBox.is(':checked')) {
-				if(this.configModel.get('enforcePasswordForPublicLink') === false) {
+				if(this.configModel.get('enforcePasswordForPublicLink') === false && this.configModel.get('enableLinkPasswordByDefault') === false) {
 					$loading.removeClass('hidden');
 					// this will create it
 					this.model.saveLinkShare();
@@ -153,7 +193,9 @@
 					password: ''
 				});
 			} else {
-				this.$el.find('.linkPassText').focus();
+				if (!bowser.msie) {
+					this.$el.find('.linkPassText').focus();
+				}
 			}
 		},
 
@@ -172,9 +214,19 @@
 			var $input = this.$el.find('.linkPassText');
 			$input.removeClass('error');
 			var password = $input.val();
-			// in IE9 the password might be the placeholder due to bugs in the placeholders polyfill
-			if(password === '' || password === PASSWORD_PLACEHOLDER || password === PASSWORD_PLACEHOLDER_MESSAGE) {
-				return;
+
+			if (this.$el.find('.linkPassText').attr('placeholder') === PASSWORD_PLACEHOLDER_MESSAGE_OPTIONAL) {
+
+				// in IE9 the password might be the placeholder due to bugs in the placeholders polyfill
+				if(password === PASSWORD_PLACEHOLDER_MESSAGE_OPTIONAL) {
+					password = '';
+				}
+			} else {
+
+				// in IE9 the password might be the placeholder due to bugs in the placeholders polyfill
+				if(password === '' || password === PASSWORD_PLACEHOLDER || password === PASSWORD_PLACEHOLDER_MESSAGE) {
+					return;
+				}
 			}
 
 			$loading
@@ -242,6 +294,8 @@
 			var showPasswordCheckBox = isLinkShare
 				&& (   !this.configModel.get('enforcePasswordForPublicLink')
 					|| !this.model.get('linkShare').password);
+			var passwordPlaceholderInitial = this.configModel.get('enforcePasswordForPublicLink')
+				? PASSWORD_PLACEHOLDER_MESSAGE : PASSWORD_PLACEHOLDER_MESSAGE_OPTIONAL;
 
 			this.$el.html(linkShareTemplate({
 				cid: this.cid,
@@ -253,6 +307,7 @@
 				enablePasswordLabel: t('core', 'Password protect'),
 				passwordLabel: t('core', 'Password'),
 				passwordPlaceholder: isPasswordSet ? PASSWORD_PLACEHOLDER : PASSWORD_PLACEHOLDER_MESSAGE,
+				passwordPlaceholderInitial: passwordPlaceholderInitial,
 				isPasswordSet: isPasswordSet,
 				showPasswordCheckBox: showPasswordCheckBox,
 				publicUpload: publicUpload && isLinkShare,

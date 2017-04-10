@@ -7,7 +7,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -153,7 +153,7 @@ class API implements IApi{
 	 * @param array $params default: array() array with additional data
 	 * @return bool true if slots exists or false if not
 	 */
-	public function emitHook($signalClass, $signalName, $params = array()) {
+	public function emitHook($signalClass, $signalName, $params = []) {
 		return  \OCP\Util::emitHook($signalClass, $signalName, $params);
 	}
 

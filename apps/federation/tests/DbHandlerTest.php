@@ -1,10 +1,10 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ class DbHandlerTest extends TestCase {
 		parent::setUp();
 
 		$this->connection = \OC::$server->getDatabaseConnection();
-		$this->il10n = $this->getMock('OCP\IL10N');
+		$this->il10n = $this->createMock('OCP\IL10N');
 
 		$this->dbHandler = new DbHandler(
 			$this->connection,

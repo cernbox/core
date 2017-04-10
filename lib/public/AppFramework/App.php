@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -63,7 +63,7 @@ class App {
 	 * @param array $urlParams an array with variables extracted from the routes
 	 * @since 6.0.0
 	 */
-	public function __construct($appName, $urlParams = array()) {
+	public function __construct($appName, $urlParams = []) {
 		$this->container = new \OC\AppFramework\DependencyInjection\DIContainer($appName, $urlParams);
 	}
 

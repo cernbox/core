@@ -109,11 +109,9 @@ module.exports = function(config) {
 			{
 				name: 'settings',
 				srcFiles: [
-					'settings/js/apps.js',
 					'settings/js/users/deleteHandler.js'
 				],
 				testFiles: [
-					'settings/tests/js/appsSpec.js',
 					'settings/tests/js/users/deleteHandlerSpec.js'
 				]
 			}
@@ -155,9 +153,6 @@ module.exports = function(config) {
 		appsToTest.splice(index, 1);
 		testCore = true;
 	}
-
-	// extra test libs
-	files.push(corePath + 'tests/lib/sinon-1.15.4.js');
 
 	// core mocks
 	files.push(corePath + 'tests/specHelper.js');
@@ -230,7 +225,7 @@ module.exports = function(config) {
 		basePath: '..',
 
 		// frameworks to use
-		frameworks: ['jasmine'],
+		frameworks: ['jasmine', 'jasmine-sinon'],
 
 		// list of files / patterns to load in the browser
 		files: files,

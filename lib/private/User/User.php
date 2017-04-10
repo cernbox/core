@@ -7,10 +7,11 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
- * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,6 +30,7 @@
 
 namespace OC\User;
 
+use OC\Files\Cache\Storage;
 use OC\Hooks\Emitter;
 use OC_Helper;
 use OCP\IAvatarManager;
@@ -37,6 +39,9 @@ use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IConfig;
 use OCP\UserInterface;
+use \OCP\IUserBackend;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 class User implements IUser {
 	/** @var string $uid */
@@ -69,17 +74,24 @@ class User implements IUser {
 	/** @var IURLGenerator */
 	private $urlGenerator;
 
+	/** @var  EventDispatcher */
+	private $eventDispatcher;
+
 	/**
 	 * @param string $uid
 	 * @param UserInterface $backend
 	 * @param \OC\Hooks\Emitter $emitter
 	 * @param IConfig|null $config
 	 * @param IURLGenerator $urlGenerator
+	 * @param EventDispatcher $eventDispatcher
 	 */
-	public function __construct($uid, $backend, $emitter = null, IConfig $config = null, $urlGenerator = null) {
+	public function __construct($uid, $backend, $emitter = null, IConfig $config = null,
+								$urlGenerator = null, EventDispatcher $eventDispatcher = null
+	) {
 		$this->uid = $uid;
 		$this->backend = $backend;
 		$this->emitter = $emitter;
+		$this->eventDispatcher = $eventDispatcher;
 		if(is_null($config)) {
 			$config = \OC::$server->getConfig();
 		}
@@ -110,7 +122,7 @@ class User implements IUser {
 	public function getDisplayName() {
 		if (!isset($this->displayName)) {
 			$displayName = '';
-			if ($this->backend and $this->backend->implementsActions(\OC\User\Backend::GET_DISPLAYNAME)) {
+			if ($this->backend and $this->backend->implementsActions(Backend::GET_DISPLAYNAME)) {
 				// get display name and strip whitespace from the beginning and end of it
 				$backendDisplayName = $this->backend->getDisplayName($this->uid);
 				if (is_string($backendDisplayName)) {
@@ -135,7 +147,7 @@ class User implements IUser {
 	 */
 	public function setDisplayName($displayName) {
 		$displayName = trim($displayName);
-		if ($this->backend->implementsActions(\OC\User\Backend::SET_DISPLAYNAME) && !empty($displayName)) {
+		if ($this->backend->implementsActions(Backend::SET_DISPLAYNAME) && !empty($displayName)) {
 			$result = $this->backend->setDisplayName($this->uid, $displayName);
 			if ($result) {
 				$this->displayName = $displayName;
@@ -155,11 +167,12 @@ class User implements IUser {
 	 * @since 9.0.0
 	 */
 	public function setEMailAddress($mailAddress) {
-		if($mailAddress === '') {
+		if(is_null($mailAddress) || $mailAddress === '') {
 			$this->config->deleteUserValue($this->uid, 'settings', 'email');
 		} else {
 			$this->config->setUserValue($this->uid, 'settings', 'email', $mailAddress);
 		}
+		$this->config->deleteUserValue($this->getUID(), 'owncloud', 'lostpassword');
 		$this->triggerChange('eMailAddress', $mailAddress);
 	}
 
@@ -177,9 +190,12 @@ class User implements IUser {
 	 * updates the timestamp of the most recent login of this user
 	 */
 	public function updateLastLoginTimestamp() {
+		$firstTimeLogin = ($this->lastLogin === 0);
 		$this->lastLogin = time();
-		\OC::$server->getConfig()->setUserValue(
+		$this->config->setUserValue(
 			$this->uid, 'login', 'lastLogin', $this->lastLogin);
+
+		return $firstTimeLogin;
 	}
 
 	/**
@@ -189,7 +205,7 @@ class User implements IUser {
 	 */
 	public function delete() {
 		if ($this->emitter) {
-			$this->emitter->emit('\OC\User', 'preDelete', array($this));
+			$this->emitter->emit('\OC\User', 'preDelete', [$this]);
 		}
 		// get the home now because it won't return it after user deletion
 		$homePath = $this->getHome();
@@ -199,8 +215,8 @@ class User implements IUser {
 			// FIXME: Feels like an hack - suggestions?
 
 			// We have to delete the user from all groups
-			foreach (\OC_Group::getUserGroups($this->uid) as $i) {
-				\OC_Group::removeFromGroup($this->uid, $i);
+			foreach (\OC::$server->getGroupManager()->getUserGroups($this) as $group) {
+				$group->removeUser($this);
 			}
 			// Delete the user's keys in preferences
 			\OC::$server->getConfig()->deleteAllUserValues($this->uid);
@@ -213,14 +229,14 @@ class User implements IUser {
 			}
 
 			// Delete the users entry in the storage table
-			\OC\Files\Cache\Storage::remove('home::' . $this->uid);
+			Storage::remove('home::' . $this->uid);
 
 			\OC::$server->getCommentsManager()->deleteReferencesOfActor('users', $this->uid);
 			\OC::$server->getCommentsManager()->deleteReadMarksFromUser($this);
 		}
 
 		if ($this->emitter) {
-			$this->emitter->emit('\OC\User', 'postDelete', array($this));
+			$this->emitter->emit('\OC\User', 'postDelete', [$this]);
 		}
 		return !($result === false);
 	}
@@ -234,12 +250,15 @@ class User implements IUser {
 	 */
 	public function setPassword($password, $recoveryPassword = null) {
 		if ($this->emitter) {
-			$this->emitter->emit('\OC\User', 'preSetPassword', array($this, $password, $recoveryPassword));
+			$this->emitter->emit('\OC\User', 'preSetPassword', [$this, $password, $recoveryPassword]);
 		}
-		if ($this->backend->implementsActions(\OC\User\Backend::SET_PASSWORD)) {
+		if ($this->backend->implementsActions(Backend::SET_PASSWORD)) {
 			$result = $this->backend->setPassword($this->uid, $password);
-			if ($this->emitter) {
-				$this->emitter->emit('\OC\User', 'postSetPassword', array($this, $password, $recoveryPassword));
+			if ($result) {
+				if ($this->emitter) {
+					$this->emitter->emit('\OC\User', 'postSetPassword', [$this, $password, $recoveryPassword]);
+				}
+				$this->config->deleteUserValue($this->getUID(), 'owncloud', 'lostpassword');
 			}
 			return !($result === false);
 		} else {
@@ -254,7 +273,7 @@ class User implements IUser {
 	 */
 	public function getHome() {
 		if (!$this->home) {
-			if ($this->backend->implementsActions(\OC\User\Backend::GET_HOME) and $home = $this->backend->getHome($this->uid)) {
+			if ($this->backend->implementsActions(Backend::GET_HOME) and $home = $this->backend->getHome($this->uid)) {
 				$this->home = $home;
 			} elseif ($this->config) {
 				$this->home = $this->config->getSystemValue('datadirectory') . '/' . $this->uid;
@@ -271,7 +290,7 @@ class User implements IUser {
 	 * @return string
 	 */
 	public function getBackendClassName() {
-		if($this->backend instanceof \OCP\IUserBackend) {
+		if($this->backend instanceof IUserBackend) {
 			return $this->backend->getBackendName();
 		}
 		return get_class($this->backend);
@@ -283,7 +302,7 @@ class User implements IUser {
 	 * @return bool
 	 */
 	public function canChangeAvatar() {
-		if ($this->backend->implementsActions(\OC\User\Backend::PROVIDE_AVATAR)) {
+		if ($this->backend->implementsActions(Backend::PROVIDE_AVATAR)) {
 			return $this->backend->canChangeAvatar($this->uid);
 		}
 		return true;
@@ -295,7 +314,7 @@ class User implements IUser {
 	 * @return bool
 	 */
 	public function canChangePassword() {
-		return $this->backend->implementsActions(\OC\User\Backend::SET_PASSWORD);
+		return $this->backend->implementsActions(Backend::SET_PASSWORD);
 	}
 
 	/**
@@ -307,7 +326,7 @@ class User implements IUser {
 		if ($this->config->getSystemValue('allow_user_to_change_display_name') === false) {
 			return false;
 		}
-		return $this->backend->implementsActions(\OC\User\Backend::SET_DISPLAYNAME);
+		return $this->backend->implementsActions(Backend::SET_DISPLAYNAME);
 	}
 
 	/**
@@ -328,6 +347,10 @@ class User implements IUser {
 		$this->enabled = $enabled;
 		$enabled = ($enabled) ? 'true' : 'false';
 		$this->config->setUserValue($this->uid, 'core', 'enabled', $enabled);
+
+		if ($this->eventDispatcher){
+			$this->eventDispatcher->dispatch(self::class . '::postSetEnabled',  new GenericEvent($this));
+		}
 	}
 
 	/**
@@ -420,7 +443,7 @@ class User implements IUser {
 
 	public function triggerChange($feature, $value = null) {
 		if ($this->emitter) {
-			$this->emitter->emit('\OC\User', 'changeUser', array($this, $feature, $value));
+			$this->emitter->emit('\OC\User', 'changeUser', [$this, $feature, $value]);
 		}
 	}
 }

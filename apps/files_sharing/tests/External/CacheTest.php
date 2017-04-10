@@ -1,11 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -68,11 +68,11 @@ class CacheTest extends TestCase {
 		);
 		$this->cache->put(
 			'test.txt',
-			array(
+			[
 				'mimetype' => 'text/plain',
 				'size' => 5,
 				'mtime' => 123,
-			)
+			]
 		);
 	}
 
@@ -99,19 +99,19 @@ class CacheTest extends TestCase {
 	public function testGetFolderPopulatesOwner() {
 		$dirId = $this->cache->put(
 			'subdir',
-			array(
+			[
 				'mimetype' => 'httpd/unix-directory',
 				'size' => 5,
 				'mtime' => 123,
-			)
+			]
 		);
 		$this->cache->put(
 			'subdir/contents.txt',
-			array(
+			[
 				'mimetype' => 'text/plain',
 				'size' => 5,
 				'mtime' => 123,
-			)
+			]
 		);
 
 		$results = $this->cache->getFolderContentsById($dirId);

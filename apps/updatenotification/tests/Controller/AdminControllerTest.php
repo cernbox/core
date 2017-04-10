@@ -1,9 +1,12 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Michael Jobst <mjobst+github@tecratech.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -58,15 +61,15 @@ class AdminControllerTest extends TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->request = $this->getMock('\\OCP\\IRequest');
-		$this->jobList = $this->getMock('\\OCP\\BackgroundJob\\IJobList');
-		$this->secureRandom = $this->getMock('\\OCP\\Security\\ISecureRandom');
-		$this->config = $this->getMock('\\OCP\\IConfig');
-		$this->timeFactory = $this->getMock('\\OCP\\AppFramework\\Utility\\ITimeFactory');
-		$this->l10n = $this->getMock('\\OCP\\IL10N');
+		$this->request = $this->createMock('\\OCP\\IRequest');
+		$this->jobList = $this->createMock('\\OCP\\BackgroundJob\\IJobList');
+		$this->secureRandom = $this->createMock('\\OCP\\Security\\ISecureRandom');
+		$this->config = $this->createMock('\\OCP\\IConfig');
+		$this->timeFactory = $this->createMock('\\OCP\\AppFramework\\Utility\\ITimeFactory');
+		$this->l10n = $this->createMock('\\OCP\\IL10N');
 		$this->updateChecker = $this->getMockBuilder('\\OCA\\UpdateNotification\\UpdateChecker')
 			->disableOriginalConstructor()->getMock();
-		$this->dateTimeFormatter = $this->getMock('\\OCP\\IDateTimeFormatter');
+		$this->dateTimeFormatter = $this->createMock('\\OCP\\IDateTimeFormatter');
 
 		$this->adminController = new AdminController(
 			'updatenotification',
@@ -110,15 +113,16 @@ class AdminControllerTest extends TestCase {
 		$this->updateChecker
 			->expects($this->once())
 			->method('getUpdateState')
-			->willReturn(['updateVersion' => '8.1.2']);
+			->willReturn(['updateVersion' => 'ownCloud 8.1.2']);
 
 		$params = [
 			'isNewVersionAvailable' => true,
 			'lastChecked' => 'LastCheckedReturnValue',
 			'currentChannel' => \OCP\Util::getChannel(),
 			'channels' => $channels,
-			'newVersionString' => '8.1.2',
-			'notify_groups' => 'admin',
+			'newVersionString' => 'ownCloud 8.1.2',
+			'changeLogUrl' => 'https://owncloud.org/changelog/#latest8.1',
+			'notify_groups' => 'admin'
 		];
 
 		$expected = new TemplateResponse('updatenotification', 'admin', $params, '');
@@ -162,6 +166,7 @@ class AdminControllerTest extends TestCase {
 			'currentChannel' => \OCP\Util::getChannel(),
 			'channels' => $channels,
 			'newVersionString' => '',
+			'changeLogUrl' => null,
 			'notify_groups' => 'admin',
 		];
 
@@ -196,4 +201,13 @@ class AdminControllerTest extends TestCase {
 		$expected = new DataResponse('MyGeneratedToken');
 		$this->assertEquals($expected, $this->adminController->createCredentials());
 	}
+
+	public function testGetPriority() {
+		$this->assertTrue(is_integer($this->adminController->getPriority()));
+	}
+
+	public function testGetSectionID() {
+		$this->assertEquals('general', $this->adminController->getSectionID());
+	}
+
 }

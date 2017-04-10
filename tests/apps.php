@@ -28,7 +28,7 @@ function loadDirectory($path) {
 }
 
 function getSubclasses($parentClassName) {
-	$classes = array();
+	$classes = [];
 	foreach (get_declared_classes() as $className) {
 		if (is_subclass_of($className, $parentClassName))
 			$classes[] = $className;
@@ -40,6 +40,10 @@ function getSubclasses($parentClassName) {
 $apps = OC_App::getEnabledApps();
 
 foreach ($apps as $app) {
+	// skip files_external, it has its own test suite
+	if ($app === 'files_external') {
+		continue;
+	}
 	$dir = OC_App::getAppPath($app);
 	if (is_dir($dir . '/tests')) {
 		loadDirectory($dir . '/tests');

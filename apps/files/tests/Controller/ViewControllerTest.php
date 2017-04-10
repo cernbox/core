@@ -1,11 +1,12 @@
 <?php
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,7 +27,6 @@ namespace OCA\Files\Tests\Controller;
 
 use OCA\Files\Controller\ViewController;
 use OCP\AppFramework\Http;
-use OCP\Files\NotFoundException;
 use OCP\IUser;
 use OCP\Template;
 use Test\TestCase;
@@ -47,47 +47,47 @@ use OCP\App\IAppManager;
  * @package OCA\Files\Tests\Controller
  */
 class ViewControllerTest extends TestCase {
-	/** @var IRequest */
+	/** @var IRequest | \PHPUnit_Framework_MockObject_MockObject */
 	private $request;
-	/** @var IURLGenerator */
+	/** @var IURLGenerator | \PHPUnit_Framework_MockObject_MockObject */
 	private $urlGenerator;
 	/** @var INavigationManager */
 	private $navigationManager;
 	/** @var IL10N */
 	private $l10n;
-	/** @var IConfig */
+	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */
 	private $config;
 	/** @var EventDispatcherInterface */
 	private $eventDispatcher;
-	/** @var ViewController */
+	/** @var ViewController | \PHPUnit_Framework_MockObject_MockObject */
 	private $viewController;
 	/** @var IUser */
 	private $user;
 	/** @var IUserSession */
 	private $userSession;
-	/** @var IAppManager */
+	/** @var IAppManager | \PHPUnit_Framework_MockObject_MockObject */
 	private $appManager;
-	/** @var Folder */
+	/** @var Folder | \PHPUnit_Framework_MockObject_MockObject */
 	private $rootFolder;
 
 	public function setUp() {
 		parent::setUp();
-		$this->request = $this->getMock('\OCP\IRequest');
-		$this->urlGenerator = $this->getMock('\OCP\IURLGenerator');
-		$this->navigationManager = $this->getMock('\OCP\INavigationManager');
-		$this->l10n = $this->getMock('\OCP\IL10N');
-		$this->config = $this->getMock('\OCP\IConfig');
-		$this->eventDispatcher = $this->getMock('\Symfony\Component\EventDispatcher\EventDispatcherInterface');
-		$this->userSession = $this->getMock('\OCP\IUserSession');
-		$this->appManager = $this->getMock('\OCP\App\IAppManager');
-		$this->user = $this->getMock('\OCP\IUser');
+		$this->request = $this->createMock('\OCP\IRequest');
+		$this->urlGenerator = $this->createMock('\OCP\IURLGenerator');
+		$this->navigationManager = $this->createMock('\OCP\INavigationManager');
+		$this->l10n = $this->createMock('\OCP\IL10N');
+		$this->config = $this->createMock('\OCP\IConfig');
+		$this->eventDispatcher = $this->createMock('\Symfony\Component\EventDispatcher\EventDispatcherInterface');
+		$this->userSession = $this->createMock('\OCP\IUserSession');
+		$this->appManager = $this->createMock('\OCP\App\IAppManager');
+		$this->user = $this->createMock('\OCP\IUser');
 		$this->user->expects($this->any())
 			->method('getUID')
 			->will($this->returnValue('testuser1'));
 		$this->userSession->expects($this->any())
 			->method('getUser')
 			->will($this->returnValue($this->user));
-		$this->rootFolder = $this->getMock('\OCP\Files\Folder');
+		$this->rootFolder = $this->createMock('\OCP\Files\Folder');
 		$this->viewController = $this->getMockBuilder('\OCA\Files\Controller\ViewController')
 			->setConstructorArgs([
 			'files',
@@ -190,7 +190,7 @@ class ViewControllerTest extends TestCase {
 				'appname' => 'files',
 				'script' => 'list.php',
 				'order' => 0,
-				'name' => new \OC_L10N_String(new \OC_L10N('files'), 'All files', []),
+				'name' => new \OC_L10N_String(\OC::$server->getL10NFactory()->get('files'), 'All files', []),
 				'active' => false,
 				'icon' => '',
 			],
@@ -208,7 +208,7 @@ class ViewControllerTest extends TestCase {
 				'appname' => 'files_sharing',
 				'script' => 'list.php',
 				'order' => 10,
-				'name' => new \OC_L10N_String(new \OC_L10N('files_sharing'), 'Shared with you', []),
+				'name' => new \OC_L10N_String(\OC::$server->getL10NFactory()->get('files_sharing'), 'Shared with you', []),
 				'active' => false,
 				'icon' => '',
 			],
@@ -217,7 +217,7 @@ class ViewControllerTest extends TestCase {
 				'appname' => 'files_sharing',
 				'script' => 'list.php',
 				'order' => 15,
-				'name' => new \OC_L10N_String(new \OC_L10N('files_sharing'), 'Shared with others', []),
+				'name' => new \OC_L10N_String(\OC::$server->getL10NFactory()->get('files_sharing'), 'Shared with others', []),
 				'active' => false,
 				'icon' => '',
 			],
@@ -226,7 +226,7 @@ class ViewControllerTest extends TestCase {
 				'appname' => 'files_sharing',
 				'script' => 'list.php',
 				'order' => 20,
-				'name' => new \OC_L10N_String(new \OC_L10N('files_sharing'), 'Shared by link', []),
+				'name' => new \OC_L10N_String(\OC::$server->getL10NFactory()->get('files_sharing'), 'Shared by link', []),
 				'active' => false,
 				'icon' => '',
 			],
@@ -235,7 +235,7 @@ class ViewControllerTest extends TestCase {
 				'appname' => 'systemtags',
 				'script' => 'list.php',
 				'order' => 25,
-				'name' => new \OC_L10N_String(new \OC_L10N('systemtags'), 'Tags', []),
+				'name' => new \OC_L10N_String(\OC::$server->getL10NFactory()->get('systemtags'), 'Tags', []),
 				'active' => false,
 				'icon' => '',
 			],
@@ -244,10 +244,10 @@ class ViewControllerTest extends TestCase {
 				'appname' => 'files_trashbin',
 				'script' => 'list.php',
 				'order' => 50,
-				'name' => new \OC_L10N_String(new \OC_L10N('files_trashbin'), 'Deleted files', []),
+				'name' => new \OC_L10N_String(\OC::$server->getL10NFactory()->get('files_trashbin'), 'Deleted files', []),
 				'active' => false,
 				'icon' => '',
-				],
+			],
 		]);
 
 		$expected = new Http\TemplateResponse(
@@ -264,6 +264,7 @@ class ViewControllerTest extends TestCase {
 				'fileNotFound' => 0,
 				'mailNotificationEnabled' => 'no',
 				'mailPublicNotificationEnabled' => 'no',
+				'socialShareEnabled' => 'yes',
 				'allowShareWithLink' => 'yes',
 				'appNavigation' => $nav,
 				'appContents' => [
@@ -315,12 +316,12 @@ class ViewControllerTest extends TestCase {
 	 * @dataProvider showFileMethodProvider
 	 */
 	public function testShowFileRouteWithFolder($useShowFile) {
-		$node = $this->getMock('\OCP\Files\Folder');
+		$node = $this->createMock('\OCP\Files\Folder');
 		$node->expects($this->once())
 			->method('getPath')
 			->will($this->returnValue('/testuser1/files/test/sub'));
 
-		$baseFolder = $this->getMock('\OCP\Files\Folder');
+		$baseFolder = $this->createMock('\OCP\Files\Folder');
 
 		$this->rootFolder->expects($this->once())
 			->method('get')
@@ -354,19 +355,19 @@ class ViewControllerTest extends TestCase {
 	 * @dataProvider showFileMethodProvider
 	 */
 	public function testShowFileRouteWithFile($useShowFile) {
-		$parentNode = $this->getMock('\OCP\Files\Folder');
+		$parentNode = $this->createMock('\OCP\Files\Folder');
 		$parentNode->expects($this->once())
 			->method('getPath')
 			->will($this->returnValue('testuser1/files/test'));
 
-		$baseFolder = $this->getMock('\OCP\Files\Folder');
+		$baseFolder = $this->createMock('\OCP\Files\Folder');
 
 		$this->rootFolder->expects($this->once())
 			->method('get')
 			->with('testuser1/files/')
 			->will($this->returnValue($baseFolder));
 
-		$node = $this->getMock('\OCP\Files\File');
+		$node = $this->createMock('\OCP\Files\File');
 		$node->expects($this->once())
 			->method('getParent')
 			->will($this->returnValue($parentNode));
@@ -401,7 +402,7 @@ class ViewControllerTest extends TestCase {
 	 * @dataProvider showFileMethodProvider
 	 */
 	public function testShowFileRouteWithInvalidFileId($useShowFile) {
-		$baseFolder = $this->getMock('\OCP\Files\Folder');
+		$baseFolder = $this->createMock('\OCP\Files\Folder');
 		$this->rootFolder->expects($this->once())
 			->method('get')
 			->with('testuser1/files/')
@@ -432,13 +433,13 @@ class ViewControllerTest extends TestCase {
 			->with('files_trashbin')
 			->will($this->returnValue(true));
 
-		$parentNode = $this->getMock('\OCP\Files\Folder');
+		$parentNode = $this->createMock('\OCP\Files\Folder');
 		$parentNode->expects($this->once())
 			->method('getPath')
 			->will($this->returnValue('testuser1/files_trashbin/files/test.d1462861890/sub'));
 
-		$baseFolderFiles = $this->getMock('\OCP\Files\Folder');
-		$baseFolderTrash = $this->getMock('\OCP\Files\Folder');
+		$baseFolderFiles = $this->createMock('\OCP\Files\Folder');
+		$baseFolderTrash = $this->createMock('\OCP\Files\Folder');
 
 		$this->rootFolder->expects($this->at(0))
 			->method('get')
@@ -454,7 +455,7 @@ class ViewControllerTest extends TestCase {
 			->with(123)
 			->will($this->returnValue([]));
 
-		$node = $this->getMock('\OCP\Files\File');
+		$node = $this->createMock('\OCP\Files\File');
 		$node->expects($this->once())
 			->method('getParent')
 			->will($this->returnValue($parentNode));

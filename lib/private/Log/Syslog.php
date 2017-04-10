@@ -5,7 +5,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,13 +25,13 @@
 namespace OC\Log;
 
 class Syslog {
-	static protected $levels = array(
+	static protected $levels = [
 		\OCP\Util::DEBUG => LOG_DEBUG,
 		\OCP\Util::INFO => LOG_INFO,
 		\OCP\Util::WARN => LOG_WARNING,
 		\OCP\Util::ERROR => LOG_ERR,
 		\OCP\Util::FATAL => LOG_CRIT,
-	);
+	];
 
 	/**
 	 * Init class data

@@ -1,9 +1,10 @@
 <?php
 /**
  * @author Clark Tomlinson <fallen013@gmail.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,6 +26,7 @@ namespace OCA\Encryption\Tests;
 
 
 use OCA\Encryption\HookManager;
+use OCA\Encryption\Hooks\Contracts\IHook;
 use Test\TestCase;
 
 class HookManagerTest extends TestCase {
@@ -39,9 +41,14 @@ class HookManagerTest extends TestCase {
 	 */
 	public function testRegisterHookWithArray() {
 		self::$instance->registerHook([
-			$this->getMockBuilder('OCA\Encryption\Hooks\Contracts\IHook')->disableOriginalConstructor()->getMock(),
-			$this->getMockBuilder('OCA\Encryption\Hooks\Contracts\IHook')->disableOriginalConstructor()->getMock(),
-			$this->getMock('NotIHook')
+			$this->getMockBuilder(IHook::class)
+				->disableOriginalConstructor()
+				->getMock(),
+			$this->getMockBuilder(IHook::class)
+				->disableOriginalConstructor()
+				->getMock(),
+			$this->getMockBuilder('NotIHook')
+				->getMock()
 		]);
 
 		$hookInstances = self::invokePrivate(self::$instance, 'hookInstances');
@@ -64,7 +71,9 @@ class HookManagerTest extends TestCase {
 	 *
 	 */
 	public function testRegisterHooksWithInstance() {
-		$mock = $this->getMockBuilder('OCA\Encryption\Hooks\Contracts\IHook')->disableOriginalConstructor()->getMock();
+		$mock = $this->getMockBuilder(IHook::class)
+			->disableOriginalConstructor()
+			->getMock();
 		/** @var \OCA\Encryption\Hooks\Contracts\IHook $mock */
 		self::$instance->registerHook($mock);
 

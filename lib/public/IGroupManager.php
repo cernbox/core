@@ -1,14 +1,14 @@
 <?php
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -89,24 +89,27 @@ interface IGroupManager {
 	 * @param string $search
 	 * @param int $limit
 	 * @param int $offset
+	 * @param string $scope
 	 * @return \OCP\IGroup[]
 	 * @since 8.0.0
 	 */
-	public function search($search, $limit = null, $offset = null);
+	public function search($search, $limit = null, $offset = null, $scope = null);
 
 	/**
 	 * @param \OCP\IUser|null $user
+	 * @param string $scope
 	 * @return \OCP\IGroup[]
 	 * @since 8.0.0
 	 */
-	public function getUserGroups($user);
+	public function getUserGroups($user, $scope = null);
 
 	/**
 	 * @param \OCP\IUser $user
+	 * @param string $scope
 	 * @return array with group names
 	 * @since 8.0.0
 	 */
-	public function getUserGroupIds($user);
+	public function getUserGroupIds($user, $scope = null);
 
 	/**
 	 * get a list of all display names in a group

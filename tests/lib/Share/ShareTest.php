@@ -56,28 +56,28 @@ class ShareTest extends \Test\TestCase {
 		$this->user5 = $this->getUniqueID('user5_');
 		$this->user6 = $this->getUniqueID('user6_');
 		$this->groupAndUser = $this->getUniqueID('groupAndUser_');
-		\OC::$server->getUserManager()->createUser($this->user1, 'pass');
-		\OC::$server->getUserManager()->createUser($this->user2, 'pass');
-		\OC::$server->getUserManager()->createUser($this->user3, 'pass');
-		\OC::$server->getUserManager()->createUser($this->user4, 'pass');
-		\OC::$server->getUserManager()->createUser($this->user5, 'pass');
-		\OC::$server->getUserManager()->createUser($this->user6, 'pass'); // no group
-		\OC::$server->getUserManager()->createUser($this->groupAndUser, 'pass');
+		$u1 = \OC::$server->getUserManager()->createUser($this->user1, 'pass');
+		$u2 = \OC::$server->getUserManager()->createUser($this->user2, 'pass');
+		$u3 = \OC::$server->getUserManager()->createUser($this->user3, 'pass');
+		$u4 = \OC::$server->getUserManager()->createUser($this->user4, 'pass');
+		$u5 = \OC::$server->getUserManager()->createUser($this->user5, 'pass');
+		$u6 = \OC::$server->getUserManager()->createUser($this->user6, 'pass'); // no group
+		$uug = \OC::$server->getUserManager()->createUser($this->groupAndUser, 'pass');
 		\OC_User::setUserId($this->user1);
-		\OC_Group::clearBackends();
-		\OC_Group::useBackend(new \Test\Util\Group\Dummy());
+		\OC::$server->getGroupManager()->clearBackends();
+		\OC::$server->getGroupManager()->addBackend(new \Test\Util\Group\Dummy());
 		$this->group1 = $this->getUniqueID('group1_');
 		$this->group2 = $this->getUniqueID('group2_');
-		\OC_Group::createGroup($this->group1);
-		\OC_Group::createGroup($this->group2);
-		\OC_Group::createGroup($this->groupAndUser);
-		\OC_Group::addToGroup($this->user1, $this->group1);
-		\OC_Group::addToGroup($this->user2, $this->group1);
-		\OC_Group::addToGroup($this->user3, $this->group1);
-		\OC_Group::addToGroup($this->user2, $this->group2);
-		\OC_Group::addToGroup($this->user4, $this->group2);
-		\OC_Group::addToGroup($this->user2, $this->groupAndUser);
-		\OC_Group::addToGroup($this->user3, $this->groupAndUser);
+		$g1 = \OC::$server->getGroupManager()->createGroup($this->group1);
+		$g2 = \OC::$server->getGroupManager()->createGroup($this->group2);
+		$gAU = \OC::$server->getGroupManager()->createGroup($this->groupAndUser);
+		$g1->addUser($u1);
+		$g1->addUser($u2);
+		$g1->addUser($u3);
+		$g2->addUser($u2);
+		$g2->addUser($u4);
+		$gAU->addUser($u2);
+		$gAU->addUser($u3);
 		\OCP\Share::registerBackend('test', 'Test\Share\Backend');
 		\OC_Hook::clear('OCP\\Share');
 		\OC::registerShareHooks();
@@ -93,7 +93,7 @@ class ShareTest extends \Test\TestCase {
 
 	protected function tearDown() {
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*share` WHERE `item_type` = ?');
-		$query->execute(array('test'));
+		$query->execute(['test']);
 		\OC::$server->getAppConfig()->setValue('core', 'shareapi_allow_resharing', $this->resharing);
 
 		$user = \OC::$server->getUserManager()->get($this->user1);
@@ -111,9 +111,12 @@ class ShareTest extends \Test\TestCase {
 		$user = \OC::$server->getUserManager()->get($this->groupAndUser);
 		if ($user !== null) { $user->delete(); }
 
-		\OC_Group::deleteGroup($this->group1);
-		\OC_Group::deleteGroup($this->group2);
-		\OC_Group::deleteGroup($this->groupAndUser);
+		$g = \OC::$server->getGroupManager()->get($this->group1);
+		if ($g !== null) { $g->delete(); }
+		$g = \OC::$server->getGroupManager()->get($this->group2);
+		if ($g !== null) { $g->delete(); }
+		$g = \OC::$server->getGroupManager()->get($this->groupAndUser);
+		if ($g !== null) { $g->delete(); }
 
 		$this->logout();
 		parent::tearDown();
@@ -308,10 +311,10 @@ class ShareTest extends \Test\TestCase {
 
 		// Valid reshare
 		$this->assertTrue(\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user3, \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE));
-		$this->assertEquals(array('test.txt'), \OCP\Share::getItemShared('test', 'test.txt', Backend::FORMAT_SOURCE));
+		$this->assertEquals(['test.txt'], \OCP\Share::getItemShared('test', 'test.txt', Backend::FORMAT_SOURCE));
 		\OC_User::setUserId($this->user3);
-		$this->assertEquals(array('test.txt'), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE));
-		$this->assertEquals(array(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
+		$this->assertEquals(['test.txt'], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE));
+		$this->assertEquals([\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
 
 		// Attempt to escalate permissions
 		\OC_User::setUserId($this->user2);
@@ -327,17 +330,17 @@ class ShareTest extends \Test\TestCase {
 		\OC_User::setUserId($this->user1);
 		$this->assertTrue(\OCP\Share::setPermissions('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_SHARE));
 		\OC_User::setUserId($this->user2);
-		$this->assertEquals(array(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_SHARE), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
+		$this->assertEquals([\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_SHARE], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
 		\OC_User::setUserId($this->user3);
-		$this->assertEquals(array(\OCP\Constants::PERMISSION_READ), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
+		$this->assertEquals([\OCP\Constants::PERMISSION_READ], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
 
 		// Remove share permission
 		\OC_User::setUserId($this->user1);
 		$this->assertTrue(\OCP\Share::setPermissions('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ));
 		\OC_User::setUserId($this->user2);
-		$this->assertEquals(array(\OCP\Constants::PERMISSION_READ), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
+		$this->assertEquals([\OCP\Constants::PERMISSION_READ], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_PERMISSIONS));
 		\OC_User::setUserId($this->user3);
-		$this->assertSame(array(), \OCP\Share::getItemSharedWith('test', 'test.txt'));
+		$this->assertSame([], \OCP\Share::getItemSharedWith('test', 'test.txt'));
 
 		// Reshare again, and then have owner unshare
 		\OC_User::setUserId($this->user1);
@@ -347,9 +350,9 @@ class ShareTest extends \Test\TestCase {
 		\OC_User::setUserId($this->user1);
 		$this->assertTrue(\OCP\Share::unshare('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user2));
 		\OC_User::setUserId($this->user2);
-		$this->assertSame(array(), \OCP\Share::getItemSharedWith('test', 'test.txt'));
+		$this->assertSame([], \OCP\Share::getItemSharedWith('test', 'test.txt'));
 		\OC_User::setUserId($this->user3);
-		$this->assertSame(array(), \OCP\Share::getItemSharedWith('test', 'test.txt'));
+		$this->assertSame([], \OCP\Share::getItemSharedWith('test', 'test.txt'));
 
 		// Attempt target conflict
 		\OC_User::setUserId($this->user1);
@@ -365,11 +368,11 @@ class ShareTest extends \Test\TestCase {
 
 		// Unshare from self
 		$this->assertTrue(\OCP\Share::unshareFromSelf('test', 'test.txt'));
-		$this->assertEquals(array('test1.txt'), \OCP\Share::getItemsSharedWith('test', Backend::FORMAT_TARGET));
+		$this->assertEquals(['test1.txt'], \OCP\Share::getItemsSharedWith('test', Backend::FORMAT_TARGET));
 
 		// Unshare from self via source
 		$this->assertTrue(\OCP\Share::unshareFromSelf('test', 'share.txt', true));
-		$this->assertEquals(array(), \OCP\Share::getItemsSharedWith('test', Backend::FORMAT_TARGET));
+		$this->assertEquals([], \OCP\Share::getItemsSharedWith('test', Backend::FORMAT_TARGET));
 
 		\OC_User::setUserId($this->user1);
 		$this->assertTrue(\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ));
@@ -387,7 +390,7 @@ class ShareTest extends \Test\TestCase {
 		$user = \OC::$server->getUserManager()->get($this->user1);
 		if ($user !== null) { $user->delete(); }
 		\OC_User::setUserId($this->user2);
-		$this->assertEquals(array('test1.txt'), \OCP\Share::getItemsSharedWith('test', Backend::FORMAT_TARGET));
+		$this->assertEquals(['test1.txt'], \OCP\Share::getItemsSharedWith('test', Backend::FORMAT_TARGET));
 	}
 
 	public function testShareWithUserExpirationExpired() {
@@ -408,46 +411,6 @@ class ShareTest extends \Test\TestCase {
 		$this->assertSame(1, count($shares));
 		$share = reset($shares);
 		$this->assertSame(\OCP\Share::SHARE_TYPE_USER, $share['share_type']);
-	}
-
-	public function testGetShareFromOutsideFilesFolder() {
-		\OC_User::setUserId($this->user1);
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/test');
-		$view->mkdir('files/test/sub');
-
-		$view->mkdir('files_trashbin');
-		$view->mkdir('files_trashbin/files');
-
-		$fileInfo = $view->getFileInfo('files/test/sub');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared "test/sub" with user 2.'
-		);
-
-		$result = \OCP\Share::getItemShared('folder', $fileId, Backend::FORMAT_SOURCE);
-		$this->assertNotEmpty($result);
-
-		$result = \OCP\Share::getItemSharedWithUser('folder', $fileId, $this->user2);
-		$this->assertNotEmpty($result);
-
-		$result = \OCP\Share::getItemsSharedWithUser('folder', $this->user2);
-		$this->assertNotEmpty($result);
-
-		// move to trash (keeps file id)
-		$view->rename('files/test', 'files_trashbin/files/test');
-
-		$result = \OCP\Share::getItemShared('folder', $fileId, Backend::FORMAT_SOURCE);
-		$this->assertEmpty($result, 'Share must not be returned for files outside of "files"');
-
-		$result = \OCP\Share::getItemSharedWithUser('folder', $fileId, $this->user2);
-		$this->assertEmpty($result, 'Share must not be returned for files outside of "files"');
-
-		$result = \OCP\Share::getItemsSharedWithUser('folder', $this->user2);
-		$this->assertEmpty($result, 'Share must not be returned for files outside of "files"');
 	}
 
 	public function testSetExpireDateInPast() {
@@ -517,75 +480,6 @@ class ShareTest extends \Test\TestCase {
 
 	}
 
-	public function testSharingAFolderThatIsSharedWithAGroupOfTheOwner() {
-		\OC_User::setUserId($this->user1);
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/test');
-		$view->mkdir('files/test/sub1');
-		$view->mkdir('files/test/sub1/sub2');
-
-		$fileInfo = $view->getFileInfo('files/test/sub1');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_GROUP, $this->group1, \OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_CREATE),
-			'Failed asserting that user 1 successfully shared "test/sub1" with group 1.'
-		);
-
-		$result = \OCP\Share::getItemShared('folder', $fileId, Backend::FORMAT_SOURCE);
-		$this->assertNotEmpty($result);
-		$this->assertEquals(\OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_CREATE, $result['permissions']);
-
-		$fileInfo = $view->getFileInfo('files/test/sub1/sub2');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user4, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared "test/sub1/sub2" with user 4.'
-		);
-
-		$result = \OCP\Share::getItemShared('folder', $fileId, Backend::FORMAT_SOURCE);
-		$this->assertNotEmpty($result);
-		$this->assertEquals(\OCP\Constants::PERMISSION_READ, $result['permissions']);
-	}
-
-	public function testSharingAFileInsideAFolderThatIsAlreadyShared() {
-		\OC_User::setUserId($this->user1);
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/test');
-		$view->mkdir('files/test/sub1');
-		$view->file_put_contents('files/test/sub1/file.txt', 'abc');
-
-		$folderInfo = $view->getFileInfo('files/test/sub1');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $folderInfo);
-		$folderId = $folderInfo->getId();
-
-		$fileInfo = $view->getFileInfo('files/test/sub1/file.txt');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $folderId, \OCP\Share::SHARE_TYPE_GROUP, $this->group2, \OCP\Constants::PERMISSION_READ + \OCP\Constants::PERMISSION_UPDATE),
-			'Failed asserting that user 1 successfully shared "test/sub1" with group 2.'
-		);
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('file', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared "test/sub1/file.txt" with user 2.'
-		);
-
-		$result = \OCP\Share::getItemsSharedWithUser('file', $this->user2);
-		$this->assertCount(2, $result);
-
-		foreach ($result as $share) {
-			$itemName = substr($share['path'], strrpos($share['path'], '/'));
-			$this->assertSame($itemName, $share['file_target'], 'Asserting that the file_target is the last segment of the path');
-			$this->assertSame($share['item_target'], '/' . $share['item_source'], 'Asserting that the item is the item that was shared');
-		}
-	}
-
 	protected function shareUserOneTestFileWithGroupOne() {
 		\OC_User::setUserId($this->user1);
 		$this->assertTrue(
@@ -627,7 +521,7 @@ class ShareTest extends \Test\TestCase {
 			\OCP\Constants::PERMISSION_ALL
 		);
 
-		$targetUsers = array($this->user1, $this->user2, $this->user3);
+		$targetUsers = [$this->user1, $this->user2, $this->user3];
 
 		foreach($targetUsers as $targetUser) {
 			\OC_User::setUserId($targetUser);
@@ -665,11 +559,11 @@ class ShareTest extends \Test\TestCase {
 
 		\OC_User::setUserId($this->groupAndUser);
 
-		$this->assertEquals(array('test.txt'), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
+		$this->assertEquals(['test.txt'], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
 				'"groupAndUser"-User does not see the file but it was shared with him');
 
 		\OC_User::setUserId($this->user2);
-		$this->assertEquals(array(), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
+		$this->assertEquals([], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
 				'User2 sees test.txt but it was only shared with the user "groupAndUser" and not with group');
 
 		\OC_User::setUserId($this->user1);
@@ -681,11 +575,11 @@ class ShareTest extends \Test\TestCase {
 		);
 
 		\OC_User::setUserId($this->groupAndUser);
-		$this->assertEquals(array(), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
+		$this->assertEquals([], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
 				'"groupAndUser"-User sees test.txt but it was only shared with the group "groupAndUser" and not with the user');
 
 		\OC_User::setUserId($this->user2);
-		$this->assertEquals(array('test.txt'), \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
+		$this->assertEquals(['test.txt'], \OCP\Share::getItemSharedWith('test', 'test.txt', Backend::FORMAT_SOURCE),
 				'User2 does not see test.txt but it was shared with the group "groupAndUser"');
 
 		\OC_User::setUserId($this->user1);
@@ -714,37 +608,37 @@ class ShareTest extends \Test\TestCase {
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
 			.' `item_type`, `item_source`, `item_target`, `share_type`,'
 			.' `share_with`, `uid_owner`) VALUES (?,?,?,?,?,?)');
-		$args = array('test', 99, 'target1', \OCP\Share::SHARE_TYPE_USER, $this->user2, $this->user1);
+		$args = ['test', 99, 'target1', \OCP\Share::SHARE_TYPE_USER, $this->user2, $this->user1];
 		$query->execute($args);
-		$args = array('test', 99, 'target2', \OCP\Share::SHARE_TYPE_USER, $this->user4, $this->user1);
+		$args = ['test', 99, 'target2', \OCP\Share::SHARE_TYPE_USER, $this->user4, $this->user1];
 		$query->execute($args);
-		$args = array('test', 99, 'target3', \OCP\Share::SHARE_TYPE_USER, $this->user3, $this->user2);
+		$args = ['test', 99, 'target3', \OCP\Share::SHARE_TYPE_USER, $this->user3, $this->user2];
 		$query->execute($args);
-		$args = array('test', 99, 'target4', \OCP\Share::SHARE_TYPE_USER, $this->user3, $this->user4);
+		$args = ['test', 99, 'target4', \OCP\Share::SHARE_TYPE_USER, $this->user3, $this->user4];
 		$query->execute($args);
-		$args = array('test', 99, 'target4', \OCP\Share::SHARE_TYPE_USER, $this->user6, $this->user4);
+		$args = ['test', 99, 'target4', \OCP\Share::SHARE_TYPE_USER, $this->user6, $this->user4];
 		$query->execute($args);
 
 
 		$result1 = \OCP\Share::getItemSharedWithUser('test', 99, $this->user2, $this->user1);
 		$this->assertSame(1, count($result1));
-		$this->verifyResult($result1, array('target1'));
+		$this->verifyResult($result1, ['target1']);
 
 		$result2 = \OCP\Share::getItemSharedWithUser('test', 99, null, $this->user1);
 		$this->assertSame(2, count($result2));
-		$this->verifyResult($result2, array('target1', 'target2'));
+		$this->verifyResult($result2, ['target1', 'target2']);
 
 		$result3 = \OCP\Share::getItemSharedWithUser('test', 99, $this->user3);
 		$this->assertSame(2, count($result3));
-		$this->verifyResult($result3, array('target3', 'target4'));
+		$this->verifyResult($result3, ['target3', 'target4']);
 
 		$result4 = \OCP\Share::getItemSharedWithUser('test', 99, null, null);
 		$this->assertSame(5, count($result4)); // 5 because target4 appears twice
-		$this->verifyResult($result4, array('target1', 'target2', 'target3', 'target4'));
+		$this->verifyResult($result4, ['target1', 'target2', 'target3', 'target4']);
 
 		$result6 = \OCP\Share::getItemSharedWithUser('test', 99, $this->user6, null);
 		$this->assertSame(1, count($result6));
-		$this->verifyResult($result6, array('target4'));
+		$this->verifyResult($result6, ['target4']);
 	}
 
 	public function testGetItemSharedWithUserFromGroupShare() {
@@ -754,32 +648,32 @@ class ShareTest extends \Test\TestCase {
 		$query = \OC_DB::prepare('INSERT INTO `*PREFIX*share` ('
 			.' `item_type`, `item_source`, `item_target`, `share_type`,'
 			.' `share_with`, `uid_owner`) VALUES (?,?,?,?,?,?)');
-		$args = array('test', 99, 'target1', \OCP\Share::SHARE_TYPE_GROUP, $this->group1, $this->user1);
+		$args = ['test', 99, 'target1', \OCP\Share::SHARE_TYPE_GROUP, $this->group1, $this->user1];
 		$query->execute($args);
-		$args = array('test', 99, 'target2', \OCP\Share::SHARE_TYPE_GROUP, $this->group2, $this->user1);
+		$args = ['test', 99, 'target2', \OCP\Share::SHARE_TYPE_GROUP, $this->group2, $this->user1];
 		$query->execute($args);
-		$args = array('test', 99, 'target3', \OCP\Share::SHARE_TYPE_GROUP, $this->group1, $this->user2);
+		$args = ['test', 99, 'target3', \OCP\Share::SHARE_TYPE_GROUP, $this->group1, $this->user2];
 		$query->execute($args);
-		$args = array('test', 99, 'target4', \OCP\Share::SHARE_TYPE_GROUP, $this->group1, $this->user4);
+		$args = ['test', 99, 'target4', \OCP\Share::SHARE_TYPE_GROUP, $this->group1, $this->user4];
 		$query->execute($args);
 
 		// user2 is in group1 and group2
 		$result1 = \OCP\Share::getItemSharedWithUser('test', 99, $this->user2, $this->user1);
 		$this->assertSame(2, count($result1));
-		$this->verifyResult($result1, array('target1', 'target2'));
+		$this->verifyResult($result1, ['target1', 'target2']);
 
 		$result2 = \OCP\Share::getItemSharedWithUser('test', 99, null, $this->user1);
 		$this->assertSame(2, count($result2));
-		$this->verifyResult($result2, array('target1', 'target2'));
+		$this->verifyResult($result2, ['target1', 'target2']);
 
 		// user3 is in group1 and group2
 		$result3 = \OCP\Share::getItemSharedWithUser('test', 99, $this->user3);
 		$this->assertSame(3, count($result3));
-		$this->verifyResult($result3, array('target1', 'target3', 'target4'));
+		$this->verifyResult($result3, ['target1', 'target3', 'target4']);
 
 		$result4 = \OCP\Share::getItemSharedWithUser('test', 99, null, null);
 		$this->assertSame(4, count($result4));
-		$this->verifyResult($result4, array('target1', 'target2', 'target3', 'target4'));
+		$this->verifyResult($result4, ['target1', 'target2', 'target3', 'target4']);
 
 		$result6 = \OCP\Share::getItemSharedWithUser('test', 99, $this->user6, null);
 		$this->assertSame(0, count($result6));
@@ -905,18 +799,18 @@ class ShareTest extends \Test\TestCase {
 	public function dataShareWithRemoteUserAndRemoteIsInvalid() {
 		return [
 			// Invalid path
-			array('user@'),
+			['user@'],
 
 			// Invalid user
-			array('@server'),
-			array('us/er@server'),
-			array('us:er@server'),
+			['@server'],
+			['us/er@server'],
+			['us:er@server'],
 
 			// Invalid splitting
-			array('user'),
-			array(''),
-			array('us/erserver'),
-			array('us:erserver'),
+			['user'],
+			[''],
+			['us/erserver'],
+			['us:erserver'],
 		];
 	}
 
@@ -939,21 +833,21 @@ class ShareTest extends \Test\TestCase {
 
 		\OC_User::setUserId($this->user1);
 		$this->assertEquals(
-			array('test.txt', 'test.txt'),
+			['test.txt', 'test.txt'],
 			\OCP\Share::getItemsShared('test', Backend::FORMAT_SOURCE),
 			'Failed asserting that the test.txt file is shared exactly two times by user1.'
 		);
 
 		\OC_User::setUserId($this->user2);
 		$this->assertEquals(
-			array('test.txt'),
+			['test.txt'],
 			\OCP\Share::getItemsShared('test', Backend::FORMAT_SOURCE),
 			'Failed asserting that the test.txt file is shared exactly once by user2.'
 		);
 
 		\OC_User::setUserId($this->user3);
 		$this->assertEquals(
-			array('test.txt'),
+			['test.txt'],
 			\OCP\Share::getItemsShared('test', Backend::FORMAT_SOURCE),
 			'Failed asserting that the test.txt file is shared exactly once by user3.'
 		);
@@ -964,21 +858,21 @@ class ShareTest extends \Test\TestCase {
 		);
 
 		$this->assertEquals(
-			array(),
+			[],
 			\OCP\Share::getItemsShared('test'),
 			'Failed asserting that the share of the test.txt file by user 3 has been removed.'
 		);
 
 		\OC_User::setUserId($this->user1);
 		$this->assertEquals(
-			array(),
+			[],
 			\OCP\Share::getItemsShared('test'),
 			'Failed asserting that both shares of the test.txt file by user 1 have been removed.'
 		);
 
 		\OC_User::setUserId($this->user2);
 		$this->assertEquals(
-			array(),
+			[],
 			\OCP\Share::getItemsShared('test'),
 			'Failed asserting that the share of the test.txt file by user 2 has been removed.'
 		);
@@ -996,21 +890,21 @@ class ShareTest extends \Test\TestCase {
 	}
 
 	function checkPasswordProtectedShareDataProvider() {
-		return array(
-			array(true, array()),
-			array(true, array('share_with' => null)),
-			array(true, array('share_with' => '')),
-			array(true, array('share_with' => '1234567890', 'share_type' => '1')),
-			array(true, array('share_with' => '1234567890', 'share_type' => 1)),
-			array(true, array('share_with' => '1234567890', 'share_type' => '3', 'id' => '100')),
-			array(true, array('share_with' => '1234567890', 'share_type' => 3, 'id' => '100')),
-			array(true, array('share_with' => '1234567890', 'share_type' => '3', 'id' => 100)),
-			array(true, array('share_with' => '1234567890', 'share_type' => 3, 'id' => 100)),
-			array(false, array('share_with' => '1234567890', 'share_type' => '3', 'id' => '101')),
-			array(false, array('share_with' => '1234567890', 'share_type' => 3, 'id' => '101')),
-			array(false, array('share_with' => '1234567890', 'share_type' => '3', 'id' => 101)),
-			array(false, array('share_with' => '1234567890', 'share_type' => 3, 'id' => 101)),
-		);
+		return [
+			[true, []],
+			[true, ['share_with' => null]],
+			[true, ['share_with' => '']],
+			[true, ['share_with' => '1234567890', 'share_type' => '1']],
+			[true, ['share_with' => '1234567890', 'share_type' => 1]],
+			[true, ['share_with' => '1234567890', 'share_type' => '3', 'id' => '100']],
+			[true, ['share_with' => '1234567890', 'share_type' => 3, 'id' => '100']],
+			[true, ['share_with' => '1234567890', 'share_type' => '3', 'id' => 100]],
+			[true, ['share_with' => '1234567890', 'share_type' => 3, 'id' => 100]],
+			[false, ['share_with' => '1234567890', 'share_type' => '3', 'id' => '101']],
+			[false, ['share_with' => '1234567890', 'share_type' => 3, 'id' => '101']],
+			[false, ['share_with' => '1234567890', 'share_type' => '3', 'id' => 101]],
+			[false, ['share_with' => '1234567890', 'share_type' => 3, 'id' => 101]],
+		];
 	}
 
 	/**
@@ -1018,16 +912,16 @@ class ShareTest extends \Test\TestCase {
 	 */
 	function testRemoveProtocolFromUrl($url, $expectedResult) {
 		$share = new \OC\Share\Share();
-		$result = self::invokePrivate($share, 'removeProtocolFromUrl', array($url));
+		$result = self::invokePrivate($share, 'removeProtocolFromUrl', [$url]);
 		$this->assertSame($expectedResult, $result);
 	}
 
 	function urls() {
-		return array(
-			array('http://owncloud.org', 'owncloud.org'),
-			array('https://owncloud.org', 'owncloud.org'),
-			array('owncloud.org', 'owncloud.org'),
-		);
+		return [
+			['http://owncloud.org', 'owncloud.org'],
+			['https://owncloud.org', 'owncloud.org'],
+			['owncloud.org', 'owncloud.org'],
+		];
 	}
 
 	public function dataRemoteShareUrlCalls() {
@@ -1102,57 +996,57 @@ class ShareTest extends \Test\TestCase {
 	}
 
 	function dataProviderTestGroupItems() {
-		return array(
+		return [
 			// one array with one share
-			array(
-				array( // input
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_ALL, 'item_target' => 't1')),
-				array( // expected result
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_ALL, 'item_target' => 't1'))),
+			[
+				[ // input
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_ALL, 'item_target' => 't1']],
+				[ // expected result
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_ALL, 'item_target' => 't1']]],
 			// two shares both point to the same source
-			array(
-				array( // input
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
-					),
-				array( // expected result
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1',
-						'grouped' => array(
-							array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
-							array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
-							)
-						),
-					)
-				),
+			[
+				[ // input
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'],
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'],
+				],
+				[ // expected result
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1',
+						'grouped' => [
+							['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'],
+							['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'],
+						]
+					],
+				]
+			],
 			// two shares both point to the same source but with different targets
-			array(
-				array( // input
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't2'),
-					),
-				array( // expected result
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't2'),
-					)
-				),
+			[
+				[ // input
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'],
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't2'],
+				],
+				[ // expected result
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'],
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't2'],
+				]
+			],
 			// three shares two point to the same source
-			array(
-				array( // input
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
-					array('item_source' => 2, 'permissions' => \OCP\Constants::PERMISSION_CREATE, 'item_target' => 't2'),
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
-					),
-				array( // expected result
-					array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1',
-						'grouped' => array(
-							array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'),
-							array('item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'),
-							)
-						),
-					array('item_source' => 2, 'permissions' => \OCP\Constants::PERMISSION_CREATE, 'item_target' => 't2'),
-					)
-				),
-		);
+			[
+				[ // input
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'],
+					['item_source' => 2, 'permissions' => \OCP\Constants::PERMISSION_CREATE, 'item_target' => 't2'],
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'],
+				],
+				[ // expected result
+					['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1',
+						'grouped' => [
+							['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_READ, 'item_target' => 't1'],
+							['item_source' => 1, 'permissions' => \OCP\Constants::PERMISSION_UPDATE, 'item_target' => 't1'],
+						]
+					],
+					['item_source' => 2, 'permissions' => \OCP\Constants::PERMISSION_CREATE, 'item_target' => 't2'],
+				]
+			],
+		];
 	}
 
 	/**
@@ -1543,97 +1437,29 @@ class ShareTest extends \Test\TestCase {
 		$config->deleteAppValue('core', 'shareapi_expire_after_n_days');
 	}
 
-	/**
-	 * Test case for #17560
-	 */
-	public function testAccesToSharedSubFolder() {
-		\OC_User::setUserId($this->user1);
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/folder1');
-
-		$fileInfo = $view->getFileInfo('files/folder1');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_ALL),
-			'Failed asserting that user 1 successfully shared "test" with user 2.'
-		);
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user3, \OCP\Constants::PERMISSION_ALL),
-			'Failed asserting that user 1 successfully shared "test" with user 3.'
-		);
-
-		$view->mkdir('files/folder1/folder2');
-
-		$fileInfo = $view->getFileInfo('files/folder1/folder2');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user4, \OCP\Constants::PERMISSION_ALL),
-			'Failed asserting that user 1 successfully shared "test" with user 4.'
-		);
-
-		$res = \OCP\Share::getItemShared(
-			'folder',
-			$fileId,
-			\OCP\Share::FORMAT_NONE,
-			null,
-			true
-		);
-		$this->assertCount(3, $res);
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user5, \OCP\Constants::PERMISSION_ALL),
-			'Failed asserting that user 1 successfully shared "test" with user 5.'
-		);
-
-		$res = \OCP\Share::getItemShared(
-			'folder',
-			$fileId,
-			\OCP\Share::FORMAT_NONE,
-			null,
-			true
-		);
-		$this->assertCount(4, $res);
-	}
-
 	public function testShareWithSelfError() {
 		\OC_User::setUserId($this->user1);
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/folder1');
-
-		$fileInfo = $view->getFileInfo('files/folder1');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
 
 		try {
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_ALL);
+			\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_ALL);
 			$this->fail();
 		} catch (\Exception $e) {
-			$this->assertEquals('Sharing /folder1 failed, because you can not share with yourself', $e->getMessage());
+			$this->assertEquals('Sharing test.txt failed, because you can not share with yourself', $e->getMessage());
 		}
 	}
 
 
 	public function testShareWithOwnerError() {
 		\OC_User::setUserId($this->user1);
-		$view = new \OC\Files\View('/' . $this->user1 . '/');
-		$view->mkdir('files/folder1');
-
-		$fileInfo = $view->getFileInfo('files/folder1');
-		$this->assertInstanceOf('\OC\Files\FileInfo', $fileInfo);
-		$fileId = $fileInfo->getId();
 
 		$this->assertTrue(
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_ALL),
+			\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_ALL),
 			'Failed asserting that user 1 successfully shared "test" with user 2.'
 		);
 
 		\OC_User::setUserId($this->user2);
 		try {
-			\OCP\Share::shareItem('folder', $fileId, \OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_ALL);
+			\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user1, \OCP\Constants::PERMISSION_ALL);
 			$this->fail();
 		} catch (\Exception $e) {
 			$this->assertEquals('Sharing failed, because the user ' . $this->user1 . ' is the original sharer', $e->getMessage());

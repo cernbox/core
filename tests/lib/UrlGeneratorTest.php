@@ -7,13 +7,29 @@
  */
 
 namespace Test;
+use OC\URLGenerator;
+use OCP\ICacheFactory;
+use OCP\IConfig;
+use OCP\IURLGenerator;
+use OCP\Route\IRouter;
 
 /**
  * Class UrlGeneratorTest
- *
- * @group DB
  */
-class UrlGeneratorTest extends \Test\TestCase {
+class UrlGeneratorTest extends TestCase {
+
+	/** @var IURLGenerator */
+	private $urlGenerator;
+	/** @var IRouter | \PHPUnit_Framework_MockObject_MockObject */
+	private $router;
+
+	public function setUp() {
+		parent::setUp();
+		$config = $this->createMock(IConfig::class);
+		$cacheFactory = $this->createMock(ICacheFactory::class);
+		$this->router = $this->createMock(IRouter::class);
+		$this->urlGenerator = new URLGenerator($config, $cacheFactory, $this->router);
+	}
 
 	/**
 	 * @small
@@ -22,10 +38,7 @@ class UrlGeneratorTest extends \Test\TestCase {
 	 */
 	public function testLinkToDocRoot($app, $file, $args, $expectedResult) {
 		\OC::$WEBROOT = '';
-		$config = $this->getMock('\OCP\IConfig');
-		$cacheFactory = $this->getMock('\OCP\ICacheFactory');
-		$urlGenerator = new \OC\URLGenerator($config, $cacheFactory);
-		$result = $urlGenerator->linkTo($app, $file, $args);
+		$result = $this->urlGenerator->linkTo($app, $file, $args);
 
 		$this->assertEquals($expectedResult, $result);
 	}
@@ -37,48 +50,36 @@ class UrlGeneratorTest extends \Test\TestCase {
 	 */
 	public function testLinkToSubDir($app, $file, $args, $expectedResult) {
 		\OC::$WEBROOT = '/owncloud';
-		$config = $this->getMock('\OCP\IConfig');
-		$cacheFactory = $this->getMock('\OCP\ICacheFactory');
-		$urlGenerator = new \OC\URLGenerator($config, $cacheFactory);
-		$result = $urlGenerator->linkTo($app, $file, $args);
+		$result = $this->urlGenerator->linkTo($app, $file, $args);
 
 		$this->assertEquals($expectedResult, $result);
 	}
 
-	/**
-	 * @dataProvider provideRoutes
-	 */
-	public function testLinkToRouteAbsolute($route, $expected) {
+	public function testLinkToRouteAbsolute() {
+		$route = 'files_ajax_list';
 		\OC::$WEBROOT = '/owncloud';
-		$config = $this->getMock('\OCP\IConfig');
-		$cacheFactory = $this->getMock('\OCP\ICacheFactory');
-		$urlGenerator = new \OC\URLGenerator($config, $cacheFactory);
-		$result = $urlGenerator->linkToRouteAbsolute($route);
-		$this->assertEquals($expected, $result);
+		$this->router->expects($this->once())->method('generate')
+			->with($route)->willReturn('index.php/apps/files/ajax/list.php');
 
-	}
+		$result = $this->urlGenerator->linkToRouteAbsolute($route);
+		$this->assertEquals('http://localhost/owncloud/index.php/apps/files/ajax/list.php', $result);
 
-	public function provideRoutes() {
-		return array(
-			array('files_ajax_list', 'http://localhost/owncloud/index.php/apps/files/ajax/list.php'),
-			array('core_ajax_preview', 'http://localhost/owncloud/index.php/core/preview.png'),
-		);
 	}
 
 	public function provideDocRootAppUrlParts() {
-		return array(
-			array('files', 'ajax/list.php', array(), '/index.php/apps/files/ajax/list.php'),
-			array('files', 'ajax/list.php', array('trut' => 'trat', 'dut' => 'dat'), '/index.php/apps/files/ajax/list.php?trut=trat&dut=dat'),
-			array('', 'index.php', array('trut' => 'trat', 'dut' => 'dat'), '/index.php?trut=trat&dut=dat'),
-		);
+		return [
+			['files', 'ajax/list.php', [], '/index.php/apps/files/ajax/list.php'],
+			['files', 'ajax/list.php', ['trut' => 'trat', 'dut' => 'dat'], '/index.php/apps/files/ajax/list.php?trut=trat&dut=dat'],
+			['', 'index.php', ['trut' => 'trat', 'dut' => 'dat'], '/index.php?trut=trat&dut=dat'],
+		];
 	}
 
 	public function provideSubDirAppUrlParts() {
-		return array(
-			array('files', 'ajax/list.php', array(), '/owncloud/index.php/apps/files/ajax/list.php'),
-			array('files', 'ajax/list.php', array('trut' => 'trat', 'dut' => 'dat'), '/owncloud/index.php/apps/files/ajax/list.php?trut=trat&dut=dat'),
-			array('', 'index.php', array('trut' => 'trat', 'dut' => 'dat'), '/owncloud/index.php?trut=trat&dut=dat'),
-		);
+		return [
+			['files', 'ajax/list.php', [], '/owncloud/index.php/apps/files/ajax/list.php'],
+			['files', 'ajax/list.php', ['trut' => 'trat', 'dut' => 'dat'], '/owncloud/index.php/apps/files/ajax/list.php?trut=trat&dut=dat'],
+			['', 'index.php', ['trut' => 'trat', 'dut' => 'dat'], '/owncloud/index.php?trut=trat&dut=dat'],
+		];
 	}
 
 	/**
@@ -89,10 +90,7 @@ class UrlGeneratorTest extends \Test\TestCase {
 	function testGetAbsoluteURLDocRoot($url, $expectedResult) {
 
 		\OC::$WEBROOT = '';
-		$config = $this->getMock('\OCP\IConfig');
-		$cacheFactory = $this->getMock('\OCP\ICacheFactory');
-		$urlGenerator = new \OC\URLGenerator($config, $cacheFactory);
-		$result = $urlGenerator->getAbsoluteURL($url);
+		$result = $this->urlGenerator->getAbsoluteURL($url);
 
 		$this->assertEquals($expectedResult, $result);
 	}
@@ -105,30 +103,27 @@ class UrlGeneratorTest extends \Test\TestCase {
 	function testGetAbsoluteURLSubDir($url, $expectedResult) {
 
 		\OC::$WEBROOT = '/owncloud';
-		$config = $this->getMock('\OCP\IConfig');
-		$cacheFactory = $this->getMock('\OCP\ICacheFactory');
-		$urlGenerator = new \OC\URLGenerator($config, $cacheFactory);
-		$result = $urlGenerator->getAbsoluteURL($url);
+		$result = $this->urlGenerator->getAbsoluteURL($url);
 
 		$this->assertEquals($expectedResult, $result);
 	}
 
 	public function provideDocRootURLs() {
-		return array(
-			array("index.php", "http://localhost/index.php"),
-			array("/index.php", "http://localhost/index.php"),
-			array("/apps/index.php", "http://localhost/apps/index.php"),
-			array("apps/index.php", "http://localhost/apps/index.php"),
-			);
+		return [
+			["index.php", "http://localhost/index.php"],
+			["/index.php", "http://localhost/index.php"],
+			["/apps/index.php", "http://localhost/apps/index.php"],
+			["apps/index.php", "http://localhost/apps/index.php"],
+		];
 	}
 
 	public function provideSubDirURLs() {
-		return array(
-			array("index.php", "http://localhost/owncloud/index.php"),
-			array("/index.php", "http://localhost/owncloud/index.php"),
-			array("/apps/index.php", "http://localhost/owncloud/apps/index.php"),
-			array("apps/index.php", "http://localhost/owncloud/apps/index.php"),
-			);
+		return [
+			["index.php", "http://localhost/owncloud/index.php"],
+			["/index.php", "http://localhost/owncloud/index.php"],
+			["/apps/index.php", "http://localhost/owncloud/apps/index.php"],
+			["apps/index.php", "http://localhost/owncloud/apps/index.php"],
+		];
 	}
 }
 

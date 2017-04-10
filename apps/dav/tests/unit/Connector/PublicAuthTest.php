@@ -1,10 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -51,9 +52,9 @@ class PublicAuthTest extends \Test\TestCase {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->session = $this->getMock('\OCP\ISession');
-		$this->request = $this->getMock('\OCP\IRequest');
-		$this->shareManager = $this->getMock('\OCP\Share\IManager');
+		$this->session = $this->createMock('\OCP\ISession');
+		$this->request = $this->createMock('\OCP\IRequest');
+		$this->shareManager = $this->createMock('\OCP\Share\IManager');
 
 		$this->auth = new \OCA\DAV\Connector\PublicAuth(
 			$this->request,
@@ -86,7 +87,7 @@ class PublicAuthTest extends \Test\TestCase {
 	}
 
 	public function testShareNoPassword() {
-		$share = $this->getMock('OCP\Share\IShare');
+		$share = $this->createMock('OCP\Share\IShare');
 		$share->method('getPassword')->willReturn(null);
 
 		$this->shareManager->expects($this->once())
@@ -99,7 +100,7 @@ class PublicAuthTest extends \Test\TestCase {
 	}
 
 	public function testSharePasswordFancyShareType() {
-		$share = $this->getMock('OCP\Share\IShare');
+		$share = $this->createMock('OCP\Share\IShare');
 		$share->method('getPassword')->willReturn('password');
 		$share->method('getShareType')->willReturn(42);
 
@@ -114,7 +115,7 @@ class PublicAuthTest extends \Test\TestCase {
 
 
 	public function testSharePasswordRemote() {
-		$share = $this->getMock('OCP\Share\IShare');
+		$share = $this->createMock('OCP\Share\IShare');
 		$share->method('getPassword')->willReturn('password');
 		$share->method('getShareType')->willReturn(\OCP\Share::SHARE_TYPE_REMOTE);
 
@@ -128,7 +129,7 @@ class PublicAuthTest extends \Test\TestCase {
 	}
 
 	public function testSharePasswordLinkValidPassword() {
-		$share = $this->getMock('OCP\Share\IShare');
+		$share = $this->createMock('OCP\Share\IShare');
 		$share->method('getPassword')->willReturn('password');
 		$share->method('getShareType')->willReturn(\OCP\Share::SHARE_TYPE_LINK);
 
@@ -148,7 +149,7 @@ class PublicAuthTest extends \Test\TestCase {
 	}
 
 	public function testSharePasswordLinkValidSession() {
-		$share = $this->getMock('OCP\Share\IShare');
+		$share = $this->createMock('OCP\Share\IShare');
 		$share->method('getPassword')->willReturn('password');
 		$share->method('getShareType')->willReturn(\OCP\Share::SHARE_TYPE_LINK);
 		$share->method('getId')->willReturn('42');
@@ -172,7 +173,7 @@ class PublicAuthTest extends \Test\TestCase {
 	}
 
 	public function testSharePasswordLinkInvalidSession() {
-		$share = $this->getMock('OCP\Share\IShare');
+		$share = $this->createMock('OCP\Share\IShare');
 		$share->method('getPassword')->willReturn('password');
 		$share->method('getShareType')->willReturn(\OCP\Share::SHARE_TYPE_LINK);
 		$share->method('getId')->willReturn('42');

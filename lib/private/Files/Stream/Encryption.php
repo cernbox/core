@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -101,7 +101,7 @@ class Encryption extends Wrapper {
 	protected $expectedContextProperties;
 
 	public function __construct() {
-		$this->expectedContextProperties = array(
+		$this->expectedContextProperties = [
 			'source',
 			'storage',
 			'internalPath',
@@ -116,7 +116,7 @@ class Encryption extends Wrapper {
 			'encryptionStorage',
 			'headerSize',
 			'signed'
-		);
+		];
 	}
 
 
@@ -157,8 +157,8 @@ class Encryption extends Wrapper {
 								$signed,
 								$wrapper =  'OC\Files\Stream\Encryption') {
 
-		$context = stream_context_create(array(
-			'ocencryption' => array(
+		$context = stream_context_create([
+			'ocencryption' => [
 				'source' => $source,
 				'storage' => $storage,
 				'internalPath' => $internalPath,
@@ -173,8 +173,8 @@ class Encryption extends Wrapper {
 				'encryptionStorage' => $encStorage,
 				'headerSize' => $headerSize,
 				'signed' => $signed
-			)
-		));
+			]
+		]);
 
 		return self::wrapSource($source, $context, 'ocencryption', $wrapper, $mode);
 	}

@@ -8,6 +8,7 @@
  */
 
 namespace Test;
+use OC_User_Backend;
 
 /**
  * Class User
@@ -25,7 +26,7 @@ class UserTest extends TestCase {
 	protected function setUp(){
 		parent::setUp();
 
-		$this->backend = $this->getMock('\Test\Util\User\Dummy');
+		$this->backend = $this->createMock('\Test\Util\User\Dummy');
 		$manager = \OC::$server->getUserManager();
 		$manager->registerBackend($this->backend);
 	}
@@ -41,7 +42,7 @@ class UserTest extends TestCase {
 		$this->backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC_USER_BACKEND_CHECK_PASSWORD) {
+				if ($actions === OC_User_Backend::CHECK_PASSWORD) {
 					return true;
 				} else {
 					return false;

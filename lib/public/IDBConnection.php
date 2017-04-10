@@ -1,13 +1,14 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,6 +34,7 @@
 // use OCP namespace for all classes that are considered public.
 // This means that they should be used by apps instead of the internal ownCloud classes
 namespace OCP;
+use Doctrine\DBAL\Schema\Schema;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 
 /**
@@ -72,7 +74,7 @@ interface IDBConnection {
 	 * @return \Doctrine\DBAL\Driver\Statement The executed statement.
 	 * @since 8.0.0
 	 */
-	public function executeQuery($query, array $params = array(), $types = array());
+	public function executeQuery($query, array $params = [], $types = []);
 
 	/**
 	 * Executes an SQL INSERT/UPDATE/DELETE query with the given parameters
@@ -86,7 +88,7 @@ interface IDBConnection {
 	 * @return integer The number of affected rows.
 	 * @since 8.0.0
 	 */
-	public function executeUpdate($query, array $params = array(), array $types = array());
+	public function executeUpdate($query, array $params = [], array $types = []);
 
 	/**
 	 * Used to get the id of the just inserted element
@@ -250,4 +252,36 @@ interface IDBConnection {
 	 * @since 9.0.0
 	 */
 	public function escapeLikeParameter($param);
+
+	/**
+	 * Create the schema of the connected database
+	 *
+	 * @return Schema
+	 * @since 10.0
+	 */
+	public function createSchema();
+
+	/**
+	 * Migrate the database to the given schema
+	 *
+	 * @param Schema $toSchema
+	 * @since 10.0
+	 */
+	public function migrateToSchema(Schema $toSchema);
+
+	/**
+	 * Gets the currently active transaction isolation level.
+	 *
+	 * @return integer The current transaction isolation level.
+	 * @since 10.0
+	 */
+	public function getTransactionIsolation();
+
+	/**
+	 * Are 4-byte characters allowed or only 3-byte
+	 *
+	 * @return bool
+	 * @since 10.0
+	 */
+	public function allows4ByteCharacters();
 }

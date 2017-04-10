@@ -1,13 +1,14 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -93,7 +94,7 @@ class Factory implements IFactory {
 	public function get($app, $lang = null) {
 		$app = \OC_App::cleanAppId($app);
 		if ($lang !== null) {
-			$lang = str_replace(array('\0', '/', '\\', '..'), '', (string) $lang);
+			$lang = str_replace(['\0', '/', '\\', '..'], '', (string) $lang);
 		}
 		if ($lang === null || !$this->languageExists($app, $lang)) {
 			$lang = $this->findLanguage($app);
@@ -276,7 +277,7 @@ class Factory implements IFactory {
 	 * @param string $lang
 	 * @return string[]
 	 */
-	// FIXME This method is only public, until OC_L10N does not need it anymore,
+	// FIXME This method is only public, until \OCP\IL10N does not need it anymore,
 	// FIXME This is also the reason, why it is not in the public interface
 	public function getL10nFilesForApp($app, $lang) {
 		$languageFiles = [];
@@ -344,8 +345,8 @@ class Factory implements IFactory {
 			$plural = preg_replace( '#[^n0-9:\(\)\?\|\&=!<>+*/\%-]#', '', $matches[2] );
 
 			$body = str_replace(
-				array( 'plural', 'n', '$n$plurals', ),
-				array( '$plural', '$n', '$nplurals', ),
+				['plural', 'n', '$n$plurals',],
+				['$plural', '$n', '$nplurals',],
 				'nplurals='. $nplurals . '; plural=' . $plural
 			);
 

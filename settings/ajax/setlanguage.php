@@ -2,13 +2,13 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Christopher Schäpers <kondou@ts.unde.re>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,10 +36,10 @@ if( isset( $_POST['lang'] ) ) {
 	$lang = (string)$_POST['lang'];
 	if(array_search($lang, $languageCodes) or $lang === 'en') {
 		\OC::$server->getConfig()->setUserValue( OC_User::getUser(), 'core', 'lang', $lang );
-		OC_JSON::success(array("data" => array( "message" => $l->t("Language changed") )));
+		OC_JSON::success(["data" => ["message" => $l->t("Language changed")]]);
 	}else{
-		OC_JSON::error(array("data" => array( "message" => $l->t("Invalid request") )));
+		OC_JSON::error(["data" => ["message" => $l->t("Invalid request")]]);
 	}
 }else{
-	OC_JSON::error(array("data" => array( "message" => $l->t("Invalid request") )));
+	OC_JSON::error(["data" => ["message" => $l->t("Invalid request")]]);
 }

@@ -2,8 +2,9 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -57,7 +58,7 @@ class UserController extends Controller {
 	 * @return JSONResponse
 	 */
 	public function getDisplayNames($users) {
-		$result = array();
+		$result = [];
 
 		foreach ($users as $user) {
 			$userObject = $this->userManager->get($user);
@@ -68,10 +69,10 @@ class UserController extends Controller {
 			}
 		}
 
-		$json = array(
+		$json = [
 			'users' => $result,
 			'status' => 'success'
-		);
+		];
 
 		return new JSONResponse($json);
 

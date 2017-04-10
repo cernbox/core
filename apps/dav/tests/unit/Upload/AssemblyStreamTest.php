@@ -1,8 +1,12 @@
 <?php
 /**
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Markus Goetz <markus@woboq.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -49,6 +53,15 @@ class AssemblyStreamTest extends \Test\TestCase {
 	function providesNodes() {
 		$data8k = $this->makeData(8192);
 		$dataLess8k = $this->makeData(8191);
+
+		$tonofnodes = [];
+		$tonofdata = "";
+		for ($i = 0; $i < 101; $i++) {
+			$thisdata =  rand(0,100); // variable length and content
+			$tonofdata .= $thisdata;
+			array_push($tonofnodes, $this->buildNode($i,$thisdata));
+		}
+
 		return[
 			'one node zero bytes' => [
 				'', [
@@ -87,6 +100,9 @@ class AssemblyStreamTest extends \Test\TestCase {
 				$this->buildNode('1', $data8k . 'X'),
 				$this->buildNode('0', $data8k)
 			]],
+			'a ton of nodes' => [
+				$tonofdata, $tonofnodes
+			]
 		];
 	}
 

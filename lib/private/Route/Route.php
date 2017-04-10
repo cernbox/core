@@ -6,9 +6,10 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -132,7 +133,7 @@ class Route extends SymfonyRoute implements IRoute {
 	 * to the class with $function
 	 */
 	public function action($class, $function = null) {
-		$action = array($class, $function);
+		$action = [$class, $function];
 		if (is_null($function)) {
 			$action = $class;
 		}

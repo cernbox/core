@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2015, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -18,8 +18,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-class Licenses
-{
+class Licenses {
 	protected $paths = [];
 	protected $mailMap = [];
 	public $authors = [];
@@ -29,7 +28,7 @@ class Licenses
 /**
 @AUTHORS@
  *
- * @copyright Copyright (c) @YEAR@, ownCloud, Inc.
+ * @copyright Copyright (c) @YEAR@, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -129,6 +128,7 @@ With help from many libraries and frameworks including:
 
 	/**
 	 * @param string $source
+	 * @return bool
 	 */
 	private function isMITLicensed($source) {
 		$lines = explode(PHP_EOL, $source);
@@ -237,33 +237,34 @@ $licenses = new Licenses;
 if (isset($argv[1])) {
 	$licenses->exec($argv[1], isset($argv[2]) ? $argv[1] : false);
 } else {
+
 	$licenses->exec([
-		'../apps/comments',
-		'../apps/dav',
-		'../apps/encryption',
-		'../apps/federatedfilesharing',
-		'../apps/federation',
-		'../apps/files',
-		'../apps/files_external',
-		'../apps/files_sharing',
-		'../apps/files_trashbin',
-		'../apps/files_versions',
-		'../apps/provisioning_api',
-		'../apps/systemtags',
-		'../apps/testing',
-		'../apps/updatenotification',
-		'../apps/user_ldap',
-		'../core',
-		'../lib',
-		'../ocs',
-		'../settings',
-		'../console.php',
-		'../cron.php',
-		'../index.php',
-		'../public.php',
-		'../remote.php',
-		'../status.php',
-		'../version.php',
+		__DIR__ . '/../apps/comments',
+		__DIR__ . '/../apps/dav',
+		__DIR__ . '/../apps/encryption',
+		__DIR__ . '/../apps/federatedfilesharing',
+		__DIR__ . '/../apps/federation',
+		__DIR__ . '/../apps/files',
+		__DIR__ . '/../apps/files_external',
+		__DIR__ . '/../apps/files_sharing',
+		__DIR__ . '/../apps/files_trashbin',
+		__DIR__ . '/../apps/files_versions',
+		__DIR__ . '/../apps/provisioning_api',
+		__DIR__ . '/../apps/systemtags',
+		__DIR__ . '/../apps/testing',
+		__DIR__ . '/../apps/updatenotification',
+		__DIR__ . '/../core',
+		__DIR__ . '/../lib',
+		__DIR__ . '/../ocs',
+		__DIR__ . '/../ocs-provider',
+		__DIR__ . '/../settings',
+		__DIR__ . '/../console.php',
+		__DIR__ . '/../cron.php',
+		__DIR__ . '/../index.php',
+		__DIR__ . '/../public.php',
+		__DIR__ . '/../remote.php',
+		__DIR__ . '/../status.php',
+		__DIR__ . '/../version.php',
 	]);
 	$licenses->writeAuthorsFile();
 }

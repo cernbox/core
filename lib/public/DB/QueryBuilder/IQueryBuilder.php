@@ -1,8 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -183,7 +184,7 @@ interface IQueryBuilder {
 	 * @return \OCP\DB\QueryBuilder\IQueryBuilder This QueryBuilder instance.
 	 * @since 8.2.0
 	 */
-	public function setParameters(array $params, array $types = array());
+	public function setParameters(array $params, array $types = []);
 
 	/**
 	 * Gets all defined query parameters for the query being constructed indexed by parameter index or name.

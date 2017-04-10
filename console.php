@@ -1,16 +1,16 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Edward Crompton <edward.crompton@gmail.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
- * @author Jost Baron <Jost.Baron@gmx.de>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Philippe Le Brouster <plb@nebkha.net>
+ * @author Patrick Paysant <patrick.paysant@linagora.com>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
+ * @author RealRancor <fisch.666@gmx.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,19 +33,18 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 
 define('OC_CONSOLE', 1);
 
-// Show warning if a PHP version below 5.4.0 is used, this has to happen here
-// because base.php will already use 5.4 syntax.
-if (version_compare(PHP_VERSION, '5.4.0') === -1) {
-	echo 'This version of ownCloud requires at least PHP 5.4.0'.PHP_EOL;
+// Show warning if a PHP version below 5.6.0 is used, this has to happen here
+// because base.php will already use 5.6 syntax.
+if (version_compare(PHP_VERSION, '5.6.0') === -1) {
+	echo 'This version of ownCloud requires at least PHP 5.6.0'.PHP_EOL;
 	echo 'You are currently running ' . PHP_VERSION . '. Please update your PHP version.'.PHP_EOL;
 	return;
 }
 
-// Show warning if PHP 7.1 is used as ownCloud is not compatible with PHP 7.1 until
-// version 10.0.0.
-if (version_compare(PHP_VERSION, '7.1.0') !== -1) {
-	echo 'This version of ownCloud is not compatible with PHP 7.1.<br/>';
-	echo 'You are currently running ' . PHP_VERSION . '. Please use at least ownCloud 10.0.0.';
+// running oC on Windows is unsupported since 8.1, this has to happen here because
+// is seems that the autoloader on Windows fails later and just throws an exception.
+if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+	echo 'ownCloud Server does not support Microsoft Windows.';
 	return;
 }
 
@@ -55,32 +54,30 @@ function exceptionHandler($exception) {
 	exit(1);
 }
 try {
-	require_once 'lib/base.php';
+	require_once __DIR__ . '/lib/base.php';
 
 	// set to run indefinitely if needed
 	set_time_limit(0);
 
 	if (!OC::$CLI) {
 		echo "This script can be run from the command line only" . PHP_EOL;
-		exit(0);
+		exit(1);
 	}
 
 	set_exception_handler('exceptionHandler');
 
-	if (!OC_Util::runningOnWindows())  {
-		if (!function_exists('posix_getuid')) {
-			echo "The posix extensions are required - see http://php.net/manual/en/book.posix.php" . PHP_EOL;
-			exit(0);
-		}
-		$user = posix_getpwuid(posix_getuid());
-		$configUser = posix_getpwuid(fileowner(OC::$configDir . 'config.php'));
-		if ($user['name'] !== $configUser['name']) {
-			echo "Console has to be executed with the user that owns the file config/config.php" . PHP_EOL;
-			echo "Current user: " . $user['name'] . PHP_EOL;
-			echo "Owner of config.php: " . $configUser['name'] . PHP_EOL;
-			echo "Try adding 'sudo -u " . $configUser['name'] . " ' to the beginning of the command (without the single quotes)" . PHP_EOL;  
-			exit(0);
-		}
+	if (!function_exists('posix_getuid')) {
+		echo "The posix extensions are required - see http://php.net/manual/en/book.posix.php" . PHP_EOL;
+		exit(1);
+	}
+	$user = posix_getpwuid(posix_getuid());
+	$configUser = posix_getpwuid(fileowner(OC::$configDir . 'config.php'));
+	if ($user['name'] !== $configUser['name']) {
+		echo "Console has to be executed with the user that owns the file config/config.php" . PHP_EOL;
+		echo "Current user: " . $user['name'] . PHP_EOL;
+		echo "Owner of config.php: " . $configUser['name'] . PHP_EOL;
+		echo "Try adding 'sudo -u " . $configUser['name'] . " ' to the beginning of the command (without the single quotes)" . PHP_EOL;
+		exit(1);
 	}
 
 	$oldWorkingDir = getcwd();

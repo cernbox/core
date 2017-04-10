@@ -2,15 +2,17 @@
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Torben Dannhauer <torben@dannhauer.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +40,6 @@ class Helper {
 	public static function registerHooks() {
 		\OCP\Util::connectHook('OC_Filesystem', 'post_rename', '\OCA\Files_Sharing\Updater', 'renameHook');
 		\OCP\Util::connectHook('OC_Filesystem', 'post_delete', '\OCA\Files_Sharing\Hooks', 'unshareChildren');
-		\OCP\Util::connectHook('OC_Appconfig', 'post_set_value', '\OCA\Files_Sharing\Maintainer', 'configChangeHook');
 
 		\OCP\Util::connectHook('OC_User', 'post_deleteUser', '\OCA\Files_Sharing\Hooks', 'deleteUser');
 	}
@@ -79,21 +80,21 @@ class Helper {
 		} catch (NotFoundException $e) {
 			\OCP\Util::writeLog('share', 'could not resolve linkItem', \OCP\Util::DEBUG);
 			\OC_Response::setStatus(404);
-			\OCP\JSON::error(array('success' => false));
+			\OCP\JSON::error(['success' => false]);
 			exit();
 		}
 
 		if (!isset($linkItem['item_type'])) {
 			\OCP\Util::writeLog('share', 'No item type set for share id: ' . $linkItem['id'], \OCP\Util::ERROR);
 			\OC_Response::setStatus(404);
-			\OCP\JSON::error(array('success' => false));
+			\OCP\JSON::error(['success' => false]);
 			exit();
 		}
 
 		if (isset($linkItem['share_with']) && (int)$linkItem['share_type'] === \OCP\Share::SHARE_TYPE_LINK) {
 			if (!self::authenticate($linkItem, $password)) {
 				\OC_Response::setStatus(403);
-				\OCP\JSON::error(array('success' => false));
+				\OCP\JSON::error(['success' => false]);
 				exit();
 			}
 		}
@@ -104,11 +105,11 @@ class Helper {
 			$path .= Filesystem::normalizePath($relativePath);
 		}
 
-		return array(
+		return [
 			'linkItem' => $linkItem,
 			'basePath' => $basePath,
 			'realPath' => $path
-		);
+		];
 	}
 
 	/**
@@ -164,7 +165,7 @@ class Helper {
 	}
 
 	public static function getSharesFromItem($target) {
-		$result = array();
+		$result = [];
 		$owner = Filesystem::getOwner($target);
 		Filesystem::initMountPoints($owner);
 		$info = Filesystem::getFileInfo($target);
@@ -176,7 +177,7 @@ class Helper {
 		}
 
 
-		$ids = array();
+		$ids = [];
 		while ($path !== dirname($path)) {
 			$info = $ownerView->getFileInfo($path);
 			if ($info instanceof \OC\Files\FileInfo) {

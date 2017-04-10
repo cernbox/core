@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -65,7 +65,11 @@ class ShareTypeList implements Element {
 	static function xmlDeserialize(Reader $reader) {
 		$shareTypes = [];
 
-		foreach ($reader->parseInnerTree() as $elem) {
+		$tree = $reader->parseInnerTree();
+		if ($tree === null) {
+			return null;
+		}
+		foreach ($tree as $elem) {
 			if ($elem['name'] === '{' . self::NS_OWNCLOUD . '}share-type') {
 				$shareTypes[] = (int)$elem['value'];
 			}

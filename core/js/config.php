@@ -5,17 +5,22 @@
  * @author Clark Tomlinson <fallen013@gmail.com>
  * @author Guillaume AMAT <guillaume.amat@informatique-libre.com>
  * @author Hasso Tepper <hasso@zone.ee>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Owen Winkler <a_github@midnightcircus.com>
+ * @author Philipp Schaffrath <github@philipp.schaffrath.email>
+ * @author phisch <git@philippschaffrath.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Timo Benk <benk@b1-systems.de>
  * @author Vincent Chan <plus.vincchan@gmail.com>
  * @author Vincent Petry <pvince81@owncloud.com>
+ * @author Felix Heidecke <felix@heidecke.me>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,7 +51,7 @@ $l = \OC::$server->getL10N('core');
 $defaults = new OC_Defaults();
 
 // Get the config
-$apps_paths = array();
+$apps_paths = [];
 foreach(OC_App::getEnabledApps() as $app) {
 	$apps_paths[$app] = OC_App::getAppWebPath($app);
 }
@@ -64,12 +69,15 @@ $outgoingServer2serverShareEnabled = $config->getAppValue('files_sharing', 'outg
 
 $countOfDataLocation = 0;
 
+$value = $config->getAppValue('core', 'shareapi_enable_link_password_by_default', 'no');
+$enableLinkPasswordByDefault = ($value === 'yes') ? true : false;
+
 $dataLocation = str_replace(OC::$SERVERROOT .'/', '', $config->getSystemValue('datadirectory', ''), $countOfDataLocation);
 if($countOfDataLocation !== 1 || !OC_User::isAdminUser(OC_User::getUser())){
 	$dataLocation = false;
 }
 
-$array = array(
+$array = [
 	"oc_debug" => $config->getSystemValue('debug', false) ? 'true' : 'false',
 	"oc_isadmin" => OC_User::isAdminUser(OC_User::getUser()) ? 'true' : 'false',
 	"oc_dataURL" => is_string($dataLocation) ? "\"".$dataLocation."\"" : 'false',
@@ -77,7 +85,7 @@ $array = array(
 	"oc_appswebroots" =>  str_replace('\\/', '/', json_encode($apps_paths)), // Ugly unescape slashes waiting for better solution
 	"datepickerFormatDate" => json_encode($l->l('jsdate', null)),
 	"dayNames" =>  json_encode(
-		array(
+		[
 			(string)$l->t('Sunday'),
 			(string)$l->t('Monday'),
 			(string)$l->t('Tuesday'),
@@ -85,10 +93,10 @@ $array = array(
 			(string)$l->t('Thursday'),
 			(string)$l->t('Friday'),
 			(string)$l->t('Saturday')
-		)
+		]
 	),
 	"dayNamesShort" =>  json_encode(
-		array(
+		[
 			(string)$l->t('Sun.'),
 			(string)$l->t('Mon.'),
 			(string)$l->t('Tue.'),
@@ -96,10 +104,10 @@ $array = array(
 			(string)$l->t('Thu.'),
 			(string)$l->t('Fri.'),
 			(string)$l->t('Sat.')
-		)
+		]
 	),
 	"dayNamesMin" =>  json_encode(
-		array(
+		[
 			(string)$l->t('Su'),
 			(string)$l->t('Mo'),
 			(string)$l->t('Tu'),
@@ -107,10 +115,10 @@ $array = array(
 			(string)$l->t('Th'),
 			(string)$l->t('Fr'),
 			(string)$l->t('Sa')
-		)
+		]
 	),
 	"monthNames" => json_encode(
-		array(
+		[
 			(string)$l->t('January'),
 			(string)$l->t('February'),
 			(string)$l->t('March'),
@@ -123,10 +131,10 @@ $array = array(
 			(string)$l->t('October'),
 			(string)$l->t('November'),
 			(string)$l->t('December')
-		)
+		]
 	),
 	"monthNamesShort" => json_encode(
-		array(
+		[
 			(string)$l->t('Jan.'),
 			(string)$l->t('Feb.'),
 			(string)$l->t('Mar.'),
@@ -139,19 +147,20 @@ $array = array(
 			(string)$l->t('Oct.'),
 			(string)$l->t('Nov.'),
 			(string)$l->t('Dec.')
-		)
+		]
 	),
 	"firstDay" => json_encode($l->l('firstday', null)) ,
 	"oc_config" => json_encode(
-		array(
+		[
 			'session_lifetime'	=> min(\OCP\Config::getSystemValue('session_lifetime', OC::$server->getIniWrapper()->getNumeric('session.gc_maxlifetime')), OC::$server->getIniWrapper()->getNumeric('session.gc_maxlifetime')),
 			'session_keepalive'	=> \OCP\Config::getSystemValue('session_keepalive', true),
-			'version'			=> implode('.', \OCP\Util::getVersion()),
+			'version'		=> implode('.', \OCP\Util::getVersion()),
 			'versionstring'		=> OC_Util::getVersionString(),
 			'enable_avatars'	=> \OC::$server->getConfig()->getSystemValue('enable_avatars', true) === true,
-			'lost_password_link'=> \OC::$server->getConfig()->getSystemValue('lost_password_link', null),
+			'lost_password_link'	=> \OC::$server->getConfig()->getSystemValue('lost_password_link', null),
 			'modRewriteWorking'	=> (getenv('front_controller_active') === 'true'),
-		)
+			'blacklist_files_regex'	=> \OCP\Files\FileInfo::BLACKLIST_FILES_REGEX
+		]
 	),
 	"oc_appconfig" => json_encode(
 		[
@@ -160,6 +169,7 @@ $array = array(
 				'defaultExpireDate' => $defaultExpireDate,
 				'defaultExpireDateEnforced' => $enforceDefaultExpireDate,
 				'enforcePasswordForPublicLink' => \OCP\Util::isPublicLinkPasswordRequired(),
+				'enableLinkPasswordByDefault' => $enableLinkPasswordByDefault,
 				'sharingDisabledForUser' => \OCP\Util::isSharingDisabledForUser(),
 				'resharingAllowed' => \OCP\Share::isResharingAllowed(),
 				'remoteShareAllowed' => $outgoingServer2serverShareEnabled,
@@ -170,7 +180,7 @@ $array = array(
 		]
 	),
 	"oc_defaults" => json_encode(
-		array(
+		[
 			'entity' => $defaults->getEntity(),
 			'name' => $defaults->getName(),
 			'title' => $defaults->getTitle(),
@@ -182,13 +192,19 @@ $array = array(
 			'logoClaim' => $defaults->getLogoClaim(),
 			'shortFooter' => $defaults->getShortFooter(),
 			'longFooter' => $defaults->getLongFooter(),
-			'folder' => OC_Util::getTheme(),
-		)
+			'folder' => OC_Util::getTheme()->getName()
+		]
+	),
+	'theme' => json_encode(
+		[
+			'name' => OC_Util::getTheme()->getName(),
+			'directory' => OC_Util::getTheme()->getDirectory()
+		]
 	)
-);
+];
 
 // Allow hooks to modify the output values
-OC_Hook::emit('\OCP\Config', 'js', array('array' => &$array));
+OC_Hook::emit('\OCP\Config', 'js', ['array' => &$array]);
 
 // Echo it
 foreach ($array as  $setting => $value) {

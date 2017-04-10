@@ -3,17 +3,18 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Owen Winkler <a_github@midnightcircus.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Semih Serhat Karakaya <karakayasemi@itu.edu.tr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,6 +54,7 @@ use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\Exception\NotImplemented;
 use Sabre\DAV\Exception\ServiceUnavailable;
 use Sabre\DAV\IFile;
+use Sabre\DAV\Exception\NotFound;
 
 class File extends Node implements IFile {
 
@@ -73,7 +75,7 @@ class File extends Node implements IFile {
 	 * different object on a subsequent GET you are strongly recommended to not
 	 * return an ETag, and just return null.
 	 *
-	 * @param resource $data
+	 * @param resource|string $data
 	 *
 	 * @throws Forbidden
 	 * @throws UnsupportedMediaType
@@ -209,11 +211,11 @@ class File extends Node implements IFile {
 					header('X-OC-MTime: accepted');
 				}
 			}
-
+			
 			if ($view) {
 				$this->emitPostHooks($exists);
 			}
-
+			
 			$this->refreshInfo();
 
 			if (isset($request->server['HTTP_OC_CHECKSUM'])) {
@@ -252,20 +254,20 @@ class File extends Node implements IFile {
 		$run = true;
 
 		if (!$exists) {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_create, array(
+			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_create, [
 				\OC\Files\Filesystem::signal_param_path => $hookPath,
 				\OC\Files\Filesystem::signal_param_run => &$run,
-			));
+			]);
 		} else {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_update, array(
+			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_update, [
 				\OC\Files\Filesystem::signal_param_path => $hookPath,
 				\OC\Files\Filesystem::signal_param_run => &$run,
-			));
+			]);
 		}
-		\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_write, array(
+		\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_write, [
 			\OC\Files\Filesystem::signal_param_path => $hookPath,
 			\OC\Files\Filesystem::signal_param_run => &$run,
-		));
+		]);
 		return $run;
 	}
 
@@ -278,17 +280,17 @@ class File extends Node implements IFile {
 		}
 		$hookPath = Filesystem::getView()->getRelativePath($this->fileView->getAbsolutePath($path));
 		if (!$exists) {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_create, array(
+			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_create, [
 				\OC\Files\Filesystem::signal_param_path => $hookPath
-			));
+			]);
 		} else {
-			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_update, array(
+			\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_update, [
 				\OC\Files\Filesystem::signal_param_path => $hookPath
-			));
+			]);
 		}
-		\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_write, array(
+		\OC_Hook::emit(\OC\Files\Filesystem::CLASSNAME, \OC\Files\Filesystem::signal_post_write, [
 			\OC\Files\Filesystem::signal_param_path => $hookPath
-		));
+		]);
 	}
 
 	/**
@@ -301,6 +303,10 @@ class File extends Node implements IFile {
 	public function get() {
 		//throw exception if encryption is disabled but files are still encrypted
 		try {
+			if (!$this->info->isReadable()) {
+				// do a if the file did not exist
+				throw new NotFound();
+			}
 			$res = $this->fileView->fopen(ltrim($this->path, '/'), 'rb');
 			if ($res === false) {
 				throw new ServiceUnavailable("Could not open file");

@@ -2,14 +2,14 @@
 /**
  * @author Andreas Fischer <bantu@owncloud.com>
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -116,7 +116,7 @@ class OC_DB {
 						 . ' pass an array with \'limit\' and \'offset\' instead';
 				throw new \OC\DatabaseException($message);
 			}
-			$stmt = array('sql' => $stmt, 'limit' => null, 'offset' => null);
+			$stmt = ['sql' => $stmt, 'limit' => null, 'offset' => null];
 		}
 		if (is_array($stmt)) {
 			// convert to prepared statement
@@ -185,23 +185,6 @@ class OC_DB {
 			$result = $schemaManager->updateDbFromStructure($file);
 		} catch (Exception $e) {
 			\OCP\Util::writeLog('core', 'Failed to update database structure ('.$e.')', \OCP\Util::FATAL);
-			throw $e;
-		}
-		return $result;
-	}
-
-	/**
-	 * simulate the database schema update
-	 * @param string $file file to read structure from
-	 * @throws Exception
-	 * @return string|boolean
-	 */
-	public static function simulateUpdateDbFromStructure($file) {
-		$schemaManager = self::getMDB2SchemaManager();
-		try {
-			$result = $schemaManager->simulateUpdateDbFromStructure($file);
-		} catch (Exception $e) {
-			\OCP\Util::writeLog('core', 'Simulated database structure update failed ('.$e.')', \OCP\Util::FATAL);
 			throw $e;
 		}
 		return $result;

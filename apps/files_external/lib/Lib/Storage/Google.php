@@ -15,7 +15,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,14 +42,14 @@ set_include_path(get_include_path().PATH_SEPARATOR.
 	\OC_App::getAppPath('files_external').'/3rdparty/google-api-php-client/src');
 require_once 'Google/autoload.php';
 
-class Google extends \OC\Files\Storage\Common {
+class Google extends \OCP\Files\Storage\StorageAdapter {
 
 	private $client;
 	private $id;
 	private $service;
 	private $driveFiles;
 
-	private static $tempFiles = array();
+	private static $tempFiles = [];
 
 	// Google Doc mimetypes
 	const FOLDER = 'application/vnd.google-apps.folder';
@@ -67,7 +67,7 @@ class Google extends \OC\Files\Storage\Common {
 			$this->client = new \Google_Client();
 			$this->client->setClientId($params['client_id']);
 			$this->client->setClientSecret($params['client_secret']);
-			$this->client->setScopes(array('https://www.googleapis.com/auth/drive'));
+			$this->client->setScopes(['https://www.googleapis.com/auth/drive']);
 			$this->client->setAccessToken($params['token']);
 			// if curl isn't available we're likely to run into
 			// https://github.com/google/google-api-php-client/issues/59
@@ -125,7 +125,7 @@ class Google extends \OC\Files\Storage\Common {
 					$parentId = $this->driveFiles[$path]->getId();
 				} else {
 					$q = "title='" . str_replace("'","\\'", $name) . "' and '" . str_replace("'","\\'", $parentId) . "' in parents and trashed = false";
-					$result = $this->service->files->listFiles(array('q' => $q))->getItems();
+					$result = $this->service->files->listFiles(['q' => $q])->getItems();
 					if (!empty($result)) {
 						// Google Drive allows files with the same name, ownCloud doesn't
 						if (count($result) > 1) {
@@ -232,7 +232,7 @@ class Google extends \OC\Files\Storage\Common {
 				$folder->setMimeType(self::FOLDER);
 				$parent = new \Google_Service_Drive_ParentReference();
 				$parent->setId($parentFolder->getId());
-				$folder->setParents(array($parent));
+				$folder->setParents([$parent]);
 				$result = $this->service->files->insert($folder);
 				if ($result) {
 					$this->setDriveFile($path, $result);
@@ -259,7 +259,7 @@ class Google extends \OC\Files\Storage\Common {
 				}
 				closedir($dir);
 			}
-			$this->driveFiles = array();
+			$this->driveFiles = [];
 			return true;
 		} else {
 			return $this->unlink($path);
@@ -269,11 +269,11 @@ class Google extends \OC\Files\Storage\Common {
 	public function opendir($path) {
 		$folder = $this->getDriveFile($path);
 		if ($folder) {
-			$files = array();
-			$duplicates = array();
+			$files = [];
+			$duplicates = [];
 			$pageToken = true;
 			while ($pageToken) {
-				$params = array();
+				$params = [];
 				if ($pageToken !== true) {
 					$params['pageToken'] = $pageToken;
 				}
@@ -322,7 +322,7 @@ class Google extends \OC\Files\Storage\Common {
 	public function stat($path) {
 		$file = $this->getDriveFile($path);
 		if ($file) {
-			$stat = array();
+			$stat = [];
 			if ($this->filetype($path) === 'dir') {
 				$stat['size'] = 0;
 			} else {
@@ -403,7 +403,7 @@ class Google extends \OC\Files\Storage\Common {
 				if ($parentFolder2) {
 					$parent = new \Google_Service_Drive_ParentReference();
 					$parent->setId($parentFolder2->getId());
-					$file->setParents(array($parent));
+					$file->setParents([$parent]);
 				} else {
 					return false;
 				}
@@ -495,7 +495,7 @@ class Google extends \OC\Files\Storage\Common {
 			case 'c':
 			case 'c+':
 				$tmpFile = \OCP\Files::tmpFile($ext);
-				\OC\Files\Stream\Close::registerCallback($tmpFile, array($this, 'writeBack'));
+				\OC\Files\Stream\Close::registerCallback($tmpFile, [$this, 'writeBack']);
 				if ($this->file_exists($path)) {
 					$source = $this->fopen($path, 'rb');
 					file_put_contents($tmpFile, $source);
@@ -511,10 +511,10 @@ class Google extends \OC\Files\Storage\Common {
 			$parentFolder = $this->getDriveFile(dirname($path));
 			if ($parentFolder) {
 				$mimetype = \OC::$server->getMimeTypeDetector()->detect($tmpFile);
-				$params = array(
+				$params = [
 					'mimeType' => $mimetype,
 					'uploadType' => 'media'
-				);
+				];
 				$result = false;
 
 				$chunkSizeBytes = 10 * 1024 * 1024;
@@ -537,7 +537,7 @@ class Google extends \OC\Files\Storage\Common {
 					$file->setMimeType($mimetype);
 					$parent = new \Google_Service_Drive_ParentReference();
 					$parent->setId($parentFolder->getId());
-					$file->setParents(array($parent));
+					$file->setParents([$parent]);
 					$this->client->setDefer($useChunking);
 					$request = $this->service->files->insert($file, $params);
 				}
@@ -625,9 +625,9 @@ class Google extends \OC\Files\Storage\Common {
 				// the fractions portion be present, while no handy PHP constant
 				// for RFC3339 or ISO8601 includes it. So we do it ourselves.
 				$file->setModifiedDate(date('Y-m-d\TH:i:s.uP', $mtime));
-				$result = $this->service->files->patch($file->getId(), $file, array(
+				$result = $this->service->files->patch($file->getId(), $file, [
 					'setModifiedDate' => true,
-				));
+				]);
 			} else {
 				$result = $this->service->files->touch($file->getId());
 			}
@@ -638,7 +638,7 @@ class Google extends \OC\Files\Storage\Common {
 				$file->setTitle(basename($path));
 				$parent = new \Google_Service_Drive_ParentReference();
 				$parent->setId($parentFolder->getId());
-				$file->setParents(array($parent));
+				$file->setParents([$parent]);
 				$result = $this->service->files->insert($file);
 			}
 		}
@@ -667,10 +667,10 @@ class Google extends \OC\Files\Storage\Common {
 				$result = false;
 				$folderId = $folder->getId();
 				$startChangeId = $appConfig->getValue('files_external', $this->getId().'cId');
-				$params = array(
+				$params = [
 					'includeDeleted' => true,
 					'includeSubscribed' => true,
-				);
+				];
 				if (isset($startChangeId)) {
 					$startChangeId = (int)$startChangeId;
 					$largestChangeId = $startChangeId;

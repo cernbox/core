@@ -36,8 +36,8 @@ class JobListTest extends TestCase {
 
 		$this->connection = \OC::$server->getDatabaseConnection();
 		$this->clearJobsList();
-		$this->config = $this->getMock('OCP\IConfig');
-		$this->timeFactory = $this->getMock('OCP\AppFramework\Utility\ITimeFactory');
+		$this->config = $this->createMock('OCP\IConfig');
+		$this->timeFactory = $this->createMock('OCP\AppFramework\Utility\ITimeFactory');
 		$this->instance = new \OC\BackgroundJob\JobList(
 			$this->connection,
 			$this->config,
@@ -62,16 +62,16 @@ class JobListTest extends TestCase {
 	}
 
 	public function argumentProvider() {
-		return array(
-			array(null),
-			array(false),
-			array('foobar'),
-			array(12),
-			array(array(
+		return [
+			[null],
+			[false],
+			['foobar'],
+			[12],
+			[[
 				'asd' => 5,
 				'foo' => 'bar'
-			))
-		);
+			]]
+		];
 	}
 
 	/**

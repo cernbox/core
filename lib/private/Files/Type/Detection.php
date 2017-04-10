@@ -1,15 +1,18 @@
 <?php
 /**
  * @author Andreas Fischer <bantu@owncloud.com>
+ * @author Hendrik Leppelsack <hendrik@leppelsack.de>
  * @author Jens-Christian Fischer <jens-christian.fischer@switch.ch>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -82,7 +85,7 @@ class Detection implements IMimeTypeDetector {
 	public function registerType($extension,
 								 $mimetype,
 								 $secureMimeType = null) {
-		$this->mimetypes[$extension] = array($mimetype, $secureMimeType);
+		$this->mimetypes[$extension] = [$mimetype, $secureMimeType];
 		$this->secureMimeTypes[$mimetype] = $secureMimeType ?: $mimetype;
 	}
 

@@ -6,7 +6,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -95,7 +95,7 @@ namespace OCP\Contacts {
 		 * @return array an array of contacts which are arrays of key-value-pairs
 		 * @since 6.0.0
 		 */
-		function search($pattern, $searchProperties = array(), $options = array());
+		function search($pattern, $searchProperties = [], $options = []);
 
 		/**
 		 * This function can be used to delete the contact identified by the given id

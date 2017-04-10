@@ -3,7 +3,7 @@
  * @author Carla Schroder <carla@owncloud.com>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -65,6 +65,9 @@ class CheckApp extends Base {
 		$path = strval($input->getOption('path'));
 		$result = $this->checker->verifyAppSignature($appid, $path);
 		$this->writeArrayInOutputFormat($input, $output, $result);
+		if (count($result)>0){
+			return 1;
+		}
 	}
 
 }

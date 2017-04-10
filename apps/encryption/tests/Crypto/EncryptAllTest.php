@@ -1,9 +1,10 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -100,7 +101,7 @@ class EncryptAllTest extends TestCase {
 
 
 		$this->outputInterface->expects($this->any())->method('getFormatter')
-			->willReturn($this->getMock('\Symfony\Component\Console\Formatter\OutputFormatterInterface'));
+			->willReturn($this->createMock('\Symfony\Component\Console\Formatter\OutputFormatterInterface'));
 
 		$this->userManager->expects($this->any())->method('getBackends')->willReturn([$this->userInterface]);
 		$this->userInterface->expects($this->any())->method('getUsers')->willReturn(['user1', 'user2']);

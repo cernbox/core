@@ -1,9 +1,9 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,32 +39,32 @@ class BirthdayServiceTest extends TestCase {
 	/** @var CardDavBackend | \PHPUnit_Framework_MockObject_MockObject */
 	private $cardDav;
 	/** @var GroupPrincipalBackend | \PHPUnit_Framework_MockObject_MockObject */
-	private $groupPrincialBackend;
+	private $groupPrincipalBackend;
 
 	public function setUp() {
 		parent::setUp();
 
-		$this->calDav = $this->getMockBuilder('OCA\DAV\CalDAV\CalDavBackend')->disableOriginalConstructor()->getMock();
-		$this->cardDav = $this->getMockBuilder('OCA\DAV\CardDAV\CardDavBackend')->disableOriginalConstructor()->getMock();
-		$this->groupPrincialBackend = $this->getMockBuilder('OCA\DAV\DAV\GroupPrincipalBackend')->disableOriginalConstructor()->getMock();
+		$this->calDav = $this->getMockBuilder(CalDavBackend::class)->disableOriginalConstructor()->getMock();
+		$this->cardDav = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
+		$this->groupPrincipalBackend = $this->getMockBuilder(GroupPrincipalBackend::class)->disableOriginalConstructor()->getMock();
 
-		$this->service = new BirthdayService($this->calDav, $this->cardDav, $this->groupPrincialBackend);
+		$this->service = new BirthdayService($this->calDav, $this->cardDav, $this->groupPrincipalBackend);
 	}
 
 	/**
 	 * @dataProvider providesVCards
-	 * @param boolean $nullExpected
+	 * @param boolean $expectedSummary
 	 * @param string | null $data
 	 */
-	public function testBuildBirthdayFromContact($nullExpected, $data) {
-		$cal = $this->service->buildBirthdayFromContact($data);
-		if ($nullExpected) {
+	public function testBuildBirthdayFromContact($expectedSummary, $data) {
+		$cal = $this->service->buildDateFromContact($data, 'BDAY', '*');
+		if (is_null($expectedSummary)) {
 			$this->assertNull($cal);
 		} else {
 			$this->assertInstanceOf('Sabre\VObject\Component\VCalendar', $cal);
 			$this->assertTrue(isset($cal->VEVENT));
 			$this->assertEquals('FREQ=YEARLY', $cal->VEVENT->RRULE->getValue());
-			$this->assertEquals('12345 (*1900)', $cal->VEVENT->SUMMARY->getValue());
+			$this->assertEquals($expectedSummary, $cal->VEVENT->SUMMARY->getValue());
 			$this->assertEquals('TRANSPARENT', $cal->VEVENT->TRANSP->getValue());
 		}
 	}
@@ -81,7 +81,9 @@ class BirthdayServiceTest extends TestCase {
 			->willReturn([
 			'id' => 1234
 		]);
-		$this->calDav->expects($this->once())->method('deleteCalendarObject')->with(1234, 'default-gump.vcf.ics');
+		$this->calDav->expects($this->at(1))->method('deleteCalendarObject')->with(1234, 'default-gump.vcf.ics');
+		$this->calDav->expects($this->at(2))->method('deleteCalendarObject')->with(1234, 'default-gump.vcf-death.ics');
+		$this->calDav->expects($this->at(3))->method('deleteCalendarObject')->with(1234, 'default-gump.vcf-anniversary.ics');
 		$this->cardDav->expects($this->once())->method('getShares')->willReturn([]);
 
 		$this->service->onCardDeleted(666, 'gump.vcf');
@@ -105,24 +107,37 @@ class BirthdayServiceTest extends TestCase {
 		$this->cardDav->expects($this->once())->method('getShares')->willReturn([]);
 
 		/** @var BirthdayService | \PHPUnit_Framework_MockObject_MockObject $service */
-		$service = $this->getMock('\OCA\DAV\CalDAV\BirthdayService',
-			['buildBirthdayFromContact', 'birthdayEvenChanged'], [$this->calDav, $this->cardDav, $this->groupPrincialBackend]);
+		$service = $this->getMockBuilder(BirthdayService::class)
+			->setMethods(['buildDateFromContact', 'birthdayEvenChanged'])
+			->setConstructorArgs([$this->calDav, $this->cardDav, $this->groupPrincipalBackend])
+			->getMock();
 
 		if ($expectedOp === 'delete') {
-			$this->calDav->expects($this->once())->method('getCalendarObject')->willReturn('');
-			$service->expects($this->once())->method('buildBirthdayFromContact')->willReturn(null);
-			$this->calDav->expects($this->once())->method('deleteCalendarObject')->with(1234, 'default-gump.vcf.ics');
+			$this->calDav->expects($this->exactly(3))->method('getCalendarObject')->willReturn('');
+			$service->expects($this->exactly(3))->method('buildDateFromContact')->willReturn(null);
+			$this->calDav->expects($this->exactly(3))->method('deleteCalendarObject')->withConsecutive(
+				[1234, 'default-gump.vcf.ics'],
+				[1234, 'default-gump.vcf-death.ics'],
+				[1234, 'default-gump.vcf-anniversary.ics']
+			);
 		}
 		if ($expectedOp === 'create') {
-			$service->expects($this->once())->method('buildBirthdayFromContact')->willReturn(new VCalendar());
-			$this->calDav->expects($this->once())->method('createCalendarObject')->with(1234, 'default-gump.vcf.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n");
+			$service->expects($this->exactly(3))->method('buildDateFromContact')->willReturn(new VCalendar());
+			$this->calDav->expects($this->exactly(3))->method('createCalendarObject')->withConsecutive(
+				[1234, 'default-gump.vcf.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n"],
+				[1234, 'default-gump.vcf-death.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n"],
+				[1234, 'default-gump.vcf-anniversary.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n"]
+				);
 		}
 		if ($expectedOp === 'update') {
-			$service->expects($this->once())->method('buildBirthdayFromContact')->willReturn(new VCalendar());
-			$service->expects($this->once())->method('birthdayEvenChanged')->willReturn(true);
-			$this->calDav->expects($this->once())->method('getCalendarObject')->willReturn([
-				'calendardata' => '']);
-			$this->calDav->expects($this->once())->method('updateCalendarObject')->with(1234, 'default-gump.vcf.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n");
+			$service->expects($this->exactly(3))->method('buildDateFromContact')->willReturn(new VCalendar());
+			$service->expects($this->exactly(3))->method('birthdayEvenChanged')->willReturn(true);
+			$this->calDav->expects($this->exactly(3))->method('getCalendarObject')->willReturn(['calendardata' => '']);
+			$this->calDav->expects($this->exactly(3))->method('updateCalendarObject')->withConsecutive(
+				[1234, 'default-gump.vcf.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n"],
+				[1234, 'default-gump.vcf-death.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n"],
+				[1234, 'default-gump.vcf-anniversary.ics', "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nEND:VCALENDAR\r\n"]
+				);
 		}
 
 		$service->onCardChanged(666, 'gump.vcf', '');
@@ -158,7 +173,7 @@ class BirthdayServiceTest extends TestCase {
 				'{http://owncloud.org/ns}principal' => 'principals/groups/users'
 			],
 		]);
-		$this->groupPrincialBackend->expects($this->once())->method('getGroupMemberSet')
+		$this->groupPrincipalBackend->expects($this->once())->method('getGroupMemberSet')
 			->willReturn([
 				[
 					'uri' => 'principals/users/user01',
@@ -193,16 +208,16 @@ class BirthdayServiceTest extends TestCase {
 		return [
 			[true,
 				'',
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"],
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"],
 			[false,
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"],
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"],
 			[true,
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:4567's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"],
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:4567's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"],
 			[true,
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
-				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000102\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"]
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000101\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
+				"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nCALSCALE:GREGORIAN\r\nBEGIN:VEVENT\r\nUID:12345\r\nDTSTAMP:20160218T133704Z\r\nDTSTART;VALUE=DATE:19000102\r\nDTEND;VALUE=DATE:19000102\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:12345's Birthday (1900)\r\nTRANSP:TRANSPARENT\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"]
 		];
 	}
 
@@ -216,13 +231,19 @@ class BirthdayServiceTest extends TestCase {
 
 	public function providesVCards() {
 		return [
-			[true, null],
-			[true, ''],
-			[true, 'yasfewf'],
-			[true, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
-			[true, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
-			[true, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:someday\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
-			[false, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 3.5.0//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:1900-01-01\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			[null, null],
+			[null, ''],
+			[null, 'yasfewf'],
+			[null, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			[null, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			[null, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:someday\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			['12345 (*1900)', "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:19000101\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			['12345 (*1900)', "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:19001231\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			['12345 *', "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:--1231\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			['12345 *', "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY;X-APPLE-OMIT-YEAR=1604:16041231\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			[null, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:;VALUE=text:circa 1800\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			[null, "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nN:12345;;;;\r\nBDAY:20031231\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
+			['12345 (*900)', "BEGIN:VCARD\r\nVERSION:3.0\r\nPRODID:-//Sabre//Sabre VObject 4.1.2//EN\r\nUID:12345\r\nFN:12345\r\nN:12345;;;;\r\nBDAY:09001231\r\nEND:VCARD\r\n", "Dr. Foo Bar"],
 		];
 	}
 }

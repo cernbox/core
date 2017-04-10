@@ -1,19 +1,19 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael U <mdusher@users.noreply.github.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
- * @author Robin McCorkell <robin@mccorkell.me.uk>
- * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Chan <plus.vincchan@gmail.com>
+ * @author Vincent Petry <pvince81@owncloud.com>
  * @author Volkan Gezer <volkangezer@gmail.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,12 +56,12 @@ class Manager extends PublicEmitter implements IUserManager {
 	/**
 	 * @var \OCP\UserInterface[] $backends
 	 */
-	private $backends = array();
+	private $backends = [];
 
 	/**
 	 * @var \OC\User\User[] $cachedUsers
 	 */
-	private $cachedUsers = array();
+	private $cachedUsers = [];
 
 	/**
 	 * @var \OCP\IConfig $config
@@ -77,14 +77,6 @@ class Manager extends PublicEmitter implements IUserManager {
 		$this->listen('\OC\User', 'postDelete', function ($user) use (&$cachedUsers) {
 			/** @var \OC\User\User $user */
 			unset($cachedUsers[$user->getUID()]);
-		});
-		$this->listen('\OC\User', 'postLogin', function ($user) {
-			/** @var \OC\User\User $user */
-			$user->updateLastLoginTimestamp();
-		});
-		$this->listen('\OC\User', 'postRememberedLogin', function ($user) {
-			/** @var \OC\User\User $user */
-			$user->updateLastLoginTimestamp();
 		});
 	}
 
@@ -111,7 +103,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * @param \OCP\UserInterface $backend
 	 */
 	public function removeBackend($backend) {
-		$this->cachedUsers = array();
+		$this->cachedUsers = [];
 		if (($i = array_search($backend, $this->backends)) !== false) {
 			unset($this->backends[$i]);
 		}
@@ -121,8 +113,8 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * remove all user backends
 	 */
 	public function clearBackends() {
-		$this->cachedUsers = array();
-		$this->backends = array();
+		$this->cachedUsers = [];
+		$this->backends = [];
 	}
 
 	/**
@@ -166,7 +158,7 @@ class Manager extends PublicEmitter implements IUserManager {
 			}
 		}
 
-		$user = new User($uid, $backend, $this, $this->config);
+		$user = new User($uid, $backend, $this, $this->config, null, \OC::$server->getEventDispatcher() );
 		if ($cacheUser) {
 			$this->cachedUsers[$uid] = $user;
 		}
@@ -196,7 +188,7 @@ class Manager extends PublicEmitter implements IUserManager {
 		$password = str_replace("\0", '', $password);
 		
 		foreach ($this->backends as $backend) {
-			if ($backend->implementsActions(\OC\User\Backend::CHECK_PASSWORD)) {
+			if ($backend->implementsActions(Backend::CHECK_PASSWORD)) {
 				$uid = $backend->checkPassword($loginName, $password);
 				if ($uid !== false) {
 					return $this->getUserObject($uid, $backend);
@@ -217,7 +209,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * @return \OC\User\User[]
 	 */
 	public function search($pattern, $limit = null, $offset = null) {
-		$users = array();
+		$users = [];
 		foreach ($this->backends as $backend) {
 			$backendUsers = $backend->getUsers($pattern, $limit, $offset);
 			if (is_array($backendUsers)) {
@@ -246,7 +238,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * @return \OC\User\User[]
 	 */
 	public function searchDisplayName($pattern, $limit = null, $offset = null) {
-		$users = array();
+		$users = [];
 		foreach ($this->backends as $backend) {
 			$backendUsers = $backend->getDisplayNames($pattern, $limit, $offset);
 			if (is_array($backendUsers)) {
@@ -298,12 +290,12 @@ class Manager extends PublicEmitter implements IUserManager {
 			throw new \Exception($l->t('The username is already being used'));
 		}
 
-		$this->emit('\OC\User', 'preCreateUser', array($uid, $password));
+		$this->emit('\OC\User', 'preCreateUser', [$uid, $password]);
 		foreach ($this->backends as $backend) {
-			if ($backend->implementsActions(\OC\User\Backend::CREATE_USER)) {
+			if ($backend->implementsActions(Backend::CREATE_USER)) {
 				$backend->createUser($uid, $password);
 				$user = $this->getUserObject($uid, $backend);
-				$this->emit('\OC\User', 'postCreateUser', array($user, $password));
+				$this->emit('\OC\User', 'postCreateUser', [$user, $password]);
 				return $user;
 			}
 		}
@@ -313,12 +305,18 @@ class Manager extends PublicEmitter implements IUserManager {
 	/**
 	 * returns how many users per backend exist (if supported by backend)
 	 *
-	 * @return array an array of backend class as key and count number as value
+	 * @param boolean $hasLoggedIn when true only users that have a lastLogin
+	 *                entry in the preferences table will be affected
+	 * @return array|int an array of backend class as key and count number as value
+	 *                if $hasLoggedIn is true only an int is returned
 	 */
-	public function countUsers() {
-		$userCountStatistics = array();
+	public function countUsers($hasLoggedIn = false) {
+		if ($hasLoggedIn) {
+			return $this->countSeenUsers();
+		}
+		$userCountStatistics = [];
 		foreach ($this->backends as $backend) {
-			if ($backend->implementsActions(\OC\User\Backend::COUNT_USERS)) {
+			if ($backend->implementsActions(Backend::COUNT_USERS)) {
 				$backendUsers = $backend->countUsers();
 				if($backendUsers !== false) {
 					if($backend instanceof IUserBackend) {
@@ -343,26 +341,32 @@ class Manager extends PublicEmitter implements IUserManager {
 	 *
 	 * @param \Closure $callback
 	 * @param string $search
+	 * @param boolean $onlySeen when true only users that have a lastLogin entry
+	 *                in the preferences table will be affected
 	 * @since 9.0.0
 	 */
-	public function callForAllUsers(\Closure $callback, $search = '') {
-		foreach ($this->getBackends() as $backend) {
-			$limit = 500;
-			$offset = 0;
-			do {
-				$users = $backend->getUsers($search, $limit, $offset);
-				foreach ($users as $uid) {
-					if (!$backend->userExists($uid)) {
-						continue;
+	public function callForAllUsers(\Closure $callback, $search = '', $onlySeen = false) {
+		if ($onlySeen) {
+			$this->callForSeenUsers($callback);
+		} else {
+			foreach ($this->getBackends() as $backend) {
+				$limit = 500;
+				$offset = 0;
+				do {
+					$users = $backend->getUsers($search, $limit, $offset);
+					foreach ($users as $uid) {
+						if (!$backend->userExists($uid)) {
+							continue;
+						}
+						$user = $this->getUserObject($uid, $backend, false);
+						$return = $callback($user);
+						if ($return === false) {
+							break;
+						}
 					}
-					$user = $this->getUserObject($uid, $backend, false);
-					$return = $callback($user);
-					if ($return === false) {
-						break;
-					}
-				}
-				$offset += $limit;
-			} while (count($users) >= $limit);
+					$offset += $limit;
+				} while (count($users) >= $limit);
+			}
 		}
 	}
 
@@ -370,7 +374,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * returns how many users have logged in once
 	 *
 	 * @return int
-	 * @since 9.1.0
+	 * @since 10.0
 	 */
 	public function countSeenUsers() {
 		$queryBuilder = \OC::$server->getDatabaseConnection()->getQueryBuilder();
@@ -392,7 +396,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	/**
 	 * @param \Closure $callback
 	 * @param string $search
-	 * @since 9.1.0
+	 * @since 10.0
 	 */
 	public function callForSeenUsers (\Closure $callback) {
 		$limit = 1000;
@@ -418,7 +422,7 @@ class Manager extends PublicEmitter implements IUserManager {
 	 * Getting all userIds that have a listLogin value requires checking the
 	 * value in php because on oracle you cannot use a clob in a where clause,
 	 * preventing us from doing a not null or length(value) > 0 check.
-	 *
+	 * 
 	 * @param int $limit
 	 * @param int $offset
 	 * @return string[] with user ids

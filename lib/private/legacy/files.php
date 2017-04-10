@@ -6,7 +6,7 @@
  * @author Clark Tomlinson <fallen013@gmail.com>
  * @author Frank Karlitschek <frank@karlitschek.de>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
@@ -19,7 +19,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -116,7 +116,7 @@ class OC_Files {
 			if (!is_array($files)) {
 				$filename = $dir . '/' . $files;
 				if (!$view->is_dir($filename)) {
-					self::getSingleFile($view, $dir, $files, is_null($params) ? array() : $params);
+					self::getSingleFile($view, $dir, $files, is_null($params) ? [] : $params);
 					return;
 				}
 			}
@@ -197,7 +197,7 @@ class OC_Files {
 		$minOffset = 0;
 		$ind = 0;
 
-		$rangeArray = array();
+		$rangeArray = [];
 
 		foreach ($rArray as $value) {
 			$ranges = explode('-', $value);
@@ -216,7 +216,7 @@ class OC_Files {
 				if ($ranges[1] >= $fileSize) {
 					$ranges[1] = $fileSize-1;
 				}
-				$rangeArray[$ind++] = array( 'from' => $ranges[0], 'to' => $ranges[1], 'size' => $fileSize );
+				$rangeArray[$ind++] = ['from' => $ranges[0], 'to' => $ranges[1], 'size' => $fileSize];
 				$minOffset = $ranges[1] + 1;
 				if ($minOffset >= $fileSize) {
 					break;
@@ -224,7 +224,7 @@ class OC_Files {
 			}
 			elseif (is_numeric($ranges[0]) && $ranges[0] < $fileSize) {
 				// case: x-
-				$rangeArray[$ind++] = array( 'from' => $ranges[0], 'to' => $fileSize-1, 'size' => $fileSize );
+				$rangeArray[$ind++] = ['from' => $ranges[0], 'to' => $fileSize-1, 'size' => $fileSize];
 				break;
 			}
 			elseif (is_numeric($ranges[1])) {
@@ -232,7 +232,7 @@ class OC_Files {
 				if ($ranges[1] > $fileSize) {
 					$ranges[1] = $fileSize;
 				}
-				$rangeArray[$ind++] = array( 'from' => $fileSize-$ranges[1], 'to' => $fileSize-1, 'size' => $fileSize );
+				$rangeArray[$ind++] = ['from' => $fileSize-$ranges[1], 'to' => $fileSize-1, 'size' => $fileSize];
 				break;
 			}
 		}
@@ -250,7 +250,7 @@ class OC_Files {
 		OC_Util::obEnd();
 		$view->lockFile($filename, ILockingProvider::LOCK_SHARED);
 		
-		$rangeArray = array();
+		$rangeArray = [];
 
 		if (isset($params['range']) && substr($params['range'], 0, 6) === 'bytes=') {
 			$rangeArray = self::parseHttpRangeHeader(substr($params['range'], 6), 
@@ -260,12 +260,12 @@ class OC_Files {
 		if (\OC\Files\Filesystem::isReadable($filename)) {
 			self::sendHeaders($filename, $name, $rangeArray);
 		} elseif (!\OC\Files\Filesystem::file_exists($filename)) {
-			header("HTTP/1.0 404 Not Found");
+			header("HTTP/1.1 404 Not Found");
 			$tmpl = new OC_Template('', '404', 'guest');
 			$tmpl->printPage();
 			exit();
 		} else {
-			header("HTTP/1.0 403 Forbidden");
+			header("HTTP/1.1 403 Forbidden");
 			die('403 Forbidden');
 		}
 		if (isset($params['head']) && $params['head']) {
@@ -296,7 +296,7 @@ class OC_Files {
 			    header_remove('Accept-Ranges');
 			    header_remove('Content-Range');
 			    header("HTTP/1.1 200 OK");
-			    self::sendHeaders($filename, $name, array());
+			    self::sendHeaders($filename, $name, []);
 			    $view->readfile($filename);
 			}
 		}
@@ -344,10 +344,10 @@ class OC_Files {
 		}
 		$size = OC_Helper::phpFileSize($size);
 
-		$phpValueKeys = array(
+		$phpValueKeys = [
 			'upload_max_filesize',
 			'post_max_size'
-		);
+		];
 
 		// default locations if not overridden by $files
 		$files = array_merge([

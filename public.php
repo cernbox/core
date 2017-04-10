@@ -4,11 +4,13 @@
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,7 +28,7 @@
  */
 try {
 
-	require_once 'lib/base.php';
+	require_once __DIR__ . '/lib/base.php';
 	if (\OCP\Util::needUpgrade()) {
 		// since the behavior of apps or remotes are unpredictable during
 		// an upgrade, return a 503 directly
@@ -60,8 +62,8 @@ try {
 
 	// Load all required applications
 	\OC::$REQUESTEDAPP = $app;
-	OC_App::loadApps(array('authentication'));
-	OC_App::loadApps(array('filesystem', 'logging'));
+	OC_App::loadApps(['authentication']);
+	OC_App::loadApps(['filesystem', 'logging']);
 
 	if (!\OC::$server->getAppManager()->isInstalled($app)) {
 		throw new Exception('App not installed: ' . $app);

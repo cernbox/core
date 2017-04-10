@@ -1,13 +1,13 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
- * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,8 +25,10 @@
  */
 namespace OC\Console;
 
+use OC\NeedsUpdateException;
 use OC_App;
 use OC_Defaults;
+use OCP\AppFramework\QueryException;
 use OCP\Console\ConsoleEvent;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -35,6 +37,7 @@ use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class Application {
@@ -84,30 +87,41 @@ class Application {
 		if ($input->getOption('no-warnings')) {
 			$output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
 		}
-		require_once __DIR__ . '/../../../core/register_command.php';
-		if ($this->config->getSystemValue('installed', false)) {
-			if (\OCP\Util::needUpgrade()) {
-				$output->writeln("ownCloud or one of the apps require upgrade - only a limited number of commands are available");
-				$output->writeln("You may use your browser or the occ upgrade command to do the upgrade");
-			} elseif ($this->config->getSystemValue('maintenance', false)) {
-				$output->writeln("ownCloud is in maintenance mode - no app have been loaded");
-			} else {
-				OC_App::loadApps();
-				foreach (\OC::$server->getAppManager()->getInstalledApps() as $app) {
-					$appPath = \OC_App::getAppPath($app);
-					if($appPath === false) {
-						continue;
-					}
-					\OC_App::registerAutoloading($app, $appPath);
-					$file = $appPath . '/appinfo/register_command.php';
-					if (file_exists($file)) {
-						require $file;
+		try {
+			require_once __DIR__ . '/../../../core/register_command.php';
+			if ($this->config->getSystemValue('installed', false)) {
+				if (\OCP\Util::needUpgrade()) {
+					throw new NeedsUpdateException();
+				} elseif ($this->config->getSystemValue('maintenance', false)) {
+					$errOutput = $output->getErrorOutput();
+				        $errOutput->writeln('<comment>ownCloud is in maintenance mode - no app have been loaded</comment>' . PHP_EOL);
+				} else {
+					OC_App::loadApps();
+					foreach (\OC::$server->getAppManager()->getInstalledApps() as $app) {
+						$appPath = \OC_App::getAppPath($app);
+						if($appPath === false) {
+							continue;
+						}
+						// load commands using info.xml
+						$info = \OC_App::getAppInfo($app);
+						if (isset($info['commands'])) {
+							$this->loadCommandsFromInfoXml($info['commands']);
+						}
+						// load from register_command.php
+						\OC_App::registerAutoloading($app, $appPath);
+						$file = $appPath . '/appinfo/register_command.php';
+						if (file_exists($file)) {
+							require $file;
+						}
 					}
 				}
+			} else {
+				$output->writeln("ownCloud is not installed - only a limited number of commands are available");
 			}
-		} else {
-			$output->writeln("ownCloud is not installed - only a limited number of commands are available");
-		}
+		} catch (NeedsUpdateException $ex) {
+			$output->writeln("ownCloud or one of the apps require upgrade - only a limited number of commands are available");
+			$output->writeln("You may use your browser or the occ upgrade command to do the upgrade");
+		};
 		$input = new ArgvInput();
 		if ($input->getFirstArgument() !== 'check') {
 			$errors = \OC_Util::checkServer(\OC::$server->getConfig());
@@ -144,5 +158,21 @@ class Application {
 			$args
 		));
 		return $this->application->run($input, $output);
+	}
+
+	private function loadCommandsFromInfoXml($commands) {
+		foreach ($commands as $command) {
+			try {
+				$c = \OC::$server->query($command);
+			} catch (QueryException $e) {
+				if (class_exists($command)) {
+					$c = new $command();
+				} else {
+					throw new \Exception("Console command '$command' is unknown and could not be loaded");
+				}
+			}
+
+			$this->application->add($c);
+		}
 	}
 }

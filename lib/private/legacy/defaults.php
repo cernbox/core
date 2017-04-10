@@ -2,17 +2,19 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Pascal de Bruijn <pmjdebruijn@pcode.nl>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author scolebrook <scolebrook@mac.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Volkan Gezer <volkangezer@gmail.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -65,11 +67,14 @@ class OC_Defaults {
 		$this->defaultLogoClaim = '';
 		$this->defaultMailHeaderColor = '#1d2d44'; /* header color of mail notifications */
 
-		$themePath = OC::$SERVERROOT . '/themes/' . OC_Util::getTheme() . '/defaults.php';
-		if (file_exists($themePath)) {
+
+		$themePath = OC_Util::getTheme()->getDirectory();
+
+		$defaultsPath = OC::$SERVERROOT . '/' .$themePath . 'defaults.php';
+		if (file_exists($defaultsPath)) {
 			// prevent defaults.php from printing output
 			ob_start();
-			require_once $themePath;
+			require_once $defaultsPath;
 			ob_end_clean();
 			if (class_exists('OC_Theme')) {
 				$this->theme = new OC_Theme();

@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
@@ -9,7 +9,7 @@
  * @author Tobias Kaminsky <tobias@kaminsky.me>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +38,6 @@ use OCP\AppFramework\Http\Response;
 use OCA\Files\Service\TagService;
 use OCP\IPreview;
 use OCP\Share\IManager;
-use OCP\Files\Node;
 use OCP\IUserSession;
 
 /**
@@ -61,8 +60,11 @@ class ApiController extends Controller {
 	/**
 	 * @param string $appName
 	 * @param IRequest $request
+	 * @param IUserSession $userSession
 	 * @param TagService $tagService
 	 * @param IPreview $previewManager
+	 * @param IManager $shareManager
+	 * @param IConfig $config
 	 */
 	public function __construct($appName,
 								IRequest $request,
@@ -141,68 +143,6 @@ class ApiController extends Controller {
 	}
 
 	/**
-	 * Returns a list of all files tagged with the given tag.
-	 *
-	 * @NoAdminRequired
-	 *
-	 * @param string $tagName tag name to filter by
-	 * @return DataResponse
-	 */
-	public function getFilesByTag($tagName) {
-		$files = array();
-		$nodes = $this->tagService->getFilesByTag($tagName);
-		foreach ($nodes as &$node) {
-			$shareTypes = $this->getShareTypes($node);
-			$fileInfo = $node->getFileInfo();
-			$file = \OCA\Files\Helper::formatFileInfo($fileInfo);
-			$parts = explode('/', dirname($fileInfo->getPath()), 4);
-			if(isset($parts[3])) {
-				$file['path'] = '/' . $parts[3];
-			} else {
-				$file['path'] = '/';
-			}
-			$file['tags'] = [$tagName];
-			if (!empty($shareTypes)) {
-				$file['shareTypes'] = $shareTypes;
-			}
-			$files[] = $file;
-		}
-		return new DataResponse(['files' => $files]);
-	}
-
-	/**
-	 * Return a list of share types for outgoing shares
-	 *
-	 * @param Node $node file node
-	 *
-	 * @return int[] array of share types
-	 */
-	private function getShareTypes(Node $node) {
-		$userId = $this->userSession->getUser()->getUID();
-		$shareTypes = [];
-		$requestedShareTypes = [
-			\OCP\Share::SHARE_TYPE_USER,
-			\OCP\Share::SHARE_TYPE_GROUP,
-			\OCP\Share::SHARE_TYPE_LINK,
-			\OCP\Share::SHARE_TYPE_REMOTE
-		];
-		foreach ($requestedShareTypes as $requestedShareType) {
-			// one of each type is enough to find out about the types
-			$shares = $this->shareManager->getSharesBy(
-				$userId,
-				$requestedShareType,
-				$node,
-				false,
-				1
-			);
-			if (!empty($shares)) {
-				$shareTypes[] = $requestedShareType;
-			}
-		}
-		return $shareTypes;
-	}
-
-	/**
 	 * Change the default sort mode
 	 *
 	 * @NoAdminRequired
@@ -230,6 +170,7 @@ class ApiController extends Controller {
 	 * @NoAdminRequired
 	 *
 	 * @param bool $show
+	 * @return Response
 	 */
 	public function showHiddenFiles($show) {
 		$this->config->setUserValue($this->userSession->getUser()->getUID(), 'files', 'show_hidden', (int) $show);

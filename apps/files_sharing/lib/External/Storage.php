@@ -1,13 +1,14 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -83,13 +84,13 @@ class Storage extends DAV implements ISharedStorage {
 		$root = rtrim($root, '/') . $discoveryManager->getWebDavEndpoint($this->remote);
 		$this->mountPoint = $options['mountpoint'];
 		$this->token = $options['token'];
-		parent::__construct(array(
+		parent::__construct([
 			'secure' => $secure,
 			'host' => $host,
 			'root' => $root,
 			'user' => $options['token'],
 			'password' => (string)$options['password']
-		));
+		]);
 	}
 
 	public function getWatcher($path = '', $storage = null) {

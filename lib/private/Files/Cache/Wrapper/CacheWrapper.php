@@ -1,14 +1,15 @@
 <?php
 /**
  * @author Daniel Jagszent <daniel@jagszent.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Stefan Weil <sw@weilnetz.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -89,7 +90,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function getFolderContentsById($fileId) {
 		$results = $this->cache->getFolderContentsById($fileId);
-		return array_map(array($this, 'formatCacheEntry'), $results);
+		return array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -210,7 +211,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function search($pattern) {
 		$results = $this->cache->search($pattern);
-		return array_map(array($this, 'formatCacheEntry'), $results);
+		return array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -221,7 +222,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function searchByMime($mimetype) {
 		$results = $this->cache->searchByMime($mimetype);
-		return array_map(array($this, 'formatCacheEntry'), $results);
+		return array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -233,7 +234,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function searchByTag($tag, $userId) {
 		$results = $this->cache->searchByTag($tag, $userId);
-		return array_map(array($this, 'formatCacheEntry'), $results);
+		return array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**

@@ -13,12 +13,12 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Sjors van der Pluijm <sjors@desjors.nl>
- * @author Stefan Weil <sw@weilnetz.de>
+ * @author Steven Bühner <buehner@me.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -113,13 +113,13 @@ class Trashbin {
 	public static function getLocations($user) {
 		$query = \OC_DB::prepare('SELECT `id`, `timestamp`, `location`'
 			. ' FROM `*PREFIX*files_trash` WHERE `user`=?');
-		$result = $query->execute(array($user));
-		$array = array();
+		$result = $query->execute([$user]);
+		$array = [];
 		while ($row = $result->fetchRow()) {
 			if (isset($array[$row['id']])) {
 				$array[$row['id']][$row['timestamp']] = $row['location'];
 			} else {
-				$array[$row['id']] = array($row['timestamp'] => $row['location']);
+				$array[$row['id']] = [$row['timestamp'] => $row['location']];
 			}
 		}
 		return $array;
@@ -136,7 +136,7 @@ class Trashbin {
 	public static function getLocation($user, $filename, $timestamp) {
 		$query = \OC_DB::prepare('SELECT `location` FROM `*PREFIX*files_trash`'
 			. ' WHERE `user`=? AND `id`=? AND `timestamp`=?');
-		$result = $query->execute(array($user, $filename, $timestamp))->fetchAll();
+		$result = $query->execute([$user, $filename, $timestamp])->fetchAll();
 		if (isset($result[0]['location'])) {
 			return $result[0]['location'];
 		} else {
@@ -183,14 +183,42 @@ class Trashbin {
 		$target = $user . '/files_trashbin/files/' . $targetFilename . '.d' . $timestamp;
 		$source = $owner . '/files_trashbin/files/' . $sourceFilename . '.d' . $timestamp;
 		self::copy_recursive($source, $target, $view);
+	}
 
+	/**
+	 * Make a backup of a file into the trashbin for the owner
+	 *
+	 * @param string $ownerPath path relative to the owner's home folder and containing "files"
+	 * @param string $owner user id of the owner
+	 * @param int $timestamp deletion timestamp
+	 */
+	public static function copyBackupForOwner($ownerPath, $owner, $timestamp) {
+		self::setUpTrash($owner);
+
+		$targetFilename = basename($ownerPath);
+		$targetLocation = dirname($ownerPath);
+		$source = $owner . '/files/' . ltrim($ownerPath, '/');
+		$target = $owner . '/files_trashbin/files/' . $targetFilename . '.d' . $timestamp;
+
+		$view = new View('/');
+		self::copy_recursive($source, $target, $view);
+
+		self::retainVersions($targetFilename, $owner, $ownerPath, $timestamp, true);
 
 		if ($view->file_exists($target)) {
-			$query = \OC_DB::prepare("INSERT INTO `*PREFIX*files_trash` (`id`,`timestamp`,`location`,`user`) VALUES (?,?,?,?)");
-			$result = $query->execute(array($targetFilename, $timestamp, $targetLocation, $user));
-			if (!$result) {
-				\OCP\Util::writeLog('files_trashbin', 'trash bin database couldn\'t be updated for the files owner', \OCP\Util::ERROR);
-			}
+			self::insertTrashEntry($owner, $targetFilename, $targetLocation, $timestamp);
+			self::scheduleExpire($owner);
+		}
+	}
+
+	/**
+	 *
+	 */
+	public static function insertTrashEntry($user, $targetFilename, $targetLocation, $timestamp) {
+		$query = \OC_DB::prepare("INSERT INTO `*PREFIX*files_trash` (`id`,`timestamp`,`location`,`user`) VALUES (?,?,?,?)");
+		$result = $query->execute([$targetFilename, $timestamp, $targetLocation, $user]);
+		if (!$result) {
+			\OCP\Util::writeLog('files_trashbin', 'trash bin database couldn\'t be updated for the files owner', \OCP\Util::ERROR);
 		}
 	}
 
@@ -231,7 +259,6 @@ class Trashbin {
 		$location = $path_parts['dirname'];
 		$timestamp = time();
 
-		// disable proxy to prevent recursive calls
 		$trashPath = '/files_trashbin/files/' . $filename . '.d' . $timestamp;
 
 		/** @var \OC\Files\Storage\Storage $trashStorage */
@@ -253,7 +280,11 @@ class Trashbin {
 		}
 
 		if ($sourceStorage->file_exists($sourceInternalPath)) { // failed to delete the original file, abort
-			$sourceStorage->unlink($sourceInternalPath);
+			if ($sourceStorage->is_dir($sourceInternalPath)) {
+				$sourceStorage->rmdir($sourceInternalPath);
+			} else {
+				$sourceStorage->unlink($sourceInternalPath);
+			}
 			return false;
 		}
 
@@ -261,12 +292,12 @@ class Trashbin {
 
 		if ($moveSuccessful) {
 			$query = \OC_DB::prepare("INSERT INTO `*PREFIX*files_trash` (`id`,`timestamp`,`location`,`user`) VALUES (?,?,?,?)");
-			$result = $query->execute(array($filename, $timestamp, $location, $owner));
+			$result = $query->execute([$filename, $timestamp, $location, $owner]);
 			if (!$result) {
 				\OCP\Util::writeLog('files_trashbin', 'trash bin database couldn\'t be updated', \OCP\Util::ERROR);
 			}
-			\OCP\Util::emitHook('\OCA\Files_Trashbin\Trashbin', 'post_moveToTrash', array('filePath' => Filesystem::normalizePath($file_path),
-				'trashPath' => Filesystem::normalizePath($filename . '.d' . $timestamp)));
+			\OCP\Util::emitHook('\OCA\Files_Trashbin\Trashbin', 'post_moveToTrash', ['filePath' => Filesystem::normalizePath($file_path),
+				'trashPath' => Filesystem::normalizePath($filename . '.d' . $timestamp)]);
 
 			self::retainVersions($filename, $owner, $ownerPath, $timestamp);
 
@@ -293,25 +324,30 @@ class Trashbin {
 	 * @param string $owner owner user id
 	 * @param string $ownerPath path relative to the owner's home storage
 	 * @param integer $timestamp when the file was deleted
+	 * @param bool $forceCopy true to only make a copy of the versions into the trashbin
 	 */
-	private static function retainVersions($filename, $owner, $ownerPath, $timestamp) {
+	private static function retainVersions($filename, $owner, $ownerPath, $timestamp, $forceCopy = false) {
 		if (\OCP\App::isEnabled('files_versions') && !empty($ownerPath)) {
 
 			$user = User::getUser();
 			$rootView = new View('/');
 
 			if ($rootView->is_dir($owner . '/files_versions/' . $ownerPath)) {
-				if ($owner !== $user) {
+				if ($owner !== $user || $forceCopy) {
 					self::copy_recursive($owner . '/files_versions/' . $ownerPath, $owner . '/files_trashbin/versions/' . basename($ownerPath) . '.d' . $timestamp, $rootView);
 				}
-				self::move($rootView, $owner . '/files_versions/' . $ownerPath, $user . '/files_trashbin/versions/' . $filename . '.d' . $timestamp);
+				if (!$forceCopy) {
+					self::move($rootView, $owner . '/files_versions/' . $ownerPath, $user . '/files_trashbin/versions/' . $filename . '.d' . $timestamp);
+				}
 			} else if ($versions = \OCA\Files_Versions\Storage::getVersions($owner, $ownerPath)) {
 
 				foreach ($versions as $v) {
-					if ($owner !== $user) {
+					if ($owner !== $user || $forceCopy) {
 						self::copy($rootView, $owner . '/files_versions' . $v['path'] . '.v' . $v['version'], $owner . '/files_trashbin/versions/' . $v['name'] . '.v' . $v['version'] . '.d' . $timestamp);
 					}
-					self::move($rootView, $owner . '/files_versions' . $v['path'] . '.v' . $v['version'], $user . '/files_trashbin/versions/' . $filename . '.v' . $v['version'] . '.d' . $timestamp);
+					if (!$forceCopy) {
+						self::move($rootView, $owner . '/files_versions' . $v['path'] . '.v' . $v['version'], $user . '/files_trashbin/versions/' . $filename . '.v' . $v['version'] . '.d' . $timestamp);
+					}
 				}
 			}
 		}
@@ -410,14 +446,14 @@ class Trashbin {
 			$view->chroot('/' . $user . '/files');
 			$view->touch('/' . $location . '/' . $uniqueFilename, $mtime);
 			$view->chroot($fakeRoot);
-			\OCP\Util::emitHook('\OCA\Files_Trashbin\Trashbin', 'post_restore', array('filePath' => Filesystem::normalizePath('/' . $location . '/' . $uniqueFilename),
-				'trashPath' => Filesystem::normalizePath($file)));
+			\OCP\Util::emitHook('\OCA\Files_Trashbin\Trashbin', 'post_restore', ['filePath' => Filesystem::normalizePath('/' . $location . '/' . $uniqueFilename),
+				'trashPath' => Filesystem::normalizePath($file)]);
 
 			self::restoreVersions($view, $file, $filename, $uniqueFilename, $location, $timestamp);
 
 			if ($timestamp) {
 				$query = \OC_DB::prepare('DELETE FROM `*PREFIX*files_trash` WHERE `user`=? AND `id`=? AND `timestamp`=?');
-				$query->execute(array($user, $filename, $timestamp));
+				$query->execute([$user, $filename, $timestamp]);
 			}
 
 			return true;
@@ -479,13 +515,56 @@ class Trashbin {
 	public static function deleteAll() {
 		$user = User::getUser();
 		$view = new View('/' . $user);
+		$fileInfos = $view->getDirectoryContent('files_trashbin/files');
+
+		// Array to store the relative path in (after the file is deleted, the view won't be able to relativise the path anymore)
+		$filePaths = [];
+		foreach($fileInfos as $fileInfo){
+			$filePaths[] = $view->getRelativePath($fileInfo->getPath());
+		}
+		unset($fileInfos); // save memory
+
+		// Bulk PreDelete-Hook
+		\OC_Hook::emit('\OCP\Trashbin', 'preDeleteAll', ['paths' => $filePaths]);
+
+		// Single-File Hooks
+		foreach($filePaths as $path){
+			self::emitTrashbinPreDelete($path);
+		}
+
+		// actual file deletion
 		$view->deleteAll('files_trashbin');
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*files_trash` WHERE `user`=?');
-		$query->execute(array($user));
+		$query->execute([$user]);
+
+		// Bulk PostDelete-Hook
+		\OC_Hook::emit('\OCP\Trashbin', 'deleteAll', ['paths' => $filePaths]);
+
+		// Single-File Hooks
+		foreach($filePaths as $path){
+			self::emitTrashbinPostDelete($path);
+		}
+
 		$view->mkdir('files_trashbin');
 		$view->mkdir('files_trashbin/files');
 
 		return true;
+	}
+
+	/**
+	 * wrapper function to emit the 'preDelete' hook of \OCP\Trashbin before a file is deleted
+	 * @param string $path
+	 */
+	protected static function emitTrashbinPreDelete($path){
+		\OC_Hook::emit('\OCP\Trashbin', 'preDelete', ['path' => $path]);
+	}
+
+	/**
+	 * wrapper function to emit the 'delete' hook of \OCP\Trashbin after a file has been deleted
+	 * @param string $path
+	 */
+	protected static function emitTrashbinPostDelete($path){
+		\OC_Hook::emit('\OCP\Trashbin', 'delete', ['path' => $path]);
 	}
 
 	/**
@@ -503,7 +582,7 @@ class Trashbin {
 
 		if ($timestamp) {
 			$query = \OC_DB::prepare('DELETE FROM `*PREFIX*files_trash` WHERE `user`=? AND `id`=? AND `timestamp`=?');
-			$query->execute(array($user, $filename, $timestamp));
+			$query->execute([$user, $filename, $timestamp]);
 			$file = $filename . '.d' . $timestamp;
 		} else {
 			$file = $filename;
@@ -516,9 +595,9 @@ class Trashbin {
 		} else {
 			$size += $view->filesize('/files_trashbin/files/' . $file);
 		}
-		\OC_Hook::emit('\OCP\Trashbin', 'preDelete', array('path' => '/files_trashbin/files/' . $file));
+		self::emitTrashbinPreDelete('/files_trashbin/files/' . $file);
 		$view->unlink('/files_trashbin/files/' . $file);
-		\OC_Hook::emit('\OCP\Trashbin', 'delete', array('path' => '/files_trashbin/files/' . $file));
+		self::emitTrashbinPostDelete('/files_trashbin/files/' . $file);
 
 		return $size;
 	}
@@ -581,7 +660,7 @@ class Trashbin {
 	 */
 	public static function deleteUser($uid) {
 		$query = \OC_DB::prepare('DELETE FROM `*PREFIX*files_trash` WHERE `user`=?');
-		return $query->execute(array($uid));
+		return $query->execute([$uid]);
 	}
 
 	/**
@@ -733,7 +812,7 @@ class Trashbin {
 			}
 		}
 
-		return array($size, $count);
+		return [$size, $count];
 	}
 
 	/**
@@ -783,7 +862,7 @@ class Trashbin {
 	 */
 	private static function getVersionsFromTrash($filename, $timestamp, $user) {
 		$view = new View('/' . $user . '/files_trashbin/versions');
-		$versions = array();
+		$versions = [];
 
 		//force rescan of versions, local storage may not have updated the cache
 		if (!self::$scannedVersions) {
@@ -932,6 +1011,6 @@ class Trashbin {
 	 * @return string
 	 */
 	public static function preview_icon($path) {
-		return \OCP\Util::linkToRoute('core_ajax_trashbin_preview', array('x' => 32, 'y' => 32, 'file' => $path));
+		return \OCP\Util::linkToRoute('core_ajax_trashbin_preview', ['x' => 32, 'y' => 32, 'file' => $path]);
 	}
 }

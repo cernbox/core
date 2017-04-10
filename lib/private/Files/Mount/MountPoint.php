@@ -1,6 +1,7 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Georg Ehrke <georg@owncloud.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -8,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -45,7 +46,7 @@ class MountPoint implements IMountPoint {
 	 *
 	 * @var array
 	 */
-	protected $arguments = array();
+	protected $arguments = [];
 	protected $mountPoint;
 
 	/**
@@ -53,7 +54,7 @@ class MountPoint implements IMountPoint {
 	 *
 	 * @var array
 	 */
-	protected $mountOptions = array();
+	protected $mountOptions = [];
 
 	/**
 	 * @var \OC\Files\Storage\StorageFactory $loader
@@ -77,7 +78,7 @@ class MountPoint implements IMountPoint {
 	 */
 	public function __construct($storage, $mountpoint, $arguments = null, $loader = null, $mountOptions = null) {
 		if (is_null($arguments)) {
-			$arguments = array();
+			$arguments = [];
 		}
 		if (is_null($loader)) {
 			$this->loader = new StorageFactory();

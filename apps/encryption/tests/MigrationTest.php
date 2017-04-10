@@ -1,11 +1,12 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -482,13 +483,13 @@ class MigrationTest extends \Test\TestCase {
 		$query = $connection->getQueryBuilder();
 		$query->insert('filecache')
 			->values(
-				array(
+				[
 					'storage' => $query->createParameter('storage'),
 					'path_hash' => $query->createParameter('path_hash'),
 					'encrypted' => $query->createParameter('encrypted'),
 					'size' => $query->createParameter('size'),
 					'unencrypted_size' => $query->createParameter('unencrypted_size'),
-				)
+				]
 			);
 		for ($i = 1; $i < 20; $i++) {
 			$query->setParameter('storage', 1)

@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,8 +33,8 @@ $file = (string)$_GET['file'];
 $revision=(int)$_GET['revision'];
 
 if(OCA\Files_Versions\Storage::rollback( $file, $revision )) {
-	OCP\JSON::success(array("data" => array( "revision" => $revision, "file" => $file )));
+	OCP\JSON::success(["data" => ["revision" => $revision, "file" => $file]]);
 }else{
 	$l = \OC::$server->getL10N('files_versions');
-	OCP\JSON::error(array("data" => array( "message" => $l->t("Could not revert: %s", array($file) ))));
+	OCP\JSON::error(["data" => ["message" => $l->t("Could not revert: %s", [$file])]]);
 }

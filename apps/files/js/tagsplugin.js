@@ -12,6 +12,11 @@
 
 (function(OCA) {
 
+	_.extend(OC.Files.Client, {
+		PROPERTY_TAGS:	'{' + OC.Files.Client.NS_OWNCLOUD + '}tags',
+		PROPERTY_FAVORITE:	'{' + OC.Files.Client.NS_OWNCLOUD + '}favorite'
+	});
+
 	var TEMPLATE_FAVORITE_ACTION =
 		'<a href="#" ' +
 		'class="action action-favorite {{#isFavorite}}permanent{{/isFavorite}}">' +
@@ -70,7 +75,11 @@
 
 		allowedLists: [
 			'files',
-			'favorites'
+			'favorites',
+			'systemtags',
+			'shares.self',
+			'shares.others',
+			'shares.link'
 		],
 
 		_extendFileActions: function(fileActions) {
@@ -162,24 +171,22 @@
 				return fileInfo;
 			};
 
-			var NS_OC = 'http://owncloud.org/ns';
-
 			var oldGetWebdavProperties = fileList._getWebdavProperties;
 			fileList._getWebdavProperties = function() {
 				var props = oldGetWebdavProperties.apply(this, arguments);
-				props.push('{' + NS_OC + '}tags');
-				props.push('{' + NS_OC + '}favorite');
+				props.push(OC.Files.Client.PROPERTY_TAGS);
+				props.push(OC.Files.Client.PROPERTY_FAVORITE);
 				return props;
 			};
 
 			fileList.filesClient.addFileInfoParser(function(response) {
 				var data = {};
 				var props = response.propStat[0].properties;
-				var tags = props['{' + NS_OC + '}tags'];
-				var favorite = props['{' + NS_OC + '}favorite'];
+				var tags = props[OC.Files.Client.PROPERTY_TAGS];
+				var favorite = props[OC.Files.Client.PROPERTY_FAVORITE];
 				if (tags && tags.length) {
 					tags = _.chain(tags).filter(function(xmlvalue) {
-						return (xmlvalue.namespaceURI === NS_OC && xmlvalue.nodeName.split(':')[1] === 'tag');
+						return (xmlvalue.namespaceURI === OC.Files.Client.NS_OWNCLOUD && xmlvalue.nodeName.split(':')[1] === 'tag');
 					}).map(function(xmlvalue) {
 						return xmlvalue.textContent || xmlvalue.text;
 					}).value();
@@ -230,7 +237,7 @@
 				if(response.responseJSON && response.responseJSON.message) {
 					message = ': ' + response.responseJSON.message;
 				}
-				OC.Notification.showTemporary(t('files', 'An error occurred while trying to update the tags') + message);
+				OC.Notification.show(t('files', 'An error occurred while trying to update the tags' + message), {type: 'error'});
 				toggleStar($actionEl, isFavorite);
 			});
 		}
@@ -238,4 +245,3 @@
 })(OCA);
 
 OC.Plugins.register('OCA.Files.FileList', OCA.Files.TagsPlugin);
-

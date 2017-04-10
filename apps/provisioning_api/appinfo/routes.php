@@ -1,6 +1,6 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author michag86 <micha_g@arcor.de>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -68,10 +68,7 @@ API::register('delete', '/cloud/groups/{groupid}', [$groups, 'deleteGroup'], 'pr
 API::register('get', '/cloud/groups/{groupid}/subadmins', [$groups, 'getSubAdminsOfGroup'], 'provisioning_api', API::ADMIN_AUTH);
 
 // Apps
-$apps = new Apps(
-	\OC::$server->getAppManager(),
-	\OC::$server->getOcsClient()
-);
+$apps = new Apps(\OC::$server->getAppManager());
 API::register('get', '/cloud/apps', [$apps, 'getApps'], 'provisioning_api', API::ADMIN_AUTH);
 API::register('get', '/cloud/apps/{appid}', [$apps, 'getAppInfo'], 'provisioning_api', API::ADMIN_AUTH);
 API::register('post', '/cloud/apps/{appid}', [$apps, 'enable'], 'provisioning_api', API::ADMIN_AUTH);

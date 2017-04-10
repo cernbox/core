@@ -3,7 +3,7 @@
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Georg Ehrke <georg@owncloud.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -13,7 +13,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ class VersioningTest extends \Test\TestCase {
 		parent::setUp();
 
 		$config = \OC::$server->getConfig();
-		$mockConfig = $this->getMock('\OCP\IConfig');
+		$mockConfig = $this->createMock('\OCP\IConfig');
 		$mockConfig->expects($this->any())
 			->method('getSystemValue')
 			->will($this->returnCallback(function ($key, $default) use ($config) {
@@ -147,121 +147,121 @@ class VersioningTest extends \Test\TestCase {
 	}
 
 	public function versionsProvider() {
-		return array(
+		return [
 			// first set of versions uniformly distributed versions
-			array(
-				array(
+			[
+				[
 					// first slice (10sec) keep one version every 2 seconds
-					array("version" => 4999999, "path" => "keep", "size" => 1),
-					array("version" => 4999998, "path" => "delete", "size" => 1),
-					array("version" => 4999997, "path" => "keep", "size" => 1),
-					array("version" => 4999995, "path" => "keep", "size" => 1),
-					array("version" => 4999994, "path" => "delete", "size" => 1),
+					["version" => 4999999, "path" => "keep", "size" => 1],
+					["version" => 4999998, "path" => "delete", "size" => 1],
+					["version" => 4999997, "path" => "keep", "size" => 1],
+					["version" => 4999995, "path" => "keep", "size" => 1],
+					["version" => 4999994, "path" => "delete", "size" => 1],
 					//next slice (60sec) starts at 4999990 keep one version every 10 secons
-					array("version" => 4999988, "path" => "keep", "size" => 1),
-					array("version" => 4999978, "path" => "keep", "size" => 1),
-					array("version" => 4999975, "path" => "delete", "size" => 1),
-					array("version" => 4999972, "path" => "delete", "size" => 1),
-					array("version" => 4999967, "path" => "keep", "size" => 1),
-					array("version" => 4999958, "path" => "delete", "size" => 1),
-					array("version" => 4999957, "path" => "keep", "size" => 1),
+					["version" => 4999988, "path" => "keep", "size" => 1],
+					["version" => 4999978, "path" => "keep", "size" => 1],
+					["version" => 4999975, "path" => "delete", "size" => 1],
+					["version" => 4999972, "path" => "delete", "size" => 1],
+					["version" => 4999967, "path" => "keep", "size" => 1],
+					["version" => 4999958, "path" => "delete", "size" => 1],
+					["version" => 4999957, "path" => "keep", "size" => 1],
 					//next slice (3600sec) start at 4999940 keep one version every 60 seconds
-					array("version" => 4999900, "path" => "keep", "size" => 1),
-					array("version" => 4999841, "path" => "delete", "size" => 1),
-					array("version" => 4999840, "path" => "keep", "size" => 1),
-					array("version" => 4999780, "path" => "keep", "size" => 1),
-					array("version" => 4996401, "path" => "keep", "size" => 1),
+					["version" => 4999900, "path" => "keep", "size" => 1],
+					["version" => 4999841, "path" => "delete", "size" => 1],
+					["version" => 4999840, "path" => "keep", "size" => 1],
+					["version" => 4999780, "path" => "keep", "size" => 1],
+					["version" => 4996401, "path" => "keep", "size" => 1],
 					// next slice (86400sec) start at 4996400 keep one version every 3600 seconds
-					array("version" => 4996350, "path" => "delete", "size" => 1),
-					array("version" => 4992800, "path" => "keep", "size" => 1),
-					array("version" => 4989800, "path" => "delete", "size" => 1),
-					array("version" => 4989700, "path" => "delete", "size" => 1),
-					array("version" => 4989200, "path" => "keep", "size" => 1),
+					["version" => 4996350, "path" => "delete", "size" => 1],
+					["version" => 4992800, "path" => "keep", "size" => 1],
+					["version" => 4989800, "path" => "delete", "size" => 1],
+					["version" => 4989700, "path" => "delete", "size" => 1],
+					["version" => 4989200, "path" => "keep", "size" => 1],
 					// next slice (2592000sec) start at 4913600 keep one version every 86400 seconds
-					array("version" => 4913600, "path" => "keep", "size" => 1),
-					array("version" => 4852800, "path" => "delete", "size" => 1),
-					array("version" => 4827201, "path" => "delete", "size" => 1),
-					array("version" => 4827200, "path" => "keep", "size" => 1),
-					array("version" => 4777201, "path" => "delete", "size" => 1),
-					array("version" => 4777501, "path" => "delete", "size" => 1),
-					array("version" => 4740000, "path" => "keep", "size" => 1),
+					["version" => 4913600, "path" => "keep", "size" => 1],
+					["version" => 4852800, "path" => "delete", "size" => 1],
+					["version" => 4827201, "path" => "delete", "size" => 1],
+					["version" => 4827200, "path" => "keep", "size" => 1],
+					["version" => 4777201, "path" => "delete", "size" => 1],
+					["version" => 4777501, "path" => "delete", "size" => 1],
+					["version" => 4740000, "path" => "keep", "size" => 1],
 					// final slice starts at 2408000 keep one version every 604800 secons
-					array("version" => 2408000, "path" => "keep", "size" => 1),
-					array("version" => 1803201, "path" => "delete", "size" => 1),
-					array("version" => 1803200, "path" => "keep", "size" => 1),
-					array("version" => 1800199, "path" => "delete", "size" => 1),
-					array("version" => 1800100, "path" => "delete", "size" => 1),
-					array("version" => 1198300, "path" => "keep", "size" => 1),
-				),
+					["version" => 2408000, "path" => "keep", "size" => 1],
+					["version" => 1803201, "path" => "delete", "size" => 1],
+					["version" => 1803200, "path" => "keep", "size" => 1],
+					["version" => 1800199, "path" => "delete", "size" => 1],
+					["version" => 1800100, "path" => "delete", "size" => 1],
+					["version" => 1198300, "path" => "keep", "size" => 1],
+				],
 				16 // size of all deleted files (every file has the size 1)
-			),
+			],
 			// second set of versions, here we have only really old versions
-			array(
-				array(
+			[
+				[
 					// first slice (10sec) keep one version every 2 seconds
 					// next slice (60sec) starts at 4999990 keep one version every 10 secons
 					// next slice (3600sec) start at 4999940 keep one version every 60 seconds
 					// next slice (86400sec) start at 4996400 keep one version every 3600 seconds
-					array("version" => 4996400, "path" => "keep", "size" => 1),
-					array("version" => 4996350, "path" => "delete", "size" => 1),
-					array("version" => 4996350, "path" => "delete", "size" => 1),
-					array("version" => 4992800, "path" => "keep", "size" => 1),
-					array("version" => 4989800, "path" => "delete", "size" => 1),
-					array("version" => 4989700, "path" => "delete", "size" => 1),
-					array("version" => 4989200, "path" => "keep", "size" => 1),
+					["version" => 4996400, "path" => "keep", "size" => 1],
+					["version" => 4996350, "path" => "delete", "size" => 1],
+					["version" => 4996350, "path" => "delete", "size" => 1],
+					["version" => 4992800, "path" => "keep", "size" => 1],
+					["version" => 4989800, "path" => "delete", "size" => 1],
+					["version" => 4989700, "path" => "delete", "size" => 1],
+					["version" => 4989200, "path" => "keep", "size" => 1],
 					// next slice (2592000sec) start at 4913600 keep one version every 86400 seconds
-					array("version" => 4913600, "path" => "keep", "size" => 1),
-					array("version" => 4852800, "path" => "delete", "size" => 1),
-					array("version" => 4827201, "path" => "delete", "size" => 1),
-					array("version" => 4827200, "path" => "keep", "size" => 1),
-					array("version" => 4777201, "path" => "delete", "size" => 1),
-					array("version" => 4777501, "path" => "delete", "size" => 1),
-					array("version" => 4740000, "path" => "keep", "size" => 1),
+					["version" => 4913600, "path" => "keep", "size" => 1],
+					["version" => 4852800, "path" => "delete", "size" => 1],
+					["version" => 4827201, "path" => "delete", "size" => 1],
+					["version" => 4827200, "path" => "keep", "size" => 1],
+					["version" => 4777201, "path" => "delete", "size" => 1],
+					["version" => 4777501, "path" => "delete", "size" => 1],
+					["version" => 4740000, "path" => "keep", "size" => 1],
 					// final slice starts at 2408000 keep one version every 604800 secons
-					array("version" => 2408000, "path" => "keep", "size" => 1),
-					array("version" => 1803201, "path" => "delete", "size" => 1),
-					array("version" => 1803200, "path" => "keep", "size" => 1),
-					array("version" => 1800199, "path" => "delete", "size" => 1),
-					array("version" => 1800100, "path" => "delete", "size" => 1),
-					array("version" => 1198300, "path" => "keep", "size" => 1),
-				),
+					["version" => 2408000, "path" => "keep", "size" => 1],
+					["version" => 1803201, "path" => "delete", "size" => 1],
+					["version" => 1803200, "path" => "keep", "size" => 1],
+					["version" => 1800199, "path" => "delete", "size" => 1],
+					["version" => 1800100, "path" => "delete", "size" => 1],
+					["version" => 1198300, "path" => "keep", "size" => 1],
+				],
 				11 // size of all deleted files (every file has the size 1)
-			),
+			],
 			// third set of versions, with some gaps between
-			array(
-				array(
+			[
+				[
 					// first slice (10sec) keep one version every 2 seconds
-					array("version" => 4999999, "path" => "keep", "size" => 1),
-					array("version" => 4999998, "path" => "delete", "size" => 1),
-					array("version" => 4999997, "path" => "keep", "size" => 1),
-					array("version" => 4999995, "path" => "keep", "size" => 1),
-					array("version" => 4999994, "path" => "delete", "size" => 1),
+					["version" => 4999999, "path" => "keep", "size" => 1],
+					["version" => 4999998, "path" => "delete", "size" => 1],
+					["version" => 4999997, "path" => "keep", "size" => 1],
+					["version" => 4999995, "path" => "keep", "size" => 1],
+					["version" => 4999994, "path" => "delete", "size" => 1],
 					//next slice (60sec) starts at 4999990 keep one version every 10 secons
-					array("version" => 4999988, "path" => "keep", "size" => 1),
-					array("version" => 4999978, "path" => "keep", "size" => 1),
+					["version" => 4999988, "path" => "keep", "size" => 1],
+					["version" => 4999978, "path" => "keep", "size" => 1],
 					//next slice (3600sec) start at 4999940 keep one version every 60 seconds
 					// next slice (86400sec) start at 4996400 keep one version every 3600 seconds
-					array("version" => 4989200, "path" => "keep", "size" => 1),
+					["version" => 4989200, "path" => "keep", "size" => 1],
 					// next slice (2592000sec) start at 4913600 keep one version every 86400 seconds
-					array("version" => 4913600, "path" => "keep", "size" => 1),
-					array("version" => 4852800, "path" => "delete", "size" => 1),
-					array("version" => 4827201, "path" => "delete", "size" => 1),
-					array("version" => 4827200, "path" => "keep", "size" => 1),
-					array("version" => 4777201, "path" => "delete", "size" => 1),
-					array("version" => 4777501, "path" => "delete", "size" => 1),
-					array("version" => 4740000, "path" => "keep", "size" => 1),
+					["version" => 4913600, "path" => "keep", "size" => 1],
+					["version" => 4852800, "path" => "delete", "size" => 1],
+					["version" => 4827201, "path" => "delete", "size" => 1],
+					["version" => 4827200, "path" => "keep", "size" => 1],
+					["version" => 4777201, "path" => "delete", "size" => 1],
+					["version" => 4777501, "path" => "delete", "size" => 1],
+					["version" => 4740000, "path" => "keep", "size" => 1],
 					// final slice starts at 2408000 keep one version every 604800 secons
-					array("version" => 2408000, "path" => "keep", "size" => 1),
-					array("version" => 1803201, "path" => "delete", "size" => 1),
-					array("version" => 1803200, "path" => "keep", "size" => 1),
-					array("version" => 1800199, "path" => "delete", "size" => 1),
-					array("version" => 1800100, "path" => "delete", "size" => 1),
-					array("version" => 1198300, "path" => "keep", "size" => 1),
-				),
+					["version" => 2408000, "path" => "keep", "size" => 1],
+					["version" => 1803201, "path" => "delete", "size" => 1],
+					["version" => 1803200, "path" => "keep", "size" => 1],
+					["version" => 1800199, "path" => "delete", "size" => 1],
+					["version" => 1800100, "path" => "delete", "size" => 1],
+					["version" => 1198300, "path" => "keep", "size" => 1],
+				],
 				9 // size of all deleted files (every file has the size 1)
-			),
+			],
 
-		);
+		];
 	}
 
 	public function testRename() {
@@ -631,8 +631,8 @@ class VersioningTest extends \Test\TestCase {
 	}
 
 	public function testRestoreCrossStorage() {
-		$storage2 = new Temporary(array());
-		\OC\Files\Filesystem::mount($storage2, array(), self::TEST_VERSIONS_USER . '/files/sub');
+		$storage2 = new Temporary([]);
+		\OC\Files\Filesystem::mount($storage2, [], self::TEST_VERSIONS_USER . '/files/sub');
 
 		$this->doTestRestore();
 	}
@@ -728,13 +728,13 @@ class VersioningTest extends \Test\TestCase {
 		$this->assertEquals('test file', $this->rootView->file_get_contents($filePath));
 		$info1 = $this->rootView->getFileInfo($filePath);
 
-		$params = array();
+		$params = [];
 		$this->connectMockHooks('rollback', $params);
 
 		$this->assertTrue(\OCA\Files_Versions\Storage::rollback('sub/test.txt', $t2));
-		$expectedParams = array(
+		$expectedParams = [
 			'path' => '/sub/test.txt',
-		);
+		];
 
 		$this->assertEquals($expectedParams['path'], $params['path']);
 		$this->assertTrue(array_key_exists('revision', $params));
@@ -891,7 +891,7 @@ class VersioningTest extends \Test\TestCase {
 			\OC::$server->getUserManager()->registerBackend($backend);
 		}
 
-		$storage = new \ReflectionClass('\OC\Files\Storage\Shared');
+		$storage = new \ReflectionClass('\OCA\Files_Sharing\SharedStorage');
 		$isInitialized = $storage->getProperty('initialized');
 		$isInitialized->setAccessible(true);
 		$isInitialized->setValue($storage, false);

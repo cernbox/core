@@ -6,7 +6,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,9 +39,9 @@ class ControllerMethodReflector implements IControllerMethodReflector{
 	private $parameters;
 
 	public function __construct() {
-		$this->types = array();
-		$this->parameters = array();
-		$this->annotations = array();
+		$this->types = [];
+		$this->parameters = [];
+		$this->annotations = [];
 	}
 
 

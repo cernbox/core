@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -80,7 +81,7 @@ class EncryptionWrapper {
 			'mount' => $mount
 		];
 
-		if (!$storage->instanceOfStorage('OC\Files\Storage\Shared')
+		if (!$storage->instanceOfStorage('OCA\Files_Sharing\SharedStorage')
 			&& !$storage->instanceOfStorage('OCA\Files_Sharing\External\Storage')
 			&& !$storage->instanceOfStorage('OC\Files\Storage\OwnCloud')) {
 

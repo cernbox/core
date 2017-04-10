@@ -3,8 +3,9 @@
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,6 +39,18 @@ namespace OCP;
  * @since 4.5.0
  */
 interface GroupInterface {
+
+	/**
+	 * actions that user backends can define
+	 */
+	const CREATE_GROUP		= 0x00000001;
+	const DELETE_GROUP		= 0x00000010;
+	const ADD_TO_GROUP		= 0x00000100;
+	const REMOVE_FROM_GOUP	= 0x00001000; // oops
+	const REMOVE_FROM_GROUP	= 0x00001000;
+	//OBSOLETE const GET_DISPLAYNAME	= 0x00010000;
+	const COUNT_USERS		= 0x00100000;
+	const GROUP_DETAILS		= 0x01000000;
 
 	/**
 	 * Check if backend implements actions
@@ -102,5 +115,15 @@ interface GroupInterface {
 	 * @since 4.5.0
 	 */
 	public function usersInGroup($gid, $search = '', $limit = -1, $offset = 0);
+
+	/**
+	 * Returns whether the groups are visible for a given scope.
+	 *
+	 * @param string|null $scope scope string
+	 * @return bool true if searchable, false otherwise
+	 *
+	 * @since 10.0.0
+	 */
+	public function isVisibleForScope($scope);
 
 }

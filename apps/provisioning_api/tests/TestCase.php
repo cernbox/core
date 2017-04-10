@@ -1,11 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@ use OCP\IGroupManager;
 abstract class TestCase extends \Test\TestCase {
 
 	/** @var IUser[] */
-	protected $users = array();
+	protected $users = [];
 
 	/** @var IUserManager */
 	protected $userManager;
@@ -53,7 +53,7 @@ abstract class TestCase extends \Test\TestCase {
 	 * @return IUser[]|IUser
 	 */
 	protected function generateUsers($num = 1) {
-		$users = array();
+		$users = [];
 		for ($i = 0; $i < $num; $i++) {
 			$user = $this->userManager->createUser($this->getUniqueID(), 'password');
 			$this->users[] = $user;

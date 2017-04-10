@@ -3,7 +3,7 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ class StatusController extends Controller {
 			case Session::NOT_INITIALIZED:
 				$status = 'interactionNeeded';
 				$message = (string)$this->l->t(
-					'Encryption App is enabled but your keys are not initialized, please log-out and log-in again'
+					'Encryption App is enabled, but your keys are not initialized. Please log-out and log-in again.'
 				);
 				break;
 			case Session::INIT_SUCCESSFUL:

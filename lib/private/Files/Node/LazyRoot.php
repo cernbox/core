@@ -1,8 +1,10 @@
 <?php
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -88,14 +90,14 @@ class LazyRoot implements IRootFolder {
 	/**
 	 * @inheritDoc
 	 */
-	public function emit($scope, $method, $arguments = array()) {
+	public function emit($scope, $method, $arguments = []) {
 		$this->__call(__FUNCTION__, func_get_args());
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function mount($storage, $mountPoint, $arguments = array()) {
+	public function mount($storage, $mountPoint, $arguments = []) {
 		$this->__call(__FUNCTION__, func_get_args());
 	}
 
@@ -138,7 +140,7 @@ class LazyRoot implements IRootFolder {
 	 * @inheritDoc
 	 */
 	public function get($path) {
-		$this->__call(__FUNCTION__, func_get_args());
+		return $this->__call(__FUNCTION__, func_get_args());
 	}
 
 	/**

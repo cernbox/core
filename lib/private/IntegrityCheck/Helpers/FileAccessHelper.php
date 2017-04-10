@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,10 +53,33 @@ class FileAccessHelper {
 	 * Wrapper around file_put_contents($filename, $data)
 	 *
 	 * @param string $filename
-	 * @param $data
-	 * @return int|false
+	 * @param string $data
+	 * @return int
+	 * @throws \Exception
 	 */
 	public function file_put_contents($filename, $data) {
-		return file_put_contents($filename, $data);
+		$bytesWritten = file_put_contents($filename, $data);
+		if ($bytesWritten === false || $bytesWritten !== strlen($data)){
+			throw new \Exception('Failed to write into ' . $filename);
+		}
+		return $bytesWritten;
+	}
+
+	/**
+	 * @param string $path
+	 * @return bool
+	 */
+	public function is_writeable($path){
+		return is_writeable($path);
+	}
+
+	/**
+	 * @param string $path
+	 * @throws \Exception
+	 */
+	public function assertDirectoryExists($path){
+		if (!is_dir($path)) {
+			throw new \Exception('Directory ' . $path . ' does not exist.');
+		}
 	}
 }

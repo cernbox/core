@@ -5,7 +5,7 @@
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OCA\DAV\Connector\Sabre\Exception\FileLocked;
-use OCA\DAV\Connector\Sabre\Node;
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use Sabre\DAV\Exception\NotFound;

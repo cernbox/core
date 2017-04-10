@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,7 +42,7 @@ abstract class TestCase extends \Test\TestCase {
 
 		// reset backend
 		\OC_User::clearBackends();
-		\OC_Group::clearBackends();
+		\OC::$server->getGroupManager()->clearBackends();
 
 		// create users
 		$backend = new \Test\Util\User\Dummy();
@@ -75,8 +76,8 @@ abstract class TestCase extends \Test\TestCase {
 		// reset backend
 		\OC_User::clearBackends();
 		\OC_User::useBackend('database');
-		\OC_Group::clearBackends();
-		\OC_Group::useBackend(new \OC_Group_Database());
+		\OC::$server->getGroupManager()->clearBackends();
+		\OC::$server->getGroupManager()->addBackend(new \OC_Group_Database());
 
 		parent::tearDownAfterClass();
 	}
@@ -93,9 +94,9 @@ abstract class TestCase extends \Test\TestCase {
 		}
 
 		if ($create) {
-			\OC::$server->getUserManager()->createUser($user, $password);
-			\OC_Group::createGroup('group');
-			\OC_Group::addToGroup($user, 'group');
+			$u = \OC::$server->getUserManager()->createUser($user, $password);
+			$g = \OC::$server->getGroupManager()->createGroup('group');
+			$g->addUser($u);
 		}
 
 		self::resetStorage();
@@ -113,7 +114,7 @@ abstract class TestCase extends \Test\TestCase {
 	 * reset init status for the share storage
 	 */
 	protected static function resetStorage() {
-		$storage = new \ReflectionClass('\OC\Files\Storage\Shared');
+		$storage = new \ReflectionClass('\OCA\Files_Sharing\SharedStorage');
 		$isInitialized = $storage->getProperty('initialized');
 		$isInitialized->setAccessible(true);
 		$isInitialized->setValue($storage, false);

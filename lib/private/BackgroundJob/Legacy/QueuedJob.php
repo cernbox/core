@@ -2,8 +2,9 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,8 +28,8 @@ class QueuedJob extends \OC\BackgroundJob\QueuedJob {
 		$class = $argument['klass'];
 		$method = $argument['method'];
 		$parameters = $argument['parameters'];
-		if (is_callable(array($class, $method))) {
-			call_user_func(array($class, $method), $parameters);
+		if (is_callable([$class, $method])) {
+			call_user_func([$class, $method], $parameters);
 		}
 	}
 }

@@ -1,8 +1,12 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
+ * @author Christian Jürges <christian@eqipe.ch>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -200,14 +204,14 @@ class DecryptAll {
 	protected function decryptUsersFiles($uid, ProgressBar $progress, $userCount) {
 
 		$this->setupUserFS($uid);
-		$directories = array();
+		$directories = [];
 		$directories[] = '/' . $uid . '/files';
 
 		while ($root = array_pop($directories)) {
 			$content = $this->rootView->getDirectoryContent($root);
 			foreach ($content as $file) {
 				// only decrypt files owned by the user
-				if($file->getStorage()->instanceOfStorage('OC\Files\Storage\Shared')) {
+				if($file->getStorage()->instanceOfStorage('OCA\Files_Sharing\SharedStorage')) {
 						continue;
 				}
 				$path = $root . '/' . $file['name'];

@@ -20,7 +20,7 @@
  */
 
 
-require_once(dirname(__DIR__) . '/3rdparty/autoload.php');
+require_once __DIR__ . '/../lib/composer/autoload.php';
 
 /**
  * Class SinceTagCheckVisitor
@@ -28,6 +28,8 @@ require_once(dirname(__DIR__) . '/3rdparty/autoload.php');
  * this class checks all methods for the presence of the @since tag
  */
 class SinceTagCheckVisitor extends \PhpParser\NodeVisitorAbstract {
+
+	const INVALID_VERSIONS = ['9.2'];
 
 	/** @var string */
 	protected $namespace = '';
@@ -71,6 +73,12 @@ class SinceTagCheckVisitor extends \PhpParser\NodeVisitorAbstract {
 				$this->errors[] = '@since or @deprecated tag is needed in PHPDoc for ' . $type . ' ' . $this->namespace . '\\' . $this->className;
 				return;
 			}
+
+			if($this->deprecatedClass === false && ($ver = $this->checkInvalidVersions($text)) !== null) {
+				$type = $node instanceof \PhpParser\Node\Stmt\Interface_ ? 'interface' : 'class';
+				$this->errors[] = 'Specified version ' . $ver . ' does not exist for ' . $type . ' ' . $this->namespace . '\\' . $this->className;
+				return;
+			}
 		}
 
 		if($node instanceof \PhpParser\Node\Stmt\ClassMethod) {
@@ -88,7 +96,27 @@ class SinceTagCheckVisitor extends \PhpParser\NodeVisitorAbstract {
 				$this->errors[] = '@since or @deprecated tag is needed in PHPDoc for ' . $this->namespace . '\\' . $this->className . '::' . $node->name;
 				return;
 			}
+
+			if(($ver = $this->checkInvalidVersions($text)) !== null) {
+				$this->errors[] = 'Specified version ' . $ver . ' does not exist for ' . $this->namespace . '\\' . $this->className;
+				return;
+			}
 		}
+	}
+
+	/**
+	 * Checks tags for invalid versions
+	 */
+	private function checkInvalidVersions($text) {
+		foreach (self::INVALID_VERSIONS as $ver) {
+			if (preg_match('/' . preg_quote('@since') . '\s*' . preg_quote($ver) . '/', $text) === 1) {
+				return $ver;
+			}
+			if (preg_match('/' . preg_quote('@deprecated') . '\s*' . preg_quote($ver) . '/', $text) === 1) {
+				return $ver;
+			}
+		}
+		return null;
 	}
 
 	public function getErrors() {
@@ -111,7 +139,7 @@ $errors = [];
 foreach($Regex as $file) {
 	$stmts = $parser->parse(file_get_contents($file[0]));
 
-	$visitor = new SinceTagCheckVisitor($this->blackListedClassNames);
+	$visitor = new SinceTagCheckVisitor();
 	$traverser = new \PhpParser\NodeTraverser();
 	$traverser->addVisitor($visitor);
 	$traverser->traverse($stmts);

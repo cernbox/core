@@ -1,11 +1,12 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,25 +25,23 @@
 namespace OCA\Files_External\Tests\Controller;
 
 use OCA\Files_External\Controller\GlobalStoragesController;
-use \OCP\AppFramework\Http;
-use \OCA\Files_External\Service\BackendService;
+use OCP\AppFramework\Http;
+use OCP\Files\External\IStoragesBackendService;
 
 class GlobalStoragesControllerTest extends StoragesControllerTest {
 	public function setUp() {
 		parent::setUp();
-		$this->service = $this->getMockBuilder('\OCA\Files_External\Service\GlobalStoragesService')
-			->disableOriginalConstructor()
-			->getMock();
+		$this->service = $this->createMock('\OCP\Files\External\Service\IGlobalStoragesService');
 
 		$this->service->method('getVisibilityType')
-			->willReturn(BackendService::VISIBILITY_ADMIN);
+			->willReturn(IStoragesBackendService::VISIBILITY_ADMIN);
 
 		$this->controller = new GlobalStoragesController(
 			'files_external',
-			$this->getMock('\OCP\IRequest'),
-			$this->getMock('\OCP\IL10N'),
+			$this->createMock('\OCP\IRequest'),
+			$this->createMock('\OCP\IL10N'),
 			$this->service,
-			$this->getMock('\OCP\ILogger')
+			$this->createMock('\OCP\ILogger')
 		);
 	}
 }

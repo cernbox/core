@@ -6,7 +6,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class LargeFileHelper {
 	public function __construct() {
 		$pow_2_53 = floatval(self::POW_2_53_MINUS_1) + 1.0;
 		if ($this->formatUnsignedInteger($pow_2_53) !== self::POW_2_53) {
-			throw new \RunTimeException(
+			throw new \RuntimeException(
 				'This class assumes floats to be double precision or "better".'
 			);
 		}
@@ -97,10 +97,6 @@ class LargeFileHelper {
 		if (!is_null($fileSize)) {
 			return $fileSize;
 		}
-		$fileSize = $this->getFileSizeViaCOM($filename);
-		if (!is_null($fileSize)) {
-			return $fileSize;
-		}
 		$fileSize = $this->getFileSizeViaExec($filename);
 		if (!is_null($fileSize)) {
 			return $fileSize;
@@ -126,29 +122,12 @@ class LargeFileHelper {
 			$data = curl_exec($ch);
 			curl_close($ch);
 			if ($data !== false) {
-				$matches = array();
+				$matches = [];
 				preg_match('/Content-Length: (\d+)/', $data, $matches);
 				if (isset($matches[1])) {
 					return 0 + $matches[1];
 				}
 			}
-		}
-		return null;
-	}
-
-	/**
-	* @brief Tries to get the size of a file via the Windows DOM extension.
-	*
-	* @param string $filename Path to the file.
-	*
-	* @return null|int|float Number of bytes as number (float or int) or
-	*                        null on failure.
-	*/
-	public function getFileSizeViaCOM($filename) {
-		if (class_exists('COM')) {
-			$fsObj = new \COM("Scripting.FileSystemObject");
-			$file = $fsObj->GetFile($filename);
-			return 0 + $file->Size;
 		}
 		return null;
 	}

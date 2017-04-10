@@ -1,13 +1,13 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -81,7 +81,7 @@ class Encryption extends Wrapper {
 	private $mountManager;
 
 	/** @var array remember for which path we execute the repair step to avoid recursions */
-	private $fixUnencryptedSizeOf = array();
+	private $fixUnencryptedSizeOf = [];
 
 	/** @var  ArrayCache */
 	private $arrayCache;
@@ -119,7 +119,7 @@ class Encryption extends Wrapper {
 		$this->uid = $uid;
 		$this->fileHelper = $fileHelper;
 		$this->keyStorage = $keyStorage;
-		$this->unencryptedSize = array();
+		$this->unencryptedSize = [];
 		$this->update = $update;
 		$this->mountManager = $mountManager;
 		$this->arrayCache = $arrayCache;
@@ -880,7 +880,7 @@ class Encryption extends Wrapper {
 	 * @return array
 	 */
 	protected function parseRawHeader($rawHeader) {
-		$result = array();
+		$result = [];
 		if (substr($rawHeader, 0, strlen(Util::HEADER_START)) === Util::HEADER_START) {
 			$header = $rawHeader;
 			$endAt = strpos($header, Util::HEADER_END);

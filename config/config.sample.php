@@ -9,7 +9,7 @@
  * consider important for your instance to your working ``config.php``, and
  * apply configuration options that are pertinent for your instance.
  *
- * This file is used to generate the configuration documentation. 
+ * This file is used to generate the configuration documentation.
  * Please consider following requirements of the current parser:
  *  * all comments need to start with `/**` and end with ` *\/` - each on their
  *    own line
@@ -123,6 +123,7 @@ $CONFIG = array(
  */
 'dbtableprefix' => '',
 
+
 /**
  * Indicates whether the ownCloud instance was installed successfully; ``true``
  * indicates a successful installation, and ``false`` indicates an unsuccessful
@@ -200,6 +201,17 @@ $CONFIG = array(
  * which can be used as passwords on their clients.
  */
 'token_auth_enforced' => false,
+
+/**
+ * Disable ownCloud's built-in CSRF protection mechanism.
+ *
+ * In some specific setups CSRF protection is handled in the environment, e.g.,
+ * running F5 ASM. In these cases the built-in mechanism is not needed and can be disabled.
+ * Generally speaking, however, this config switch should be left unchanged.
+ *
+ * WARNING: leave this as is if you're not sure what it does
+ */
+'csrf.disabled' => false,
 
 /**
  * The directory where the skeleton files are located. These files will be
@@ -426,20 +438,20 @@ $CONFIG = array(
  *
  * Available values:
  *
- * * ``auto``      
- *     default setting. keeps files and folders in the trash bin for 30 days 
- *     and automatically deletes anytime after that if space is needed (note: 
+ * * ``auto``
+ *     default setting. keeps files and folders in the trash bin for 30 days
+ *     and automatically deletes anytime after that if space is needed (note:
  *     files may not be deleted if space is not needed).
- * * ``D, auto``   
- *     keeps files and folders in the trash bin for D+ days, delete anytime if 
+ * * ``D, auto``
+ *     keeps files and folders in the trash bin for D+ days, delete anytime if
  *     space needed (note: files may not be deleted if space is not needed)
- * * ``auto, D``   
- *     delete all files in the trash bin that are older than D days   
+ * * ``auto, D``
+ *     delete all files in the trash bin that are older than D days
  *     automatically, delete other files anytime if space needed
- * * ``D1, D2``    
- *     keep files and folders in the trash bin for at least D1 days and 
+ * * ``D1, D2``
+ *     keep files and folders in the trash bin for at least D1 days and
  *     delete when exceeds D2 days
- * * ``disabled``  
+ * * ``disabled``
  *     trash bin auto clean disabled, files and folders will be kept forever
  */
 'trashbin_retention_obligation' => 'auto',
@@ -462,23 +474,23 @@ $CONFIG = array(
  * Both minimum and maximum times can be set together to explicitly define
  * version deletion. For migration purposes, this setting is installed
  * initially set to "auto", which is equivalent to the default setting in
- * ownCloud 8.1 and before. 
+ * ownCloud 8.1 and before.
  *
  * Available values:
  *
- * * ``auto``      
- *     default setting. Automatically expire versions according to expire 
- *     rules. Please refer to :doc:`../configuration_files/file_versioning` for 
+ * * ``auto``
+ *     default setting. Automatically expire versions according to expire
+ *     rules. Please refer to :doc:`../configuration_files/file_versioning` for
  *     more information.
- * * ``D, auto``   
- *     keep versions at least for D days, apply expire rules to all versions 
+ * * ``D, auto``
+ *     keep versions at least for D days, apply expire rules to all versions
  *     that are older than D days
- * * ``auto, D``   
- *     delete all versions that are older than D days automatically, delete 
+ * * ``auto, D``
+ *     delete all versions that are older than D days automatically, delete
  *     other versions according to expire rules
- * * ``D1, D2``    
+ * * ``D1, D2``
  *     keep versions for at least D1 days and delete when exceeds D2 days
- * * ``disabled``  
+ * * ``disabled``
  *     versions auto clean disabled, versions will be kept forever
  */
 'versions_retention_obligation' => 'auto',
@@ -681,13 +693,14 @@ $CONFIG = array(
  * to that folder, starting from the ownCloud webroot. The key ``writable``
  * indicates if a Web server can write files to that folder.
  */
-'apps_paths' => array(
-	array(
-		'path'=> '/var/www/owncloud/apps',
-		'url' => '/apps',
-		'writable' => true,
-	),
-),
+ 'apps_paths' =>
+   array (
+     array (
+       'path' => OC::$SERVERROOT.'/apps',
+       'url' => '/apps',
+       'writable' => true,
+     )
+   ),
 
 /**
  * @see appcodechecker
@@ -852,9 +865,9 @@ $CONFIG = array(
 /**
  * Enable maintenance mode to disable ownCloud
  *
- * If you want to prevent users from logging in to ownCloud before you start 
- * doing some maintenance work, you need to set the value of the maintenance 
- * parameter to true. Please keep in mind that users who are already logged-in 
+ * If you want to prevent users from logging in to ownCloud before you start
+ * doing some maintenance work, you need to set the value of the maintenance
+ * parameter to true. Please keep in mind that users who are already logged-in
  * are kicked out of ownCloud instantly.
  */
 'maintenance' => false,
@@ -1005,9 +1018,9 @@ $CONFIG = array(
  *
  * One way to test is applying for a trystack account at http://trystack.org/
  */
-'objectstore' => array(
+'objectstore' => [
 	'class' => 'OC\\Files\\ObjectStore\\Swift',
-	'arguments' => array(
+	'arguments' => [
 		// trystack will user your facebook id as the user name
 		'username' => 'facebook100000123456789',
 		// in the trystack dashboard go to user -> settings -> API Password to
@@ -1015,6 +1028,8 @@ $CONFIG = array(
 		'password' => 'Secr3tPaSSWoRdt7',
 		// must already exist in the objectstore, name can be different
 		'container' => 'owncloud',
+		// prefix to prepend to the fileid, default is 'oid:urn:'
+		'objectPrefix' => 'oid:urn:',
 		// create the container if it does not exist. default is false
 		'autocreate' => true,
 		// required, dev-/trystack defaults to 'RegionOne'
@@ -1028,8 +1043,8 @@ $CONFIG = array(
 		'serviceName' => 'swift',
 		// The Interface / url Type, optional
 		'urlType' => 'internal'
-	),
-),
+	],
+],
 
 
 /**
@@ -1065,6 +1080,32 @@ $CONFIG = array(
  * can be 'WAL' or 'DELETE' see for more details https://www.sqlite.org/wal.html
  */
 'sqlite.journal_mode' => 'DELETE',
+
+/**
+ * If this setting is set to true MySQL can handle 4 byte characters instead of
+ * 3 byte characters
+ *
+ * MySQL requires a special setup for longer indexes (> 767 bytes) which are
+ * needed:
+ *
+ * [mysqld]
+ * innodb_large_prefix=ON
+ * innodb_file_format=Barracuda
+ * innodb_file_per_table=ON
+ *
+ * Tables will be created with
+ *  * character set: utf8mb4
+ *  * collation:     utf8mb4_bin
+ *  * row_format:    compressed
+ *
+ * See:
+ * https://dev.mysql.com/doc/refman/5.7/en/charset-unicode-utf8mb4.html
+ * https://dev.mysql.com/doc/refman/5.7/en/innodb-parameters.html#sysvar_innodb_large_prefix
+ * https://mariadb.com/kb/en/mariadb/xtradbinnodb-server-system-variables/#innodb_large_prefix
+ * http://www.tocker.ca/2013/10/31/benchmarking-innodb-page-compression-performance.html
+ * http://mechanics.flite.com/blog/2014/07/29/using-innodb-large-prefix-to-avoid-error-1071/
+ */
+'mysql.utf8mb4' => false,
 
 /**
  * Database types that are supported for installation.
@@ -1106,6 +1147,20 @@ $CONFIG = array(
 'blacklisted_files' => array('.htaccess'),
 
 /**
+ * Exclude specific directory names and disallow scanning, creating and renaming
+ * using these names. Case insensitive.
+ * Excluded directory names are queried at any path part like at the beginning,
+ * in the middle or at the end and will not be further processed if found.
+ * Please see the documentation for details and examples.
+ * Use when the storage backend supports eg snapshot directories to be excluded.
+ * WARNING: USE THIS ONLY IF YOU KNOW WHAT YOU ARE DOING.
+ */
+'excluded_directories' =>
+	array (
+		'.snapshot',
+		'~snapshot',
+	),
+/**
  * Define a default folder for shared files and folders other than root.
  */
 'share_folder' => '/',
@@ -1132,7 +1187,7 @@ $CONFIG = array(
  * client may not function as expected, and could lead to permanent data loss for
  * clients or other unexpected results.
  */
-'minimum.supported.desktop.version' => '1.7.0',
+'minimum.supported.desktop.version' => '2.0.0',
 
 /**
  * EXPERIMENTAL: option whether to include external storage in quota
@@ -1141,8 +1196,8 @@ $CONFIG = array(
 'quota_include_external_storage' => false,
 
 /**
- * Specifies how often the local filesystem (the ownCloud data/ directory, and 
- * NFS mounts in data/) is checked for changes made outside ownCloud. This 
+ * Specifies how often the local filesystem (the ownCloud data/ directory, and
+ * NFS mounts in data/) is checked for changes made outside ownCloud. This
  * does not apply to external storages.
  *
  * 0 -> Never check the filesystem for outside changes, provides a performance
@@ -1198,7 +1253,7 @@ $CONFIG = array(
 
 /**
  * List of trusted proxy servers
- * 
+ *
  * If you configure these also consider setting `forwarded_for_headers` which
  * otherwise defaults to `HTTP_X_FORWARDED_FOR` (the `X-Forwarded-For` header).
  */
@@ -1280,6 +1335,13 @@ $CONFIG = array(
  * the user has resolved conflicts.
  */
 'data-fingerprint' => '',
+
+/**
+ * Set this property to false if you want to disable the files_external local mount Option.
+ * Default: true
+ *
+ */
+'files_external_allow_local' => true,
 
 /**
  * This entry is just here to show a warning in case somebody copied the sample

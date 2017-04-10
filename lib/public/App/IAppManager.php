@@ -4,8 +4,9 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -112,4 +113,36 @@ interface IAppManager {
 	 * @since 9.0.0
 	 */
 	public function getAlwaysEnabledApps();
+
+	/**
+	 * @param string $package
+	 * @return mixed
+	 * @since 10.0
+	 */
+	public function installApp($package);
+
+	/**
+	 * @param string $package
+	 * @return mixed
+	 * @since 10.0
+	 */
+	public function updateApp($package);
+
+	/**
+	 * Returns the app information from "appinfo/info.xml".
+	 *
+	 * @param string $appId app id
+	 * @return array app info
+	 * @since 10.0
+	 */
+	public function getAppInfo($appId);
+
+	/**
+	 * Returns the list of all apps, enabled and disabled
+	 *
+	 * @return string[]
+	 * @since 10.0
+	 */
+	public function getAllApps();
+
 }

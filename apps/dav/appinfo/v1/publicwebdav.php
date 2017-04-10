@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -71,7 +71,7 @@ $server = $serverFactory->createServer($baseuri, $requestUri, $authBackend, func
 	// FIXME: should not add storage wrappers outside of preSetup, need to find a better way
 	$previousLog = \OC\Files\Filesystem::logWarningWhenAddingStorageWrapper(false);
 	\OC\Files\Filesystem::addStorageWrapper('sharePermissions', function ($mountPoint, $storage) use ($share) {
-		return new \OC\Files\Storage\Wrapper\PermissionsMask(array('storage' => $storage, 'mask' => $share->getPermissions() | \OCP\Constants::PERMISSION_SHARE));
+		return new \OC\Files\Storage\Wrapper\PermissionsMask(['storage' => $storage, 'mask' => $share->getPermissions() | \OCP\Constants::PERMISSION_SHARE]);
 	});
 	\OC\Files\Filesystem::logWarningWhenAddingStorageWrapper($previousLog);
 

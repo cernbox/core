@@ -3,7 +3,6 @@ OC.L10N.register(
     {
     "Delete" : "తొలగించు",
     "Server address" : "సేవకి చిరునామా",
-    "More" : "మరిన్ని",
     "Cancel" : "రద్దుచేయి",
     "Email" : "ఈమెయిలు",
     "Your email address" : "మీ ఈమెయిలు చిరునామా",
@@ -11,6 +10,8 @@ OC.L10N.register(
     "New password" : "కొత్త సంకేతపదం",
     "Language" : "భాష",
     "Name" : "పేరు",
-    "Username" : "వాడుకరి పేరు"
+    "Username" : "వాడుకరి పేరు",
+    "Personal" : "వ్యక్తిగతం",
+    "Error" : "పొరపాటు"
 },
 "nplurals=2; plural=(n != 1);");

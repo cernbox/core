@@ -1,12 +1,13 @@
 <?php
 /**
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -482,6 +483,10 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage {
 	 * @return bool
 	 */
 	public function instanceOfStorage($class) {
+		if (ltrim($class, '\\') === 'OC\Files\Storage\Shared') {
+			// FIXME Temporary fix to keep existing checks working
+			$class = '\OCA\Files_Sharing\SharedStorage';
+		}
 		return is_a($this, $class) or $this->getWrapperStorage()->instanceOfStorage($class);
 	}
 
@@ -493,7 +498,7 @@ class Wrapper implements \OC\Files\Storage\Storage, ILockingStorage {
 	 * @return mixed
 	 */
 	public function __call($method, $args) {
-		return call_user_func_array(array($this->getWrapperStorage(), $method), $args);
+		return call_user_func_array([$this->getWrapperStorage(), $method], $args);
 	}
 
 	/**

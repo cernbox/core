@@ -8,7 +8,7 @@
  * @author Christoph Wurst <christoph@owncloud.com>
  * @author François Kubler <francois@kubler.org>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -19,7 +19,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -79,20 +79,20 @@ class Setup {
 		$this->random = $random;
 	}
 
-	static $dbSetupClasses = array(
-		'mysql' => '\OC\Setup\MySQL',
-		'pgsql' => '\OC\Setup\PostgreSQL',
-		'oci'   => '\OC\Setup\OCI',
-		'sqlite' => '\OC\Setup\Sqlite',
-		'sqlite3' => '\OC\Setup\Sqlite',
-	);
+	static $dbSetupClasses = [
+		'mysql' => \OC\Setup\MySQL::class,
+		'pgsql' => \OC\Setup\PostgreSQL::class,
+		'oci'   => \OC\Setup\OCI::class,
+		'sqlite' => \OC\Setup\Sqlite::class,
+		'sqlite3' => \OC\Setup\Sqlite::class,
+	];
 
 	/**
 	 * Wrapper around the "class_exists" PHP function to be able to mock it
 	 * @param string $name
 	 * @return bool
 	 */
-	protected function class_exists($name) {
+	protected function IsClassExisting($name) {
 		return class_exists($name);
 	}
 
@@ -122,39 +122,39 @@ class Setup {
 	 * @throws Exception
 	 */
 	public function getSupportedDatabases($allowAllDatabases = false) {
-		$availableDatabases = array(
-			'sqlite' =>  array(
+		$availableDatabases = [
+			'sqlite' =>  [
 				'type' => 'class',
 				'call' => 'SQLite3',
 				'name' => 'SQLite'
-			),
-			'mysql' => array(
+			],
+			'mysql' => [
 				'type' => 'pdo',
 				'call' => 'mysql',
 				'name' => 'MySQL/MariaDB'
-			),
-			'pgsql' => array(
+			],
+			'pgsql' => [
 				'type' => 'function',
 				'call' => 'pg_connect',
 				'name' => 'PostgreSQL'
-			),
-			'oci' => array(
+			],
+			'oci' => [
 				'type' => 'function',
 				'call' => 'oci_connect',
 				'name' => 'Oracle'
-			)
-		);
+			]
+		];
 		if ($allowAllDatabases) {
 			$configuredDatabases = array_keys($availableDatabases);
 		} else {
 			$configuredDatabases = $this->config->getSystemValue('supportedDatabases',
-				array('sqlite', 'mysql', 'pgsql'));
+				['sqlite', 'mysql', 'pgsql']);
 		}
 		if(!is_array($configuredDatabases)) {
 			throw new Exception('Supported databases are not properly configured.');
 		}
 
-		$supportedDatabases = array();
+		$supportedDatabases = [];
 
 		foreach($configuredDatabases as $database) {
 			if(array_key_exists($database, $availableDatabases)) {
@@ -163,7 +163,7 @@ class Setup {
 				$call = $availableDatabases[$database]['call'];
 
 				if($type === 'class') {
-					$working = $this->class_exists($call);
+					$working = $this->IsClassExisting($call);
 				} elseif ($type === 'function') {
 					$working = $this->is_callable($call);
 				} elseif($type === 'pdo') {
@@ -190,7 +190,7 @@ class Setup {
 
 		$dataDir = $this->config->getSystemValue('datadirectory', \OC::$SERVERROOT.'/data');
 
-		$errors = array();
+		$errors = [];
 
 		// Create data directory to test whether the .htaccess works
 		// Notice that this is not necessarily the same data directory as the one
@@ -207,37 +207,37 @@ class Setup {
 				$util = new \OC_Util();
 				$htAccessWorking = $util->isHtaccessWorking(\OC::$server->getConfig());
 			} catch (\OC\HintException $e) {
-				$errors[] = array(
+				$errors[] = [
 					'error' => $e->getMessage(),
 					'hint' => $e->getHint()
-				);
+				];
 				$htAccessWorking = false;
 			}
 		}
 
 		if (\OC_Util::runningOnMac()) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $this->l10n->t(
 					'Mac OS X is not supported and %s will not work properly on this platform. ' .
 					'Use it at your own risk! ',
 					$this->defaults->getName()
 				),
 				'hint' => $this->l10n->t('For the best results, please consider using a GNU/Linux server instead.')
-			);
+			];
 		}
 
 		if($this->iniWrapper->getString('open_basedir') !== '' && PHP_INT_SIZE === 4) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $this->l10n->t(
 					'It seems that this %s instance is running on a 32-bit PHP environment and the open_basedir has been configured in php.ini. ' .
 					'This will lead to problems with files over 4 GB and is highly discouraged.',
 					$this->defaults->getName()
 				),
 				'hint' => $this->l10n->t('Please remove the open_basedir setting within your php.ini or switch to 64-bit PHP.')
-			);
+			];
 		}
 
-		return array(
+		return [
 			'hasSQLite' => isset($databases['sqlite']),
 			'hasMySQL' => isset($databases['mysql']),
 			'hasPostgreSQL' => isset($databases['pgsql']),
@@ -246,7 +246,7 @@ class Setup {
 			'directory' => $dataDir,
 			'htaccessWorking' => $htAccessWorking,
 			'errors' => $errors,
-		);
+		];
 	}
 
 	/**
@@ -256,7 +256,7 @@ class Setup {
 	public function install($options) {
 		$l = $this->l10n;
 
-		$error = array();
+		$error = [];
 		$dbType = $options['dbtype'];
 
 		if(empty($options['adminlogin'])) {
@@ -288,7 +288,7 @@ class Setup {
 			(!is_dir($dataDir) and !mkdir($dataDir)) or
 			!is_writable($dataDir)
 		) {
-			$error[] = $l->t("Can't create or write into the data directory %s", array($dataDir));
+			$error[] = $l->t("Can't create or write into the data directory %s", [$dataDir]);
 		}
 
 		if(count($error) != 0) {
@@ -305,12 +305,8 @@ class Setup {
 			$trustedDomains = [$request->getInsecureServerHost()];
 		}
 
-		if (\OC_Util::runningOnWindows()) {
-			$dataDir = rtrim(realpath($dataDir), '\\');
-		}
-
 		//use sqlite3 when available, otherwise sqlite2 will be used.
-		if($dbType=='sqlite' and class_exists('SQLite3')) {
+		if($dbType=='sqlite' and $this->IsClassExisting('SQLite3')) {
 			$dbType='sqlite3';
 		}
 
@@ -333,17 +329,19 @@ class Setup {
 		try {
 			$dbSetup->initialize($options);
 			$dbSetup->setupDatabase($username);
+			// apply necessary migrations
+			$dbSetup->runMigrations();
 		} catch (\OC\DatabaseSetupException $e) {
-			$error[] = array(
+			$error[] = [
 				'error' => $e->getMessage(),
 				'hint' => $e->getHint()
-			);
+			];
 			return($error);
 		} catch (Exception $e) {
-			$error[] = array(
+			$error[] = [
 				'error' => 'Error while trying to create admin user: ' . $e->getMessage(),
 				'hint' => ''
-			);
+			];
 			return($error);
 		}
 
@@ -366,15 +364,6 @@ class Setup {
 			$group =\OC::$server->getGroupManager()->createGroup('admin');
 			$group->addUser($user);
 
-			// Create a session token for the newly created user
-			// The token provider requires a working db, so it's not injected on setup
-			/* @var $userSession User\Session */
-			$userSession = \OC::$server->getUserSession();
-			$defaultTokenProvider = \OC::$server->query('OC\Authentication\Token\DefaultTokenProvider');
-			$userSession->setTokenProvider($defaultTokenProvider);
-			$userSession->login($username, $password);
-			$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $username, $password);
-
 			//guess what this does
 			Installer::installShippedApps();
 
@@ -395,6 +384,15 @@ class Setup {
 
 			//and we are done
 			$config->setSystemValue('installed', true);
+
+			// Create a session token for the newly created user
+			// The token provider requires a working db, so it's not injected on setup
+			/* @var $userSession User\Session */
+			$userSession = \OC::$server->getUserSession();
+			$defaultTokenProvider = \OC::$server->query('OC\Authentication\Token\DefaultTokenProvider');
+			$userSession->setTokenProvider($defaultTokenProvider);
+			$userSession->login($username, $password);
+			$userSession->createSessionToken($request, $userSession->getUser()->getUID(), $username, $password);
 		}
 
 		return $error;

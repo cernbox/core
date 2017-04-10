@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -86,6 +86,18 @@ interface IManager {
 	 */
 	public function moveShare(IShare $share, $recipientId);
 
+	/**
+	 * Get all shares shared by (initiated) by the provided user for specific node IDs.
+	 *
+	 * @param string $userId
+	 * @param int[] $shareTypes
+	 * @param int[] $nodeIDs
+	 * @param bool $reshares
+	 * @return IShare[]
+	 * @since 10.0.0
+	 */
+	public function getAllSharesBy($userId, $shareTypes, $nodeIDs, $reshares = false);
+	
 	/**
 	 * Get shares shared by (initiated) by the provided user.
 	 *

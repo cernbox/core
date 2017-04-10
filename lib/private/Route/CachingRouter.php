@@ -1,11 +1,12 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -49,7 +50,7 @@ class CachingRouter extends Router {
 	 * @param bool $absolute
 	 * @return string
 	 */
-	public function generate($name, $parameters = array(), $absolute = false) {
+	public function generate($name, $parameters = [], $absolute = false) {
 		asort($parameters);
 		$key = $this->context->getHost() . '#' . $this->context->getBaseUrl() . $name . sha1(json_encode($parameters)) . intval($absolute);
 		$cachedKey = $this->cache->get($key);

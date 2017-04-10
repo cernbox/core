@@ -1,8 +1,11 @@
 <?php
 /**
+ * @author Lukas Reschke <lukas@statuscode.ch>
+ * @author Markus Goetz <markus@woboq.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -65,7 +68,7 @@ class AssemblyStream implements \Icewind\Streams\File {
 		$nodes = $this->nodes;
 		// http://stackoverflow.com/a/10985500
 		@usort($nodes, function(IFile $a, IFile $b) {
-			return strcmp($a->getName(), $b->getName());
+			return strnatcmp($a->getName(), $b->getName());
 		});
 		$this->nodes = $nodes;
 

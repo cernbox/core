@@ -10,40 +10,52 @@
 namespace Test\DB;
 
 use Doctrine\DBAL\Platforms\MySqlPlatform;
+use Doctrine\DBAL\Schema\Schema;
+use OC\DB\MDB2SchemaReader;
+use OCP\IConfig;
+use Test\TestCase;
 
-class MDB2SchemaReaderTest extends \Test\TestCase {
+/**
+ * Class MDB2SchemaReaderTest
+ *
+ * @group DB
+ *
+ * @package Test\DB
+ */
+class MDB2SchemaReaderTest extends TestCase {
 	/**
-	 * @var \OC\DB\MDB2SchemaReader $reader
+	 * @var MDB2SchemaReader $reader
 	 */
 	protected $reader;
 
 	/**
-	 * @return \OC\Config
+	 * @return IConfig
 	 */
 	protected function getConfig() {
-		$config = $this->getMockBuilder('\OCP\IConfig')
+		/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject $config */
+		$config = $this->getMockBuilder(IConfig::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$config->expects($this->any())
 			->method('getSystemValue')
-			->will($this->returnValueMap(array(
-				array('dbname', 'owncloud', 'testDB'),
-				array('dbtableprefix', 'oc_', 'test_')
-			)));
+			->will($this->returnValueMap([
+				['dbname', 'owncloud', 'testDB'],
+				['dbtableprefix', 'oc_', 'test_']
+			]));
 		return $config;
 	}
 
 	public function testRead() {
-		$reader = new \OC\DB\MDB2SchemaReader($this->getConfig(), new MySqlPlatform());
-		$schema = $reader->loadSchemaFromFile(__DIR__ . '/testschema.xml');
+		$reader = new MDB2SchemaReader($this->getConfig(), new MySqlPlatform());
+		$schema = $reader->loadSchemaFromFile(__DIR__ . '/testschema.xml', new Schema());
 		$this->assertCount(1, $schema->getTables());
 
 		$table = $schema->getTable('test_table');
 		$this->assertCount(8, $table->getColumns());
 
 		$this->assertEquals(4, $table->getColumn('integerfield')->getLength());
-		$this->assertTrue($table->getColumn('integerfield')->getAutoincrement());
-		$this->assertNull($table->getColumn('integerfield')->getDefault());
+		$this->assertFalse($table->getColumn('integerfield')->getAutoincrement());
+		$this->assertEquals(0, $table->getColumn('integerfield')->getDefault());
 		$this->assertTrue($table->getColumn('integerfield')->getNotnull());
 		$this->assertInstanceOf('Doctrine\DBAL\Types\IntegerType', $table->getColumn('integerfield')->getType());
 
@@ -58,7 +70,7 @@ class MDB2SchemaReaderTest extends \Test\TestCase {
 		$this->assertNull($table->getColumn('clobfield')->getLength());
 		$this->assertFalse($table->getColumn('clobfield')->getAutoincrement());
 		$this->assertNull($table->getColumn('clobfield')->getDefault());
-		$this->assertTrue($table->getColumn('clobfield')->getNotnull());
+		$this->assertFalse($table->getColumn('clobfield')->getNotnull());
 		$this->assertInstanceOf('Doctrine\DBAL\Types\TextType', $table->getColumn('clobfield')->getType());
 
 		$this->assertNull($table->getColumn('booleanfield')->getLength());
@@ -73,10 +85,10 @@ class MDB2SchemaReaderTest extends \Test\TestCase {
 		$this->assertEquals(2, $table->getColumn('decimalfield_precision_scale')->getScale());
 
 		$this->assertCount(2, $table->getIndexes());
-		$this->assertEquals(array('integerfield'), $table->getIndex('primary')->getUnquotedColumns());
+		$this->assertEquals(['integerfield'], $table->getIndex('primary')->getUnquotedColumns());
 		$this->assertTrue($table->getIndex('primary')->isPrimary());
 		$this->assertTrue($table->getIndex('primary')->isUnique());
-		$this->assertEquals(array('booleanfield'), $table->getIndex('index_boolean')->getUnquotedColumns());
+		$this->assertEquals(['booleanfield'], $table->getIndex('index_boolean')->getUnquotedColumns());
 		$this->assertFalse($table->getIndex('index_boolean')->isPrimary());
 		$this->assertFalse($table->getIndex('index_boolean')->isUnique());
 	}

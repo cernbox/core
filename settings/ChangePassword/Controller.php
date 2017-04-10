@@ -1,8 +1,8 @@
 <?php
 /**
- * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Christoph Wurst <christoph@owncloud.com>
  * @author Clark Tomlinson <fallen013@gmail.com>
  * @author cmeh <cmeh@users.noreply.github.com>
  * @author Florin Peter <github@florin-peter.de>
@@ -11,8 +11,9 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Sam Tuke <mail@samtuke.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Yarno Boelens <yarnoboelens@gmail.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,10 +42,15 @@ class Controller {
 		$oldPassword = isset($_POST['oldpassword']) ? $_POST['oldpassword'] : '';
 
 		if (!\OC_User::checkPassword($username, $oldPassword)) {
-			$l = new \OC_L10n('settings');
-			\OC_JSON::error(array("data" => array("message" => $l->t("Wrong password")) ));
+			$l = \OC::$server->getL10NFactory()->get('settings');
+			\OC_JSON::error(["data" => ["message" => $l->t("Wrong password")]]);
 			exit();
 		}
+		if ($oldPassword === $password) {
+			$l = \OC::$server->getL10NFactory()->get('settings');
+			\OC_JSON::error(["data" => ["message" => $l->t("The new password can not be the same as the previous one")]]);
+			exit();
+	        }
 		if (!is_null($password) && \OC_User::setPassword($username, $password)) {
 			\OC::$server->getUserSession()->updateSessionTokenPassword($password);
 			\OC_JSON::success();
@@ -58,11 +64,11 @@ class Controller {
 		\OC_JSON::callCheck();
 		\OC_JSON::checkLoggedIn();
 
-		$l = new \OC_L10n('settings');
+		$l = \OC::$server->getL10NFactory()->get('settings');
 		if (isset($_POST['username'])) {
 			$username = $_POST['username'];
 		} else {
-			\OC_JSON::error(array('data' => array('message' => $l->t('No user supplied')) ));
+			\OC_JSON::error(['data' => ['message' => $l->t('No user supplied')]]);
 			exit();
 		}
 
@@ -81,7 +87,7 @@ class Controller {
 		} elseif ($isUserAccessible) {
 			$userstatus = 'subadmin';
 		} else {
-			\OC_JSON::error(array('data' => array('message' => $l->t('Authentication error')) ));
+			\OC_JSON::error(['data' => ['message' => $l->t('Authentication error')]]);
 			exit();
 		}
 
@@ -127,33 +133,33 @@ class Controller {
 			}
 
 			if ($recoveryEnabledForUser && $recoveryPassword === '') {
-				\OC_JSON::error(array('data' => array(
-					'message' => $l->t('Please provide an admin recovery password, otherwise all user data will be lost')
-				)));
+				\OC_JSON::error(['data' => [
+					'message' => $l->t('Please provide an admin recovery password; otherwise, all user data will be lost.')
+				]]);
 			} elseif ($recoveryEnabledForUser && ! $validRecoveryPassword) {
-				\OC_JSON::error(array('data' => array(
+				\OC_JSON::error(['data' => [
 					'message' => $l->t('Wrong admin recovery password. Please check the password and try again.')
-				)));
+				]]);
 			} else { // now we know that everything is fine regarding the recovery password, let's try to change the password
 				$result = \OC_User::setPassword($username, $password, $recoveryPassword);
 				if (!$result && $recoveryEnabledForUser) {
-					\OC_JSON::error(array(
-						"data" => array(
+					\OC_JSON::error([
+						"data" => [
 							"message" => $l->t("Backend doesn't support password change, but the user's encryption key was successfully updated.")
-						)
-					));
+						]
+					]);
 				} elseif (!$result && !$recoveryEnabledForUser) {
-					\OC_JSON::error(array("data" => array( "message" => $l->t("Unable to change password" ) )));
+					\OC_JSON::error(["data" => ["message" => $l->t("Unable to change password" )]]);
 				} else {
-					\OC_JSON::success(array("data" => array( "username" => $username )));
+					\OC_JSON::success(["data" => ["username" => $username]]);
 				}
 
 			}
 		} else { // if encryption is disabled, proceed
 			if (!is_null($password) && \OC_User::setPassword($username, $password)) {
-				\OC_JSON::success(array('data' => array('username' => $username)));
+				\OC_JSON::success(['data' => ['username' => $username]]);
 			} else {
-				\OC_JSON::error(array('data' => array('message' => $l->t('Unable to change password'))));
+				\OC_JSON::error(['data' => ['message' => $l->t('Unable to change password')]]);
 			}
 		}
 	}

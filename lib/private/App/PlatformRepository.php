@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,11 +35,11 @@ class PlatformRepository {
 
 	protected function initialize() {
 		$loadedExtensions = get_loaded_extensions();
-		$packages = array();
+		$packages = [];
 
 		// Extensions scanning
 		foreach ($loadedExtensions as $name) {
-			if (in_array($name, array('standard', 'Core'))) {
+			if (in_array($name, ['standard', 'Core'])) {
 				continue;
 			}
 

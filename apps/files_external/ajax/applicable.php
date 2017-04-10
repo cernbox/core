@@ -3,8 +3,9 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -48,6 +49,6 @@ foreach (\OC::$server->getUserManager()->searchDisplayName($pattern, $limit, $of
 	$users[$user->getUID()] = $user->getDisplayName();
 }
 
-$results = array('groups' => $groups, 'users' => $users);
+$results = ['groups' => $groups, 'users' => $users];
 
 \OCP\JSON::success($results);

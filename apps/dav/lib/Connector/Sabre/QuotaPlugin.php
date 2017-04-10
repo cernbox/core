@@ -1,13 +1,12 @@
 <?php
 /**
  * @author Felix Moeller <mail@felixmoeller.de>
- * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author scambra <sergio@entrecables.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -73,8 +72,8 @@ class QuotaPlugin extends \Sabre\DAV\ServerPlugin {
 
 		$this->server = $server;
 
-		$server->on('beforeWriteContent', array($this, 'checkQuota'), 10);
-		$server->on('beforeCreateFile', array($this, 'checkQuota'), 10);
+		$server->on('beforeWriteContent', [$this, 'checkQuota'], 10);
+		$server->on('beforeCreateFile', [$this, 'checkQuota'], 10);
 	}
 
 	/**

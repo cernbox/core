@@ -1,10 +1,11 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,12 +25,13 @@
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
 use OCA\DAV\Connector\Sabre\FilesReportPlugin as FilesReportPluginImplementation;
-use Sabre\DAV\Exception\NotFound;
 use OCP\SystemTag\ISystemTagObjectMapper;
 use OC\Files\View;
 use OCP\Files\Folder;
 use OCP\IGroupManager;
 use OCP\SystemTag\ISystemTagManager;
+use OCP\ITags;
+use OCP\Files\FileInfo;
 
 class FilesReportPluginTest extends \Test\TestCase {
 	/** @var \Sabre\DAV\Server|\PHPUnit_Framework_MockObject_MockObject */
@@ -43,6 +45,9 @@ class FilesReportPluginTest extends \Test\TestCase {
 
 	/** @var ISystemTagManager|\PHPUnit_Framework_MockObject_MockObject */
 	private $tagManager;
+
+	/** @var ITags|\PHPUnit_Framework_MockObject_MockObject */
+	private $privateTags;
 
 	/** @var  \OCP\IUserSession */
 	private $userSession;
@@ -71,8 +76,12 @@ class FilesReportPluginTest extends \Test\TestCase {
 
 		$this->server = $this->getMockBuilder('\Sabre\DAV\Server')
 			->setConstructorArgs([$this->tree])
-			->setMethods(['getRequestUri'])
+			->setMethods(['getRequestUri', 'getBaseUri'])
 			->getMock();
+
+		$this->server->expects($this->any())
+			->method('getBaseUri')
+			->will($this->returnValue('http://example.com/owncloud/remote.php/dav'));
 
 		$this->groupManager = $this->getMockBuilder('\OCP\IGroupManager')
 			->disableOriginalConstructor()
@@ -82,11 +91,17 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$this->tagManager = $this->getMock('\OCP\SystemTag\ISystemTagManager');
-		$this->tagMapper = $this->getMock('\OCP\SystemTag\ISystemTagObjectMapper');
-		$this->userSession = $this->getMock('\OCP\IUserSession');
+		$this->tagManager = $this->createMock('\OCP\SystemTag\ISystemTagManager');
+		$this->tagMapper = $this->createMock('\OCP\SystemTag\ISystemTagObjectMapper');
+		$this->userSession = $this->createMock('\OCP\IUserSession');
+		$this->privateTags = $this->createMock('\OCP\ITags');
+		$privateTagManager = $this->createMock('\OCP\ITagManager');
+		$privateTagManager->expects($this->any())
+			->method('load')
+			->with('files')
+			->will($this->returnValue($this->privateTags));
 
-		$user = $this->getMock('\OCP\IUser');
+		$user = $this->createMock('\OCP\IUser');
 		$user->expects($this->any())
 			->method('getUID')
 			->will($this->returnValue('testuser'));
@@ -99,48 +114,43 @@ class FilesReportPluginTest extends \Test\TestCase {
 			$this->view,
 			$this->tagManager,
 			$this->tagMapper,
+			$privateTagManager,
 			$this->userSession,
 			$this->groupManager,
 			$this->userFolder
 		);
 	}
 
-	/**
-	 * @expectedException \Sabre\DAV\Exception\ReportNotSupported
-	 */
 	public function testOnReportInvalidNode() {
 		$path = 'totally/unrelated/13';
 
 		$this->tree->expects($this->any())
 			->method('getNodeForPath')
 			->with('/' . $path)
-			->will($this->returnValue($this->getMock('\Sabre\DAV\INode')));
+			->will($this->returnValue($this->createMock('\Sabre\DAV\INode')));
 
 		$this->server->expects($this->any())
 			->method('getRequestUri')
 			->will($this->returnValue($path));
 		$this->plugin->initialize($this->server);
 
-		$this->plugin->onReport(FilesReportPluginImplementation::REPORT_NAME, [], '/' . $path);
+		$this->assertNull($this->plugin->onReport(FilesReportPluginImplementation::REPORT_NAME, [], '/' . $path));
 	}
 
-	/**
-	 * @expectedException \Sabre\DAV\Exception\ReportNotSupported
-	 */
 	public function testOnReportInvalidReportName() {
 		$path = 'test';
 
 		$this->tree->expects($this->any())
 			->method('getNodeForPath')
 			->with('/' . $path)
-			->will($this->returnValue($this->getMock('\Sabre\DAV\INode')));
+			->will($this->returnValue($this->createMock('\Sabre\DAV\INode')));
 
 		$this->server->expects($this->any())
 			->method('getRequestUri')
 			->will($this->returnValue($path));
 		$this->plugin->initialize($this->server);
 
-		$this->plugin->onReport('{whoever}whatever', [], '/' . $path);
+		$this->assertNull($this->plugin->onReport('{whoever}whatever', [], '/' . $path));
 	}
 
 	public function testOnReport() {
@@ -222,7 +232,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 		$this->server->httpResponse = $response;
 		$this->plugin->initialize($this->server);
 
-		$this->plugin->onReport(FilesReportPluginImplementation::REPORT_NAME, $parameters, '/' . $path);
+		$this->assertFalse($this->plugin->onReport(FilesReportPluginImplementation::REPORT_NAME, $parameters, '/' . $path));
 	}
 
 	public function testFindNodesByFileIdsRoot() {
@@ -320,6 +330,9 @@ class FilesReportPluginTest extends \Test\TestCase {
 	public function testPrepareResponses() {
 		$requestedProps = ['{DAV:}getcontentlength', '{http://owncloud.org/ns}fileid', '{DAV:}resourcetype'];
 
+		$fileInfo = $this->createMock(FileInfo::class);
+		$fileInfo->method('isReadable')->willReturn(true);
+
 		$node1 = $this->getMockBuilder('\OCA\DAV\Connector\Sabre\Directory')
 			->disableOriginalConstructor()
 			->getMock();
@@ -330,30 +343,40 @@ class FilesReportPluginTest extends \Test\TestCase {
 		$node1->expects($this->once())
 			->method('getInternalFileId')
 			->will($this->returnValue('111'));
+		$node1->expects($this->any())
+			->method('getPath')
+			->will($this->returnValue('/node1'));
+		$node1->method('getFileInfo')->willReturn($fileInfo);
 		$node2->expects($this->once())
 			->method('getInternalFileId')
 			->will($this->returnValue('222'));
 		$node2->expects($this->once())
 			->method('getSize')
 			->will($this->returnValue(1024));
+		$node2->expects($this->any())
+			->method('getPath')
+			->will($this->returnValue('/sub/node2'));
+		$node2->method('getFileInfo')->willReturn($fileInfo);
 
-		$config = $this->getMock('\OCP\IConfig');
+		$config = $this->createMock('\OCP\IConfig');
 
 		$this->server->addPlugin(
 			new \OCA\DAV\Connector\Sabre\FilesPlugin(
 				$this->tree,
-				$this->view,
 				$config,
-				$this->getMock('\OCP\IRequest')
+				$this->createMock('\OCP\IRequest')
 			)
 		);
 		$this->plugin->initialize($this->server);
-		$responses = $this->plugin->prepareResponses($requestedProps, [$node1, $node2]);
+		$responses = $this->plugin->prepareResponses('/files/username', $requestedProps, [$node1, $node2]);
 
 		$this->assertCount(2, $responses);
 
 		$this->assertEquals(200, $responses[0]->getHttpStatus());
 		$this->assertEquals(200, $responses[1]->getHttpStatus());
+
+		$this->assertEquals('http://example.com/owncloud/remote.php/dav/files/username/node1', $responses[0]->getHref());
+		$this->assertEquals('http://example.com/owncloud/remote.php/dav/files/username/sub/node2', $responses[1]->getHref());
 
 		$props1 = $responses[0]->getResponseProperties();
 		$this->assertEquals('111', $props1[200]['{http://owncloud.org/ns}fileid']);
@@ -494,7 +517,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('isAdmin')
 			->will($this->returnValue(true));
 
-		$tag1 = $this->getMock('\OCP\SystemTag\ISystemTag');
+		$tag1 = $this->createMock('\OCP\SystemTag\ISystemTag');
 		$tag1->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('123'));
@@ -502,7 +525,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('isUserVisible')
 			->will($this->returnValue(true));
 
-		$tag2 = $this->getMock('\OCP\SystemTag\ISystemTag');
+		$tag2 = $this->createMock('\OCP\SystemTag\ISystemTag');
 		$tag2->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('123'));
@@ -539,7 +562,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('isAdmin')
 			->will($this->returnValue(false));
 
-		$tag1 = $this->getMock('\OCP\SystemTag\ISystemTag');
+		$tag1 = $this->createMock('\OCP\SystemTag\ISystemTag');
 		$tag1->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('123'));
@@ -547,7 +570,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('isUserVisible')
 			->will($this->returnValue(true));
 
-		$tag2 = $this->getMock('\OCP\SystemTag\ISystemTag');
+		$tag2 = $this->createMock('\OCP\SystemTag\ISystemTag');
 		$tag2->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('123'));
@@ -573,7 +596,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('isAdmin')
 			->will($this->returnValue(false));
 
-		$tag1 = $this->getMock('\OCP\SystemTag\ISystemTag');
+		$tag1 = $this->createMock('\OCP\SystemTag\ISystemTag');
 		$tag1->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('123'));
@@ -581,7 +604,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('isUserVisible')
 			->will($this->returnValue(true));
 
-		$tag2 = $this->getMock('\OCP\SystemTag\ISystemTag');
+		$tag2 = $this->createMock('\OCP\SystemTag\ISystemTag');
 		$tag2->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('123'));
@@ -609,5 +632,34 @@ class FilesReportPluginTest extends \Test\TestCase {
 		];
 
 		$this->assertEquals(['222'], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+	}
+
+	public function testProcessFavoriteFilter() {
+		$rules = [
+			['name' => '{http://owncloud.org/ns}favorite', 'value' => '1'],
+		];
+
+		$this->privateTags->expects($this->once())
+			->method('getFavorites')
+			->will($this->returnValue(['456', '789']));
+
+		$this->assertEquals(['456', '789'], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+	}
+
+	public function filesBaseUriProvider() {
+		return [
+			['', '', ''],
+			['files/username', '', '/files/username'],
+			['files/username/test', '/test', '/files/username'],
+			['files/username/test/sub', '/test/sub', '/files/username'],
+			['test', '/test', ''],
+		];
+	}
+
+	/**
+	 * @dataProvider filesBaseUriProvider
+	 */
+	public function testFilesBaseUri($uri, $reportPath, $expectedUri) {
+		$this->assertEquals($expectedUri, $this->invokePrivate($this->plugin, 'getFilesBaseUri', [$uri, $reportPath]));
 	}
 }

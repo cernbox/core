@@ -3,9 +3,10 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,7 +32,7 @@ namespace OC\Files\Stream;
  * or:    resource \OC\Files\Stream\Quota::wrap($stream, $limit)
  */
 class Quota {
-	private static $streams = array();
+	private static $streams = [];
 
 	/**
 	 * @var resource $source
@@ -49,14 +50,14 @@ class Quota {
 	 * @param int $limit
 	 */
 	public static function register($id, $stream, $limit) {
-		self::$streams[$id] = array($stream, $limit);
+		self::$streams[$id] = [$stream, $limit];
 	}
 
 	/**
 	 * remove all registered streams
 	 */
 	public static function clear() {
-		self::$streams = array();
+		self::$streams = [];
 	}
 
 	/**

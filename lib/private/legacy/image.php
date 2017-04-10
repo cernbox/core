@@ -1,14 +1,14 @@
 <?php
 /**
  * @author Andreas Fischer <bantu@owncloud.com>
- * @author Bart Visscher <bartv@thisnet.nl>
  * @author Bartek Przybylski <bart.p.pl@gmail.com>
+ * @author Bart Visscher <bartv@thisnet.nl>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Byron Marohn <combustible@live.com>
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Georg Ehrke <georg@owncloud.com>
  * @author j-ed <juergen@eisfair.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Johannes Willnecker <johannes@willnecker.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
@@ -17,8 +17,9 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
+ * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,6 +35,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
+
+use OC\Image\BmpToResource;
 
 /**
  * Class for basic image manipulation
@@ -81,11 +84,6 @@ class OC_Image implements \OCP\IImage {
 		$this->logger = $logger;
 		if (is_null($logger)) {
 			$this->logger = \OC::$server->getLogger();
-		}
-
-		if (!extension_loaded('gd') || !function_exists('gd_info')) {
-			$this->logger->error(__METHOD__ . '(): GD module not installed', array('app' => 'core'));
-			return false;
 		}
 
 		if (\OC_Util::fileInfoLoaded()) {
@@ -140,7 +138,7 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function widthTopLeft() {
 		$o = $this->getOrientation();
-		$this->logger->debug('OC_Image->widthTopLeft() Orientation: ' . $o, array('app' => 'core'));
+		$this->logger->debug('OC_Image->widthTopLeft() Orientation: ' . $o, ['app' => 'core']);
 		switch ($o) {
 			case -1:
 			case 1:
@@ -164,7 +162,7 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function heightTopLeft() {
 		$o = $this->getOrientation();
-		$this->logger->debug('OC_Image->heightTopLeft() Orientation: ' . $o, array('app' => 'core'));
+		$this->logger->debug('OC_Image->heightTopLeft() Orientation: ' . $o, ['app' => 'core']);
 		switch ($o) {
 			case -1:
 			case 1:
@@ -208,7 +206,7 @@ class OC_Image implements \OCP\IImage {
 			$mimeType = $this->mimeType();
 		}
 		if ($filePath === null && $this->filePath === null) {
-			$this->logger->error(__METHOD__ . '(): called with no path.', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): called with no path.', ['app' => 'core']);
 			return false;
 		} elseif ($filePath === null && $this->filePath !== null) {
 			$filePath = $this->filePath;
@@ -229,10 +227,10 @@ class OC_Image implements \OCP\IImage {
 			if (!file_exists(dirname($filePath)))
 				mkdir(dirname($filePath), 0777, true);
 			if (!is_writable(dirname($filePath))) {
-				$this->logger->error(__METHOD__ . '(): Directory \'' . dirname($filePath) . '\' is not writable.', array('app' => 'core'));
+				$this->logger->error(__METHOD__ . '(): Directory \'' . dirname($filePath) . '\' is not writable.', ['app' => 'core']);
 				return false;
 			} elseif (is_writable(dirname($filePath)) && file_exists($filePath) && !is_writable($filePath)) {
-				$this->logger->error(__METHOD__ . '(): File \'' . $filePath . '\' is not writable.', array('app' => 'core'));
+				$this->logger->error(__METHOD__ . '(): File \'' . $filePath . '\' is not writable.', ['app' => 'core']);
 				return false;
 			}
 		}
@@ -328,11 +326,11 @@ class OC_Image implements \OCP\IImage {
 				break;
 			default:
 				$res = imagepng($this->resource);
-				$this->logger->info('OC_Image->data. Could not guess mime-type, defaulting to png', array('app' => 'core'));
+				$this->logger->info('OC_Image->data. Could not guess mime-type, defaulting to png', ['app' => 'core']);
 				break;
 		}
 		if (!$res) {
-			$this->logger->error('OC_Image->data. Error getting image data.', array('app' => 'core'));
+			$this->logger->error('OC_Image->data. Error getting image data.', ['app' => 'core']);
 		}
 		return ob_get_clean();
 	}
@@ -352,19 +350,19 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function getOrientation() {
 		if ($this->imageType !== IMAGETYPE_JPEG) {
-			$this->logger->debug('OC_Image->fixOrientation() Image is not a JPEG.', array('app' => 'core'));
+			$this->logger->debug('OC_Image->fixOrientation() Image is not a JPEG.', ['app' => 'core']);
 			return -1;
 		}
 		if (!is_callable('exif_read_data')) {
-			$this->logger->debug('OC_Image->fixOrientation() Exif module not enabled.', array('app' => 'core'));
+			$this->logger->debug('OC_Image->fixOrientation() Exif module not enabled.', ['app' => 'core']);
 			return -1;
 		}
 		if (!$this->valid()) {
-			$this->logger->debug('OC_Image->fixOrientation() No image loaded.', array('app' => 'core'));
+			$this->logger->debug('OC_Image->fixOrientation() No image loaded.', ['app' => 'core']);
 			return -1;
 		}
 		if (is_null($this->filePath) || !is_readable($this->filePath)) {
-			$this->logger->debug('OC_Image->fixOrientation() No readable file path set.', array('app' => 'core'));
+			$this->logger->debug('OC_Image->fixOrientation() No readable file path set.', ['app' => 'core']);
 			return -1;
 		}
 		$exif = @exif_read_data($this->filePath, 'IFD0');
@@ -385,7 +383,7 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function fixOrientation() {
 		$o = $this->getOrientation();
-		$this->logger->debug('OC_Image->fixOrientation() Orientation: ' . $o, array('app' => 'core'));
+		$this->logger->debug('OC_Image->fixOrientation() Orientation: ' . $o, ['app' => 'core']);
 		$rotate = 0;
 		$flip = false;
 		switch ($o) {
@@ -432,15 +430,15 @@ class OC_Image implements \OCP\IImage {
 						$this->resource = $res;
 						return true;
 					} else {
-						$this->logger->debug('OC_Image->fixOrientation() Error during alpha-saving', array('app' => 'core'));
+						$this->logger->debug('OC_Image->fixOrientation() Error during alpha-saving', ['app' => 'core']);
 						return false;
 					}
 				} else {
-					$this->logger->debug('OC_Image->fixOrientation() Error during alpha-blending', array('app' => 'core'));
+					$this->logger->debug('OC_Image->fixOrientation() Error during alpha-blending', ['app' => 'core']);
 					return false;
 				}
 			} else {
-				$this->logger->debug('OC_Image->fixOrientation() Error during orientation fixing', array('app' => 'core'));
+				$this->logger->debug('OC_Image->fixOrientation() Error during orientation fixing', ['app' => 'core']);
 				return false;
 			}
 		}
@@ -458,7 +456,7 @@ class OC_Image implements \OCP\IImage {
 			if (get_resource_type($imageRef) == 'gd') {
 				$this->resource = $imageRef;
 				return $this->resource;
-			} elseif (in_array(get_resource_type($imageRef), array('file', 'stream'))) {
+			} elseif (in_array(get_resource_type($imageRef), ['file', 'stream'])) {
 				return $this->loadFromFileHandle($imageRef);
 			}
 		} elseif ($this->loadFromBase64($imageRef) !== false) {
@@ -468,7 +466,7 @@ class OC_Image implements \OCP\IImage {
 		} elseif ($this->loadFromData($imageRef) !== false) {
 			return $this->resource;
 		}
-		$this->logger->debug(__METHOD__ . '(): could not load anything. Giving up!', array('app' => 'core'));
+		$this->logger->debug(__METHOD__ . '(): could not load anything. Giving up!', ['app' => 'core']);
 		return false;
 	}
 
@@ -507,14 +505,14 @@ class OC_Image implements \OCP\IImage {
 					imagealphablending($this->resource, true);
 					imagesavealpha($this->resource, true);
 				} else {
-					$this->logger->debug('OC_Image->loadFromFile, GIF images not supported: ' . $imagePath, array('app' => 'core'));
+					$this->logger->debug('OC_Image->loadFromFile, GIF images not supported: ' . $imagePath, ['app' => 'core']);
 				}
 				break;
 			case IMAGETYPE_JPEG:
 				if (imagetypes() & IMG_JPG) {
 					$this->resource = imagecreatefromjpeg($imagePath);
 				} else {
-					$this->logger->debug('OC_Image->loadFromFile, JPG images not supported: ' . $imagePath, array('app' => 'core'));
+					$this->logger->debug('OC_Image->loadFromFile, JPG images not supported: ' . $imagePath, ['app' => 'core']);
 				}
 				break;
 			case IMAGETYPE_PNG:
@@ -524,21 +522,21 @@ class OC_Image implements \OCP\IImage {
 					imagealphablending($this->resource, true);
 					imagesavealpha($this->resource, true);
 				} else {
-					$this->logger->debug('OC_Image->loadFromFile, PNG images not supported: ' . $imagePath, array('app' => 'core'));
+					$this->logger->debug('OC_Image->loadFromFile, PNG images not supported: ' . $imagePath, ['app' => 'core']);
 				}
 				break;
 			case IMAGETYPE_XBM:
 				if (imagetypes() & IMG_XPM) {
 					$this->resource = imagecreatefromxbm($imagePath);
 				} else {
-					$this->logger->debug('OC_Image->loadFromFile, XBM/XPM images not supported: ' . $imagePath, array('app' => 'core'));
+					$this->logger->debug('OC_Image->loadFromFile, XBM/XPM images not supported: ' . $imagePath, ['app' => 'core']);
 				}
 				break;
 			case IMAGETYPE_WBMP:
 				if (imagetypes() & IMG_WBMP) {
 					$this->resource = imagecreatefromwbmp($imagePath);
 				} else {
-					$this->logger->debug('OC_Image->loadFromFile, WBMP images not supported: ' . $imagePath, array('app' => 'core'));
+					$this->logger->debug('OC_Image->loadFromFile, WBMP images not supported: ' . $imagePath, ['app' => 'core']);
 				}
 				break;
 			case IMAGETYPE_BMP:
@@ -573,7 +571,7 @@ class OC_Image implements \OCP\IImage {
 				// this is mostly file created from encrypted file
 				$this->resource = imagecreatefromstring(\OC\Files\Filesystem::file_get_contents(\OC\Files\Filesystem::getLocalPath($imagePath)));
 				$iType = IMAGETYPE_PNG;
-				$this->logger->debug('OC_Image->loadFromFile, Default', array('app' => 'core'));
+				$this->logger->debug('OC_Image->loadFromFile, Default', ['app' => 'core']);
 				break;
 		}
 		if ($this->valid()) {
@@ -604,7 +602,7 @@ class OC_Image implements \OCP\IImage {
 		}
 
 		if (!$this->resource) {
-			$this->logger->debug('OC_Image->loadFromFile, could not load', array('app' => 'core'));
+			$this->logger->debug('OC_Image->loadFromFile, could not load', ['app' => 'core']);
 			return false;
 		}
 		return $this->resource;
@@ -627,7 +625,7 @@ class OC_Image implements \OCP\IImage {
 				$this->mimeType = $this->fileInfo->buffer($data);
 			}
 			if (!$this->resource) {
-				$this->logger->debug('OC_Image->loadFromBase64, could not load', array('app' => 'core'));
+				$this->logger->debug('OC_Image->loadFromBase64, could not load', ['app' => 'core']);
 				return false;
 			}
 			return $this->resource;
@@ -638,156 +636,22 @@ class OC_Image implements \OCP\IImage {
 
 	/**
 	 * Create a new image from file or URL
-	 *
-	 * @link http://www.programmierer-forum.de/function-imagecreatefrombmp-laeuft-mit-allen-bitraten-t143137.htm
-	 * @version 1.00
 	 * @param string $fileName <p>
 	 * Path to the BMP image.
-	 * </p>
 	 * @return bool|resource an image resource identifier on success, <b>FALSE</b> on errors.
 	 */
 	private function imagecreatefrombmp($fileName) {
-		if (!($fh = fopen($fileName, 'rb'))) {
-			$this->logger->warning('imagecreatefrombmp: Can not open ' . $fileName, array('app' => 'core'));
-			return false;
-		}
-		// read file header
-		$meta = unpack('vtype/Vfilesize/Vreserved/Voffset', fread($fh, 14));
-		// check for bitmap
-		if ($meta['type'] != 19778) {
-			fclose($fh);
-			$this->logger->warning('imagecreatefrombmp: Can not open ' . $fileName . ' is not a bitmap!', array('app' => 'core'));
-			return false;
-		}
-		// read image header
-		$meta += unpack('Vheadersize/Vwidth/Vheight/vplanes/vbits/Vcompression/Vimagesize/Vxres/Vyres/Vcolors/Vimportant', fread($fh, 40));
-		// read additional 16bit header
-		if ($meta['bits'] == 16) {
-			$meta += unpack('VrMask/VgMask/VbMask', fread($fh, 12));
-		}
-		// set bytes and padding
-		$meta['bytes'] = $meta['bits'] / 8;
-		$this->bitDepth = $meta['bits']; //remember the bit depth for the imagebmp call
-		$meta['decal'] = 4 - (4 * (($meta['width'] * $meta['bytes'] / 4) - floor($meta['width'] * $meta['bytes'] / 4)));
-		if ($meta['decal'] == 4) {
-			$meta['decal'] = 0;
-		}
-		// obtain imagesize
-		if ($meta['imagesize'] < 1) {
-			$meta['imagesize'] = $meta['filesize'] - $meta['offset'];
-			// in rare cases filesize is equal to offset so we need to read physical size
-			if ($meta['imagesize'] < 1) {
-				$meta['imagesize'] = @filesize($fileName) - $meta['offset'];
-				if ($meta['imagesize'] < 1) {
-					fclose($fh);
-					$this->logger->warning('imagecreatefrombmp: Can not obtain file size of ' . $fileName . ' is not a bitmap!', array('app' => 'core'));
-					return false;
-				}
-			}
-		}
-		// calculate colors
-		$meta['colors'] = !$meta['colors'] ? pow(2, $meta['bits']) : $meta['colors'];
-		// read color palette
-		$palette = array();
-		if ($meta['bits'] < 16) {
-			$palette = unpack('l' . $meta['colors'], fread($fh, $meta['colors'] * 4));
-			// in rare cases the color value is signed
-			if ($palette[1] < 0) {
-				foreach ($palette as $i => $color) {
-					$palette[$i] = $color + 16777216;
-				}
-			}
-		}
-		// create gd image
-		$im = imagecreatetruecolor($meta['width'], $meta['height']);
-		if ($im == false) {
-			fclose($fh);
-			$this->logger->warning(
-				'imagecreatefrombmp: imagecreatetruecolor failed for file "' . $fileName . '" with dimensions ' . $meta['width'] . 'x' . $meta['height'],
-				array('app' => 'core'));
+		try {
+			$bmp = new BmpToResource($fileName);
+			$imageHandle = $bmp->toResource();
+			$imageDetails = $bmp->getHeader();
+			$this->bitDepth = $imageDetails['bits']; //remember the bit depth for the imagebmp call
+		} catch (\Exception $e){
+			$this->logger->warning($e->getMessage(), ['app' => 'core']);
 			return false;
 		}
 
-		$data = fread($fh, $meta['imagesize']);
-		$p = 0;
-		$vide = chr(0);
-		$y = $meta['height'] - 1;
-		$error = 'imagecreatefrombmp: ' . $fileName . ' has not enough data!';
-		// loop through the image data beginning with the lower left corner
-		while ($y >= 0) {
-			$x = 0;
-			while ($x < $meta['width']) {
-				switch ($meta['bits']) {
-					case 32:
-					case 24:
-						if (!($part = substr($data, $p, 3))) {
-							$this->logger->warning($error, array('app' => 'core'));
-							return $im;
-						}
-						$color = @unpack('V', $part . $vide);
-						break;
-					case 16:
-						if (!($part = substr($data, $p, 2))) {
-							fclose($fh);
-							$this->logger->warning($error, array('app' => 'core'));
-							return $im;
-						}
-						$color = @unpack('v', $part);
-						$color[1] = (($color[1] & 0xf800) >> 8) * 65536 + (($color[1] & 0x07e0) >> 3) * 256 + (($color[1] & 0x001f) << 3);
-						break;
-					case 8:
-						$color = @unpack('n', $vide . substr($data, $p, 1));
-						$color[1] = (isset($palette[$color[1] + 1])) ? $palette[$color[1] + 1] : $palette[1];
-						break;
-					case 4:
-						$color = @unpack('n', $vide . substr($data, floor($p), 1));
-						$color[1] = ($p * 2) % 2 == 0 ? $color[1] >> 4 : $color[1] & 0x0F;
-						$color[1] = (isset($palette[$color[1] + 1])) ? $palette[$color[1] + 1] : $palette[1];
-						break;
-					case 1:
-						$color = @unpack('n', $vide . substr($data, floor($p), 1));
-						switch (($p * 8) % 8) {
-							case 0:
-								$color[1] = $color[1] >> 7;
-								break;
-							case 1:
-								$color[1] = ($color[1] & 0x40) >> 6;
-								break;
-							case 2:
-								$color[1] = ($color[1] & 0x20) >> 5;
-								break;
-							case 3:
-								$color[1] = ($color[1] & 0x10) >> 4;
-								break;
-							case 4:
-								$color[1] = ($color[1] & 0x8) >> 3;
-								break;
-							case 5:
-								$color[1] = ($color[1] & 0x4) >> 2;
-								break;
-							case 6:
-								$color[1] = ($color[1] & 0x2) >> 1;
-								break;
-							case 7:
-								$color[1] = ($color[1] & 0x1);
-								break;
-						}
-						$color[1] = (isset($palette[$color[1] + 1])) ? $palette[$color[1] + 1] : $palette[1];
-						break;
-					default:
-						fclose($fh);
-						$this->logger->warning('imagecreatefrombmp: ' . $fileName . ' has ' . $meta['bits'] . ' bits and this is not supported!', array('app' => 'core'));
-						return false;
-				}
-				imagesetpixel($im, $x, $y, $color[1]);
-				$x++;
-				$p += $meta['bytes'];
-			}
-			$y--;
-			$p += $meta['decal'];
-		}
-		fclose($fh);
-		return $im;
+		return $imageHandle;
 	}
 
 	/**
@@ -798,11 +662,11 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function resize($maxSize) {
 		if (!$this->valid()) {
-			$this->logger->error(__METHOD__ . '(): No image loaded', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): No image loaded', ['app' => 'core']);
 			return false;
 		}
-		$widthOrig = imageSX($this->resource);
-		$heightOrig = imageSY($this->resource);
+		$widthOrig = imagesx($this->resource);
+		$heightOrig = imagesy($this->resource);
 		$ratioOrig = $widthOrig / $heightOrig;
 
 		if ($ratioOrig > 1) {
@@ -824,15 +688,15 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function preciseResize($width, $height) {
 		if (!$this->valid()) {
-			$this->logger->error(__METHOD__ . '(): No image loaded', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): No image loaded', ['app' => 'core']);
 			return false;
 		}
-		$widthOrig = imageSX($this->resource);
-		$heightOrig = imageSY($this->resource);
+		$widthOrig = imagesx($this->resource);
+		$heightOrig = imagesy($this->resource);
 		$process = imagecreatetruecolor($width, $height);
 
 		if ($process == false) {
-			$this->logger->error(__METHOD__ . '(): Error creating true color image', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): Error creating true color image', ['app' => 'core']);
 			imagedestroy($process);
 			return false;
 		}
@@ -846,7 +710,7 @@ class OC_Image implements \OCP\IImage {
 
 		imagecopyresampled($process, $this->resource, 0, 0, 0, 0, $width, $height, $widthOrig, $heightOrig);
 		if ($process == false) {
-			$this->logger->error(__METHOD__ . '(): Error re-sampling process image', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): Error re-sampling process image', ['app' => 'core']);
 			imagedestroy($process);
 			return false;
 		}
@@ -863,11 +727,11 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function centerCrop($size = 0) {
 		if (!$this->valid()) {
-			$this->logger->error('OC_Image->centerCrop, No image loaded', array('app' => 'core'));
+			$this->logger->error('OC_Image->centerCrop, No image loaded', ['app' => 'core']);
 			return false;
 		}
-		$widthOrig = imageSX($this->resource);
-		$heightOrig = imageSY($this->resource);
+		$widthOrig = imagesx($this->resource);
+		$heightOrig = imagesy($this->resource);
 		if ($widthOrig === $heightOrig and $size == 0) {
 			return true;
 		}
@@ -890,7 +754,7 @@ class OC_Image implements \OCP\IImage {
 		}
 		$process = imagecreatetruecolor($targetWidth, $targetHeight);
 		if ($process == false) {
-			$this->logger->error('OC_Image->centerCrop, Error creating true color image', array('app' => 'core'));
+			$this->logger->error('OC_Image->centerCrop, Error creating true color image', ['app' => 'core']);
 			imagedestroy($process);
 			return false;
 		}
@@ -904,7 +768,7 @@ class OC_Image implements \OCP\IImage {
 
 		imagecopyresampled($process, $this->resource, 0, 0, $x, $y, $targetWidth, $targetHeight, $width, $height);
 		if ($process == false) {
-			$this->logger->error('OC_Image->centerCrop, Error re-sampling process image ' . $width . 'x' . $height, array('app' => 'core'));
+			$this->logger->error('OC_Image->centerCrop, Error re-sampling process image ' . $width . 'x' . $height, ['app' => 'core']);
 			imagedestroy($process);
 			return false;
 		}
@@ -924,12 +788,12 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function crop($x, $y, $w, $h) {
 		if (!$this->valid()) {
-			$this->logger->error(__METHOD__ . '(): No image loaded', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): No image loaded', ['app' => 'core']);
 			return false;
 		}
 		$process = imagecreatetruecolor($w, $h);
 		if ($process == false) {
-			$this->logger->error(__METHOD__ . '(): Error creating true color image', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): Error creating true color image', ['app' => 'core']);
 			imagedestroy($process);
 			return false;
 		}
@@ -943,7 +807,7 @@ class OC_Image implements \OCP\IImage {
 
 		imagecopyresampled($process, $this->resource, 0, 0, $x, $y, $w, $h, $w, $h);
 		if ($process == false) {
-			$this->logger->error(__METHOD__ . '(): Error re-sampling process image ' . $w . 'x' . $h, array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): Error re-sampling process image ' . $w . 'x' . $h, ['app' => 'core']);
 			imagedestroy($process);
 			return false;
 		}
@@ -963,11 +827,11 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function fitIn($maxWidth, $maxHeight) {
 		if (!$this->valid()) {
-			$this->logger->error(__METHOD__ . '(): No image loaded', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): No image loaded', ['app' => 'core']);
 			return false;
 		}
-		$widthOrig = imageSX($this->resource);
-		$heightOrig = imageSY($this->resource);
+		$widthOrig = imagesx($this->resource);
+		$heightOrig = imagesy($this->resource);
 		$ratio = $widthOrig / $heightOrig;
 
 		$newWidth = min($maxWidth, $ratio * $maxHeight);
@@ -986,11 +850,11 @@ class OC_Image implements \OCP\IImage {
 	 */
 	public function scaleDownToFit($maxWidth, $maxHeight) {
 		if (!$this->valid()) {
-			$this->logger->error(__METHOD__ . '(): No image loaded', array('app' => 'core'));
+			$this->logger->error(__METHOD__ . '(): No image loaded', ['app' => 'core']);
 			return false;
 		}
-		$widthOrig = imageSX($this->resource);
-		$heightOrig = imageSY($this->resource);
+		$widthOrig = imagesx($this->resource);
+		$heightOrig = imagesy($this->resource);
 
 		if ($widthOrig > $maxWidth || $heightOrig > $maxHeight) {
 			return $this->fitIn($maxWidth, $maxHeight);
@@ -1023,13 +887,14 @@ if (!function_exists('imagebmp')) {
 	 * @link http://www.programmierer-forum.de/imagebmp-gute-funktion-gefunden-t143716.htm
 	 * @author mgutt <marc@gutt.it>
 	 * @version 1.00
+	 * @param resource $im
 	 * @param string $fileName [optional] <p>The path to save the file to.</p>
 	 * @param int $bit [optional] <p>Bit depth, (default is 24).</p>
 	 * @param int $compression [optional]
 	 * @return bool <b>TRUE</b> on success or <b>FALSE</b> on failure.
 	 */
 	function imagebmp($im, $fileName = '', $bit = 24, $compression = 0) {
-		if (!in_array($bit, array(1, 4, 8, 16, 24, 32))) {
+		if (!in_array($bit, [1, 4, 8, 16, 24, 32])) {
 			$bit = 24;
 		} else if ($bit == 32) {
 			$bit = 24;

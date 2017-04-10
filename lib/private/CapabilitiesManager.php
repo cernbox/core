@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +29,7 @@ class CapabilitiesManager {
 	/**
 	 * @var \Closure[]
 	 */
-	private $capabilities = array();
+	private $capabilities = [];
 
 	/**
 	 * Get an array of al the capabilities that are registered at this manager

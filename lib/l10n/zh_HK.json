@@ -1,4 +1,5 @@
 { "translations": {
+    "Invalid image" : "無效的圖檔",
     "today" : "今日",
     "yesterday" : "昨日",
     "last month" : "前一月",
@@ -7,11 +8,17 @@
     "_%n hour ago_::_%n hours ago_" : ["%n 小時前"],
     "_%n minute ago_::_%n minutes ago_" : ["%n 分鐘前"],
     "seconds ago" : "秒前",
+    "None" : "空",
+    "Username" : "用戶名稱",
+    "Password" : "密碼",
+    "General" : "一般",
+    "Security" : "安全",
+    "Encryption" : "加密",
+    "Sharing" : "分享",
     "Apps" : "軟件",
+    "Updates" : "更新",
     "Help" : "幫助",
-    "Personal" : "個人",
-    "Users" : "用戶",
-    "Admin" : "管理",
-    "Recommended" : "建議"
+    "Settings" : "設定",
+    "Users" : "用戶"
 },"pluralForm" :"nplurals=1; plural=0;"
 }

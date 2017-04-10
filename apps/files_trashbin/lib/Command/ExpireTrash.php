@@ -1,8 +1,9 @@
 <?php
 /**
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -89,17 +90,10 @@ class ExpireTrash extends Command {
 		} else {
 			$p = new ProgressBar($output);
 			$p->start();
-
-			$expireCallback = function(IUser $user) use ($p) {
+			$this->userManager->callForSeenUsers(function(IUser $user) use ($p) {
 				$p->advance();
 				$this->expireTrashForUser($user);
-			};
-
-			if (is_callable(array($this->userManager, 'callForSeenUsers'))) {
-				$this->userManager->callForSeenUsers($expireCallback);
-			} else {
-				$this->userManager->callForAllUsers($expireCallback);
-			}
+			});
 			$p->finish();
 			$output->writeln('');
 		}
@@ -107,7 +101,7 @@ class ExpireTrash extends Command {
 
 	function expireTrashForUser(IUser $user) {
 		$uid = $user->getUID();
-		if ($user->getLastLogin() === 0 || !$this->setupFS($uid)) {
+		if (!$this->setupFS($uid)) {
 			return;
 		}
 		$dirContent = Helper::getTrashFiles('/', $uid, 'mtime');

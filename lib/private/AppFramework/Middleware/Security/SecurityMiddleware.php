@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -189,7 +189,7 @@ class SecurityMiddleware extends Middleware {
 
 			if (stripos($this->request->getHeader('Accept'),'html') === false) {
 				$response = new JSONResponse(
-					array('message' => $exception->getMessage()),
+					['message' => $exception->getMessage()],
 					$exception->getCode()
 				);
 			} else {

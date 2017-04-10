@@ -1,10 +1,10 @@
 <?php
 /**
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -273,8 +273,8 @@ class DateTimeFormatter implements \OCP\IDateTimeFormatter {
 		$timeZone = $this->getTimeZone($timeZone);
 		$timestamp = $this->getDateTime($timestamp, $timeZone);
 
-		return (string) $l->l($type, $timestamp, array(
+		return (string) $l->l($type, $timestamp, [
 			'width' => $format,
-		));
+		]);
 	}
 }

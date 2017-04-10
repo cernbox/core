@@ -7,7 +7,7 @@
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Individual IT Services <info@individual-it.net>
  * @author Jens-Christian Fischer <jens-christian.fischer@switch.ch>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
@@ -23,7 +23,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -120,11 +120,11 @@ class Util {
 		$message->setPlainBody($mailtext);
 		$message->setFrom([$fromaddress => $fromname]);
 		if($html === 1) {
-			$message->setHTMLBody($altbody);
+			$message->setHtmlBody($altbody);
 		}
 
 		if($altbody === '') {
-			$message->setHTMLBody($mailtext);
+			$message->setHtmlBody($mailtext);
 			$message->setPlainBody('');
 		} else {
 			$message->setHtmlBody($mailtext);
@@ -193,7 +193,7 @@ class Util {
 	 * get l10n object
 	 * @param string $application
 	 * @param string|null $language
-	 * @return \OC_L10N
+	 * @return \OCP\IL10N
 	 * @since 6.0.0 - parameter $language was added in 8.0.0
 	 */
 	public static function getL10N($application, $language = null) {
@@ -277,7 +277,7 @@ class Util {
 	 * @return string the url
 	 * @since 4.0.0 - parameter $args was added in 4.5.0
 	 */
-	public static function linkToAbsolute( $app, $file, $args = array() ) {
+	public static function linkToAbsolute( $app, $file, $args = []) {
 		$urlGenerator = \OC::$server->getURLGenerator();
 		return $urlGenerator->getAbsoluteURL(
 			$urlGenerator->linkTo($app, $file, $args)
@@ -317,7 +317,7 @@ class Util {
 	 * @deprecated 8.1.0 Use \OC::$server->getURLGenerator()->linkToRoute($route, $parameters)
 	 * @since 5.0.0
 	 */
-	public static function linkToRoute( $route, $parameters = array() ) {
+	public static function linkToRoute( $route, $parameters = []) {
 		return \OC::$server->getURLGenerator()->linkToRoute($route, $parameters);
 	}
 
@@ -331,7 +331,7 @@ class Util {
 	 * @deprecated 8.1.0 Use \OC::$server->getURLGenerator()->linkTo($app, $file, $args)
 	 * @since 4.0.0 - parameter $args was added in 4.5.0
 	 */
-	public static function linkTo( $app, $file, $args = array() ) {
+	public static function linkTo( $app, $file, $args = []) {
 		return \OC::$server->getURLGenerator()->linkTo($app, $file, $args);
 	}
 
@@ -484,7 +484,7 @@ class Util {
 	 * TODO: write example
 	 * @since 4.0.0
 	 */
-	static public function emitHook( $signalclass, $signalname, $params = array()) {
+	static public function emitHook( $signalclass, $signalname, $params = []) {
 		return(\OC_Hook::emit( $signalclass, $signalname, $params ));
 	}
 
@@ -702,5 +702,30 @@ class Util {
 			self::$needUpgradeCache=\OC_Util::needUpgrade(\OC::$server->getConfig());
 		}		
 		return self::$needUpgradeCache;
+	}
+
+	/**
+	 * Collects all status infos.
+	 *
+	 * @return array 
+	 * @since 10.0
+	 */
+	public static function getStatusInfo() {
+		$systemConfig = \OC::$server->getSystemConfig();
+
+		$installed = (bool) $systemConfig->getValue('installed', false);
+		$maintenance = (bool) $systemConfig->getValue('maintenance', false);
+		# see core/lib/private/legacy/defaults.php and core/themes/example/defaults.php
+		# for description and defaults
+		$defaults = new \OCP\Defaults();
+		$values = [
+			'installed'=> $installed ? 'true' : 'false',
+			'maintenance' => $maintenance ? 'true' : 'false',
+			'needsDbUpgrade' => self::needUpgrade() ? 'true' : 'false',
+			'version' => implode('.', self::getVersion()),
+			'versionstring' => \OC_Util::getVersionString(),
+			'edition' => \OC_Util::getEditionString(),
+			'productname' => $defaults->getName()];
+		return $values;
 	}
 }

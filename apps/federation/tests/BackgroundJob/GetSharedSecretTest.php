@@ -1,10 +1,10 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -72,15 +72,15 @@ class GetSharedSecretTest extends TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->httpClient = $this->getMock('OCP\Http\Client\IClient');
-		$this->jobList = $this->getMock('OCP\BackgroundJob\IJobList');
-		$this->urlGenerator = $this->getMock('OCP\IURLGenerator');
+		$this->httpClient = $this->createMock('OCP\Http\Client\IClient');
+		$this->jobList = $this->createMock('OCP\BackgroundJob\IJobList');
+		$this->urlGenerator = $this->createMock('OCP\IURLGenerator');
 		$this->trustedServers = $this->getMockBuilder('OCA\Federation\TrustedServers')
 			->disableOriginalConstructor()->getMock();
 		$this->dbHandler = $this->getMockBuilder('OCA\Federation\DbHandler')
 			->disableOriginalConstructor()->getMock();
-		$this->logger = $this->getMock('OCP\ILogger');
-		$this->response = $this->getMock('OCP\Http\Client\IResponse');
+		$this->logger = $this->createMock('OCP\ILogger');
+		$this->response = $this->createMock('OCP\Http\Client\IResponse');
 
 		$this->getSharedSecret = new GetSharedSecret(
 			$this->httpClient,

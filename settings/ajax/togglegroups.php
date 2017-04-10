@@ -8,7 +8,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,13 +27,12 @@
 OC_JSON::checkSubAdminUser();
 OCP\JSON::callCheck();
 
-$success = true;
 $username = (string)$_POST['username'];
 $group = (string)$_POST['group'];
 
 if($username === OC_User::getUser() && $group === "admin" &&  OC_User::isAdminUser($username)) {
 	$l = \OC::$server->getL10N('core');
-	OC_JSON::error(array( 'data' => array( 'message' => $l->t('Admins can\'t remove themself from the admin group'))));
+	OC_JSON::error(['data' => ['message' => $l->t('Admins can\'t remove themself from the admin group')]]);
 	exit();
 }
 
@@ -51,34 +50,34 @@ if(!OC_User::isAdminUser(OC_User::getUser())
 	&& (!$isUserAccessible
 		|| !$isGroupAccessible)) {
 	$l = \OC::$server->getL10N('core');
-	OC_JSON::error(array( 'data' => array( 'message' => $l->t('Authentication error') )));
+	OC_JSON::error(['data' => ['message' => $l->t('Authentication error')]]);
 	exit();
 }
 
-if(!OC_Group::groupExists($group)) {
-	OC_Group::createGroup($group);
+if (is_null($targetUserObject)) {
+	OC_JSON::error(['data' => ['message' => $l->t('Unknown user')]]);
+	exit();
+}
+
+if(!\OC::$server->getGroupManager()->groupExists($group)) {
+	$targetGroupObject = \OC::$server->getGroupManager()->createGroup($group);
 }
 
 $l = \OC::$server->getL10N('settings');
 
-$error = $l->t("Unable to add user to group %s", $group);
 $action = "add";
 
 // Toggle group
-if( OC_Group::inGroup( $username, $group )) {
+if( \OC::$server->getGroupManager()->inGroup( $username, $group )) {
 	$action = "remove";
-	$error = $l->t("Unable to remove user from group %s", $group);
-	$success = OC_Group::removeFromGroup( $username, $group );
-	$usersInGroup=OC_Group::usersInGroup($group);
-}
-else{
-	$success = OC_Group::addToGroup( $username, $group );
+	$targetGroupObject->removeUser($targetUserObject);
+	$usersInGroup = $targetGroupObject->getUsers();
+	$usersInGroup = array_values(array_map(function(\OCP\IUser $g) {
+		return $g->getUID();
+	}, $usersInGroup));
+} else {
+	$targetGroupObject->addUser($targetUserObject);
 }
 
 // Return Success story
-if( $success ) {
-	OC_JSON::success(array("data" => array( "username" => $username, "action" => $action, "groupname" => $group )));
-}
-else{
-	OC_JSON::error(array("data" => array( "message" => $error )));
-}
+OC_JSON::success(["data" => ["username" => $username, "action" => $action, "groupname" => $group]]);

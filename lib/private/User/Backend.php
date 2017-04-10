@@ -1,8 +1,10 @@
 <?php
 /**
+ * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,11 +23,13 @@
 
 namespace OC\User;
 
+use \OCP\UserInterface;
+
 /**
  * Abstract base class for user management. Provides methods for querying backend
  * capabilities.
  */
-abstract class Backend implements \OCP\UserInterface {
+abstract class Backend implements UserInterface {
 	/**
 	 * error code for functions not provided by the user backend
 	 */
@@ -43,7 +47,7 @@ abstract class Backend implements \OCP\UserInterface {
 	const PROVIDE_AVATAR	= 16777216;		// 1 << 24
 	const COUNT_USERS		= 268435456;	// 1 << 28
 
-	protected $possibleActions = array(
+	protected $possibleActions = [
 		self::CREATE_USER => 'createUser',
 		self::SET_PASSWORD => 'setPassword',
 		self::CHECK_PASSWORD => 'checkPassword',
@@ -52,7 +56,7 @@ abstract class Backend implements \OCP\UserInterface {
 		self::SET_DISPLAYNAME => 'setDisplayName',
 		self::PROVIDE_AVATAR => 'canChangeAvatar',
 		self::COUNT_USERS => 'countUsers',
-	);
+	];
 
 	/**
 	* Get all supported actions
@@ -104,7 +108,7 @@ abstract class Backend implements \OCP\UserInterface {
 	 * @return string[] an array of all uids
 	 */
 	public function getUsers($search = '', $limit = null, $offset = null) {
-		return array();
+		return [];
 	}
 
 	/**
@@ -143,7 +147,7 @@ abstract class Backend implements \OCP\UserInterface {
 	 * @return array an array of all displayNames (value) and the corresponding uids (key)
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null) {
-		$displayNames = array();
+		$displayNames = [];
 		$users = $this->getUsers($search, $limit, $offset);
 		foreach ( $users as $user) {
 			$displayNames[$user] = $user;

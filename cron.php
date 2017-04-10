@@ -3,16 +3,18 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Christopher Schäpers <kondou@ts.unde.re>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Oliver Kohl D.Sc. <oliver@kohl.bz>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
+ * @author RealRancor <fisch.666@gmx.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Steffen Lindner <mail@steffen-lindner.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,7 +33,7 @@
 
 try {
 
-	require_once 'lib/base.php';
+	require_once __DIR__ . '/lib/base.php';
 
 	if (\OCP\Util::needUpgrade()) {
 		\OCP\Util::writeLog('cron', 'Update required, skipping cron', \OCP\Util::DEBUG);
@@ -74,7 +76,7 @@ try {
 		if (OC::$CLI) {
 			echo 'Background Jobs are disabled!' . PHP_EOL;
 		} else {
-			OC_JSON::error(array('data' => array('message' => 'Background jobs disabled!')));
+			OC_JSON::error(['data' => ['message' => 'Background jobs disabled!']]);
 		}
 		exit(1);
 	}
@@ -84,19 +86,17 @@ try {
 		set_time_limit(0);
 
 		// the cron job must be executed with the right user
-		if (!OC_Util::runningOnWindows())  {
-			if (!function_exists('posix_getuid')) {
-				echo "The posix extensions are required - see http://php.net/manual/en/book.posix.php" . PHP_EOL;
-				exit(0);
-			}
-			$user = posix_getpwuid(posix_getuid());
-			$configUser = posix_getpwuid(fileowner(OC::$SERVERROOT . '/config/config.php'));
-			if ($user['name'] !== $configUser['name']) {
-				echo "Console has to be executed with the same user as the web server is operated" . PHP_EOL;
-				echo "Current user: " . $user['name'] . PHP_EOL;
-				echo "Web server user: " . $configUser['name'] . PHP_EOL;
-				exit(0);
-			}
+		if (!function_exists('posix_getuid')) {
+			echo "The posix extensions are required - see http://php.net/manual/en/book.posix.php" . PHP_EOL;
+			exit(0);
+		}
+		$user = posix_getpwuid(posix_getuid());
+		$configUser = posix_getpwuid(fileowner(OC::$SERVERROOT . '/config/config.php'));
+		if ($user['name'] !== $configUser['name']) {
+			echo "Console has to be executed with the same user as the web server is operated" . PHP_EOL;
+			echo "Current user: " . $user['name'] . PHP_EOL;
+			echo "Web server user: " . $configUser['name'] . PHP_EOL;
+			exit(0);
 		}
 
 		// We call ownCloud from the CLI (aka cron)
@@ -135,7 +135,7 @@ try {
 		// We call cron.php from some website
 		if ($appMode == 'cron') {
 			// Cron is cron :-P
-			OC_JSON::error(array('data' => array('message' => 'Backgroundjobs are using system cron!')));
+			OC_JSON::error(['data' => ['message' => 'Backgroundjobs are using system cron!']]);
 		} else {
 			// Work and success :-)
 			$jobList = \OC::$server->getJobList();

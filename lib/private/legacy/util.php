@@ -8,8 +8,8 @@
  * @author Birk Borkason <daniel.niccoli@gmail.com>
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Brice Maron <brice@bmaron.net>
- * @author Christoph Wurst <christoph@owncloud.com>
  * @author Christopher Schäpers <kondou@ts.unde.re>
+ * @author Christoph Wurst <christoph@owncloud.com>
  * @author Clark Tomlinson <fallen013@gmail.com>
  * @author cmeh <cmeh@users.noreply.github.com>
  * @author Florin Peter <github@florin-peter.de>
@@ -18,14 +18,16 @@
  * @author helix84 <helix84@centrum.sk>
  * @author Individual IT Services <info@individual-it.net>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
+ * @author Kawohl <john@owncloud.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Markus Goetz <markus@woboq.com>
  * @author Martin Mattel <martin.mattel@diemattels.at>
  * @author Marvin Thomas Rabe <mrabe@marvinrabe.de>
  * @author Michael Gapczynski <GapczynskiM@gmail.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Philipp Schaffrath <github@philippschaffrath.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
@@ -37,7 +39,7 @@
  * @author Vincent Petry <pvince81@owncloud.com>
  * @author Volkan Gezer <volkangezer@gmail.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -59,11 +61,14 @@ use OCP\IGroupManager;
 use OCP\IUser;
 
 class OC_Util {
-	public static $scripts = array();
-	public static $styles = array();
-	public static $headers = array();
+	public static $scripts = [];
+	public static $styles = [];
+	public static $headers = [];
 	private static $rootMounted = false;
 	private static $fsSetup = false;
+	private static $version;
+	const EDITION_COMMUNITY = 'Community';
+	const EDITION_ENTERPRISE = 'Enterprise';
 
 	protected static function getAppManager() {
 		return \OC::$server->getAppManager();
@@ -75,7 +80,7 @@ class OC_Util {
 		//first set up the local "root" storage
 		\OC\Files\Filesystem::initMountManager();
 		if (!self::$rootMounted) {
-			\OC\Files\Filesystem::mount('\OC\Files\Storage\Local', array('datadir' => $configDataDirectory), '/');
+			\OC\Files\Filesystem::mount('\OC\Files\Storage\Local', ['datadir' => $configDataDirectory], '/');
 			self::$rootMounted = true;
 		}
 	}
@@ -93,7 +98,7 @@ class OC_Util {
 			\OCP\Util::writeLog('files', 'No class given for objectstore', \OCP\Util::ERROR);
 		}
 		if (!isset($config['arguments'])) {
-			$config['arguments'] = array();
+			$config['arguments'] = [];
 		}
 
 		// instantiate object store implementation
@@ -164,7 +169,7 @@ class OC_Util {
 		}
 
 		// load all filesystem apps before, so no setup-hook gets lost
-		OC_App::loadApps(array('filesystem'));
+		OC_App::loadApps(['filesystem']);
 
 		// the filesystem will finish when $user is not empty,
 		// mark fs setup here to avoid doing the setup from loading
@@ -196,15 +201,14 @@ class OC_Util {
 
 		// install storage availability wrapper, before most other wrappers
 		\OC\Files\Filesystem::addStorageWrapper('oc_availability', function ($mountPoint, $storage) {
-			/** @var \OCP\Files\Storage $storage */
-			if (!$storage->instanceOfStorage('\OC\Files\Storage\Shared') && !$storage->isLocal()) {
+			if (!$storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage') && !$storage->isLocal()) {
 				return new \OC\Files\Storage\Wrapper\Availability(['storage' => $storage]);
 			}
 			return $storage;
 		});
 
 		\OC\Files\Filesystem::addStorageWrapper('oc_encoding', function ($mountPoint, \OCP\Files\Storage $storage, \OCP\Files\Mount\IMountPoint $mount) {
-			if ($mount->getOption('encoding_compatibility', false) && !$storage->instanceOfStorage('\OC\Files\Storage\Shared') && !$storage->isLocal()) {
+			if ($mount->getOption('encoding_compatibility', false) && !$storage->instanceOfStorage('\OCA\Files_Sharing\SharedStorage') && !$storage->isLocal()) {
 				return new \OC\Files\Storage\Wrapper\Encoding(['storage' => $storage]);
 			}
 			return $storage;
@@ -226,7 +230,7 @@ class OC_Util {
 					$user = $storage->getUser()->getUID();
 					$quota = OC_Util::getUserQuota($user);
 					if ($quota !== \OCP\Files\FileInfo::SPACE_UNLIMITED) {
-						return new \OC\Files\Storage\Wrapper\Quota(array('storage' => $storage, 'quota' => $quota, 'root' => 'files'));
+						return new \OC\Files\Storage\Wrapper\Quota(['storage' => $storage, 'quota' => $quota, 'root' => 'files']);
 					}
 				}
 			}
@@ -234,7 +238,7 @@ class OC_Util {
 			return $storage;
 		});
 
-		OC_Hook::emit('OC_Filesystem', 'preSetup', array('user' => $user));
+		OC_Hook::emit('OC_Filesystem', 'preSetup', ['user' => $user]);
 		\OC\Files\Filesystem::logWarningWhenAddingStorageWrapper(true);
 
 		//check if we are using an object storage
@@ -261,7 +265,7 @@ class OC_Util {
 			//jail the user into his "home" directory
 			\OC\Files\Filesystem::init($user, $userDir);
 
-			OC_Hook::emit('OC_Filesystem', 'setup', array('user' => $user, 'user_dir' => $userDir));
+			OC_Hook::emit('OC_Filesystem', 'setup', ['user' => $user, 'user_dir' => $userDir]);
 		}
 		\OC::$server->getEventLogger()->end('setup_fs');
 		return true;
@@ -402,7 +406,7 @@ class OC_Util {
 	 */
 	public static function getVersion() {
 		OC_Util::loadVersion();
-		return \OC::$server->getSession()->get('OC_Version');
+		return self::$version['OC_Version'];
 	}
 
 	/**
@@ -412,21 +416,20 @@ class OC_Util {
 	 */
 	public static function getVersionString() {
 		OC_Util::loadVersion();
-		return \OC::$server->getSession()->get('OC_VersionString');
+		return self::$version['OC_VersionString'];
 	}
 
 	/**
-	 * @description get the current installed edition of ownCloud. There is the community
-	 * edition that just returns an empty string and the enterprise edition
-	 * that returns "Enterprise".
+	 * @description get the current installed edition of ownCloud. 
+	 * There is the community edition that returns "Community" and 
+	 * the enterprise edition that returns "Enterprise".
 	 * @return string
 	 */
 	public static function getEditionString() {
 		if (OC_App::isEnabled('enterprise_key')) {
-			return "Enterprise";
-		} else {
-			return "";
-		}
+ 			return OC_Util::EDITION_ENTERPRISE;
+ 		} else {
+			return OC_Util::EDITION_COMMUNITY;		}
 
 	}
 
@@ -436,7 +439,7 @@ class OC_Util {
 	 */
 	public static function getChannel() {
 		OC_Util::loadVersion();
-		return \OC::$server->getSession()->get('OC_Channel');
+		return self::$version['OC_Channel'];
 	}
 
 	/**
@@ -445,41 +448,30 @@ class OC_Util {
 	 */
 	public static function getBuild() {
 		OC_Util::loadVersion();
-		return \OC::$server->getSession()->get('OC_Build');
+		return self::$version['OC_Build'];
 	}
 
 	/**
 	 * @description load the version.php into the session as cache
 	 */
 	private static function loadVersion() {
-		$timestamp = filemtime(OC::$SERVERROOT . '/version.php');
-		if (!\OC::$server->getSession()->exists('OC_Version') or OC::$server->getSession()->get('OC_Version_Timestamp') != $timestamp) {
-			require OC::$SERVERROOT . '/version.php';
-			$session = \OC::$server->getSession();
-			/** @var $timestamp int */
-			$session->set('OC_Version_Timestamp', $timestamp);
-			/** @var $OC_Version string */
-			$session->set('OC_Version', $OC_Version);
-			/** @var $OC_VersionString string */
-			$session->set('OC_VersionString', $OC_VersionString);
-			/** @var $OC_Build string */
-			$session->set('OC_Build', $OC_Build);
-			
-			// Allow overriding update channel
-			
-			if (\OC::$server->getSystemConfig()->getValue('installed', false)) {
-				$channel = \OC::$server->getAppConfig()->getValue('core', 'OC_Channel');
-			} else {
-				/** @var $OC_Channel string */
-				$channel = $OC_Channel;
-			}
-			
-			if (!is_null($channel)) {
-				$session->set('OC_Channel', $channel);
-			} else {
-				/** @var $OC_Channel string */
-				$session->set('OC_Channel', $OC_Channel);
-			}
+		require __DIR__ . '/../../../version.php';
+		/** @var $OC_Version string */
+		/** @var $OC_VersionString string */
+		/** @var $OC_Build string */
+		/** @var $OC_Channel string */
+		self::$version = [
+			'OC_Version' => $OC_Version,
+			'OC_VersionString' => $OC_VersionString,
+			'OC_Build' => $OC_Build,
+			'OC_Channel' => $OC_Channel,
+		];
+
+		// Allow overriding update channel
+
+		if (\OC::$server->getSystemConfig()->getValue('installed', false)) {
+			$channel = \OC::$server->getConfig()->getAppValue('core', 'OC_Channel', $OC_Channel);
+			self::$version['OC_Channel'] = $channel;
 		}
 	}
 
@@ -543,7 +535,7 @@ class OC_Util {
 	 */
 	public static function addTranslations($application, $languageCode = null, $prepend = false) {
 		if (is_null($languageCode)) {
-			$languageCode = \OC_L10N::findLanguage($application);
+			$languageCode = \OC::$server->getL10NFactory()->findLanguage($application);
 		}
 		if (!empty($application)) {
 			$path = "$application/l10n/$languageCode";
@@ -618,11 +610,11 @@ class OC_Util {
 	 * @param string $text the text content for the element
 	 */
 	public static function addHeader($tag, $attributes, $text=null) {
-		self::$headers[] = array(
+		self::$headers[] = [
 			'tag' => $tag,
 			'attributes' => $attributes,
 			'text' => $text
-		);
+		];
 	}
 
 	/**
@@ -656,7 +648,7 @@ class OC_Util {
 	 */
 	public static function checkServer(\OCP\IConfig $config) {
 		$l = \OC::$server->getL10N('lib');
-		$errors = array();
+		$errors = [];
 		$CONFIG_DATADIRECTORY = $config->getSystemValue('datadirectory', OC::$SERVERROOT . '/data');
 
 		if (!self::needUpgrade($config) && $config->getSystemValue('installed', false)) {
@@ -677,35 +669,22 @@ class OC_Util {
 
 		$availableDatabases = $setup->getSupportedDatabases();
 		if (empty($availableDatabases)) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $l->t('No database drivers (sqlite, mysql, or postgresql) installed.'),
 				'hint' => '' //TODO: sane hint
-			);
-			$webServerRestart = true;
-		}
-
-		// Check if server running on Windows platform
-		if(OC_Util::runningOnWindows()) {
-			$errors[] = [
-				'error' => $l->t('Microsoft Windows Platform is not supported'),
-				'hint' => $l->t('Running ownCloud Server on the Microsoft Windows platform is not supported. We suggest you ' .
-					'use a Linux server in a virtual machine if you have no option for migrating the server itself. ' .
-					'Find Linux packages as well as easy to deploy virtual machine images on <a href="%s">%s</a>. ' .
-					'For migrating existing installations to Linux you can find some tips and a migration script ' .
-					'in <a href="%s">our documentation</a>.',
-					['https://owncloud.org/install/', 'owncloud.org/install/', 'https://owncloud.org/?p=8045'])
 			];
+			$webServerRestart = true;
 		}
 
 		// Check if config folder is writable.
 		if(!OC_Helper::isReadOnlyConfigEnabled()) {
 			if (!is_writable(OC::$configDir) or !is_readable(OC::$configDir)) {
-				$errors[] = array(
+				$errors[] = [
 					'error' => $l->t('Cannot write into "config" directory'),
 					'hint' => $l->t('This can usually be fixed by '
 						. '%sgiving the webserver write access to the config directory%s.',
-						array('<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'))
-				);
+						['<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'])
+				];
 			}
 		}
 
@@ -715,13 +694,13 @@ class OC_Util {
 				|| !is_writable(OC_App::getInstallPath())
 				|| !is_readable(OC_App::getInstallPath())
 			) {
-				$errors[] = array(
+				$errors[] = [
 					'error' => $l->t('Cannot write into "apps" directory'),
 					'hint' => $l->t('This can usually be fixed by '
 						. '%sgiving the webserver write access to the apps directory%s'
 						. ' or disabling the appstore in the config file.',
-						array('<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'))
-				);
+						['<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'])
+				];
 			}
 		}
 		// Create root dir.
@@ -731,34 +710,34 @@ class OC_Util {
 				if ($success) {
 					$errors = array_merge($errors, self::checkDataDirectoryPermissions($CONFIG_DATADIRECTORY));
 				} else {
-					$errors[] = array(
-						'error' => $l->t('Cannot create "data" directory (%s)', array($CONFIG_DATADIRECTORY)),
+					$errors[] = [
+						'error' => $l->t('Cannot create "data" directory'),
 						'hint' => $l->t('This can usually be fixed by '
 							. '<a href="%s" target="_blank" rel="noreferrer">giving the webserver write access to the root directory</a>.',
-							array($urlGenerator->linkToDocs('admin-dir_permissions')))
-					);
+							[$urlGenerator->linkToDocs('admin-dir_permissions')])
+					];
 				}
 			} else if (!is_writable($CONFIG_DATADIRECTORY) or !is_readable($CONFIG_DATADIRECTORY)) {
 				//common hint for all file permissions error messages
 				$permissionsHint = $l->t('Permissions can usually be fixed by '
 					. '%sgiving the webserver write access to the root directory%s.',
-					array('<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>'));
-				$errors[] = array(
-					'error' => 'Data directory (' . $CONFIG_DATADIRECTORY . ') not writable by ownCloud',
+					['<a href="' . $urlGenerator->linkToDocs('admin-dir_permissions') . '" target="_blank" rel="noreferrer">', '</a>']);
+				$errors[] = [
+					'error' => 'Your Data directory is not writable by ownCloud',
 					'hint' => $permissionsHint
-				);
+				];
 			} else {
 				$errors = array_merge($errors, self::checkDataDirectoryPermissions($CONFIG_DATADIRECTORY));
 			}
 		}
 
 		if (!OC_Util::isSetLocaleWorking()) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $l->t('Setting locale to %s failed',
-					array('en_US.UTF-8/fr_FR.UTF-8/es_ES.UTF-8/de_DE.UTF-8/ru_RU.UTF-8/'
-						. 'pt_BR.UTF-8/it_IT.UTF-8/ja_JP.UTF-8/zh_CN.UTF-8')),
+					['en_US.UTF-8/fr_FR.UTF-8/es_ES.UTF-8/de_DE.UTF-8/ru_RU.UTF-8/'
+						. 'pt_BR.UTF-8/it_IT.UTF-8/ja_JP.UTF-8/zh_CN.UTF-8']),
 				'hint' => $l->t('Please install one of these locales on your system and restart your webserver.')
-			);
+			];
 		}
 
 		// Contains the dependencies that should be checked against
@@ -769,13 +748,13 @@ class OC_Util {
 		// If the dependency is not found the missing module name is shown to the EndUser
 		// When adding new checks always verify that they pass on Travis as well
 		// for ini settings, see https://github.com/owncloud/administration/blob/master/travis-ci/custom.ini
-		$dependencies = array(
-			'classes' => array(
+		$dependencies = [
+			'classes' => [
 				'ZipArchive' => 'zip',
 				'DOMDocument' => 'dom',
 				'XMLWriter' => 'XMLWriter',
 				'XMLReader' => 'XMLReader',
-			),
+			],
 			'functions' => [
 				'xml_parser_create' => 'libxml',
 				'mb_strcut' => 'mb multibyte',
@@ -788,14 +767,14 @@ class OC_Util {
 				'hash' => 'HASH Message Digest Framework',
 				'curl_init' => 'cURL',
 			],
-			'defined' => array(
+			'defined' => [
 				'PDO::ATTR_DRIVER_NAME' => 'PDO'
-			),
+			],
 			'ini' => [
 				'default_charset' => 'UTF-8',
 			],
-		);
-		$missingDependencies = array();
+		];
+		$missingDependencies = [];
 		$invalidIniSettings = [];
 		$moduleHint = $l->t('Please ask your server administrator to install the module.');
 
@@ -842,10 +821,10 @@ class OC_Util {
 		}
 
 		foreach($missingDependencies as $missingDependency) {
-			$errors[] = array(
-				'error' => $l->t('PHP module %s not installed.', array($missingDependency)),
+			$errors[] = [
+				'error' => $l->t('PHP module %s not installed.', [$missingDependency]),
 				'hint' => $moduleHint
-			);
+			];
 			$webServerRestart = true;
 		}
 		foreach($invalidIniSettings as $setting) {
@@ -869,32 +848,32 @@ class OC_Util {
 		 */
 		if($iniWrapper->getBool('mbstring.func_overload') !== null &&
 			$iniWrapper->getBool('mbstring.func_overload') === true) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $l->t('mbstring.func_overload is set to "%s" instead of the expected value "0"', [$iniWrapper->getString('mbstring.func_overload')]),
 				'hint' => $l->t('To fix this issue set <code>mbstring.func_overload</code> to <code>0</code> in your php.ini')
-			);
+			];
 		}
 
 		if(function_exists('xml_parser_create') &&
 			version_compare('2.7.0', LIBXML_DOTTED_VERSION) === 1) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $l->t('libxml2 2.7.0 is at least required. Currently %s is installed.', [LIBXML_DOTTED_VERSION]),
 				'hint' => $l->t('To fix this issue update your libxml2 version and restart your web server.')
-			);
+			];
 		}
 
 		if (!self::isAnnotationsWorking()) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $l->t('PHP is apparently set up to strip inline doc blocks. This will make several core apps inaccessible.'),
 				'hint' => $l->t('This is probably caused by a cache/accelerator such as Zend OPcache or eAccelerator.')
-			);
+			];
 		}
 
 		if (!\OC::$CLI && $webServerRestart) {
-			$errors[] = array(
+			$errors[] = [
 				'error' => $l->t('PHP modules have been installed, but they are still listed as missing?'),
 				'hint' => $l->t('Please ask your server administrator to restart the web server.')
-			);
+			];
 		}
 
 		$errors = array_merge($errors, self::checkDatabaseVersion());
@@ -912,7 +891,7 @@ class OC_Util {
 	 */
 	public static function checkDatabaseVersion() {
 		$l = \OC::$server->getL10N('lib');
-		$errors = array();
+		$errors = [];
 		$dbType = \OC::$server->getSystemConfig()->getValue('dbtype', 'sqlite');
 		if ($dbType === 'pgsql') {
 			// check PostgreSQL version
@@ -922,10 +901,10 @@ class OC_Util {
 				if (isset($data['server_version'])) {
 					$version = $data['server_version'];
 					if (version_compare($version, '9.0.0', '<')) {
-						$errors[] = array(
+						$errors[] = [
 							'error' => $l->t('PostgreSQL >= 9 required'),
 							'hint' => $l->t('Please upgrade your database version')
-						);
+						];
 					}
 				}
 			} catch (\Doctrine\DBAL\DBALException $e) {
@@ -945,23 +924,19 @@ class OC_Util {
 	 */
 	public static function checkDataDirectoryPermissions($dataDirectory) {
 		$l = \OC::$server->getL10N('lib');
-		$errors = array();
-		if (self::runningOnWindows()) {
-			//TODO: permissions checks for windows hosts
-		} else {
-			$permissionsModHint = $l->t('Please change the permissions to 0770 so that the directory'
-				. ' cannot be listed by other users.');
+		$errors = [];
+		$permissionsModHint = $l->t('Please change the permissions to 0770 so that the directory'
+			. ' cannot be listed by other users.');
+		$perms = substr(decoct(@fileperms($dataDirectory)), -3);
+		if (substr($perms, -1) != '0') {
+			chmod($dataDirectory, 0770);
+			clearstatcache();
 			$perms = substr(decoct(@fileperms($dataDirectory)), -3);
-			if (substr($perms, -1) != '0') {
-				chmod($dataDirectory, 0770);
-				clearstatcache();
-				$perms = substr(decoct(@fileperms($dataDirectory)), -3);
-				if (substr($perms, 2, 1) != '0') {
-					$errors[] = array(
-						'error' => $l->t('Data directory (%s) is readable by other users', array($dataDirectory)),
-						'hint' => $permissionsModHint
-					);
-				}
+			if (substr($perms, 2, 1) != '0') {
+				$errors[] = [
+					'error' => $l->t('Your Data directory is readable by other users'),
+					'hint' => $permissionsModHint
+				];
 			}
 		}
 		return $errors;
@@ -977,15 +952,15 @@ class OC_Util {
 	public static function checkDataDirectoryValidity($dataDirectory) {
 		$l = \OC::$server->getL10N('lib');
 		$errors = [];
-		if (!self::runningOnWindows() && $dataDirectory[0] !== '/') {
+		if ($dataDirectory[0] !== '/') {
 			$errors[] = [
-				'error' => $l->t('Data directory (%s) must be an absolute path', [$dataDirectory]),
+				'error' => $l->t('Your Data directory must be an absolute path'),
 				'hint' => $l->t('Check the value of "datadirectory" in your configuration')
 			];
 		}
 		if (!file_exists($dataDirectory . '/.ocdata')) {
 			$errors[] = [
-				'error' => $l->t('Data directory (%s) is invalid', [$dataDirectory]),
+				'error' => $l->t('Your Data directory  is invalid'),
 				'hint' => $l->t('Please check that the data directory contains a file' .
 					' ".ocdata" in its root.')
 			];
@@ -1248,11 +1223,6 @@ class OC_Util {
 	 * @return bool
 	 */
 	public static function isSetLocaleWorking() {
-		// setlocale test is pointless on Windows
-		if (OC_Util::runningOnWindows()) {
-			return true;
-		}
-
 		\Patchwork\Utf8\Bootup::initLocale();
 		if ('' === basename('§')) {
 			return false;
@@ -1293,15 +1263,6 @@ class OC_Util {
 	}
 
 	/**
-	 * Checks whether the server is running on Windows
-	 *
-	 * @return bool true if running on Windows, false otherwise
-	 */
-	public static function runningOnWindows() {
-		return (substr(PHP_OS, 0, 3) === "WIN");
-	}
-
-	/**
 	 * Checks whether the server is running on Mac OS X
 	 *
 	 * @return bool true if running on Mac OS X, false otherwise
@@ -1323,18 +1284,12 @@ class OC_Util {
 	 * Handles the case that there may not be a theme, then check if a "default"
 	 * theme exists and take that one
 	 *
-	 * @return string the theme
+	 * @return \OC\Theme\Theme the theme
 	 */
 	public static function getTheme() {
-		$theme = \OC::$server->getSystemConfig()->getValue("theme", '');
-
-		if ($theme === '') {
-			if (is_dir(OC::$SERVERROOT . '/themes/default')) {
-				$theme = 'default';
-			}
-		}
-
-		return $theme;
+		/** @var \OC\Theme\ThemeService $themeService */
+		$themeService = \OC::$server->query('ThemeService');
+		return $themeService->getTheme();
 	}
 
 	/**

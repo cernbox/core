@@ -1,10 +1,10 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -66,7 +66,7 @@ class SyncServiceTest extends TestCase {
 
 	public function testEnsureSystemAddressBookExists() {
 		/** @var CardDavBackend | \PHPUnit_Framework_MockObject_MockObject $backend */
-		$backend = $this->getMockBuilder('OCA\DAV\CardDAV\CardDAVBackend')->disableOriginalConstructor()->getMock();
+		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
 		$backend->expects($this->exactly(1))->method('createAddressBook');
 		$backend->expects($this->at(0))->method('getAddressBooksByUri')->willReturn(null);
 		$backend->expects($this->at(1))->method('getAddressBooksByUri')->willReturn([]);
@@ -80,7 +80,7 @@ class SyncServiceTest extends TestCase {
 
 	public function testUpdateAndDeleteUser() {
 		/** @var CardDavBackend | \PHPUnit_Framework_MockObject_MockObject $backend */
-		$backend = $this->getMockBuilder('OCA\DAV\CardDAV\CardDAVBackend')->disableOriginalConstructor()->getMock();
+		$backend = $this->getMockBuilder(CardDavBackend::class)->disableOriginalConstructor()->getMock();
 		$logger = $this->getMockBuilder('OCP\ILogger')->disableOriginalConstructor()->getMock();
 
 		$backend->expects($this->once())->method('createCard');
@@ -116,7 +116,9 @@ class SyncServiceTest extends TestCase {
 	 * @return \PHPUnit_Framework_MockObject_MockObject
 	 */
 	private function getBackendMock($createCount, $updateCount, $deleteCount) {
-		$backend = $this->getMockBuilder('OCA\DAV\CardDAV\CardDAVBackend')->disableOriginalConstructor()->getMock();
+		$backend = $this->getMockBuilder(CardDavBackend::class)
+			->disableOriginalConstructor()
+			->getMock();
 		$backend->expects($this->exactly($createCount))->method('createCard');
 		$backend->expects($this->exactly($updateCount))->method('updateCard');
 		$backend->expects($this->exactly($deleteCount))->method('deleteCard');
@@ -132,7 +134,10 @@ class SyncServiceTest extends TestCase {
 		$userManager = $this->getMockBuilder('OCP\IUserManager')->disableOriginalConstructor()->getMock();
 		$logger = $this->getMockBuilder('OCP\ILogger')->disableOriginalConstructor()->getMock();
 		/** @var SyncService | \PHPUnit_Framework_MockObject_MockObject $ss */
-		$ss = $this->getMock('OCA\DAV\CardDAV\SyncService', ['ensureSystemAddressBookExists', 'requestSyncReport', 'download'], [$backend, $userManager, $logger]);
+		$ss = $this->getMockBuilder(SyncService::class)
+			->setMethods(['ensureSystemAddressBookExists', 'requestSyncReport', 'download'])
+			->setConstructorArgs([$backend, $userManager, $logger])
+			->getMock();
 		$ss->method('requestSyncReport')->withAnyParameters()->willReturn(['response' => $response, 'token' => 'sync-token-1']);
 		$ss->method('ensureSystemAddressBookExists')->willReturn(['id' => 1]);
 		$ss->method('download')->willReturn([

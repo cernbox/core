@@ -17,7 +17,7 @@ class DummyJobList extends \OC\BackgroundJob\JobList {
 	/**
 	 * @var \OC\BackgroundJob\Job[]
 	 */
-	private $jobs = array();
+	private $jobs = [];
 
 	private $last = 0;
 
@@ -131,5 +131,8 @@ class DummyJobList extends \OC\BackgroundJob\JobList {
 	 */
 	public function setLastRun($job) {
 		$job->setLastRun(time());
+	}
+
+	public function setExecutionTime($job, $timeTaken) {
 	}
 }

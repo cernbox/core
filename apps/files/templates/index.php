@@ -1,4 +1,4 @@
-<?php /** @var $l OC_L10N */ ?>
+<?php /** @var $l \OCP\IL10N */ ?>
 <?php $_['appNavigation']->printPage(); ?>
 <div id="app-content">
 	<?php foreach ($_['appContents'] as $content) { ?>
@@ -18,6 +18,7 @@
 <?php if (!$_['isPublic']) :?>
 <input type="hidden" name="mailNotificationEnabled" id="mailNotificationEnabled" value="<?php p($_['mailNotificationEnabled']) ?>" />
 <input type="hidden" name="mailPublicNotificationEnabled" id="mailPublicNotificationEnabled" value="<?php p($_['mailPublicNotificationEnabled']) ?>" />
+<input type="hidden" name="socialShareEnabled" id="socialShareEnabled" value="<?php p($_['socialShareEnabled']) ?>" />
 <input type="hidden" name="allowShareWithLink" id="allowShareWithLink" value="<?php p($_['allowShareWithLink']) ?>" />
 <input type="hidden" name="defaultFileSorting" id="defaultFileSorting" value="<?php p($_['defaultFileSorting']) ?>" />
 <input type="hidden" name="defaultFileSortingDirection" id="defaultFileSortingDirection" value="<?php p($_['defaultFileSortingDirection']) ?>" />

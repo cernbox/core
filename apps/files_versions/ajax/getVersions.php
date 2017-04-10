@@ -5,9 +5,10 @@
  * @author Frank Karlitschek <frank@karlitschek.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Sam Tuke <mail@samtuke.com>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,10 +47,10 @@ if( $versions ) {
 		unset($version['path']);
 	}
 
-	\OCP\JSON::success(array('data' => array('versions' => $versions, 'endReached' => $endReached)));
+	\OCP\JSON::success(['data' => ['versions' => $versions, 'endReached' => $endReached]]);
 
 } else {
 
-	\OCP\JSON::success(array('data' => array('versions' => [], 'endReached' => true)));
+	\OCP\JSON::success(['data' => ['versions' => [], 'endReached' => true]]);
 
 }

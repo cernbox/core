@@ -1,11 +1,12 @@
 <?php
 /**
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -68,7 +69,7 @@ class API {
 	 * @since 5.0.0
 	 */
 	public static function register($method, $url, $action, $app, $authLevel = self::USER_AUTH,
-		$defaults = array(), $requirements = array()){
+									$defaults = [], $requirements = []){
 		\OC_API::register($method, $url, $action, $app, $authLevel, $defaults, $requirements);
 	}
 

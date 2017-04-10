@@ -2,24 +2,24 @@
 /**
  * @author Adam Williamson <awilliam@redhat.com>
  * @author Bart Visscher <bartv@thisnet.nl>
- * @author Björn Schießle <bjoern@schiessle.org>
  * @author Brice Maron <brice@bmaron.net>
  * @author Frank Karlitschek <frank@karlitschek.de>
  * @author Hendrik Leppelsack <hendrik@leppelsack.de>
  * @author Individual IT Services <info@individual-it.net>
  * @author Jakob Sack <mail@jakobsack.de>
  * @author Jan-Christoph Borchardt <hey@jancborchardt.net>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
+ * @author phisch <git@philippschaffrath.de>
  * @author Raghu Nayyar <hey@raghunayyar.com>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,6 +37,7 @@
  */
 
 use OC\TemplateLayout;
+use OC\Theme\Theme;
 
 require_once __DIR__.'/template/functions.php';
 
@@ -45,18 +46,24 @@ require_once __DIR__.'/template/functions.php';
  */
 class OC_Template extends \OC\Template\Base {
 
-	/** @var string */
-	private $renderAs; // Create a full page?
+	/**
+	 * @var string
+	 */
+	private $renderAs;
 
-	/** @var string */
-	private $path; // The path to the template
+	/**
+	 * @var array
+	 */
+	private $headers = [];
 
-	/** @var array */
-	private $headers = array(); //custom headers
+	/**
+	 * @var string
+	 */
+	protected $app;
 
-	/** @var string */
-	protected $app; // app id
-
+	/**
+	 * @var bool
+	 */
 	protected static $initTemplateEngineFirstRun = true;
 
 	/**
@@ -71,29 +78,24 @@ class OC_Template extends \OC\Template\Base {
 	 * @param bool $registerCall = true
 	 */
 	public function __construct( $app, $name, $renderAs = "", $registerCall = true ) {
-		// Read the selected theme from the config file
 		self::initTemplateEngine($renderAs);
-
-		$theme = OC_Util::getTheme();
-
 		$requestToken = (OC::$server->getSession() && $registerCall) ? \OCP\Util::callRegister() : '';
 
 		$parts = explode('/', $app); // fix translation when app is something like core/lostpassword
 		$l10n = \OC::$server->getL10N($parts[0]);
-		$themeDefaults = new OC_Defaults();
 
-		list($path, $template) = $this->findTemplate($theme, $app, $name);
+		$theme = OC_Util::getTheme();
+		$template = $this->findTemplate($theme, $app, $name);
 
-		// Set the private data
 		$this->renderAs = $renderAs;
-		$this->path = $path;
 		$this->app = $app;
 
-		parent::__construct($template, $requestToken, $l10n, $themeDefaults);
+		parent::__construct($template, $requestToken, $l10n, $theme, new OC_Defaults());
 	}
 
 	/**
 	 * @param string $renderAs
+	 * @throws Exception
 	 */
 	public static function initTemplateEngine($renderAs) {
 		if (self::$initTemplateEngineFirstRun){
@@ -144,8 +146,6 @@ class OC_Template extends \OC\Template\Base {
 			OC_Util::addScript("oc-dialogs", null, true);
 			OC_Util::addScript("jquery.ocdialog", null, true);
 			OC_Util::addStyle("jquery.ocdialog");
-			OC_Util::addScript("compatibility", null, true);
-			OC_Util::addScript("placeholders", null, true);
 			OC_Util::addScript('files/fileinfo');
 			OC_Util::addScript('files/client');
 
@@ -183,9 +183,9 @@ class OC_Template extends \OC\Template\Base {
 	 *
 	 * Will select the template file for the selected theme.
 	 * Checking all the possible locations.
-	 * @param string $theme
+	 * @param Theme $theme
 	 * @param string $app
-	 * @return string[]
+	 * @return string
 	 */
 	protected function findTemplate($theme, $app, $name) {
 		// Check if it is a app template or not.
@@ -194,10 +194,11 @@ class OC_Template extends \OC\Template\Base {
 		} else {
 			$dirs = $this->getCoreTemplateDirs($theme, OC::$SERVERROOT);
 		}
+
 		$locator = new \OC\Template\TemplateFileLocator( $dirs );
 		$template = $locator->find($name);
-		$path = $locator->getPath();
-		return array($path, $template);
+
+		return $template;
 	}
 
 	/**
@@ -208,11 +209,11 @@ class OC_Template extends \OC\Template\Base {
 	 * element will be written as empty element. So use "" to get a closing tag.
 	 */
 	public function addHeader($tag, $attributes, $text=null) {
-		$this->headers[]= array(
+		$this->headers[]= [
 			'tag' => $tag,
 			'attributes' => $attributes,
 			'text' => $text
-		);
+		];
 	}
 
 	/**
@@ -261,8 +262,9 @@ class OC_Template extends \OC\Template\Base {
 	 * Includes another template. use <?php echo $this->inc('template'); ?> to
 	 * do this.
 	 */
-	public function inc( $file, $additionalParams = null ) {
-		return $this->load($this->path.$file.'.php', $additionalParams);
+	public function inc($file, $additionalParams = null) {
+		$template = $this->findTemplate($this->theme, $this->app, $file);
+		return $this->load($template, $additionalParams);
 	}
 
 	/**
@@ -272,7 +274,7 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array $parameters Parameters for the template
 	 * @return boolean|null
 	 */
-	public static function printUserPage( $application, $name, $parameters = array() ) {
+	public static function printUserPage( $application, $name, $parameters = []) {
 		$content = new OC_Template( $application, $name, "user" );
 		foreach( $parameters as $key => $value ) {
 			$content->assign( $key, $value );
@@ -287,7 +289,7 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array $parameters Parameters for the template
 	 * @return bool
 	 */
-	public static function printAdminPage( $application, $name, $parameters = array() ) {
+	public static function printAdminPage( $application, $name, $parameters = []) {
 		$content = new OC_Template( $application, $name, "admin" );
 		foreach( $parameters as $key => $value ) {
 			$content->assign( $key, $value );
@@ -302,7 +304,7 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array|string $parameters Parameters for the template
 	 * @return bool
 	 */
-	public static function printGuestPage( $application, $name, $parameters = array() ) {
+	public static function printGuestPage( $application, $name, $parameters = []) {
 		$content = new OC_Template( $application, $name, "guest" );
 		foreach( $parameters as $key => $value ) {
 			$content->assign( $key, $value );
@@ -323,7 +325,7 @@ class OC_Template extends \OC\Template\Base {
 
 		try {
 			$content = new \OC_Template( '', 'error', 'error', false );
-			$errors = array(array('error' => $error_msg, 'hint' => $hint));
+			$errors = [['error' => $error_msg, 'hint' => $hint]];
 			$content->assign( 'errors', $errors );
 			$content->printPage();
 		} catch (\Exception $e) {
@@ -341,6 +343,8 @@ class OC_Template extends \OC\Template\Base {
 	/**
 	 * print error page using Exception details
 	 * @param Exception | Throwable $exception
+	 * @param bool $fetchPage
+	 * @return bool|string
 	 */
 	public static function printExceptionErrorPage($exception, $fetchPage = false) {
 		try {
@@ -436,5 +440,4 @@ class OC_Template extends \OC\Template\Base {
 		}
 		return $useAssetPipeline;
 	}
-
 }

@@ -1,11 +1,12 @@
 <?php
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,6 +29,7 @@ use OCP\IUserManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Helper\Table;
 
 class Report extends Command {
 	/** @var IUserManager */
@@ -48,27 +50,26 @@ class Report extends Command {
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		/** @var \Symfony\Component\Console\Helper\TableHelper $table */
-		$table = $this->getHelperSet()->get('table');
-		$table->setHeaders(array('User Report', ''));
+		$table = new Table($output);
+		$table->setHeaders(['User Report', '']);
 		$userCountArray = $this->countUsers();
 		if(!empty($userCountArray)) {
 			$total = 0;
-			$rows = array();
+			$rows = [];
 			foreach($userCountArray as $classname => $users) {
 				$total += $users;
-				$rows[] = array($classname, $users);
+				$rows[] = [$classname, $users];
 			}
 
-			$rows[] = array(' ');
-			$rows[] = array('total users', $total);
+			$rows[] = [' '];
+			$rows[] = ['total users', $total];
 		} else {
-			$rows[] = array('No backend enabled that supports user counting', '');
+			$rows[] = ['No backend enabled that supports user counting', ''];
 		}
 
 		$userDirectoryCount = $this->countUserDirectories();
-		$rows[] = array(' ');
-		$rows[] = array('user directories', $userDirectoryCount);
+		$rows[] = [' '];
+		$rows[] = ['user directories', $userDirectoryCount];
 
 		$table->setRows($rows);
 		$table->render($output);

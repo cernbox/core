@@ -8,6 +8,8 @@
 
 namespace Test;
 
+use OC\OCS\Result;
+
 class APITest extends \Test\TestCase {
 
 	// Helps build a response variable
@@ -16,7 +18,7 @@ class APITest extends \Test\TestCase {
 	 * @param string $message
 	 */
 	function buildResponse($shipped, $data, $code, $message=null) {
-		$resp = new \OC_OCS_Result($data, $code, $message);
+		$resp = new Result($data, $code, $message);
 		$resp->addHeader('KEY', 'VALUE');
 		return [
 			'shipped' => $shipped,
@@ -32,7 +34,7 @@ class APITest extends \Test\TestCase {
 	 */
 	function checkResult($result, $success) {
 		// Check response is of correct type
-		$this->assertInstanceOf('OC_OCS_Result', $result);
+		$this->assertInstanceOf(Result::class, $result);
 		// Check if it succeeded
 		/** @var $result \OC_OCS_Result */
 		$this->assertEquals($success, $result->succeeded());
@@ -151,31 +153,31 @@ class APITest extends \Test\TestCase {
 	public function testMultipleMergeResponses($shipped1, $statusCode1, $shipped2, $statusCode2, $succeeded){
 		// Tests that app responses are merged correctly
 		// Setup some data arrays
-		$data1 = array(
-			'users' => array(
-				'tom' => array(
+		$data1 = [
+			'users' => [
+				'tom' => [
 					'key' => 'value',
-				),
-				'frank' => array(
+				],
+				'frank' => [
 					'key' => 'value',
-				),
-			));
+				],
+			]];
 
-		$data2 = array(
-			'users' => array(
-				'tom' => array(
+		$data2 = [
+			'users' => [
+				'tom' => [
 					'key' => 'newvalue',
-				),
-				'jan' => array(
+				],
+				'jan' => [
 					'key' => 'value',
-				),
-			));
+				],
+			]];
 
 		// Two shipped success results
-		$result = \OC_API::mergeResponses(array(
+		$result = \OC_API::mergeResponses([
 			$this->buildResponse($shipped1, $data1, $statusCode1, "message1"),
 			$this->buildResponse($shipped2, $data2, $statusCode2, "message2"),
-		));
+		]);
 		$this->checkResult($result, $succeeded);
 		$resultData = $result->getData();
 		$resultMeta = $result->getMeta();

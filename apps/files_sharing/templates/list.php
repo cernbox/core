@@ -1,4 +1,4 @@
-<?php /** @var $l OC_L10N */ ?>
+<?php /** @var $l \OCP\IL10N */ ?>
 <div id='notification'></div>
 
 <div id="emptycontent" class="hidden"></div>
@@ -21,6 +21,9 @@
 			</th>
 			<th id="headerDate" class="hidden column-mtime">
 				<a id="modified" class="columntitle" data-sort="mtime"><span><?php p($l->t( 'Share time' )); ?></span><span class="sort-indicator"></span></a>
+			</th>
+			<th class="hidden column-expiration">
+				<a class="columntitle"><span><?php p($l->t( 'Expiration date' )); ?></span></a>
 			</th>
 		</tr>
 	</thead>

@@ -13,7 +13,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -62,6 +62,8 @@ class DAV extends Common {
 	/** @var string */
 	protected $user;
 	/** @var string */
+	protected $authType;
+	/** @var string */
 	protected $host;
 	/** @var bool */
 	protected $secure;
@@ -95,6 +97,9 @@ class DAV extends Common {
 			$this->host = $host;
 			$this->user = $params['user'];
 			$this->password = $params['password'];
+			if (isset($params['authType'])) {
+				$this->authType = $params['authType'];
+			}
 			if (isset($params['secure'])) {
 				if (is_string($params['secure'])) {
 					$this->secure = ($params['secure'] === 'true');
@@ -133,11 +138,14 @@ class DAV extends Common {
 		}
 		$this->ready = true;
 
-		$settings = array(
+		$settings = [
 			'baseUri' => $this->createBaseUri(),
 			'userName' => $this->user,
 			'password' => $this->password,
-		);
+		];
+		if (isset($this->authType)) {
+			$settings['authType'] = $this->authType;
+		}
 
 		$proxy = \OC::$server->getConfig()->getSystemValue('proxy', '');
 		if($proxy !== '') {
@@ -203,7 +211,7 @@ class DAV extends Common {
 		try {
 			$response = $this->client->propfind(
 				$this->encodePath($path),
-				array(),
+				[],
 				1
 			);
 			if ($response === false) {
@@ -253,7 +261,7 @@ class DAV extends Common {
 			try {
 				$response = $this->client->propfind(
 					$this->encodePath($path),
-					array(
+					[
 						'{DAV:}getlastmodified',
 						'{DAV:}getcontentlength',
 						'{DAV:}getcontenttype',
@@ -261,7 +269,7 @@ class DAV extends Common {
 						'{http://open-collaboration-services.org/ns}share-permissions',
 						'{DAV:}resourcetype',
 						'{DAV:}getetag',
-					)
+					]
 				);
 				$this->statCache->set($path, $response);
 			} catch (ClientHttpException $e) {
@@ -394,7 +402,7 @@ class DAV extends Common {
 					}
 					$tmpFile = $tempManager->getTemporaryFile($ext);
 				}
-				Close::registerCallback($tmpFile, array($this, 'writeBack'));
+				Close::registerCallback($tmpFile, [$this, 'writeBack']);
 				self::$tempFiles[$tmpFile] = $path;
 				return fopen('close://' . $tmpFile, $mode);
 		}
@@ -580,7 +588,7 @@ class DAV extends Common {
 		} catch (\Exception $e) {
 			$this->convertException($e, $path);
 		}
-		return array();
+		return [];
 	}
 
 	/** {@inheritdoc} */

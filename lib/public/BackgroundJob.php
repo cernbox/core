@@ -3,13 +3,14 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Felix Moeller <mail@felixmoeller.de>
  * @author Jakob Sack <mail@jakobsack.de>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
+ * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -73,7 +74,7 @@ class BackgroundJob {
 	 * @since 5.0.0
 	 */
 	public static function setExecutionType($type) {
-		if( !in_array( $type, array('none', 'ajax', 'webcron', 'cron'))) {
+		if( !in_array( $type, ['none', 'ajax', 'webcron', 'cron'])) {
 			return false;
 		}
 		\OC::$server->getConfig()->setAppValue('core', 'backgroundjobs_mode', $type);
@@ -100,7 +101,7 @@ class BackgroundJob {
 	 */
 	public static function addRegularTask($klass, $method) {
 		if (!\OCP\Util::needUpgrade()) {
-			self::registerJob('OC\BackgroundJob\Legacy\RegularJob', array($klass, $method));
+			self::registerJob('OC\BackgroundJob\Legacy\RegularJob', [$klass, $method]);
 			return true;
 		}
 	}
@@ -161,7 +162,7 @@ class BackgroundJob {
 	 * @since 4.5.0
 	 */
 	public static function addQueuedTask($app, $class, $method, $parameters) {
-		self::registerJob('OC\BackgroundJob\Legacy\QueuedJob', array('app' => $app, 'klass' => $class, 'method' => $method, 'parameters' => $parameters));
+		self::registerJob('OC\BackgroundJob\Legacy\QueuedJob', ['app' => $app, 'klass' => $class, 'method' => $method, 'parameters' => $parameters]);
 		return true;
 	}
 

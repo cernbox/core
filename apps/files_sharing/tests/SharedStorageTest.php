@@ -1,14 +1,15 @@
 <?php
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
+ * @author Markus Goetz <markus@woboq.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,6 +28,7 @@
 
 namespace OCA\Files_Sharing\Tests;
 
+use OCA\Files_Sharing\SharedStorage;
 use OCP\Share\IShare;
 use OC\Files\View;
 use OCP\Files\NotFoundException;
@@ -404,7 +406,7 @@ class SharedStorageTest extends TestCase {
 
 		$mountConfigManager = \OC::$server->getMountProviderCollection();
 		$mounts = $mountConfigManager->getMountsForUser(\OC::$server->getUserManager()->get(self::TEST_FILES_SHARING_API_USER3));
-		array_walk($mounts, array(\OC\Files\Filesystem::getMountManager(), 'addMount'));
+		array_walk($mounts, [\OC\Files\Filesystem::getMountManager(), 'addMount']);
 
 		$this->assertTrue($rootView->file_exists('/' . self::TEST_FILES_SHARING_API_USER3 . '/files/' . $this->filename));
 
@@ -441,7 +443,7 @@ class SharedStorageTest extends TestCase {
 		list($sharedStorage,) = $view->resolvePath($this->folder);
 		$this->assertTrue($sharedStorage->instanceOfStorage('OCA\Files_Sharing\ISharedStorage'));
 
-		$sourceStorage = new \OC\Files\Storage\Temporary(array());
+		$sourceStorage = new \OC\Files\Storage\Temporary([]);
 		$sourceStorage->file_put_contents('foo.txt', 'asd');
 
 		$sharedStorage->copyFromStorage($sourceStorage, 'foo.txt', 'bar.txt');
@@ -474,7 +476,7 @@ class SharedStorageTest extends TestCase {
 		list($sharedStorage,) = $view->resolvePath($this->folder);
 		$this->assertTrue($sharedStorage->instanceOfStorage('OCA\Files_Sharing\ISharedStorage'));
 
-		$sourceStorage = new \OC\Files\Storage\Temporary(array());
+		$sourceStorage = new \OC\Files\Storage\Temporary([]);
 		$sourceStorage->file_put_contents('foo.txt', 'asd');
 
 		$sharedStorage->moveFromStorage($sourceStorage, 'foo.txt', 'bar.txt');
@@ -526,7 +528,7 @@ class SharedStorageTest extends TestCase {
 
 		$mount = $view2->getMount('/foo');
 		$this->assertInstanceOf('\OCA\Files_Sharing\SharedMount', $mount);
-		/** @var \OC\Files\Storage\Shared $storage */
+		/** @var \OCA\Files_Sharing\SharedStorage $storage */
 		$storage = $mount->getStorage();
 
 		$this->assertEquals(self::TEST_FILES_SHARING_API_USER1, $storage->getOwner(''));
@@ -535,11 +537,43 @@ class SharedStorageTest extends TestCase {
 		$this->shareManager->deleteShare($share2);
 	}
 
+
+	public function testLongLock() {
+		// https://github.com/owncloud/core/issues/25376
+		$fn = str_repeat("x", 250); // maximum name length in oc_filecache
+		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
+		$view1 = new \OC\Files\View('/' . self::TEST_FILES_SHARING_API_USER1 . '/files');
+		$view1->mkdir($fn);
+		$view1->mkdir($fn . '/' . 'vincent');
+		$view1->file_put_contents($fn . '/vincent/' . $fn, "dummy file data\n");
+
+		$share = $this->share(
+			\OCP\Share::SHARE_TYPE_USER,
+			$fn,
+			self::TEST_FILES_SHARING_API_USER1,
+			self::TEST_FILES_SHARING_API_USER2,
+			\OCP\Constants::PERMISSION_ALL
+		);
+		$this->assertTrue($share !== false && $share !== null);
+
+		self::loginHelper(self::TEST_FILES_SHARING_API_USER2);
+		$user2View = new \OC\Files\View('/' . self::TEST_FILES_SHARING_API_USER2 . '/files');
+		$this->assertTrue($user2View->file_exists($fn . '/vincent/' . $fn));
+
+		list($sharedStorage, $bla) = $user2View->resolvePath($fn . '/vincent/' . $fn);
+		$cache = $sharedStorage->getCache();
+		$scanner = $sharedStorage->getScanner();
+		$scanner->scan('');
+		$this->assertTrue($cache->inCache('/vincent'));
+		$this->assertTrue($cache->inCache('/vincent/' . $fn));
+		$this->assertEquals(16, $cache->get('/vincent/' . $fn)['size']);
+	}
+
 	public function testInitWithNonExistingUser() {
-		$share = $this->getMock('\OCP\Share\IShare');
+		$share = $this->createMock(IShare::class);
 		$share->method('getShareOwner')->willReturn('unexist');
-		$ownerView = $this->getMock('\OC\Files\View');
-		$storage = new \OC\Files\Storage\Shared([
+		$ownerView = $this->createMock(View::class);
+		$storage = new SharedStorage([
 			'ownerView' => $ownerView,
 			'superShare' => $share,
 			'groupedShares' => [$share],
@@ -547,16 +581,16 @@ class SharedStorageTest extends TestCase {
 		]);
 
 		// trigger init
-		$this->assertInstanceOf('\OC\Files\Cache\FailedCache', $storage->getCache());
-		$this->assertInstanceOf('\OC\Files\Storage\FailedStorage', $storage->getSourceStorage());
+		$this->assertInstanceOf(\OC\Files\Cache\FailedCache::class, $storage->getCache());
+		$this->assertInstanceOf(\OC\Files\Storage\FailedStorage::class, $storage->getSourceStorage());
 	}
 
 	public function testInitWithNotFoundSource() {
-		$share = $this->getMock('\OCP\Share\IShare');
+		$share = $this->createMock(IShare::class);
 		$share->method('getShareOwner')->willReturn(self::TEST_FILES_SHARING_API_USER1);
-		$ownerView = $this->getMock('\OC\Files\View');
+		$ownerView = $this->createMock(View::class);
 		$ownerView->method('getPath')->will($this->throwException(new NotFoundException()));
-		$storage = new \OC\Files\Storage\Shared([
+		$storage = new SharedStorage([
 			'ownerView' => $ownerView,
 			'superShare' => $share,
 			'groupedShares' => [$share],
@@ -564,7 +598,7 @@ class SharedStorageTest extends TestCase {
 		]);
 
 		// trigger init
-		$this->assertInstanceOf('\OC\Files\Cache\FailedCache', $storage->getCache());
-		$this->assertInstanceOf('\OC\Files\Storage\FailedStorage', $storage->getSourceStorage());
+		$this->assertInstanceOf(\OC\Files\Cache\FailedCache::class, $storage->getCache());
+		$this->assertInstanceOf(\OC\Files\Storage\FailedStorage::class, $storage->getSourceStorage());
 	}
 }

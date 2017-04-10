@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,9 +38,6 @@ class LocalHomeMountProvider implements IHomeMountProvider {
 	 */
 	public function getHomeMountForUser(IUser $user, IStorageFactory $loader) {
 		$arguments = ['user' => $user];
-		if (\OC\Files\Cache\Storage::exists('local::' . $user->getHome() . '/')) {
-			$arguments['legacy'] = true;
-		}
 		return new MountPoint('\OC\Files\Storage\Home', '/' . $user->getUID(), $arguments, $loader);
 	}
 }

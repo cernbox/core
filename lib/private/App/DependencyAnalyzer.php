@@ -1,13 +1,13 @@
 <?php
 /**
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
- * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Joas Schilling <coding@schilljs.com>
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -170,7 +170,7 @@ class DependencyAnalyzer {
 			return $missing;
 		}
 		if (!is_array($supportedDatabases)) {
-			$supportedDatabases = array($supportedDatabases);
+			$supportedDatabases = [$supportedDatabases];
 		}
 		$supportedDatabases = array_map(function ($db) {
 			return $this->getValue($db);
@@ -194,7 +194,10 @@ class DependencyAnalyzer {
 
 		$commands = $dependencies['command'];
 		if (!is_array($commands)) {
-			$commands = array($commands);
+			$commands = [$commands];
+		}
+		if (isset($commands['@value'])) {
+			$commands = [$commands];
 		}
 		$os = $this->platform->getOS();
 		foreach ($commands as $command) {
@@ -221,7 +224,10 @@ class DependencyAnalyzer {
 
 		$libs = $dependencies['lib'];
 		if (!is_array($libs)) {
-			$libs = array($libs);
+			$libs = [$libs];
+		}
+		if (isset($libs['@value'])) {
+			$libs = [$libs];
 		}
 		if (isset($libs['@value'])) {
 			$libs = [$libs];
@@ -239,14 +245,14 @@ class DependencyAnalyzer {
 					$minVersion = $lib['@attributes']['min-version'];
 					if ($this->compareSmaller($libVersion, $minVersion)) {
 						$missing[] = (string)$this->l->t('Library %s with a version higher than %s is required - available version %s.',
-							array($libName, $minVersion, $libVersion));
+							[$libName, $minVersion, $libVersion]);
 					}
 				}
 				if (isset($lib['@attributes']['max-version'])) {
 					$maxVersion = $lib['@attributes']['max-version'];
 					if ($this->compareBigger($libVersion, $maxVersion)) {
 						$missing[] = (string)$this->l->t('Library %s with a version lower than %s is required - available version %s.',
-							array($libName, $maxVersion, $libVersion));
+							[$libName, $maxVersion, $libVersion]);
 					}
 				}
 			}
@@ -273,7 +279,7 @@ class DependencyAnalyzer {
 				return $this->getValue($os);
 			}, $oss);
 		} else {
-			$oss = array($oss);
+			$oss = [$oss];
 		}
 		$currentOS = $this->platform->getOS();
 		if (!in_array($currentOS, $oss)) {

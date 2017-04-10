@@ -1,9 +1,10 @@
 <?php
 /**
+ * @author Sergio Bertolín <sbertolin@solidgear.es>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2017, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -92,7 +93,7 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 		$this->tree = $tree;
 		$this->tagManager = $tagManager;
 		$this->tagger = null;
-		$this->cachedTags = array();
+		$this->cachedTags = [];
 	}
 
 	/**
@@ -112,8 +113,8 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 		$server->xml->elementMap[self::TAGS_PROPERTYNAME] = 'OCA\\DAV\\Connector\\Sabre\\TagList';
 
 		$this->server = $server;
-		$this->server->on('propFind', array($this, 'handleGetProperties'));
-		$this->server->on('propPatch', array($this, 'handleUpdateProperties'));
+		$this->server->on('propFind', [$this, 'handleGetProperties']);
+		$this->server->on('propPatch', [$this, 'handleUpdateProperties']);
 	}
 
 	/**
@@ -145,7 +146,7 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 				unset($tags[$favPos]);
 			}
 		}
-		return array($tags, $isFav);
+		return [$tags, $isFav];
 	}
 
 	/**
@@ -158,10 +159,10 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 		if (isset($this->cachedTags[$fileId])) {
 			return $this->cachedTags[$fileId];
 		} else {
-			$tags = $this->getTagger()->getTagsForObjects(array($fileId));
+			$tags = $this->getTagger()->getTagsForObjects([$fileId]);
 			if ($tags !== false) {
 				if (empty($tags)) {
-					return array();
+					return [];
 				}
 				return current($tags);
 			}
@@ -226,7 +227,7 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 			$tags = $this->getTagger()->getTagsForObjects($fileIds);
 			if ($tags === false) {
 				// the tags API returns false on error...
-				$tags = array();
+				$tags = [];
 			}
 
 			$this->cachedTags = $this->cachedTags + $tags;
@@ -249,7 +250,11 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 			if (is_null($isFav)) {
 				list(, $isFav) = $this->getTagsAndFav($node->getId());
 			}
-			return $isFav;
+			if ($isFav) {
+				return 1;
+			} else {
+				return 0;
+			}
 		});
 	}
 
@@ -262,20 +267,17 @@ class TagsPlugin extends \Sabre\DAV\ServerPlugin
 	 * @return void
 	 */
 	public function handleUpdateProperties($path, PropPatch $propPatch) {
-		$propPatch->handle(self::TAGS_PROPERTYNAME, function($tagList) use ($path) {
-			$node = $this->tree->getNodeForPath($path);
-			if (is_null($node)) {
-				return 404;
-			}
+		$node = $this->tree->getNodeForPath($path);
+		if (!($node instanceof \OCA\DAV\Connector\Sabre\Node)) {
+			return;
+		}
+
+		$propPatch->handle(self::TAGS_PROPERTYNAME, function($tagList) use ($node) {
 			$this->updateTags($node->getId(), $tagList->getTags());
 			return true;
 		});
 
-		$propPatch->handle(self::FAVORITE_PROPERTYNAME, function($favState) use ($path) {
-			$node = $this->tree->getNodeForPath($path);
-			if (is_null($node)) {
-				return 404;
-			}
+		$propPatch->handle(self::FAVORITE_PROPERTYNAME, function($favState) use ($node) {
 			if ((int)$favState === 1 || $favState === 'true') {
 				$this->getTagger()->tagAs($node->getId(), self::TAG_FAVORITE);
 			} else {

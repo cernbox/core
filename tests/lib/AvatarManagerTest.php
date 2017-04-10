@@ -22,50 +22,50 @@
 namespace Test;
 
 use OC\AvatarManager;
-use Test\Traits\UserTrait;
+use OCP\Files\Folder;
+use OCP\Files\IRootFolder;
+use OCP\IL10N;
+use OCP\ILogger;
+use OCP\IUser;
+use OCP\IUserManager;
 use Test\Traits\MountProviderTrait;
 
 /**
  * Class AvatarManagerTest
- * @group DB
  */
-class AvatarManagerTest extends \Test\TestCase {
+class AvatarManagerTest extends TestCase {
 	use MountProviderTrait;
 
-	/** @var AvatarManager */
+	/** @var AvatarManager | \PHPUnit_Framework_MockObject_MockObject */
 	private $avatarManager;
 
 	/** @var \OC\Files\Storage\Temporary */
 	private $storage;
 
-	/** @var \OCP\IUser */
-	private $user;
+	/** @var IUserManager | \PHPUnit_Framework_MockObject_MockObject */
+	private $userManager;
+
+	/** @var IRootFolder | \PHPUnit_Framework_MockObject_MockObject */
+	private $rootFolder;
 
 	public function setUp() {
 		parent::setUp();
 
-		\OC_User::clearBackends();
-		// needed for loginName2UserName mapping
-		$userBackend = $this->getMock('\OC\User\Database');
-		\OC::$server->getUserManager()->registerBackend($userBackend);
-
-		$userBackend->expects($this->any())
-			->method('userExists')
-			->will($this->returnValueMap([
-				['valid-user', true],
-				['vaLid-USER', true],
-			]));
-		$userBackend->expects($this->any())
-			->method('loginName2UserName')
-			->will($this->returnValueMap([
-				['valid-user', 'valid-user'],
-				['vaLid-USER', 'valid-user'],
-			]));
+		$this->userManager = $this->createMock(IUserManager::class);
+		$this->rootFolder = $this->createMock(IRootFolder::class);
+		$l = $this->createMock(IL10N::class);
+		$logger = $this->createMock(ILogger::class);
 
 		$this->storage = new \OC\Files\Storage\Temporary();
 		$this->registerMount('valid-user', $this->storage, '/valid-user/');
 
-		$this->avatarManager = \OC::$server->getAvatarManager();
+		$this->avatarManager = $this->getMockBuilder(AvatarManager::class)
+			->setMethods(['getAvatarFolder'])
+			->setConstructorArgs([$this->userManager,
+				$this->rootFolder,
+				$l,
+				$logger])
+			->getMock();
 	}
 
 	public function tearDown() {
@@ -81,17 +81,54 @@ class AvatarManagerTest extends \Test\TestCase {
 	}
 
 	public function testGetAvatarValidUser() {
+		$user = $this->createMock(IUser::class);
+		$this->userManager->expects($this->once())->method('get')->willReturn($user);
+
+		$folder = $this->createMock(Folder::class);
+		$this->avatarManager->expects($this->once())->method('getAvatarFolder')->willReturn($folder);
+
 		$avatar = $this->avatarManager->getAvatar('valid-user');
 
 		$this->assertInstanceOf('\OCP\IAvatar', $avatar);
 		$this->assertFalse($this->storage->file_exists('files'));
 	}
 
-	public function testGetAvatarValidUserDifferentCasing() {
-		$avatar = $this->avatarManager->getAvatar('vaLid-USER');
+	/**
+	 * @dataProvider providesUserIds
+	 */
+	public function testPathBuilding($expectedPath, $userId) {
+		$path = $this->invokePrivate($this->avatarManager, 'buildAvatarPath', [$userId]);
+		$this->assertEquals($expectedPath, implode('/', $path));
+	}
 
+	public function providesUserIds() {
+		return [
+			['21/23/2f297a57a5a743894a0e4a801fc3', 'admin'],
+			['c4/ca/4238a0b923820dcc509a6f75849b', '1'],
+			['f9/5b/70fdc3088560732a5ac135644506', '{'],
+			['d4/1d/8cd98f00b204e9800998ecf8427e', ''],
+		];
+	}
+
+	public function testGetAvatarValidUserDifferentCasing() {
+		$user = $this->createMock(IUser::class);
+		$this->userManager->expects($this->once())
+			->method('get')
+			->with('vaLid-USER')
+			->willReturn($user);
+
+		$user->expects($this->once())
+			->method('getUID')
+			->willReturn('valid-user');
+
+		$folder = $this->createMock(Folder::class);
+		$this->avatarManager->expects($this->once())
+			->method('getAvatarFolder')
+			->with($user)
+			->willReturn($folder);
+
+		$avatar = $this->avatarManager->getAvatar('vaLid-USER');
 		$this->assertInstanceOf('\OCP\IAvatar', $avatar);
 		$this->assertFalse($this->storage->file_exists('files'));
 	}
-
 }
