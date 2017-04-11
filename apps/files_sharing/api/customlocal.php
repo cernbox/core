@@ -24,6 +24,11 @@ class CustomLocal
 				$_SESSION['DESKTOP_MAPPING_PREFIX'] = '/home';
 				$path = substr($path, 5);
 			}
+			else if(strpos($path, 'home') === 0)
+			{
+				$_SESSION['DESKTOP_MAPPING_PREFIX'] = 'home';
+				$path = substr($path, 4);
+			}
 			else if(strpos($path, '/eos') === 0)
 			{
 				$split = explode('/', $path);
