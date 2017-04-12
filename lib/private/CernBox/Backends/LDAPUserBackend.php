@@ -12,10 +12,11 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 	private $bindUsername = 'test';
 	private $bindPassword = 'test';
 	private $baseDN;
+	private $isVersion3 = false;
 
 	private $logger;
 
-	public function __construct($hostname, $port, $bindUsername, $bindPassword, $baseDN) {
+	public function __construct($hostname, $port, $bindUsername, $bindPassword, $baseDN, $isVersion3) {
 		$this->logger = \OC::$server->getLogger();
 
 		if($hostname) {
@@ -33,6 +34,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		if($baseDN) {
 			$this->baseDN = $baseDN;
 		}
+		$this->isVersion3 = $isVersion3;
 
 		$this->logger->info(sprintf("hostname=%s port=%d bindUsername=%s bindPassword=%s baseDN=%s",
 			$this->hostname,
@@ -58,6 +60,9 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		if (!$ds) {
 			throw new \Exception("ldap connection does not work");
 		}
+	        if($this->isVersion3) {
+			ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
+		}	
 		$bindOK = ldap_bind($ds, $this->bindUsername, $this->bindPassword);
 		if (!$bindOK) {
 			throw new \Exception("ldap binding does not work");
