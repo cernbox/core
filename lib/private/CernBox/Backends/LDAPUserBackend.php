@@ -22,9 +22,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		if($hostname) {
 			$this->hostname = $hostname;
 		}
-		if($port) {
-			$this->port = $port;
-		}
+		if($port) { $this->port = $port; }
 		if($bindUsername) {
 			$this->bindUsername = $bindUsername;
 		}
@@ -44,14 +42,17 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 			$this->baseDN));
 
 		// add the group backend
-		\OC::$server->getGroupManager()->clearBackends();
+		#\OC::$server->getGroupManager()->clearBackends();
 		\OC::$server->getGroupManager()->addBackend(
+			/*
 			new LDAPGroupBackend(
 				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.hostname'),
 				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.port'),
 				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.dn'),
 				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.cboxgroupd.secret'),
 				\OC::$server->getConfig()->getSystemValue('ldap_group_backend.cboxgroupd.baseurl'))
+			*/
+			new GroupBackend()
 		);
 	}
 
@@ -84,9 +85,9 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 
 	private function getUser($uid) {
 		$ldapLink = $this->getLink();
-		$search =  sprintf("(&(objectClass=user)(samaccountname=%s))", $uid);
+		$search =  sprintf("(&(objectClass=account)(uid=%s))", $uid);
 		$this->logger->info("filter=$search");
-		$sr = ldap_search($ldapLink, $this->baseDN,  $search, ["cn", "mail", "displayName"]);
+		$sr = ldap_search($ldapLink, $this->baseDN,  $search, ["cn", "mail", "gecos"]);
 		if($sr === null) {
 			$error = ldap_error($ldapLink);
 			$this->logger->error($error);
@@ -102,7 +103,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		$user = array(
 			"dn" => $info[0]["dn"],
 			"uid" => $info[0]["cn"][0],
-			"display_name" => $info[0]["displayname"][0], // TODO(labkode) get displayName attr
+			"display_name" => $info[0]["gecos"][0], // TODO(labkode) get gecos attr
 			"email" => $info[0]["mail"][0],
 		);
 		return $user;
@@ -119,7 +120,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 
 		$this->logger->info("search=$search limit=$limit");
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=user)(samaccountname=%s*))", $search), ["cn", "mail", "displayName"]);
+		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=account)(uid=%s*))", $search), ["cn", "mail", "gecos"]);
 		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 
 		$info = ldap_get_entries($ldapLink, $sr);
@@ -128,7 +129,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 			$this->logger->info(sprintf("dn=%s", $info[$i]["dn"]));
 			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
 			$this->logger->info(sprintf("mail=%s", $info[$i]["mail"][0]));
-			$this->logger->info(sprintf("displayName=%s", $info[$i]["displayName"][0]));
+			$this->logger->info(sprintf("gecos=%s", $info[$i]["gecos"][0]));
 			$uids[] = $info[$i]["cn"][0];
 		}
 		return $uids;
@@ -162,8 +163,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		}
 
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=user)(displayName=%s*))", $search), ["cn", "mail", "displayName"]);
-		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
+		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=account)(ge=%s*))", $search), ["cn", "mail", "gecos"]); $this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 
 		$info = ldap_get_entries($ldapLink, $sr);
 
@@ -171,8 +171,8 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 			$this->logger->info(sprintf("dn=%s", $info[$i]["dn"]));
 			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
 			$this->logger->info(sprintf("email=%s", $info[$i]["email"][0]));
-			$this->logger->info(sprintf("displayName=%s", $info[$i]["displayName"][0]));
-			$map[$info[$i]["cn"][0]] = $info[$i]["displayName"][0];
+			$this->logger->info(sprintf("gecos=%s", $info[$i]["gecos"][0]));
+			$map[$info[$i]["cn"][0]] = $info[$i]["gecos"][0];
 		}
 
 		return $map;
