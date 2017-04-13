@@ -42,6 +42,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		$this->searchAttrs = $this->config->getSystemValue("cbox.ldap.user.searchattrs", ["uid", "mail", "gecos"]);
 		$this->displayNameAttr = $this->config->getSystemValue("cbox.ldap.user.displaynameattr", "gecos");
 		$this->uidAttr = $this->config->getSystemValue("cbox.ldap.user.uidattr", "uid");
+		$this->mailAttr = $this->config->getSystemValue("cbox.ldap.user.mailattr", "mail");
 
 
 		$this->logger->info(sprintf("hostname=%s port=%d bindUsername=%s bindPassword=%s baseDN=%s",
@@ -89,7 +90,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		for ($i = 0; $i < $info["count"]; $i++) {
 			$this->logger->info(sprintf("dn=%s", $info[$i]["dn"]));
 			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
-			$this->logger->info(sprintf("mail=%s", $info[$i]["mail"][0]));
+			$this->logger->info(sprintf("mail=%s", $info[$i][$this->mailAttr][0]));
 			$this->logger->info(sprintf("display_name=%s", $info[$i][$this->displayNameAttr][0]));
 			$uids[] = $info[$i]["cn"][0];
 		}
@@ -141,7 +142,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 			"dn" => $info[0]["dn"],
 			"uid" => $info[0]["cn"][0],
 			"display_name" => $info[0][$this->displayNameAttr][0], // TODO(labkode) get gecos attr
-			"email" => $info[0]["mail"][0],
+			"email" => $info[0][$this->mailAttr][0],
 		);
 		return $user;
 	}
@@ -173,7 +174,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		for ($i = 0; $i < $info["count"]; $i++) {
 			$this->logger->info(sprintf("dn=%s", $info[$i]["dn"]));
 			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
-			$this->logger->info(sprintf("email=%s", $info[$i]["email"][0]));
+			$this->logger->info(sprintf("email=%s", $info[$i][$this->mailAttr][0]));
 			$this->logger->info(sprintf("display_name=%s", $info[$i][$this->displayNameAttr][0]));
 			$map[$info[$i]["cn"][0]] = $info[$i][$this->displayNameAttr][0];
 		}
