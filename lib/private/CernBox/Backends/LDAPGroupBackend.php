@@ -127,8 +127,8 @@ class LDAPGroupBackend implements GroupInterface {
 		$ldapLink = $this->getLink();
 		$search = sprintf("(&(objectClass=group)(objectClass=top)(cn=%s))", $gid);
 		$this->logger->info("filter=$search");
-		$sr = ldap_search($ldapLink, $this->baseDN, $search, ["cn", "mail", "displayName"]);
-		if ($sr === null) {
+		$sr = ldap_search($ldapLink, $this->baseDN, $search, ["cn"]);
+		if ($sr === false) {
 			$error = ldap_error($ldapLink);
 			$this->logger->error($error);
 			throw new Exception($error);
