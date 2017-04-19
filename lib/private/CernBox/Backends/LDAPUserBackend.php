@@ -52,8 +52,10 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 			'xxxx',
 			$this->baseDN));
 
-		// add the group backend
+		// We don't want to use any backend coming from ownCloud
+		\OC::$server->getUserManager()->clearBackends();
 		\OC::$server->getGroupManager()->clearBackends();
+		
 		\OC::$server->getGroupManager()->addBackend(new $this->groupBackend());
 	}
 

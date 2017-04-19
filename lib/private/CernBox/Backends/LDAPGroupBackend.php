@@ -9,38 +9,67 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\GroupInterface;
 
 class LDAPGroupBackend implements GroupInterface {
+private $hostname;
 
-	private $hostname = 'localhost';
-	private $port = 389;
+	private $config;
+	private $port;
+	private $bindUsername;
+	private $bindPassword;
 	private $baseDN;
+	private $isVersion3;
+	private $groupBackend;
+	private $matchFilter;
+	private $searchFilter;
+	private $searchAttrs;
+	private $displayNameAttr;
+	private $uidAttr;
+	private $cboxgroupdBaseURL;
+	private $cboxgroupdSecret;
 
-	private $cboxgroupdBaseURL = 'http://localhost:2002/api/v1/membership';
-	private $cboxgroupdSecret = 'change me !!!';
-
-	public function __construct($hostname, $port, $baseDN, $cboxgroupdSecret, $cboxgroupdBaseURL) {
+	public function __construct() {
 		$this->logger = \OC::$server->getLogger();
+		$this->config = \OC::$server->getConfig();
 
-		if ($hostname) {
-			$this->hostname = $hostname;
-		}
-		if ($port) {
-			$this->port = $port;
-		}
-		if ($baseDN) {
-			$this->baseDN = $baseDN;
-		}
-		if($cboxgroupdSecret) {
-			$this->cboxgroupdSecret = $cboxgroupdSecret;
-		}
-		if($cboxgroupdBaseURL) {
-			$this->cboxgroupdBaseURL = $cboxgroupdBaseURL;
-		}
+		$this->hostname = $this->config->getSystemValue("cbox.ldap.group.hostname", "localhost");
+		$this->port = $this->config->getSystemValue("cbox.ldap.group.port", 389);
+		$this->bindUsername = $this->config->getSystemValue("cbox.ldap.group.bindusername", "admin");
+		$this->bindPassword = $this->config->getSystemValue("cbox.ldap.group.bindpassword", "admin");
+		$this->baseDN = $this->config->getSystemValue("cbox.ldap.group.basedn", "dc=example,dc=org");
+		$this->isVersion3 = $this->config->getSystemValue("cbox.ldap.group.version3", false);
+		$this->matchFilter = $this->config->getSystemValue("cbox.ldap.group.matchfilter", "(&(objectClass=group)(objectClass=top)(cn=%s))");
+		$this->searchFilter = $this->config->getSystemValue("cbox.ldap.group.searchfilter", "(&(objectClass=group)(objectClass=top)(cn=%s*))");
+		$this->searchAttrs = $this->config->getSystemValue("cbox.ldap.group.searchattrs", ["uid", "mail", "gecos"]);
+		$this->displayNameAttr = $this->config->getSystemValue("cbox.ldap.group.displaynameattr", "gecos");
+		$this->uidAttr = $this->config->getSystemValue("cbox.ldap.group.uidattr", "uid");
+		$this->mailAttr = $this->config->getSystemValue("cbox.ldap.group.mailattr", "mail");
+		$this->cboxgroupdSecret = $this->config->getSystemValue("cbox.ldap.group.cboxgroupd.secret", "change me !!!");
+		$this->cboxgroupdBaseURL = $this->config->getSystemValue("cbox.ldap.group.cboxgroupd.baseurl", "http://localhost:2002/api/v1/membership");
+
+		$this->logger->info(sprintf("hostname=%s port=%d bindUsername=%s baseDN=%s matchFilter=%s searchFilter=%s searchAttrs=%s displayNameAttr=%s uidAttr=%s",
+			$this->hostname,
+			$this->port,
+			$this->bindUsername,
+			$this->baseDN,
+			$this->matchFilter,
+			$this->searchFilter,
+			implode(',', $this->searchAttrs),
+			$this->displayNameAttr,
+			$this->uidAttr));
 	}
 
 	private function getLink() {
 		$ds = ldap_connect($this->hostname, $this->port);
 		if (!$ds) {
 			throw new \Exception("ldap connection does not work");
+		}
+		if ($this->isVersion3) {
+			ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
+		}
+		if(!empty($this->username) && !empty($this->bindPassword)) {
+			$bindOK = ldap_bind($ds, $this->bindUsername, $this->bindPassword);
+			if (!$bindOK) {
+				throw new \Exception("ldap binding does not work");
+			}
 		}
 		return $ds;
 	}
@@ -83,17 +112,16 @@ class LDAPGroupBackend implements GroupInterface {
 
 		$this->logger->info("search=$search limit=$limit");
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=group)(objectClass=top)(cn=%s*))", $search), ["cn", "mail", "displayName"]);
+		$sr = ldap_search($ldapLink, $this->baseDN, sprintf($this->searchFilter, $search), $this->searchAttrs);
 		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 
 		$info = ldap_get_entries($ldapLink, $sr);
 
 		for ($i = 0; $i < $info["count"]; $i++) {
 			$this->logger->info(sprintf("dn=%s", $info[$i]["dn"]));
-			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
-			$this->logger->info(sprintf("mail=%s", $info[$i]["mail"][0]));
-			$this->logger->info(sprintf("displayName=%s", $info[$i]["displayName"][0]));
-			$gids[] = $info[$i]["cn"][0];
+			$this->logger->info(sprintf("cn=%s", $info[$i][$this->uidAttr][0]));
+			$this->logger->info(sprintf("displayName=%s", $info[$i][$this->displayNameAttr][0]));
+			$gids[] = $info[$i][$this->uidAttr][0];
 		}
 		return $gids;
 	}
@@ -125,15 +153,15 @@ class LDAPGroupBackend implements GroupInterface {
 
 	private function getGroup($gid) {
 		$ldapLink = $this->getLink();
-		$search = sprintf("(&(objectClass=group)(objectClass=top)(cn=%s))", $gid);
+		$search = sprintf($this->matchFilter, $gid);
 		$this->logger->info("filter=$search");
-		$sr = ldap_search($ldapLink, $this->baseDN, $search, ["cn"]);
+		$sr = ldap_search($ldapLink, $this->baseDN, $search, $this->searchAttrs);
 		if ($sr === false) {
 			$error = ldap_error($ldapLink);
 			$this->logger->error($error);
-			throw new Exception($error);
+			throw new \Exception($error);
 		}
-
+		
 		$count = ldap_count_entries($ldapLink, $sr);
 		if ($count == 0) {
 			return false;
@@ -141,9 +169,8 @@ class LDAPGroupBackend implements GroupInterface {
 
 		$info = ldap_get_entries($ldapLink, $sr);
 		$group = array(
-			"gid" => $info[0]["cn"][0],
-			"display_name" => $info[0]["displayname"][0], // TODO(labkode) get displayName attr
-			"email" => $info[0]["mail"][0],
+			"gid" => $info[0][$this->uidAttr][0],
+			"display_name" => $info[0][$this->displayNameAttr][0], // TODO(labkode) get displayName attr
 		);
 		return $group;
 	}
