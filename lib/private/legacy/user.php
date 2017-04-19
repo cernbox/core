@@ -313,7 +313,8 @@ class OC_User {
 	 * @return bool
 	 */
 	public static function isAdminUser($uid) {
-		if (OC_Group::inGroup($uid, 'admin') && self::$incognitoMode === false) {
+		$adminGroupName = \OC::$server->getSystemConfig()->getValue('admin_group_name', 'admin');
+		if (OC_Group::inGroup($uid, $adminGroupName) && self::$incognitoMode === false) {
 			return true;
 		}
 		return false;
