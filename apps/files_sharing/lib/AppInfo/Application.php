@@ -113,7 +113,8 @@ class Application extends App {
 		$container->registerService('MountProvider', function (IContainer $c) {
 			/** @var \OCP\IServerContainer $server */
 			$server = $c->query('ServerContainer');
-			return new MountProvider(
+			$class = $server->getConfig()->getSystemValue("files_sharing_mount_provider", '\\OCA\\Files_Sharing\\MountProvider');
+			return new $class(
 				$server->getConfig(),
 				$server->getShareManager(),
 				$server->getLogger()
