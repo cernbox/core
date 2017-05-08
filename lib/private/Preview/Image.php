@@ -69,7 +69,7 @@ abstract class Image extends Provider {
 		$owner = $fileview->getOwner('');
 		$key = $owner . $path;
 		$xs = md5($key);
-		$thumbsDir = \OC::$server->getConfig()->getSystemValue("cernbox_thumbnails_dir", "/data/thumbnails");
+		$thumbsDir = \OC::$server->getConfig()->getSystemValue("cbox.thumbnailsdir", "/data/thumbnails");
 		$fileName = rtrim($thumbsDir, '/') . "/$xs";
 		if(!stat($fileName)) {
 			$localFile = $fileview->toTmpFile($path);
