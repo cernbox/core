@@ -29,7 +29,7 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 	public function getMountsForUser(IUser $user, IStorageFactory $storageFactory) {
 		if ($this->fastUrlsEnabled) {
 			$shouldMount = $this->shouldMountShares();
-			$this->logger->info(sprintf("should mount shares=%s uri=%s", $shouldMount? 'yes' : 'no', $_SERVER['REQUEST_URI']));	
+			$this->logger->info(sprintf("should mount shares=%s uri=%s", $shouldMount === true? 'yes' : 'no', $_SERVER['REQUEST_URI']));
 			if($shouldMount === true) {
 				return parent::getMountsForUser($user, $storageFactory);
 			} else {
@@ -44,6 +44,7 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 	private function shouldMountShares() {
 		// if we match the fast urls we do not mount the shares
 		$url = urldecode(trim(\OC::$server->getRequest()->getRequestUri(), '/'));
+		$url = trim($url, '/');
 		foreach($this->fastUrls as $fastUrl) {
 			if(strpos($url, $fastUrl) !== false) {
 				return false;
@@ -55,8 +56,8 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		// so we get the filename and check if it points to a shared mount.
 		if(strpos($url, 'remote.php/webdav') !== false) {
 			$filename = explode('/', trim(substr($url, strlen('remote.php/webdav')), '/'))[0];	
-			$isSharedPath = $this->isSharedPath($filename);
-			return $isSharedPath;
+			$isShared = $this->isSharedPath($filename);
+			return $isShared;
 		} 
 
 		// we always mount shares as fallback
@@ -79,14 +80,18 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		} else {
 			$topdir = explode ( "/", $path ) [0];
 		}
-		
+
 		$parts = explode ( " ", $topdir );
 		if (count ( $parts ) < 2) {
 			return false;
 		}
 
 		$marker = end($parts);
-		return preg_match ( "/[(][#](\d{3,})[)]/", $marker ); // we match at least 3 digits enclosed within our marker: (#123)
+		// preg_match returns 1 or 0 or false
+		$isShared = preg_match ( "/[(][#](\d{3,})[)]/", $marker ); // we match at least 3 digits enclosed within our marker: (#123)
+		$isShared === 1? $isShared = true : $isShared = false;
+		$this->logger->info(sprintf("shared_path=%s shared=%s", $topdir, $isShared ? 'true' : 'false'));
+		return $isShared;
 	}
 	
 	private function startsWith($haystack, $needle) {
