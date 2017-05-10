@@ -61,14 +61,18 @@ class ShareUtil {
 			}
 		}
 
+		/*
+		* We allow to share in children folders because we do not allow modification of permissins or unsharing of the parent
 		$sharedFolderPath = self::parentFoldersHaveBeenShared($allPaths, $currentPath);
 		if ($sharedFolderPath !== false) {
 			throw new \Exception("Unable to share the file because the ancestor directory '$sharedFolderPath' has been already shared");
 		}
+		*/
 
 		$sharedFolderPath = self::childrenFoldersHaveBeenShared($allPaths, $currentPath);
 		if ($sharedFolderPath) {
-			throw new \Exception("Unable to share the file because the subfolder '$sharedFolderPath' has been already shared");
+			$msg = "Unable to modify share information because it will cause the lost of share information in the already shared folder '$sharedFolderPath'";
+			throw new \Exception($msg);
 		}
 	}
 
