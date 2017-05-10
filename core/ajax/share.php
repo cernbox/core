@@ -172,20 +172,31 @@ if (isset($_POST['action']) && isset($_POST['itemType']) && isset($_POST['itemSo
 				} else {
 					$shareWith = (string)$_POST['shareWith'];
 				}
-				$return = OCP\Share::unshare((string)$_POST['itemType'],(string) $_POST['itemSource'], (int)$_POST['shareType'], $shareWith);
-				($return) ? OC_JSON::success() : OC_JSON::error();
+				try {
+					\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource'], $_POST['shareType'] === OCP\Share::SHARE_TYPE_LINK);
+					$return = OCP\Share::unshare((string)$_POST['itemType'],(string) $_POST['itemSource'], (int)$_POST['shareType'], $shareWith);
+					($return) ? OC_JSON::success() : OC_JSON::error();
+				} catch (Exception $exception) {
+					OC_JSON::error(array('data' => array('message' => $exception->getMessage())));
+					return;
+				}
 			}
 			break;
 		case 'setPermissions':
 			if (isset($_POST['shareType']) && isset($_POST['shareWith']) && isset($_POST['permissions'])) {
-				$return = OCP\Share::setPermissions(
-					(string)$_POST['itemType'],
-					(string)$_POST['itemSource'],
-					(int)$_POST['shareType'],
-					(string)$_POST['shareWith'],
-					(int)$_POST['permissions']
-				);
-				($return) ? OC_JSON::success() : OC_JSON::error();
+				try {
+					\OC\ShareUtil::checkParentDirSharedById($_POST['itemSource'], $_POST['shareType'] === OCP\Share::SHARE_TYPE_LINK);
+					$return = OCP\Share::setPermissions(
+						(string)$_POST['itemType'],
+						(string)$_POST['itemSource'],
+						(int)$_POST['shareType'],
+						(string)$_POST['shareWith'],
+						(int)$_POST['permissions']
+					);
+					($return) ? OC_JSON::success() : OC_JSON::error();
+				} catch (Exception $exception) {
+					OC_JSON::error(array('data' => array('message' => $exception->getMessage())));
+				}
 			}
 			break;
 		case 'setExpirationDate':

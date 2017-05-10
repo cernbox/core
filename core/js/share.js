@@ -430,14 +430,22 @@ OC.Share = _.extend(OC.Share || {}, {
 					callback();
 				}
 			} else {
-				OC.dialogs.alert(t('core', 'Error while unsharing'), t('core', 'Error'));
+				var msg = t('core', 'Error while unsharing');
+				if (result.data && result.data.message) {
+					msg = result.data.message;
+				}
+				OC.dialogs.alert(msg, t('core', 'Error'));
 			}
 		});
 	},
 	setPermissions:function(itemType, itemSource, shareType, shareWith, permissions) {
 		$.post(OC.filePath('core', 'ajax', 'share.php'), { action: 'setPermissions', itemType: itemType, itemSource: itemSource, shareType: shareType, shareWith: shareWith, permissions: permissions }, function(result) {
 			if (!result || result.status !== 'success') {
-				OC.dialogs.alert(t('core', 'Error while changing permissions'), t('core', 'Error'));
+				var msg = t('core', 'Error while unsharing');
+				if (result.data && result.data.message) {
+					msg = result.data.message;
+				}
+				OC.dialogs.alert(msg, t('core', 'Error'));
 			}
 		});
 	},
