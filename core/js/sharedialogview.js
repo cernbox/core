@@ -313,7 +313,11 @@
 				
 				var options = {};
 				options.notifyByEmail = _self.$el.find('#shareNotifyByEmail').is(":checked");
-				_self.model.addShareList(shareRequestData, options);
+				_self.model.addShareList(shareRequestData, options, function(errored) {
+					if(errored) {
+						_self._toggleLoading(false);
+					}
+				});
 				
 				_self.shareRecipientList.length = 0;
 				_self.$el.find('#recipentList').addClass('hidden');

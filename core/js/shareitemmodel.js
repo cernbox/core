@@ -221,7 +221,7 @@
 		},
 		
 		/** CERNBOX SHARE USER LIST PR PATCH */
-		addShareList: function(shareWith, options)
+		addShareList: function(shareWith, options, callback)
 		{
 			var fileName = this.fileInfoModel.get('name');
 			options = options || {};
@@ -246,6 +246,8 @@
 			var itemSource = this.get('itemSource');
 			OC.Share.shareList(itemType, itemSource, null, shareWith, permissions, fileName, options.expiration, options.notifyByEmail, function() {
 				model.fetch();
+			}, function(errored) {
+				callback(errored);	
 			});
 		},
 
