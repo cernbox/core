@@ -68,7 +68,8 @@ class ShareUtil {
 
 		$sharedFolderPath = self::childrenFoldersHaveBeenShared($allPaths, $currentPath);
 		if ($sharedFolderPath) {
-			throw new \Exception("Unable to share the file because the subfolder '$sharedFolderPath' has been already shared");
+			$msg = "Currently not allowed. See KB at http://cern.ch/go/R7np";
+			throw new \Exception($msg);
 		}
 	}
 
