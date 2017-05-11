@@ -263,6 +263,7 @@
 			var shareWith = $li.attr('data-share-with');
 
 			this.model.removeShare(shareType, shareWith);
+			$loading.addClass('hidden');
 
 			return false;
 		},
@@ -297,7 +298,11 @@
 				permissions |= $(checkbox).data('permissions');
 			});*/
 			/** PATCH END */
-			this.model.setPermissions(shareType, shareWith, permissions);
+			this.model.setPermissions(shareType, shareWith, permissions, function(errored) {
+				if(errored) {
+					$('input[name="edit"]', $li).attr('checked', !checked);
+				}
+			});
 		},
 
 		onCrudsToggle: function(event) {
