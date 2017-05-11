@@ -71,7 +71,7 @@ class ShareUtil {
 
 		$sharedFolderPath = self::childrenFoldersHaveBeenShared($allPaths, $currentPath);
 		if ($sharedFolderPath) {
-			$msg = "Unable to modify share information because it will cause the lost of share information in the already shared folder '$sharedFolderPath'";
+			$msg = "Currently not allowed. See KB at http://cern.ch/go/R7np";
 			throw new \Exception($msg);
 		}
 	}

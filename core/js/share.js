@@ -438,7 +438,7 @@ OC.Share = _.extend(OC.Share || {}, {
 			}
 		});
 	},
-	setPermissions:function(itemType, itemSource, shareType, shareWith, permissions) {
+	setPermissions:function(itemType, itemSource, shareType, shareWith, permissions, callback) {
 		$.post(OC.filePath('core', 'ajax', 'share.php'), { action: 'setPermissions', itemType: itemType, itemSource: itemSource, shareType: shareType, shareWith: shareWith, permissions: permissions }, function(result) {
 			if (!result || result.status !== 'success') {
 				var msg = t('core', 'Error while unsharing');
@@ -446,6 +446,9 @@ OC.Share = _.extend(OC.Share || {}, {
 					msg = result.data.message;
 				}
 				OC.dialogs.alert(msg, t('core', 'Error'));
+				if(callback) {
+					callback(true);
+				}
 			}
 		});
 	},
