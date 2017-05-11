@@ -410,14 +410,15 @@ OC.Share = _.extend(OC.Share || {}, {
 						callback(result.data);
 					}
 				} else {
+					var msg = t('core', 'Error');
+					if (result.data && result.data.message) {
+						msg = result.data.message;
+					}
+
 					if (_.isUndefined(errorCallback)) {
-						var msg = t('core', 'Error');
-						if (result.data && result.data.message) {
-							msg = result.data.message;
-						}
-						OC.dialogs.alert(msg, t('core', 'Error while sharing'));
 					} else {
-						errorCallback(result);
+						OC.dialogs.alert(msg, t('core', 'Error while sharing'));
+						errorCallback(true);
 					}
 				}
 			}
