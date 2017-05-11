@@ -283,12 +283,12 @@
 			});
 		},
 
-		setPermissions: function(shareType, shareWith, permissions) {
+		setPermissions: function(shareType, shareWith, permissions, callback) {
 			var itemType = this.get('itemType');
 			var itemSource = this.get('itemSource');
 
 			// TODO: in the future, only set the permissions on the model but don't save directly
-			OC.Share.setPermissions(itemType, itemSource, shareType, shareWith, permissions);
+			OC.Share.setPermissions(itemType, itemSource, shareType, shareWith, permissions, callback);
 		},
 
 		removeShare: function(shareType, shareWith) {
