@@ -322,7 +322,8 @@ class Storage implements \OCP\Files\Storage
 		if (!$entry) {
 			return false;
 		}
-		return ["size" => $entry->getSize(), "mtime" => $entry->getMTime()];
+		// $entry is array serializable and expose more information coming from EOS.
+		return $entry;
     }
 
     /**
