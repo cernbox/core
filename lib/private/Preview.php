@@ -196,7 +196,7 @@ class Preview {
 	 * @return string
 	 */
 	public function getThumbnailsFolder() {
-		return \OC::$server->getConfig()->getSystemValue("cernbox_thumbnails_dir", "/data/thumbnails");
+		return \OC::$server->getConfig()->getSystemValue("cbox.thumbnailsdir", "/data/thumbnails");
 		return self::THUMBNAILS_FOLDER;
 	}
 

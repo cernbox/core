@@ -5,26 +5,24 @@ namespace OC\CernBox\Backends;
 
 use Guzzle\Http\Client;
 use OC\Group\Backend;
-use OCP\AppFramework\Http\DataResponse;
 use OCP\GroupInterface;
 
 class LDAPGroupBackend implements GroupInterface {
-private $hostname;
-
-	private $config;
-	private $port;
-	private $bindUsername;
-	private $bindPassword;
-	private $baseDN;
-	private $isVersion3;
-	private $groupBackend;
-	private $matchFilter;
-	private $searchFilter;
-	private $searchAttrs;
-	private $displayNameAttr;
-	private $uidAttr;
-	private $cboxgroupdBaseURL;
-	private $cboxgroupdSecret;
+	protected $hostname;
+	protected $config;
+	protected $port;
+	protected $bindUsername;
+	protected $bindPassword;
+	protected $baseDN;
+	protected $isVersion3;
+	protected $groupBackend;
+	protected $matchFilter;
+	protected $searchFilter;
+	protected $searchAttrs;
+	protected $displayNameAttr;
+	protected $uidAttr;
+	protected $cboxgroupdBaseURL;
+	protected $cboxgroupdSecret;
 
 	public function __construct() {
 		$this->logger = \OC::$server->getLogger();
@@ -57,7 +55,7 @@ private $hostname;
 			$this->uidAttr));
 	}
 
-	private function getLink() {
+	protected function getLink() {
 		$ds = ldap_connect($this->hostname, $this->port);
 		if (!$ds) {
 			throw new \Exception("ldap connection does not work");
@@ -107,7 +105,7 @@ private $hostname;
 		$search = trim($search);
 		// less that 3 chars is going to put a lot of load on LDAP
 		if (strlen($search) < 3) {
-			return $uids;
+			return $gids;
 		}
 
 		$this->logger->info("search=$search limit=$limit");
@@ -147,11 +145,11 @@ private $hostname;
 		}
 	}
 
-	private function getSupportedActions() {
+	protected function getSupportedActions() {
 		return Backend::COUNT_USERS;
 	}
 
-	private function getGroup($gid) {
+	protected function getGroup($gid) {
 		$ldapLink = $this->getLink();
 		$search = sprintf($this->matchFilter, $gid);
 		$this->logger->info("filter=$search");

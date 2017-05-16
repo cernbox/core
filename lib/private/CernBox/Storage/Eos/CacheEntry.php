@@ -97,4 +97,9 @@ class CacheEntry implements ICacheEntry, \ArrayAccess, \JsonSerializable
 			return null;
 		}
 	}
+
+	// TODO(labkode): report not in interface
+	public function getData() {
+		return $this->data;
+	}
 }

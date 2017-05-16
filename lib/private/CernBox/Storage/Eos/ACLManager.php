@@ -103,6 +103,41 @@ class ACLManager {
 	}
 
 	/**
+	 * @return ACLEntry[]
+	 */
+	public function getUnixGroups() {
+		return array_map(function (ACLEntry $entry) {
+			if($entry->getType() === ACLEntry::UNIX_TYPE) {
+				return $entry;
+			}
+		}, $this->aclEntries);
+	}
+
+	/**
+	 * @return ACLEntry[]
+	 */
+	public function getUnixGroupsWithReadPermissions() {
+		return array_map(function (ACLEntry $entry) {
+			if($entry->getType() === ACLEntry::UNIX_TYPE
+				&& $entry->hasReadPermission()) {
+				return $entry;
+			}
+		}, $this->aclEntries);
+	}
+
+	/**
+	 * @return ACLEntry[]
+	 */
+	public function getUnixGroupsWithReadAndWritePermission() {
+		return array_map(function (ACLEntry $entry) {
+			if($entry->getType() === ACLEntry::UNIX_TYPE
+				&& $entry->hasWritePermission()) {
+				return $entry;
+			}
+		}, $this->aclEntries);
+	}
+
+	/**
 	 * @param $username
 	 * @return bool|ACLEntry
 	 */
@@ -118,6 +153,16 @@ class ACLManager {
 
 	public function getGroup($gid) {
 		$groups = $this->getGroups();
+		foreach($groups as $group) {
+			if($group->getGrantee() === $gid) {
+				return $group;
+			}
+		}
+		return false;
+	}
+
+	public function getUnixGroup($gid) {
+		$groups = $this->getUnixGroups();
 		foreach($groups as $group) {
 			if($group->getGrantee() === $gid) {
 				return $group;
@@ -149,11 +194,24 @@ class ACLManager {
 		return true;
 	}
 
+	public function addUnixGroup($grantee, $eosPermissions) {
+		$this->deleteUnixGroup($grantee); // delete previous entry if existed
+		$singleACL = implode(":", array(ACLEntry::UNIX_TYPE, $grantee, $eosPermissions));
+		$aclEntry = new ACLEntry($singleACL);
+		$this->aclEntries[] = $aclEntry;
+		return true;
+	}
+
+
 	public function deleteUser($grantee) {
 		$this->deleteGrantee($grantee);
 	}
 
 	public function deleteGroup($grantee) {
+		$this->deleteGrantee($grantee);
+	}
+
+	public function deleteUnixGroup($grantee) {
 		$this->deleteGrantee($grantee);
 	}
 

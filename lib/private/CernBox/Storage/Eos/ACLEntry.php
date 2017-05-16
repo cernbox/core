@@ -12,6 +12,7 @@ namespace OC\CernBox\Storage\Eos;
 class ACLEntry {
 	const USER_TYPE = "u";
 	const GROUP_TYPE = "egroup";
+	const UNIX_TYPE = "g";
 
 	private $type;
 	private $grantee;
@@ -35,7 +36,7 @@ class ACLEntry {
 		$permissions = $tokens[2];
 
 
-		if($type !== ACLEntry::USER_TYPE && $type !== ACLEntry::GROUP_TYPE) {
+		if($type !== ACLEntry::USER_TYPE && $type !== ACLEntry::GROUP_TYPE && $type !== ACLEntry::UNIX_TYPE) {
 			$error = "unit(ACLEntry) method(__construct) type($type) type not supported";
 			$this->logger->error($error);
 			throw  new \Exception($error);
