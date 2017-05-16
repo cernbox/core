@@ -241,6 +241,24 @@ class Instance implements IInstance {
 		if ($errorCode !== 0) {
 			return false;
 		} else {
+			// we need to obtain the tree size performing an 'ls' command and merging attributes
+			$command = "ls -la $eosPathEscaped";
+			$commander = $this->getCommander($username);
+			list($lsresult, $errorCode) = $commander->exec($command);
+			if ($errorCode !== 0) {
+				return [];
+			}
+			// $map_filename_size is a map of filenames (just the base name, not full eos paths) and its tree size.
+			$map_filename_size = array();
+			foreach($lsresult as $direntry) {
+				$direntry = preg_replace('/\s+/', ' ',$direntry); // replace multiple spaces by one
+				$elems = explode(" ", $direntry);
+				$size = $elems[4];
+				$filename_elems = array_slice($elems, 8);
+				$filename = implode(' ', $filename_elems);
+				$map_filename_size[$filename] = $size;
+			}
+
 			$entries = array();
 			$this->logger->debug("eospath=$eosPath");
 			foreach ($result as $lineToParse) {
@@ -253,11 +271,19 @@ class Instance implements IInstance {
 						if (preg_match("|".$this->hideRegex."|", basename($eosMap["eos.file"])) ) {
 							continue;
 						}
+
+						$data['eos.treesize'] = isset($map_filename_size[$data['name']]) ? (int)$map_filename_size[$data['name']] : 0;
+						if(isset($data['eos.container'])) { // is a folder ?
+							$data['size'] = $data['eos.treesize'];
+						}
+
 						$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
 						$entries[] = new CacheEntry($ownCloudMap);
 					}
 				}
 			}
+			
+
 			return $entries;
 		}
 	}
