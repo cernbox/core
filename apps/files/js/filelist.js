@@ -1911,7 +1911,10 @@
 				},
 				function(result) {
 					if (result.status === 'success') {
-						self.add(result.data, {animate: true, scrollTo: true});
+						var tr = self.add(result.data, {animate: true, scrollTo: true});
+						if(OCA.WOPIViewer) {
+							$(tr).find('span.innernametext').click();
+						}
 						deferred.resolve(result.status, result.data);
 					} else {
 						if (result.data && result.data.message) {
