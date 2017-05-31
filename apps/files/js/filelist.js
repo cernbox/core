@@ -1913,7 +1913,12 @@
 					if (result.status === 'success') {
 						var tr = self.add(result.data, {animate: true, scrollTo: true});
 						if(OCA.WOPIViewer) {
-							$(tr).find('span.innernametext').click();
+							var mime = result.data.mimetype;
+							if (mime === 'application/vnd.ms-excel' ||
+								mime === 'application/msword' ||
+								mime === 'application/vnd.ms-powerpoint') {
+								$(tr).find('span.innernametext').click();
+							}
 						}
 						deferred.resolve(result.status, result.data);
 					} else {
