@@ -555,7 +555,7 @@
 			var mountType = context.$file.attr('data-mounttype');
 			
 			if(context.$file.attr('data-mime') == 'application/pynb' 
-				&& !context.$file.attr('data-file').startsWith('.')
+				&& context.$file.attr('data-file').indexOf('.') !== 0
 				&& (mountType === undefined || (mountType && mountType !== 'shared')))
 			{
 				var $elSwan = this._renderInlineAction({
