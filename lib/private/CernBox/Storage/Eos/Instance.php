@@ -438,6 +438,7 @@ class Instance implements IInstance {
 		}
 	}
 
+	// add an egroup/unix group to the sys.acl attr of a folder
 	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
 		$entry = $this->get($username, $ocPath);
 		if (!$entry) {
@@ -449,8 +450,15 @@ class Instance implements IInstance {
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
 		$eosPermissions = $this->shareUtil->getEosPermissionsFromOwnCloudPermissions($ocPermissions);
-
-		$aclManager->addGroup($allowedGroup, $eosPermissions);
+		
+		// $allowedGroup can be a unix group and has the format unix:zp and we need
+		// to strip the unix: part
+		if(strpos($allowedGroup, "unix:") === 0) {
+			$allowedGroup = str_replace("unix:", "", $allowedGroup);
+			$aclManager->addUnixGroup($allowedGroup, $eosPermissions);
+		} else {
+			$aclManager->addGroup($allowedGroup, $eosPermissions);
+		}
 		$newEosSysACL = $aclManager->serializeToEos();
 
 		$eosPath = escapeshellarg($entry['eos.file']);
@@ -474,7 +482,16 @@ class Instance implements IInstance {
 
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
-		$aclManager->deleteGroup($allowedGroup);
+		
+		// $allowedGroup can be a unix group and has the format unix:zp and we need
+		// to strip the unix: part
+		if(strpos($allowedGroup, "unix:") === 0) {
+			$allowedGroup = str_replace("unix:", "", $allowedGroup);
+			$aclManager->deleteUnixGroup($allowedGroup);
+		} else {
+			$aclManager->deleteGroup($allowedGroup);
+		}
+
 		$newEosSysACL = $aclManager->serializeToEos();
 
 		$eosPath = escapeshellarg($entry['eos.file']);

@@ -103,8 +103,8 @@ class LDAPGroupBackend implements GroupInterface {
 		$gids = [];
 
 		$search = trim($search);
-		// less that 3 chars is going to put a lot of load on LDAP
-		if (strlen($search) < 3) {
+		// less that 2 chars is going to put a lot of load on LDAP
+		if (strlen($search) < 2) {
 			return $gids;
 		}
 

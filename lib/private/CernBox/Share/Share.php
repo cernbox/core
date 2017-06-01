@@ -111,7 +111,7 @@ class Share implements IShare {
 
 			$fileId = $this->fileId;
 			$userFolder = $this->rootFolder->getUserFolder($this->shareOwner);
-			$nodes = $userFolder->getById($this->fileId);
+			$nodes = $userFolder->getById($fileId);
 			if(empty($nodes)) {
 				throw new NotFoundException("cannot find file with id:$fileId on storage");
 			}
