@@ -124,7 +124,6 @@ use Guzzle\Http\Client;
 			"gid" => "unix:" . $info[0][$this->uidAttr][0],
 			"display_name" => $displayName,
 		);
-=======
 		$group = false;
 		if(strpos($gid, "unix:") === 0) {
 			$gid = str_replace("unix:", "", $gid);
@@ -150,7 +149,6 @@ use Guzzle\Http\Client;
 				"display_name" => $displayName,
 			);
 		}
->>>>>>> neweosstorage-unix
 		return $group;
 	}
 }
