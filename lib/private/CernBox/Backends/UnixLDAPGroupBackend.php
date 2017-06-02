@@ -103,27 +103,6 @@ use Guzzle\Http\Client;
 			return $egroup;
 		}
 
-		$ldapLink = $this->getLink();
-		$search = sprintf($this->matchFilter, $gid);
-		$this->logger->info("filter=$search");
-		$sr = ldap_search($ldapLink, $this->unixBaseDN, $search, $this->searchAttrs);
-		if ($sr === false) {
-			$error = ldap_error($ldapLink);
-			$this->logger->error($error);
-			throw new \Exception($error);
-		}
-
-		$count = ldap_count_entries($ldapLink, $sr);
-		if ($count == 0) {
-			return false;
-		}
-
-		$info = ldap_get_entries($ldapLink, $sr);
-		$displayName = sprintf("%s (unix)", $info[0][$this->displayNameAttr][0]);
-		$group = array(
-			"gid" => "unix:" . $info[0][$this->uidAttr][0],
-			"display_name" => $displayName,
-		);
 		$group = false;
 		if(strpos($gid, "unix:") === 0) {
 			$gid = str_replace("unix:", "", $gid);
