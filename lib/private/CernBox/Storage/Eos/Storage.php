@@ -519,7 +519,7 @@ class Storage implements \OCP\Files\Storage
 			return false;
 		}
     	$handle = $this->fopen($path, 'r');
-		if($handle) {
+		if(!$handle) {
 			return false;
 		}
 		$data = stream_get_contents($handle);
