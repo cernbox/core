@@ -636,6 +636,11 @@ class Instance implements IInstance {
 		if(!$metaData) {
 			if($forceCreation) {
 				// TODO(labkode) create versions folder
+				$created = $this->createVersionsFolder($username, $versionsFolder);
+				if(!$created) {
+					return null;	
+				}
+				$metaData = $this->get($username, $versionsFolder);
 			} else {
 				return null;
 			}
@@ -647,6 +652,30 @@ class Instance implements IInstance {
 			return null;
 		}
 		return $metaData;
+	}
+
+	private function createVersionsFolder($username, $ocPath) {
+		$translator = $this->getTranslator($username);
+		$eosPath = $translator->toEos($ocPath);
+		$eosPath = escapeshellarg($eosPath);
+		$command = "mkdir -p $eosPath";
+		// this command needs to be executed as root
+		$commander = $this->getCommander("root");
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
+			return false;
+		}
+		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
+		if(!$uid || !$gid) {
+			//TODO(labkode): log something
+			return false;
+		}
+		$command = "chown -r $uid:$gid $eosPath";
+		list(, $errorCode) = $commander->exec($command);
+		if ($errorCode !== 0) {
+			return false;
+		}
+		return true;
 	}
 
 	public function getFileFromVersionsFolder($username, $ocPath) {

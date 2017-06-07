@@ -67,7 +67,7 @@ class LinkShareProvider implements IShareProvider {
 		// If it is a file, we have to use the persistent versions folders instead
 		$node = $share->getNode();
 		if($node->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
-			$metaData = $this->instanceManager->getVersionsFolderForFile($share->getShareOwner(), $share->getNode()->getInternalPath());
+			$metaData = $this->instanceManager->getVersionsFolderForFile($share->getShareOwner(), $share->getNode()->getInternalPath(), true);
 			if(!$metaData) {
 				throw new \Exception("cannot get versions folder for file link share");
 			}
@@ -182,7 +182,7 @@ class LinkShareProvider implements IShareProvider {
 			// If it is a file we need to get the versions folder id as this is
 			// saved in the file_source sql field.
 			if($node->getType() === \OCP\Files\FileInfo::TYPE_FILE) {
-				$metaData = $this->instanceManager->getVersionsFolderForFile($node->getOwner()->getUID(), $node->getInternalPath());
+				$metaData = $this->instanceManager->getVersionsFolderForFile($node->getOwner()->getUID(), $node->getInternalPath(), true);
 				if($metaData) {
 					$nodeID = $metaData['fileid'];
 				}
