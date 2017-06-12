@@ -694,14 +694,14 @@ class Storage implements \OCP\Files\Storage
      */
     public function hash($type, $path, $raw = false)
     {
-		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
-			return false;
-		}
-		$fh = $this->fopen($path, 'rb');
-		$ctx = hash_init($type);
-		hash_update_stream($ctx, $fh);
-		fclose($fh);
-		return hash_final($ctx, $raw);
+	if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+		return false;
+	}
+	$fh = $this->fopen($path, 'rb');
+	$ctx = hash_init($type);
+	hash_update_stream($ctx, $fh);
+	fclose($fh);
+	return hash_final($ctx, $raw);
     }
 
     /**
@@ -713,11 +713,11 @@ class Storage implements \OCP\Files\Storage
      */
     public function free_space($path)
     {
-		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
-			return false;
-		}
-    	// FIXME: check really free space on EOS
-    	return \OCP\Files\FileInfo::SPACE_UNLIMITED;
+	if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+		return false;
+	}
+	$info = $this->instanceManager->getQuotaForUser($this->username);
+	return $info[1];
     }
 
     /**
@@ -731,9 +731,9 @@ class Storage implements \OCP\Files\Storage
      */
     public function touch($path, $mtime = null)
     {
-		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
-			return false;
-		}
+	if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+		return false;
+	}
     	$stream = fopen('php://memory', 'r');
 		return $this->instanceManager->write($this->username, $path, $stream);
     }

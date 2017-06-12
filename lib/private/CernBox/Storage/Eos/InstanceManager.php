@@ -337,6 +337,10 @@ class InstanceManager implements  IInstance {
 		$this->logger->debug("unit(InstanceManager) method(createHome) username($username)");
 		return $this->currentInstance->createHome($username);
 	}
+	
+	public function getQuotaForUser($username) {
+		return $this->currentInstance->getQuotaForUser($username);
+	}
 
 
 }

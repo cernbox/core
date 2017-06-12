@@ -566,6 +566,9 @@ class OC_Helper {
 	 * @throws \OCP\Files\NotFoundException
 	 */
 	public static function getStorageInfo($path, $rootInfo = null) {
+		// TODO(labkode): report to oc that the way to get quota should be improved
+		return \OC::$server->getCernBoxEosInstanceManager()->getQuotaForUser(\OC::$server->getUserSession()->getLoginName());
+
 		// return storage info without adding mount points
 		$includeExtStorage = \OC::$server->getSystemConfig()->getValue('quota_include_external_storage', false);
 

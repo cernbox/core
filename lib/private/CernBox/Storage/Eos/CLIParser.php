@@ -119,6 +119,28 @@ class CLIParser {
 		}
 		return $memberMap;
 	}
+	
+	public static function parseQuotaResponse($lines) {
+		if(!is_array($lines) || count($lines) <= 0) {
+			throw new \Exception("cannot get quota for user");
+                }
+		$line = $lines[0];
+                $line = explode(' ', $line);
+                $data = [];
+                foreach($line as $token)
+                {
+                        $parts = explode('=', $token);
+                        $data[$parts[0]] = $parts[1];
+                }
+
+                if(!isset($data['usedlogicalbytes']) || !isset($data['maxlogicalbytes'])) {
+			throw new \Exception("cannot get quota for user: no userlogicalbytes or maxlogicalbytes keys");
+		}
+
+                $used = intval($data['usedlogicalbytes']);
+                $total = intval($data['maxlogicalbytes']);
+		return [$used, $total];
+	}
 
 	/**
 	 * Builds and extract the name from the EOS answer. This function will remove

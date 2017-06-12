@@ -691,6 +691,29 @@ class Instance implements IInstance {
 		return $this->get($username, $versionsPath);
 	}
 
+	
+	public function getQuotaForUser($username) {
+		$prefix = $this->prefix;
+		$command = "quota $prefix -m";
+		$commander = $this->getCommander($username);
+		list($result, $errorCode) = $commander->exec($command);
+		if($errorCode != 0) {
+			throw new \Exception("cannot get quota for user");
+		}
+		$quotaInfo = CLIParser::parseQuotaResponse($result);
+		$used = $quotaInfo[0];
+		$total = $quotaInfo[1];
+		return [
+			'free' => $total - $used,
+			'used' => $used,
+			'quota' => $total,
+			'total' => $total,
+			'relative' => round( ($used/$total) * 100),
+			'owner' => $username,
+			'ownerDisplayName' => $username,
+		];
+	}
+
 
 	/**
 	 * @param $username

@@ -103,4 +103,6 @@ interface IInstance {
 	 * @return bool
 	 */
 	public function isUserMemberOfGroup($username, $group);
+
+	public function getQuotaForUser($username);
 }
