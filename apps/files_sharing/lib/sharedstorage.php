@@ -329,7 +329,8 @@ class Shared extends \OC\Files\Storage\Wrapper\Jail implements ISharedStorage {
 		if (!$storage) {
 			$storage = $this;
 		}
-		return new \OCA\Files_Sharing\Scanner($storage);
+		return new \OC\CernBox\Storage\Eos\NullScanner();
+		//return new \OCA\Files_Sharing\Scanner($storage);
 	}
 
 	public function getPropagator($storage = null) {
