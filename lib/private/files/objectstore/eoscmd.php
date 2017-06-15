@@ -10,7 +10,10 @@ class EosCmd {
 			$eosMGMURL = EosUtil::getEosMgmUrl();
 		}
 		
-		$fullCmd = 'EOS_MGM_URL='.$eosMGMURL.' '.$cmd;
+		$conTimeout = \OC::$server->getConfig()->getSystemValue('eos_maxcontimeout', 10);
+		$conRetry = \OC::$server->getConfig()->getSystemValue('eos_maxconretry', 5);
+		$reqTimeout = \OC::$server->getConfig()->getSystemValue('eos_reqtimeout', 60);
+		$fullCmd = "XRD_CONNECTIONWINDOW=$conTimeout XRD_CONNECTIONRETRY=$conRetry XRD_REQUESTTIMEOUT=$reqTimeout EOS_MGM_URL=".$eosMGMURL.' '.$cmd;
 		
 		$user = \OCP\User::getUser();
 		// Keep requesting EOS while we get a 22 error code
