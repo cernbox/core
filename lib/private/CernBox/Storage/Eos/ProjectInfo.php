@@ -13,11 +13,18 @@ class ProjectInfo {
 	private $projectName;
 	private $projectOwner;
 	private $projectRelativePath;
+	private $projectReaders;
+	private $projectWriters;
+	private $projectAdmins;
 
 	public function __construct($projectName, $projectOwner, $projectRelativePath) {
 		$this->projectName = $projectName;
 		$this->projectOwner = $projectOwner;
 		$this->projectRelativePath = $projectRelativePath;
+		$basename = basename($this->projectRelativePath);
+		$this->projectReaders = 'cernbox-project-' . $basename . '-readers';
+		$this->projectWriters = 'cernbox-project-' . $basename. '-writers';
+		$this->projectAdmins = 'cernbox-project-' . $basename. '-admins';
 	}
 
 	public function getProjectName() {
@@ -30,6 +37,18 @@ class ProjectInfo {
 
 	public function getProjectRelativePath() {
 		return $this->projectRelativePath;
+	}
+
+	public function getProjectReaders() {
+		return $this->projectReaders;
+	}
+
+	public function getProjectWriters() {
+		return $this->projectWriters;
+	}
+
+	public function getProjectAdmins() {
+		return $this->projectAdmins;
 	}
 
 }

@@ -24,6 +24,8 @@ class Instance implements IInstance {
 	private $metaDataCache;
 	private $logger;
 	private $shareUtil;
+	private $projectMapper;
+	private $groupManager;
 
 	/**
 	 * Instance constructor.
@@ -53,6 +55,7 @@ class Instance implements IInstance {
 		$this->homeDirScript = $instanceConfig['homedirscript'];
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
+		$this->groupManager = \OC::$server->getGroupManager();
 	}
 
 	public function getId() {
@@ -221,6 +224,29 @@ class Instance implements IInstance {
 			}
 
 			$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
+			// permissions to access a project space are handled using three e-groups:
+			// readers, writers and admins
+			if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+				if(strpos($ocPath, "files/  project ") === 0) {
+					$path = trim($ocPath, '/');
+					$path = trim(substr($path, strlen("files/  project ")), "/");
+					$projectName = explode('/', $path)[0];
+					$projectMapper = \OC::$server->getCernBoxProjectMapper();
+					$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
+					if($projectInfo->getProjectOwner() === $username) {
+						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
+					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
+						$ownCloudMap['permissions']	 = Constants::PERMISSION_READ;
+					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
+						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
+					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectAdmins())) {
+						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
+					} else {
+						$ownCloudMap['permissions'] = 0;
+					}
+				}
+			}
+
 			$entry = new CacheEntry($ownCloudMap);
 			return $entry;
 		}
@@ -272,7 +298,9 @@ class Instance implements IInstance {
 							continue;
 						}
 
-						$data['eos.treesize'] = isset($map_filename_size[$data['name']]) ? (int)$map_filename_size[$data['name']] : 0;
+						if(isset($data['name'])) {
+							$data['eos.treesize'] = isset($map_filename_size[$data['name']]) ? (int)$map_filename_size[$data['name']] : 0;
+						}
 						if(isset($data['eos.container'])) { // is a folder ?
 							$data['size'] = $data['eos.treesize'];
 						}
@@ -623,7 +651,7 @@ class Instance implements IInstance {
 				return new CacheEntry($ownCloudMap);
 			}
 			$this->logger->warning("xstorage access to file id in other storage. username($username) uid($uid), eospath:(" . $eosMap['eos.file']) . ") owneruid(" . $eosMap['eos.uid'] . ")";
-			return null;
+			return new CacheEntry($ownCloudMap);
 		}
 	}
 

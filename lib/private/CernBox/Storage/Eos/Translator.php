@@ -117,6 +117,9 @@ class Translator {
 			$project = substr($tempOcPath, $len, $nextSlash - $len); // skiclub
 			$pathLeft = substr($tempOcPath, $nextSlash);
 			$projectInfo = $this->projectMapper->getProjectInfoByProject($project);
+			if(!$projectInfo) {
+				throw new \Exception("Project $project not found");
+			}
 			$relativePath = $projectInfo->getProjectRelativePath();
 
 			if ($relativePath) {

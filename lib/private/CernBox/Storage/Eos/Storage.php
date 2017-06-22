@@ -711,13 +711,16 @@ class Storage implements \OCP\Files\Storage
      * @return int|false
      * @since 9.0.0
      */
-    public function free_space($path)
-    {
-	if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+    public function free_space($path) {
+		if($this->username === self::USERNAME_FOR_REQUEST_WITHOUT_USER_CONTEXT) {
+			return false;
+		}
+
+		$info = $this->instanceManager->getQuotaForUser($this->username);
+		if($info) {
+			return $info['free'];
+		}
 		return false;
-	}
-	$info = $this->instanceManager->getQuotaForUser($this->username);
-	return $info[1];
     }
 
     /**

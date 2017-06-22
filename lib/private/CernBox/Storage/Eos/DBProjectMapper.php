@@ -29,7 +29,7 @@ class DBProjectMapper implements  IProjectMapper {
 				$relativePath = $projectData['eos_relative_path'];
 				$owner = $projectData['project_owner'];
 				$info = new ProjectInfo($project, $owner, $relativePath);
-				$infos[$project] = $info;
+				$infos[basename($relativePath)] = $info;
 			}
 
 			$this->infos = $infos;
@@ -53,7 +53,7 @@ class DBProjectMapper implements  IProjectMapper {
 	public function getProjectInfoByProject($projectName) {
 		$this->logger->info(__FUNCTION__ . ": $projectName");
 		foreach($this->infos as $project => $info) {
-			if($info->getProjectName() === $projectName) {
+			if($project === $projectName) {
 				return $info;
 			}
 		}
@@ -73,6 +73,4 @@ class DBProjectMapper implements  IProjectMapper {
 	public function getAllMappings() {
 		return $this->infos;
 	}
-
-
 }
