@@ -44,15 +44,15 @@ class Instance implements IInstance {
 		$this->shareUtil = \OC::$server->getCernBoxShareUtil();
 
 		$this->id = $id;
-		$this->name = $instanceConfig['name'];
-		$this->mgmUrl = $instanceConfig['mgmurl'];
-		$this->prefix = $instanceConfig['prefix'];
-		$this->metaDataPrefix = $instanceConfig['metadatadir'];
-		$this->recycleDir = $instanceConfig['recycledir'];
-		$this->hideRegex = $instanceConfig['hideregex'];
-		$this->projectPrefix = $instanceConfig['projectprefix'];
-		$this->stagingDir = $instanceConfig['stagingdir'];
-		$this->homeDirScript = $instanceConfig['homedirscript'];
+		$this->name = isset($instanceConfig['name']) ? $instanceConfig['name'] : "" ;
+		$this->mgmUrl = isset($instanceConfig['mgmurl']) ? $instanceConfig['mgmurl'] : "";
+		$this->prefix = isset($instanceConfig['prefix']) ? $instanceConfig['prefix']: "";
+		$this->metaDataPrefix = isset($instanceConfig['metadatadir']) ? $instanceConfig['metadatadir'] : "";
+		$this->recycleDir = isset($instanceConfig['recycledir']) ? $instanceConfig['recycledir'] : "";
+		$this->hideRegex = isset($instanceConfig['hideregex']) ? $instanceConfig['hideregex'] : "";
+		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : "";
+		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : "";
+		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : "";
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 		$this->groupManager = \OC::$server->getGroupManager();
@@ -224,6 +224,7 @@ class Instance implements IInstance {
 			}
 
 			$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
+
 			// permissions to access a project space are handled using three e-groups:
 			// readers, writers and admins
 			if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
@@ -244,6 +245,12 @@ class Instance implements IInstance {
 					} else {
 						$ownCloudMap['permissions'] = 0;
 					}
+				}
+			}
+
+			if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
+				if(strpos($ocPath, "files/  EOS Instance ") === 0) {
+					$ownCloudMap['permissions'] = Constants::PERMISSION_READ;
 				}
 			}
 
@@ -310,7 +317,15 @@ class Instance implements IInstance {
 					}
 				}
 			}
-			
+
+
+			if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
+				if(strpos($ocPath, "files/  EOS Instance ") === 0) {
+					for($i = 0; $i < count($entries); $i++) {
+						$entries[$i]['permissions'] = Constants::PERMISSION_READ;
+					}
+				}
+			}
 
 			return $entries;
 		}

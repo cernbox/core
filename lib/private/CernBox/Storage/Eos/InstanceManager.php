@@ -66,7 +66,7 @@ class InstanceManager implements  IInstance {
 	}
 
 	public function addInstance(IInstance $instance) {
-		$this->instances[] = $instance;
+		$this->instances[$instance->getId()] = $instance;
 	}
 
 	public function getCurrentInstance() {

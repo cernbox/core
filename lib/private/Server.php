@@ -44,7 +44,9 @@ use OC\AppFramework\Utility\TimeFactory;
 use OC\CernBox\Backends\UserSession;
 use OC\CernBox\Drivers\Redis;
 use OC\CernBox\Storage\Eos\DBProjectMapper;
+use OC\CernBox\Storage\Eos\IInstanceMapper;
 use OC\CernBox\Storage\Eos\InstanceManager;
+use OC\CernBox\Storage\Eos\InstanceMapper;
 use OC\CernBox\Storage\Eos\IProjectMapper;
 use OC\CernBox\Storage\Eos\Util;
 use OC\CernBox\Storage\MetaDataCache\MultiCache;
@@ -722,6 +724,10 @@ class Server extends ServerContainer implements IServerContainer {
 
 		$this->registerService('CernBoxRedis', function (Server $c) {
 			return new Redis();
+		});
+
+		$this->registerService('CernBoxInstanceMapper', function (Server $c) {
+			return new InstanceMapper();
 		});
 	}
 
@@ -1445,6 +1451,13 @@ class Server extends ServerContainer implements IServerContainer {
 	public function getCernBoxRedis() {
 		return $this->query('CernBoxRedis');
 
+	}
+
+	/**
+	 * @return IInstanceMapper
+	 */
+	public function getCernBoxInstanceMapper() {
+		return $this->query('CernBoxInstanceMapper');
 	}
 
 	/*

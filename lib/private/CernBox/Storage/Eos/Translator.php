@@ -37,6 +37,11 @@ class Translator {
 	private $projectMapper;
 
 	/**
+	 * @var IInstanceMapper
+	 */
+	private $instanceMapper;
+
+	/**
 	 * Translator constructor.
 	 *
 	 * @param $username
@@ -46,6 +51,7 @@ class Translator {
 		$this->logger = \OC::$server->getLogger();
 		$this->instance = $instance;
 		$this->projectMapper = \OC::$server->getCernBoxProjectMapper();
+		$this->instanceMapper = \OC::$server->getCernBoxInstanceMapper();
 
 		$letter = $username[0];
 
@@ -101,6 +107,21 @@ class Translator {
 			return $eosPath;
 		}
 
+
+		/*
+		if(strpos($ocPath, 'instances') === 0) {
+			$tempOcPath = trim(substr($tempOcPath, strlen('instances')), '/');
+			$instanceName = explode('/', $tempOcPath)[0];
+			$instanceInfo = $this->instanceMapper->getInstanceInfoByName($instanceName);
+			if(!$instanceInfo) {
+				throw new \Exception("Instance $instanceName not found");
+			}
+			$eosPath = $instanceInfo->getInstanceRootPath();
+			return $eosPath;
+		}
+		*/
+
+
 		if (strpos($ocPath, 'files') === 0) {
 			$tempOcPath = substr($tempOcPath, 5);
 		}
@@ -125,6 +146,24 @@ class Translator {
 			if ($relativePath) {
 				return (rtrim($this->instance->getProjectPrefix(), '/') . '/' . trim($relativePath, '/') . '/' . trim($pathLeft, '/'));
 			}
+		}
+
+		if(strpos($tempOcPath, '  EOS Instance') === 0) {
+			$len = strlen('  EOS Instance ');
+			$nextSlash = strpos($tempOcPath, '/');
+			if($nextSlash === false) {
+				$nextSlash = strlen($tempOcPath);
+			}
+
+			$instance = substr($tempOcPath, $len, $nextSlash - $len);
+			$pathLeft = substr($tempOcPath, $nextSlash);
+			$instanceInfo = $this->instanceMapper->getInstanceInfoByName($instance);
+			if(!$instanceInfo) {
+				throw new \Exception('Instance $instance not found');
+			}
+
+			$eosPath = rtrim($instanceInfo->getInstanceRootPath(), '/') . '/' . trim($pathLeft, '/');
+			return $eosPath;
 		}
 
 		if ($ocPath === "") {
@@ -216,11 +255,11 @@ class Translator {
 			// - it-storage/more/content
 			// We need to omit projects that are only letters, like b
 			$parts = explode("/", $pathWithoutProjectPrefix);
-			if(count($parts) === 1) {
+			if (count($parts) === 1) {
 				// path can contain a letter or a project name, b or it-storage
 				// if it is a letter we omit it.
 				$letterOrProjectName = $parts[0];
-				if(strlen($letterOrProjectName) > 1) { // projects are bigger that one letter
+				if (strlen($letterOrProjectName) > 1) { // projects are bigger that one letter
 					$projectName = $letterOrProjectName;
 				}
 			} else {
@@ -231,7 +270,7 @@ class Translator {
 				// we need to check if the project name
 				// is the first one or second part of the array
 				$firstElement = $parts[0];
-				if(strlen($firstElement) === 1) {
+				if (strlen($firstElement) === 1) {
 					// the firstElement is a letter so the second one must be
 					// the project name.
 					$projectName = $parts[1];
@@ -246,7 +285,7 @@ class Translator {
 				}
 			}
 
-			if($projectName) {
+			if ($projectName) {
 				$ocPath = 'files/  project ' . $projectName . '/' . $projectRest;
 				$this->logger->info("project shared path is: $ocPath");
 				return $ocPath;
@@ -255,8 +294,16 @@ class Translator {
 				return false;
 			}
 		} else {
-			$this->logger->error("configured eos prefixes cannot handle this path:$eosPath");
-			return false;
+			// check for global read-only EOS instances
+			$instanceInfo = $this->instanceMapper->getInstanceInfoByPath($eosPath);
+			if($instanceInfo) {
+				$ocPath = trim(substr($eosPath, strlen($instanceInfo->getInstanceRootPath())), '/');
+				$ocPath = 'files/  EOS Instance ' . $instanceInfo->getInstanceName() . '/' . $ocPath;
+				return $ocPath;
+			} else {
+				$this->logger->error("configured eos prefixes cannot handle this path:$eosPath");
+				return false;
+			}
 		}
 	}
 }
