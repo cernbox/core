@@ -161,7 +161,13 @@ class Translator {
 			if(!$instanceInfo) {
 				throw new \Exception('Instance $instance not found');
 			}
-
+			$config = [
+				"name" => $instanceInfo->getInstanceName(),
+				"mgmurl" => $instanceInfo->getInstanceMGMUrl(),
+				"prefix" => $instanceInfo->getInstanceRootPath(),
+			];
+			\OC::$server->getCernBoxEosInstanceManager()->addInstance(new Instance($instanceInfo->getInstanceName(), $config));
+			\OC::$server->getCernBoxEosInstanceManager()->setCurrentInstance($instanceInfo->getInstanceName());
 			$eosPath = rtrim($instanceInfo->getInstanceRootPath(), '/') . '/' . trim($pathLeft, '/');
 			return $eosPath;
 		}
@@ -214,6 +220,15 @@ class Translator {
 	 * - /eos/dev/projects/a/atlas-dist
 	 */
 	public function _toOc($eosPath) {
+		if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
+			// check for global read-only EOS instances
+			$instanceInfo = $this->instanceMapper->getInstanceInfoByPath($eosPath);
+			if($instanceInfo) {
+				$ocPath = trim(substr($eosPath, strlen($instanceInfo->getInstanceRootPath())), '/');
+				$ocPath = 'files/  EOS Instance ' . $instanceInfo->getInstanceName() . '/' . $ocPath;
+				return $ocPath;
+		}
+
 		if ($eosPath == $this->instance->getPrefix()) {
 			return "";
 		}
@@ -294,13 +309,6 @@ class Translator {
 				return false;
 			}
 		} else {
-			// check for global read-only EOS instances
-			$instanceInfo = $this->instanceMapper->getInstanceInfoByPath($eosPath);
-			if($instanceInfo) {
-				$ocPath = trim(substr($eosPath, strlen($instanceInfo->getInstanceRootPath())), '/');
-				$ocPath = 'files/  EOS Instance ' . $instanceInfo->getInstanceName() . '/' . $ocPath;
-				return $ocPath;
-			} else {
 				$this->logger->error("configured eos prefixes cannot handle this path:$eosPath");
 				return false;
 			}

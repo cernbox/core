@@ -16,7 +16,7 @@ class InstanceMapper implements IInstanceMapper {
 	private $mappings;
 
 	public function __construct() {
-		$info = new InstanceInfo('Experiment', 'root://eospublic.cern.ch', '/eos/experiment/');
+		$info = new InstanceInfo('Experiment', 'root://eospublic.cern.ch', '/eos/experiment');
 		$this->mappings = [$info];
 	}
 

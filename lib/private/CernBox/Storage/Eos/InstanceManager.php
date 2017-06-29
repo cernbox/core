@@ -73,6 +73,9 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance;
 	}
 
+	public function isCurrentInstanceHomeInstance() {
+		return $this->currentInstance->getId() === $this->homeDirectoryInstance;
+	}
 	public function getId() {
 		return $this->currentInstance->getId();
 	}

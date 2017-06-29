@@ -44,15 +44,15 @@ class Instance implements IInstance {
 		$this->shareUtil = \OC::$server->getCernBoxShareUtil();
 
 		$this->id = $id;
-		$this->name = isset($instanceConfig['name']) ? $instanceConfig['name'] : "" ;
-		$this->mgmUrl = isset($instanceConfig['mgmurl']) ? $instanceConfig['mgmurl'] : "";
-		$this->prefix = isset($instanceConfig['prefix']) ? $instanceConfig['prefix']: "";
-		$this->metaDataPrefix = isset($instanceConfig['metadatadir']) ? $instanceConfig['metadatadir'] : "";
-		$this->recycleDir = isset($instanceConfig['recycledir']) ? $instanceConfig['recycledir'] : "";
-		$this->hideRegex = isset($instanceConfig['hideregex']) ? $instanceConfig['hideregex'] : "";
-		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : "";
-		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : "";
-		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : "";
+		$this->name = isset($instanceConfig['name']) ? $instanceConfig['name'] : null ;
+		$this->mgmUrl = isset($instanceConfig['mgmurl']) ? $instanceConfig['mgmurl'] : null;
+		$this->prefix = isset($instanceConfig['prefix']) ? $instanceConfig['prefix']: null;
+		$this->metaDataPrefix = isset($instanceConfig['metadatadir']) ? $instanceConfig['metadatadir'] : null;
+		$this->recycleDir = isset($instanceConfig['recycledir']) ? $instanceConfig['recycledir'] : null;
+		$this->hideRegex = isset($instanceConfig['hideregex']) ? $instanceConfig['hideregex'] : null;
+		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : null;
+		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : null;
+		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : null;
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 		$this->groupManager = \OC::$server->getGroupManager();
@@ -301,7 +301,7 @@ class Instance implements IInstance {
 					// asked to be listed, so we filter it.
 					if (trim($eosMap['eos.file'], '/') !== trim($eosPath, '/')) {
 						// hide filenames that match the hideregex
-						if (preg_match("|".$this->hideRegex."|", basename($eosMap["eos.file"])) ) {
+						if ($this->hideRegex && preg_match("|".$this->hideRegex."|", basename($eosMap["eos.file"])) ) {
 							continue;
 						}
 
