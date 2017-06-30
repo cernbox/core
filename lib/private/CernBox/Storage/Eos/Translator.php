@@ -148,28 +148,30 @@ class Translator {
 			}
 		}
 
-		if(strpos($tempOcPath, '  EOS Instance') === 0) {
-			$len = strlen('  EOS Instance ');
-			$nextSlash = strpos($tempOcPath, '/');
-			if($nextSlash === false) {
-				$nextSlash = strlen($tempOcPath);
-			}
+		if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
+			if(strpos($tempOcPath, '  EOS Instance') === 0) {
+				$len = strlen('  EOS Instance ');
+				$nextSlash = strpos($tempOcPath, '/');
+				if($nextSlash === false) {
+					$nextSlash = strlen($tempOcPath);
+				}
 
-			$instance = substr($tempOcPath, $len, $nextSlash - $len);
-			$pathLeft = substr($tempOcPath, $nextSlash);
-			$instanceInfo = $this->instanceMapper->getInstanceInfoByName($instance);
-			if(!$instanceInfo) {
-				throw new \Exception('Instance $instance not found');
+				$instance = substr($tempOcPath, $len, $nextSlash - $len);
+				$pathLeft = substr($tempOcPath, $nextSlash);
+				$instanceInfo = $this->instanceMapper->getInstanceInfoByName($instance);
+				if(!$instanceInfo) {
+					throw new \Exception('Instance $instance not found');
+				}
+				$config = [
+					"name" => $instanceInfo->getInstanceName(),
+					"mgmurl" => $instanceInfo->getInstanceMGMUrl(),
+					"prefix" => $instanceInfo->getInstanceRootPath(),
+				];
+				\OC::$server->getCernBoxEosInstanceManager()->addInstance(new Instance($instanceInfo->getInstanceName(), $config));
+				\OC::$server->getCernBoxEosInstanceManager()->setCurrentInstance($instanceInfo->getInstanceName());
+				$eosPath = rtrim($instanceInfo->getInstanceRootPath(), '/') . '/' . trim($pathLeft, '/');
+				return $eosPath;
 			}
-			$config = [
-				"name" => $instanceInfo->getInstanceName(),
-				"mgmurl" => $instanceInfo->getInstanceMGMUrl(),
-				"prefix" => $instanceInfo->getInstanceRootPath(),
-			];
-			\OC::$server->getCernBoxEosInstanceManager()->addInstance(new Instance($instanceInfo->getInstanceName(), $config));
-			\OC::$server->getCernBoxEosInstanceManager()->setCurrentInstance($instanceInfo->getInstanceName());
-			$eosPath = rtrim($instanceInfo->getInstanceRootPath(), '/') . '/' . trim($pathLeft, '/');
-			return $eosPath;
 		}
 
 		if ($ocPath === "") {
@@ -223,10 +225,11 @@ class Translator {
 		if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
 			// check for global read-only EOS instances
 			$instanceInfo = $this->instanceMapper->getInstanceInfoByPath($eosPath);
-			if($instanceInfo) {
+			if ($instanceInfo) {
 				$ocPath = trim(substr($eosPath, strlen($instanceInfo->getInstanceRootPath())), '/');
 				$ocPath = 'files/  EOS Instance ' . $instanceInfo->getInstanceName() . '/' . $ocPath;
 				return $ocPath;
+			}
 		}
 
 		if ($eosPath == $this->instance->getPrefix()) {
@@ -311,7 +314,6 @@ class Translator {
 		} else {
 				$this->logger->error("configured eos prefixes cannot handle this path:$eosPath");
 				return false;
-			}
 		}
 	}
 }
