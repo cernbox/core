@@ -1,3 +1,4 @@
 {
-	"ipynb": ["application/pynb"]
+	"ipynb": ["application/pynb"],
+	"root" : ["application/root"]
 }
