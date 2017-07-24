@@ -17,11 +17,13 @@
 		'<div class="resharerInfoView subView"></div>' +
 		'{{#if isSharingAllowed}}' +
 		'<label for="shareWith-{{cid}}" class="hidden-visually">{{shareLabel}}</label>' +
+		'{{#if isDir}}' +
 		'<div class="oneline">' +
 		'    <input id="shareWith-{{cid}}" class="shareWithField" type="text" placeholder="{{sharePlaceholder}}" />' +
 		'    <span class="shareWithLoading icon-loading-small hidden"></span>'+
 		'{{{remoteShareInfo}}}' +
 		'</div>' +
+		'{{/if}}' +
 		'{{/if}}' +
 		'<div class="shareeListView subView"></div>' +
 		'<div class="linkShareView subView"></div>' +
@@ -332,12 +334,14 @@
 		render: function() {
 			var baseTemplate = this._getTemplate('base', TEMPLATE_BASE);
 
+			console.log(this.model);
 			this.$el.html(baseTemplate({
 				cid: this.cid,
 				shareLabel: t('core', 'Share'),
 				sharePlaceholder: this._renderSharePlaceholderPart(),
 				remoteShareInfo: this._renderRemoteShareInfoPart(),
-				isSharingAllowed: this.model.sharePermissionPossible()
+				isSharingAllowed: this.model.sharePermissionPossible(),
+				isDir: this.model.get('itemType') === 'dir' ? true : false
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
