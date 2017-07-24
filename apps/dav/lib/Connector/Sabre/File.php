@@ -202,16 +202,16 @@ class File extends Node implements IFile {
 				throw new FileLocked($e->getMessage(), $e->getCode(), $e);
 			}
 
-			if ($view) {
-				$this->emitPostHooks($exists);
-			}
-
 			// allow sync clients to send the mtime along in a header
 			$request = \OC::$server->getRequest();
 			if (isset($request->server['HTTP_X_OC_MTIME'])) {
 				if ($this->fileView->touch($this->path, $request->server['HTTP_X_OC_MTIME'])) {
 					header('X-OC-MTime: accepted');
 				}
+			}
+
+			if ($view) {
+				$this->emitPostHooks($exists);
 			}
 
 			$this->refreshInfo();
@@ -506,7 +506,8 @@ class File extends Node implements IFile {
 		// TODO: in the future use ChunkHandler provided by storage
 		// and/or add method on Storage called "needsPartFile()"
 		return !$storage->instanceOfStorage('OCA\Files_Sharing\External\Storage') &&
-		!$storage->instanceOfStorage('OC\Files\Storage\OwnCloud');
+			!$storage->instanceOfStorage('OC\Files\Storage\OwnCloud') &&
+			!$storage->instanceOfStorage('OC\Files\ObjectStore\ObjectStoreStorage');
 	}
 
 	/**

@@ -23,6 +23,7 @@
 
 // no php execution timeout for webdav
 set_time_limit(0);
+ignore_user_abort(true);
 
 // Turn off output buffering to prevent memory problems
 \OC_Util::obEnd();
@@ -51,6 +52,10 @@ $server = $serverFactory->createServer($baseuri, $requestUri, $authBackend, func
 	// use the view for the logged in user
 	return \OC\Files\Filesystem::getView();
 });
+
+// allow setup of additional auth backends
+$event = new \OCP\SabrePluginEvent($server);
+\OC::$server->getEventDispatcher()->dispatch('OCA\DAV\Connector\Sabre::authInit', $event);
 
 // And off we go!
 $server->exec();

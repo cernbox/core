@@ -73,21 +73,13 @@ trait Sharing {
 			$url = $this->lastShareData->data->url;
 		}
 		$fullUrl = $url . "/download";
-		$options['save_to'] = "./$filename";
-		$this->response = $client->get($fullUrl, $options);
-		$finfo = new finfo;
-		$fileinfo = $finfo->file("./$filename", FILEINFO_MIME_TYPE);
-		PHPUnit_Framework_Assert::assertEquals($fileinfo, "text/plain");
-		if (file_exists("./$filename")) {
-			unlink("./$filename");
-		}
+		$this->checkDownload($fullUrl, null, 'text/plain');
 	}
 
 	/**
 	 * @Then /^Public shared file "([^"]*)" with password "([^"]*)" can be downloaded$/
 	 */
 	public function checkPublicSharedFileWithPassword($filename, $password) {
-		$client = new Client();
 		$options = [];
 		if (count($this->lastShareData->data->element) > 0){
 			$token = $this->lastShareData->data[0]->token;
@@ -97,14 +89,30 @@ trait Sharing {
 		}
 
 		$fullUrl = substr($this->baseUrl, 0, -4) . "public.php/webdav";
-		$options['auth'] = [$token, $password];
-		$options['save_to'] = "./$filename";
-		$this->response = $client->get($fullUrl, $options);
-		$finfo = new finfo;
-		$fileinfo = $finfo->file("./$filename", FILEINFO_MIME_TYPE);
-		PHPUnit_Framework_Assert::assertEquals($fileinfo, "text/plain");
-		if (file_exists("./$filename")) {
-			unlink("./$filename");
+		$this->checkDownload($fullUrl, [$token, $password], 'text/plain');
+	}
+
+	private function checkDownload($url, $auth = null, $mimeType = null) {
+		if ($auth !== null) {
+			$options['auth'] = $auth;
+		}
+		$options['stream'] = true;
+
+		$client = new Client();
+		$this->response = $client->get($url, $options);
+		PHPUnit_Framework_Assert::assertEquals(200, $this->response->getStatusCode());
+
+		$buf = '';
+		$body = $this->response->getBody();
+		while (!$body->eof()) {
+			// read everything
+			$buf .= $body->read(8192);
+		}
+		$body->close();
+
+		if ($mimeType !== null) {
+			$finfo = new finfo;
+			PHPUnit_Framework_Assert::assertEquals($mimeType, $finfo->buffer($buf, FILEINFO_MIME_TYPE));
 		}
 	}
 
@@ -254,6 +262,7 @@ trait Sharing {
 	 * @param string $filename
 	 */
 	public function checkSharedFileInResponse($filename){
+		$filename = ltrim($filename, '/');
 		PHPUnit_Framework_Assert::assertEquals(True, $this->isFieldInResponse('file_target', "/$filename"));
 	}
 
@@ -263,7 +272,28 @@ trait Sharing {
 	 * @param string $filename
 	 */
 	public function checkSharedFileNotInResponse($filename){
+		$filename = ltrim($filename, '/');
 		PHPUnit_Framework_Assert::assertEquals(False, $this->isFieldInResponse('file_target', "/$filename"));
+	}
+
+	/**
+	 * @Then /^File "([^"]*)" should be included as path in the response$/
+	 *
+	 * @param string $filename
+	 */
+	public function checkSharedFileAsPathInResponse($filename){
+		$filename = ltrim($filename, '/');
+		PHPUnit_Framework_Assert::assertEquals(True, $this->isFieldInResponse('path', "/$filename"));
+	}
+
+	/**
+	 * @Then /^File "([^"]*)" should not be included as path in the response$/
+	 *
+	 * @param string $filename
+	 */
+	public function checkSharedFileAsPathNotInResponse($filename){
+		$filename = ltrim($filename, '/');
+		PHPUnit_Framework_Assert::assertEquals(False, $this->isFieldInResponse('path', "/$filename"));
 	}
 
 	/**
@@ -382,6 +412,14 @@ trait Sharing {
 		if ($this->isFieldInResponse('id', $share_id)){
 			PHPUnit_Framework_Assert::fail("Share id $share_id has been found in response");
 		}
+	}
+
+	/**
+	 * @Then /^the response contains ([0-9]+) entries$/
+	 */
+	public function checkingTheResponseEntriesCount($count){
+		$actualCount = count($this->response->xml()->data[0]);
+		PHPUnit_Framework_Assert::assertEquals($count, $actualCount);
 	}
 
 	/**

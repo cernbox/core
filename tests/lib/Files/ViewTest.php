@@ -13,6 +13,7 @@ use OC\Files\Storage\Common;
 use OC\Files\Mount\MountPoint;
 use OC\Files\Storage\Temporary;
 use OCP\Files\FileInfo;
+use OCP\ICache;
 use OCP\Lock\ILockingProvider;
 
 class TemporaryNoTouch extends \OC\Files\Storage\Temporary {
@@ -103,6 +104,7 @@ class ViewTest extends \Test\TestCase {
 			$ids = $cache->getAll();
 			$cache->clear();
 		}
+		$this->resetStorage();
 
 		if ($this->tempStorage && !\OC_Util::runningOnWindows()) {
 			system('rm -rf ' . escapeshellarg($this->tempStorage->getDataDir()));
@@ -117,6 +119,29 @@ class ViewTest extends \Test\TestCase {
 		\Test\TestCase::invokePrivate($mountProviderCollection, 'providers', [[]]);
 
 		parent::tearDown();
+	}
+
+	/**
+	 * reset storage cache
+	 */
+	protected function resetStorage() {
+		$storage = new \ReflectionClass('OC\Files\Cache\Storage');
+		$property = $storage->getProperty('localCache');
+		$property->setAccessible(true);
+		/** @var ICache $localCache */
+		$localCache = $property->getValue();
+		if ($localCache instanceof ICache) {
+			$localCache->clear();
+		}
+		$property->setAccessible(false);
+		$property = $storage->getProperty('distributedCache');
+		$property->setAccessible(true);
+		/** @var ICache $localCache */
+		$distributedCache = $property->getValue();
+		if ($distributedCache instanceof ICache) {
+			$distributedCache->clear();
+		}
+		$property->setAccessible(false);
 	}
 
 	/**
@@ -510,6 +535,29 @@ class ViewTest extends \Test\TestCase {
 
 		$this->assertFalse($rootView->file_exists('foo.txt'));
 		$this->assertFalse($rootView->file_exists('substorage/bar.txt'));
+	}
+
+	public function rmdirOrUnlinkDataProvider() {
+		return [['rmdir'], ['unlink']];
+	}
+
+	/**
+	 * @dataProvider rmdirOrUnlinkDataProvider
+	 */
+	public function testRmdir($method) {
+		$storage1 = $this->getTestStorage();
+		\OC\Files\Filesystem::mount($storage1, [], '/');
+
+		$rootView = new \OC\Files\View('');
+		$rootView->mkdir('sub');
+		$rootView->mkdir('sub/deep');
+		$rootView->file_put_contents('/sub/deep/foo.txt', 'asd');
+
+		$this->assertTrue($rootView->file_exists('sub/deep/foo.txt'));
+
+		$this->assertTrue($rootView->$method('sub'));
+
+		$this->assertFalse($rootView->file_exists('sub'));
 	}
 
 	/**

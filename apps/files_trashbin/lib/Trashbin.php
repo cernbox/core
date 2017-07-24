@@ -87,6 +87,10 @@ class Trashbin {
 		if (!$userManager->userExists($uid)) {
 			$uid = User::getUser();
 		}
+		if (!$uid) {
+			// no owner, usually because of share link from ext storage
+			return [null, null];
+		}
 		Filesystem::initMountPoints($uid);
 		if ($uid != User::getUser()) {
 			$info = Filesystem::getFileInfo($filename);
@@ -202,6 +206,12 @@ class Trashbin {
 		$root = Filesystem::getRoot();
 		list(, $user) = explode('/', $root);
 		list($owner, $ownerPath) = self::getUidAndFilename($file_path);
+
+		// if no owner found (ex: ext storage + share link), will use the current user's trashbin then
+		if (is_null($owner)) {
+			$owner = $user;
+			$ownerPath = $file_path;
+		}
 
 		$ownerView = new View('/' . $owner);
 		// file has been deleted in between
@@ -369,7 +379,8 @@ class Trashbin {
 		if ($timestamp) {
 			$location = self::getLocation($user, $filename, $timestamp);
 			if ($location === false) {
-				\OCP\Util::writeLog('files_trashbin', 'trash bin database inconsistent!', \OCP\Util::ERROR);
+				\OCP\Util::writeLog('files_trashbin', 'Original location of file ' . $filename .
+					' not found in database, hence restoring into user\'s root instead', \OCP\Util::DEBUG);
 			} else {
 				// if location no longer exists, restore file in the root directory
 				if ($location !== '/' &&
@@ -587,8 +598,8 @@ class Trashbin {
 		if(is_null($userObject)) {
 			return 0;
 		}
-		$quota = $userObject->getQuota();
-		if ($quota === null || $quota === 'none') {
+		$quota = \OC_Util::getUserQuota($userObject);
+		if ($quota === \OCP\Files\FileInfo::SPACE_UNLIMITED) {
 			$quota = Filesystem::free_space('/');
 			$softQuota = false;
 			// inf or unknown free space

@@ -30,7 +30,7 @@ use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\Files\IRootFolder;
 use OCP\Lock\LockedException;
-use OCP\Share;
+use OCP\Share\IShare;
 use OCP\Share\IManager;
 use OCP\Share\Exceptions\ShareNotFound;
 use OCP\Share\Exceptions\GenericShareException;
@@ -425,6 +425,10 @@ class Share20OCS {
 
 		$shares = array_merge($userShares, $groupShares);
 
+		$shares = array_filter($shares, function(IShare $share) {
+			return $share->getShareOwner() !== $this->currentUser->getUID();
+ 		});
+
 		$formatted = [];
 		foreach ($shares as $share) {
 			if ($this->canAccessShare($share)) {
@@ -634,6 +638,7 @@ class Share20OCS {
 
 			if ($newPermissions !== null) {
 				$share->setPermissions($newPermissions);
+				$permissions = $newPermissions;
 			}
 
 			if ($expireDate === '') {
@@ -721,7 +726,7 @@ class Share20OCS {
 
 		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP) {
 			$sharedWith = $this->groupManager->get($share->getSharedWith());
-			if ($sharedWith->inGroup($this->currentUser)) {
+			if (!is_null($sharedWith) && $sharedWith->inGroup($this->currentUser)) {
 				return true;
 			}
 		}

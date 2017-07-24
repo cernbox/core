@@ -896,7 +896,8 @@
 				tr,
 				fileData,
 				newTrs = [],
-				isAllSelected = this.isAllSelected();
+				isAllSelected = this.isAllSelected(),
+				showHidden = this._filesConfig.get('showhidden');
 
 			if (index >= this.files.length) {
 				return false;
@@ -920,7 +921,10 @@
 				}
 				newTrs.push(tr);
 				index++;
-				count--;
+				// only count visible rows
+				if (showHidden || !tr.hasClass('hidden-file')) {
+					count--;
+				}
 			}
 
 			// trigger event for newly added rows
@@ -1402,8 +1406,15 @@
 
 		_isValidPath: function(path) {
 			var sections = path.split('/');
-			for (var i = 0; i < sections.length; i++) {
+			var i;
+			for (i = 0; i < sections.length; i++) {
 				if (sections[i] === '..') {
+					return false;
+				}
+			}
+			var specialChars = [decodeURIComponent('%00'), decodeURIComponent('%0A')];
+			for (i = 0; i < specialChars.length; i++) {
+				if (path.indexOf(specialChars[i]) !== -1) {
 					return false;
 				}
 			}
@@ -1419,6 +1430,7 @@
 		_setCurrentDir: function(targetDir, changeUrl, fileId) {
 			targetDir = targetDir.replace(/\\/g, '/');
 			if (!this._isValidPath(targetDir)) {
+				OC.Notification.showTemporary(t('files', 'Invalid path'));
 				targetDir = '/';
 				changeUrl = true;
 			}
@@ -1521,12 +1533,22 @@
 			this._currentFileModel = null;
 			this.$el.find('.select-all').prop('checked', false);
 			this.showMask();
-			this._reloadCall = this.filesClient.getFolderContents(
-				this.getCurrentDirectory(), {
-					includeParent: true,
-					properties: this._getWebdavProperties()
+			try {
+				this._reloadCall = this.filesClient.getFolderContents(
+					this.getCurrentDirectory(), {
+						includeParent: true,
+						properties: this._getWebdavProperties()
+					}
+				);
+			} catch (e) {
+				if (e instanceof DOMException) {
+					console.error(e);
+					this.changeDirectory('/');
+					OC.Notification.showTemporary(t('files', 'Invalid path'));
+					return;
 				}
-			);
+				throw e;
+			}
 			if (this._detailsView) {
 				// close sidebar
 				this._updateDetailsView(null);
@@ -1543,7 +1565,7 @@
 			}
 
 			// Firewall Blocked request?
-			if (status === 403) {
+			if (status === 403 || status === 400) {
 				// Go home
 				this.changeDirectory('/');
 				OC.Notification.showTemporary(t('files', 'This operation is forbidden'));
@@ -1669,44 +1691,49 @@
 				urlSpec = {};
 			ready(iconURL); // set mimeicon URL
 
-			urlSpec.file = OCA.Files.Files.fixPath(path);
-			if (options.x) {
-				urlSpec.x = options.x;
-			}
-			if (options.y) {
-				urlSpec.y = options.y;
-			}
-			if (options.a) {
-				urlSpec.a = options.a;
-			}
-			if (options.mode) {
-				urlSpec.mode = options.mode;
-			}
-
-			if (etag){
-				// use etag as cache buster
-				urlSpec.c = etag;
-			}
-
-			previewURL = self.generatePreviewUrl(urlSpec);
-			previewURL = previewURL.replace('(', '%28');
-			previewURL = previewURL.replace(')', '%29');
-
-			// preload image to prevent delay
-			// this will make the browser cache the image
 			var img = new Image();
-			img.onload = function(){
-				// if loading the preview image failed (no preview for the mimetype) then img.width will < 5
-				if (img.width > 5) {
-					ready(previewURL, img);
-				} else if (options.error) {
-					options.error();
+
+			if (oc_appconfig.core.previewsEnabled) {
+				urlSpec.file = OCA.Files.Files.fixPath(path);
+				if (options.x) {
+					urlSpec.x = options.x;
 				}
-			};
-			if (options.error) {
-				img.onerror = options.error;
+				if (options.y) {
+					urlSpec.y = options.y;
+				}
+				if (options.a) {
+					urlSpec.a = options.a;
+				}
+				if (options.mode) {
+					urlSpec.mode = options.mode;
+				}
+
+				if (etag) {
+					// use etag as cache buster
+					urlSpec.c = etag;
+				}
+
+				previewURL = self.generatePreviewUrl(urlSpec);
+				previewURL = previewURL.replace('(', '%28');
+				previewURL = previewURL.replace(')', '%29');
+
+				// preload image to prevent delay
+				// this will make the browser cache the image
+				img.onload = function () {
+					// if loading the preview image failed (no preview for the mimetype) then img.width will < 5
+					if (img.width > 5) {
+						ready(previewURL, img);
+					} else if (options.error) {
+						options.error();
+					}
+				};
+				if (options.error) {
+					img.onerror = options.error;
+				}
+				img.src = previewURL;
+			} else {
+				ready(iconURL, img);
 			}
-			img.src = previewURL;
 		},
 
 		/**
@@ -2413,7 +2440,7 @@
 				$('#searchresults .emptycontent').addClass('emptycontent-search');
 				if ( $('#searchresults').length === 0 || $('#searchresults').hasClass('hidden') ) {
 					this.$el.find('.nofilterresults').removeClass('hidden').
-						find('p').text(t('files', "No entries in this folder match '{filter}'", {filter:this._filter},  null, {'escape': false}));
+						find('p').text(t('files', 'No entries in this folder match {filter}', {filter:this._filter}));
 				}
 			} else {
 				$('#searchresults').removeClass('filter-empty');
