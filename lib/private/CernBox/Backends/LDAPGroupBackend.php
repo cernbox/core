@@ -35,7 +35,7 @@ class LDAPGroupBackend implements GroupInterface {
 		$this->baseDN = $this->config->getSystemValue("cbox.ldap.group.basedn", "dc=example,dc=org");
 		$this->isVersion3 = $this->config->getSystemValue("cbox.ldap.group.version3", false);
 		$this->matchFilter = $this->config->getSystemValue("cbox.ldap.group.matchfilter", "(&(objectClass=group)(objectClass=top)(cn=%s))");
-		$this->searchFilter = $this->config->getSystemValue("cbox.ldap.group.searchfilter", "(&(objectClass=group)(objectClass=top)(cn=%s*))");
+		$this->searchFilter = $this->config->getSystemValue("cbox.ldap.group.searchfilter", "(&(objectClass=group)(objectClass=top)(cn=*%s*))");
 		$this->searchAttrs = $this->config->getSystemValue("cbox.ldap.group.searchattrs", ["uid", "mail", "gecos"]);
 		$this->displayNameAttr = $this->config->getSystemValue("cbox.ldap.group.displaynameattr", "gecos");
 		$this->uidAttr = $this->config->getSystemValue("cbox.ldap.group.uidattr", "uid");
@@ -110,7 +110,7 @@ class LDAPGroupBackend implements GroupInterface {
 
 		$this->logger->info("search=$search limit=$limit");
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf($this->searchFilter, $search), $this->searchAttrs);
+		$sr = ldap_search($ldapLink, $this->baseDN,str_replace('%s', $search, $this->searchFilter), $this->searchAttrs);
 		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 
 		$info = ldap_get_entries($ldapLink, $sr);

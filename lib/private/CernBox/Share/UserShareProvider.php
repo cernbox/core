@@ -320,11 +320,6 @@ class UserShareProvider implements IShareProvider {
 			throw new BackendError('Invalid share backend');
 		}
 
-		$logMessage = sprintf("unit(UserShareProvider) method(getSharedWith) return:numberofshares(%d)", count($shares));
-		$this->log->info($logMessage);
-		if($shares) {
-			$this->log->info("share: " . $shares[0]->getNode()->getInternalPath());
-		}
 		return $shares;
 	}
 

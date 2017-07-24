@@ -23,6 +23,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 	private $searchAttrs;
 	private $displayNameAttr;
 	private $uidAttr;
+	private $mailAttr;
 
 	private $logger;
 
@@ -38,7 +39,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		$this->isVersion3 = $this->config->getSystemValue("cbox.ldap.user.version3", false);
 		$this->groupBackend = $this->config->getSystemValue("cbox.ldap.user.groupbackend", "\\OC\\CernBox\\Backends\\GroupBackend");
 		$this->matchFilter = $this->config->getSystemValue("cbox.ldap.user.matchfilter", "(&(objectClass=account)(uid=%s))");
-		$this->searchFilter = $this->config->getSystemValue("cbox.ldap.user.searchfilter", "(&(objectClass=account)(uid=%s*))");
+		$this->searchFilter = $this->config->getSystemValue("cbox.ldap.user.searchfilter", "(&(objectClass=account)(uid=*%s*))");
 		$this->searchAttrs = $this->config->getSystemValue("cbox.ldap.user.searchattrs", ["uid", "mail", "gecos"]);
 		$this->displayNameAttr = $this->config->getSystemValue("cbox.ldap.user.displaynameattr", "gecos");
 		$this->uidAttr = $this->config->getSystemValue("cbox.ldap.user.uidattr", "uid");
@@ -86,7 +87,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 
 		$this->logger->info("search=$search limit=$limit");
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf($this->searchFilter, $search), $this->searchAttrs);
+		$sr = ldap_search($ldapLink, $this->baseDN,str_replace('%s', $search, $this->searchFilter), $this->searchAttrs);
 		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 		$info = ldap_get_entries($ldapLink, $sr);
 		for ($i = 0; $i < $info["count"]; $i++) {
@@ -169,7 +170,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		}
 
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=user)(" . $this->displayNameAttr . "=%s*))", $search), $this->searchAttrs);
+		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=user)(" . $this->displayNameAttr . "=*%s*))", $search), $this->searchAttrs);
 		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 
 		$info = ldap_get_entries($ldapLink, $sr);
