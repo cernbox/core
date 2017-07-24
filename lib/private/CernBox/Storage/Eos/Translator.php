@@ -128,7 +128,7 @@ class Translator {
 
 		$tempOcPath = trim($tempOcPath, '/');
 
-		if (strpos($tempOcPath, '  project') === 0) {
+		if (strpos($tempOcPath, '  project') === 0 && \OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
 			$len = strlen('  project ');
 			$nextSlash = strpos($tempOcPath, '/');
 			if ($nextSlash === false) {

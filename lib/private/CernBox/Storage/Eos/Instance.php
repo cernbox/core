@@ -313,6 +313,31 @@ class Instance implements IInstance {
 						}
 
 						$ownCloudMap = $this->getOwnCloudMapFromEosMap($username, $eosMap);
+
+						// permissions to access a project space are handled using three e-groups:
+						// readers, writers and admins
+						if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+							$ocPath = $ownCloudMap['path'];
+							if(strpos($ocPath, "files/  project ") === 0) {
+								$path = trim($ocPath, '/');
+								$path = trim(substr($path, strlen("files/  project ")), "/");
+								$projectName = explode('/', $path)[0];
+								$projectMapper = \OC::$server->getCernBoxProjectMapper();
+								$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
+								if($projectInfo->getProjectOwner() === $username) {
+									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
+								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
+									$ownCloudMap['permissions']	 = Constants::PERMISSION_READ;
+								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
+									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
+								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectAdmins())) {
+									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
+								} else {
+									$ownCloudMap['permissions'] = 0;
+								}
+							}
+						}
+
 						$entries[] = new CacheEntry($ownCloudMap);
 					}
 				}
