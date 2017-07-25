@@ -20,6 +20,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 	private $groupBackend;
 	private $matchFilter;
 	private $searchFilter;
+	private $searchFilterScoped;
 	private $searchAttrs;
 	private $displayNameAttr;
 	private $uidAttr;
@@ -40,6 +41,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		$this->groupBackend = $this->config->getSystemValue("cbox.ldap.user.groupbackend", "\\OC\\CernBox\\Backends\\GroupBackend");
 		$this->matchFilter = $this->config->getSystemValue("cbox.ldap.user.matchfilter", "(&(objectClass=account)(uid=%s))");
 		$this->searchFilter = $this->config->getSystemValue("cbox.ldap.user.searchfilter", "(&(objectClass=account)(uid=*%s*))");
+		$this->searchFilterScoped = $this->config->getSystemValue("cbox.ldap.user.scopedsearchfilter", "(&(objectClass=account)(uid=*%s*))");
 		$this->searchAttrs = $this->config->getSystemValue("cbox.ldap.user.searchattrs", ["uid", "mail", "gecos"]);
 		$this->displayNameAttr = $this->config->getSystemValue("cbox.ldap.user.displaynameattr", "gecos");
 		$this->uidAttr = $this->config->getSystemValue("cbox.ldap.user.uidattr", "uid");
@@ -170,7 +172,13 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		}
 
 		$ldapLink = $this->getLink();
-		$sr = ldap_search($ldapLink, $this->baseDN, sprintf("(&(objectClass=user)(" . $this->displayNameAttr . "=*%s*))", $search), $this->searchAttrs);
+		if(strpos($search, "a:") === 0) {
+			$search = substr($search, strlen("a:"));
+			$searchFilter = str_replace("%s", $search, $this->searchFilterScoped);
+		} else {
+			$searchFilter = str_replace("%s", $search, $this->searchFilter);
+		}
+		$sr = ldap_search($ldapLink, $this->baseDN, $searchFilter, $this->searchAttrs);
 		$this->logger->info(sprintf("number of entries returned: %d", ldap_count_entries($ldapLink, $sr)));
 
 		$info = ldap_get_entries($ldapLink, $sr);
