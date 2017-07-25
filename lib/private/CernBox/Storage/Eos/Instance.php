@@ -813,9 +813,9 @@ class Instance implements IInstance {
 
 		$eosMap['etag'] = $eosMap['eos.etag'];
 		$eosMap['fileid'] = (int)$eosMap['eos.ino'];
-		$eosMap['mtime'] = $eosMap['eos.mtime'];
+		$eosMap['mtime'] = (int)$eosMap['eos.mtime'];
 		$eosMap['size'] = (int)isset($eosMap['eos.size']) ? $eosMap['eos.size'] : 0;
-		$eosMap['storage_mtime'] = $eosMap['mtime'];
+		$eosMap['storage_mtime'] = (int)$eosMap['mtime'];
 		$eosMap['path'] = $translator->toOc($eosMap['eos.file']);
 		$eosMap['path_hash'] = md5($eosMap['path']);
 		$eosMap['parent'] = (int)$eosMap['eos.pid'];
@@ -840,7 +840,7 @@ class Instance implements IInstance {
 
 		$recycleMap['path'] = $translator->toOc($recycleMap['eos.restore-path']);
 		$recycleMap['name'] = basename($recycleMap['eos.restore-path']);
-		$recycleMap['mtime'] = basename($recycleMap['eos.deletion-time']);
+		$recycleMap['mtime'] = (int)basename($recycleMap['eos.deletion-time']);
 		return $recycleMap;
 	}
 }

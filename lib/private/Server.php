@@ -50,6 +50,7 @@ use OC\CernBox\Storage\Eos\InstanceMapper;
 use OC\CernBox\Storage\Eos\IProjectMapper;
 use OC\CernBox\Storage\Eos\Util;
 use OC\CernBox\Storage\MetaDataCache\MultiCache;
+use OC\CernBox\Storage\MetaDataCache\PathControlledCache;
 use OC\CernBox\Storage\MetaDataCache\RedisCache;
 use OC\CernBox\Storage\MetaDataCache\RequestCache;
 use OC\Command\AsyncBus;
@@ -702,10 +703,16 @@ class Server extends ServerContainer implements IServerContainer {
 			if(\OC::$server->getConfig()->getSystemValue("cbox.caches.req", false)) {
 				$caches[] = new RequestCache();
 			}
+
 			if(\OC::$server->getConfig()->getSystemValue("cbox.caches.redis", false)) {
 				$caches[] = new RedisCache(new Redis());
 			}
+
 			$multiCache = new MultiCache($caches);
+			if(\OC::$server->getConfig()->getSystemValue("cbox.caches.pathcontrolled", false)) {
+				$multiCache = new PathControlledCache($multiCache);
+			}
+
 			return $multiCache;
 		});
 

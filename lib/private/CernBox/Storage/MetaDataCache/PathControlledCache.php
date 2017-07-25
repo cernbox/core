@@ -7,25 +7,18 @@
  */
 
 namespace OC\CernBox\Storage\MetaDataCache;
+use OCP\Files\Cache\ICacheEntry;
 
 
-/**
- * Class PathControlledCache
- *
- * @package OC\CernBox\Storage\MetaDataCache
- *
- * This cache contains a list of paths to disable metadata caching.
- * It wraps a IMetaDataCache that is called or not depending on the path.
- */
-class PathControlledCache {
+class PathControlledCache implements IMetaDataCache {
 
 	private $paths;
 	private $wrapped;
 
 	public function __construct($wrapped) {
-		$paths = \OC::$server->getConfig()->getSystemValue("avoid_req_cache_paths", array());
-		$this->paths = $paths;
 		$this->wrapped = $wrapped;
+		$paths = \OC::$server->getConfig()->getSystemValue("cbox.caches.pathcontrolled.noncachedpaths", []);
+		$this->paths = $paths;
 	}
 
 	private function shouldAvoidCache()
@@ -40,9 +33,7 @@ class PathControlledCache {
 		return false;
 	}
 
-
-	public  function getFileById($id)
-	{
+	public function getUidAndGid($key) {
 		if ($this->shouldAvoidCache()) {
 			return null;
 		} else {
@@ -50,8 +41,7 @@ class PathControlledCache {
 		}
 	}
 
-	public  function setFileById($id, $data)
-	{
+	public function setUidAndGid($key, array $data) {
 		if ($this->shouldAvoidCache()) {
 			return null;
 		} else {
@@ -59,8 +49,7 @@ class PathControlledCache {
 		}
 	}
 
-	public  function clearFileById($id)
-	{
+	public function getCacheEntry($key) {
 		if ($this->shouldAvoidCache()) {
 			return null;
 		} else {
@@ -68,8 +57,7 @@ class PathControlledCache {
 		}
 	}
 
-	public  function getFileByEosPath($eosPath)
-	{
+	public function setCacheEntry($key, ICacheEntry $data) {
 		if ($this->shouldAvoidCache()) {
 			return null;
 		} else {
@@ -77,8 +65,7 @@ class PathControlledCache {
 		}
 	}
 
-	public  function getSecureFileByEosPath($eosPath)
-	{
+	public function getPathById($key) {
 		if ($this->shouldAvoidCache()) {
 			return null;
 		} else {
@@ -86,107 +73,7 @@ class PathControlledCache {
 		}
 	}
 
-	public  function setFileByEosPath($eosPath, $data)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function clearFileByEosPath($eosPath)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function getFileInfoByEosPath($depth, $eosPath)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function setFileInfoByEosPath($depth, $eosPath, $data)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function getMeta($ocPath)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function setMeta($ocPath, $data)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function getEGroups($user)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function setEGroups($user, $data)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function getOwner($eosPath)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function setOwner($eosPath, $data)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function getUidAndGid($user)
-	{
-		if ($this->shouldAvoidCache()) {
-			return null;
-		} else {
-			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
-		}
-	}
-
-	public  function setUidAndGid($user, $data)
-	{
+	public function setPathById($key, $data) {
 		if ($this->shouldAvoidCache()) {
 			return null;
 		} else {
