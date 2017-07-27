@@ -28,20 +28,31 @@
 						'<label for="mail-{{cid}}-{{shareWith}}">{{notifyByMailLabel}}</label>' +
 					'</span>' +
 					'{{/unless}} {{/if}}' +
+					/*
 					'{{#if isResharingAllowed}} {{#if sharePermissionPossible}}' +
 					'<span class="shareOption">' +
 						'<input id="canShare-{{cid}}-{{shareWith}}" type="checkbox" name="share" class="permissions checkbox" {{#if hasSharePermission}}checked="checked"{{/if}} data-permissions="{{sharePermission}}" />' +
 						'<label for="canShare-{{cid}}-{{shareWith}}">{{canShareLabel}}</label>' +
 					'</span>' +
 					'{{/if}} {{/if}}' +
+					*/
 					'{{#if editPermissionPossible}}' +
-					'<span class="shareOption">' +
-						'<input id="canEdit-{{cid}}-{{shareWith}}" type="checkbox" name="edit" class="permissions checkbox" {{#if hasEditPermission}}checked="checked"{{/if}} />' +
-						'<label for="canEdit-{{cid}}-{{shareWith}}">{{canEditLabel}}</label>' +
-						'<a href="#" class="showCruds"><img class="svg" alt="{{crudsLabel}}" src="{{triangleSImage}}"/></a>' +
-					'</span>' +
 					'{{/if}}' +
-					'<div class="cruds hidden">' +
+					'<div class="cruds">' +
+						'<span class="shareOption">' +
+							'<input type="checkbox" name="read" class="permissions checkbox" checked="checked" disabled />' +
+							'<label for="canRead-{{cid}}-{{shareWith}}">read</label>' +
+						'</span>' +
+						'{{#if createPermissionPossible}}' +
+						'<span class="shareOption">' +
+							'<input id="canCreate-{{cid}}-{{shareWith}}" type="checkbox" name="create" class="permissions checkbox" {{#if hasCreatePermission}}checked="checked"{{/if}} data-permissions="{{createPermission}}"/>' +
+							'<label for="canCreate-{{cid}}-{{shareWith}}">write + delete</label>' +
+						'</span>' +
+						'{{/if}}' +
+						'<span class="shareOption">' +
+							'<button>Send notification</button>' + 
+						'</span>' +
+						/*
 						'{{#if createPermissionPossible}}' +
 						'<span class="shareOption">' +
 							'<input id="canCreate-{{cid}}-{{shareWith}}" type="checkbox" name="create" class="permissions checkbox" {{#if hasCreatePermission}}checked="checked"{{/if}} data-permissions="{{createPermission}}"/>' +
@@ -60,6 +71,7 @@
 							'<label for="canDelete-{{cid}}-{{shareWith}}">{{deletePermissionLabel}}</label>' +
 						'</span>' +
 						'{{/if}}' +
+						*/
 					'</div>' +
 				'</li>' +
 			'{{/each}}' +

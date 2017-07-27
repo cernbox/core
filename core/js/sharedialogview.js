@@ -341,7 +341,7 @@
 				sharePlaceholder: this._renderSharePlaceholderPart(),
 				remoteShareInfo: this._renderRemoteShareInfoPart(),
 				isSharingAllowed: this.model.sharePermissionPossible(),
-				isDir: this.model.get('itemType') === 'dir' ? true : false
+				isDir: this.model.get('itemType') === 'folder' ? true : false
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
