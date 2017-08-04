@@ -571,7 +571,9 @@ class Installer {
 		if (is_null($info)) {
 			return false;
 		}
-		\OC_App::setupBackgroundJobs($info['background-jobs']);
+		//\OC_App::setupBackgroundJobs($info['background-jobs']);
+		\OC_App::setupBackgroundJobs(array($info['background-jobs']));
+
 
 		OC_App::executeRepairSteps($app, $info['repair-steps']['install']);
 
