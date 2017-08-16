@@ -66,6 +66,11 @@ class Database extends \OC\User\Backend implements \OCP\IUserBackend {
 		$this->cache = new CappedMemoryCache();
 	}
 
+	public function getEmail($uid) {
+		return null;
+	}
+
+
 	/**
 	 * Create a new user
 	 * @param string $uid The username of the user to create

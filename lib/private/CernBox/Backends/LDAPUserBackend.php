@@ -71,7 +71,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 	}
 
 	private function getSupportedActions() {
-		return Backend::COUNT_USERS | Backend::GET_DISPLAYNAME | Backend::GET_HOME | Backend::CHECK_PASSWORD;
+		return Backend::COUNT_USERS | Backend::GET_DISPLAYNAME | Backend::GET_HOME | Backend::CHECK_PASSWORD | Backend::GET_EMAIL;
 	}
 
 	public function deleteUser($uid) {
@@ -194,6 +194,16 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 
 		return $map;
 	}
+
+	public function getEmail($uid) {
+		$user = $this->getUser($uid);
+		if ($user === false) {
+			return false;
+		}
+		return $user['email'];
+	}
+
+
 
 	/**
 	 * Check if the password is correct

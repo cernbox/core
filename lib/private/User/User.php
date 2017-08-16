@@ -337,6 +337,13 @@ class User implements IUser {
 	 * @since 9.0.0
 	 */
 	public function getEMailAddress() {
+		if ($this->backend and $this->backend->implementsActions(\OC\User\Backend::GET_EMAIL)) {
+			$email = $this->backend->getEmail($this->uid);
+			if (is_string($email)) {
+				$email = trim($email);
+				return $email;
+			}
+		}
 		return $this->config->getUserValue($this->uid, 'settings', 'email', null);
 	}
 

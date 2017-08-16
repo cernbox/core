@@ -426,7 +426,29 @@
 		 * @param {string} shareWith recipient
 		 * @param {bool} state whether to set the notification flag or remove it
 		 */
-		sendNotificationForShare: function(shareType, shareWith, state) {
+		sendCboxNotificationForShare: function(shareID, shareType, shareWith) {
+			var url = OC.generateUrl('/apps/mailer/sendmail');
+			var data = {
+				'recipient': shareWith,
+				'shareType': shareType,
+				'id': shareID,
+			};
+			$.post(url, data)
+				.success(function (result) {
+					OC.dialogs.info(t('core', result.message === '' ? 'Mail sent' : result.message), t('core', 'Mail sharing notifications'));
+				})
+				.fail(function(result) {
+					OC.dialogs.alert(t('core', result.message), t('core', 'Warning'));
+				});
+		},
+		
+		/**
+		 * Sends an email notification for the given share
+		 *
+		 * @param {int} shareType share type
+		 * @param {string} shareWith recipient
+		 */
+		sendNotificationForShare: function(shareType, shareWith) {
 			var itemType = this.get('itemType');
 			var itemSource = this.get('itemSource');
 

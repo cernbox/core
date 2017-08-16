@@ -96,6 +96,7 @@ interface UserInterface {
 	 */
 	public function getDisplayNames($search = '', $limit = null, $offset = null);
 
+
 	/**
 	 * Check if a user list is available or not
 	 * @return boolean if users can be listed or not
@@ -103,4 +104,11 @@ interface UserInterface {
 	 */
 	public function hasUserListings();
 
+	/**
+	 * get email of the user
+	 * @param string $uid user ID of the user
+	 * @return string email
+	 * @since ???
+	 */
+	public function getEmail($uid);
 }

@@ -49,9 +49,11 @@
 							'<label for="canCreate-{{cid}}-{{shareWith}}">write + delete</label>' +
 						'</span>' +
 						'{{/if}}' +
+						'{{#if mailerAppEnabled}}' +
 						'<span class="shareOption">' +
-							'<button>Send notification</button>' + 
+							'<button class="cbox-mail-notification">Send notification</button>' + 
 						'</span>' +
+						'{{/if}}' +
 						/*
 						'{{#if createPermissionPossible}}' +
 						'<span class="shareOption">' +
@@ -102,7 +104,8 @@
 			'click .unshare': 'onUnshare',
 			'click .permissions': 'onPermissionChange',
 			'click .showCruds': 'onCrudsToggle',
-			'click .mailNotification': 'onSendMailNotification'
+			'click .mailNotification': 'onSendMailNotification',
+			'click .cbox-mail-notification': 'onSendCboxMailNotification'
 		},
 
 		initialize: function(options) {
@@ -174,7 +177,8 @@
 				sharePermission: OC.PERMISSION_SHARE,
 				createPermission: OC.PERMISSION_CREATE,
 				updatePermission: OC.PERMISSION_UPDATE,
-				deletePermission: OC.PERMISSION_DELETE
+				deletePermission: OC.PERMISSION_DELETE,
+				mailerAppEnabled: OCA.Mailer ? true : false,
 			};
 
 			if(!this.model.hasUserShares()) {
@@ -300,6 +304,15 @@
 			var shareWith = $li.attr('data-share-with');
 
 			this.model.sendNotificationForShare(shareType, shareWith, $target.is(':checked'));
+		},
+		
+		onSendCboxMailNotification: function(event) {
+			var $target = $(event.target);
+			var $li = $(event.target).closest('li');
+			var shareType = $li.data('share-type');
+			var shareWith = $li.attr('data-share-with');
+			var shareID = $li.attr('data-share-id');
+			this.model.sendCboxNotificationForShare(shareID, shareType, shareWith);
 		}
 	});
 
