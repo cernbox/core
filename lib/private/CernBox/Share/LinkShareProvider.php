@@ -208,10 +208,15 @@ class LinkShareProvider implements IShareProvider {
 		// versions folder shares to their original filename.
 		foreach($shares as $index => $share) {
 			if($share->getNodeType() === \OCP\Files\FileInfo::TYPE_FILE) {
-				$metaData = $this->instanceManager->getFileFromVersionsFolder($share->getShareOwner(), $share->getNode()->getInternalPath());
-				$parentFolder = $share->getNode()->getParent();
-				$originalNode = $parentFolder->get(basename($metaData['path']));
-				$share->setNode($originalNode);
+				// the share can be a dangling share so we check if it exists in the fs
+				try {
+					$metaData = $this->instanceManager->getFileFromVersionsFolder($share->getShareOwner(), $share->getNode()->getInternalPath());
+					$parentFolder = $share->getNode()->getParent();
+					$originalNode = $parentFolder->get(basename($metaData['path']));
+					$share->setNode($originalNode);
+				} catch (\Exception $ex) {
+					unset($shares[$index]);
+				}
 			}
 		}
 		return $shares;
