@@ -325,9 +325,9 @@ class EmptyContentSecurityPolicy {
 			if(is_array($this->allowedScriptDomains)) {
 				$policy .= implode(' ', $this->allowedScriptDomains);
 			}
-			if($this->inlineScriptAllowed) {
+			//if($this->inlineScriptAllowed) {
 				$policy .= ' \'unsafe-inline\'';
-			}
+			//}
 			if($this->evalScriptAllowed) {
 				$policy .= ' \'unsafe-eval\'';
 			}
@@ -339,9 +339,9 @@ class EmptyContentSecurityPolicy {
 			if(is_array($this->allowedStyleDomains)) {
 				$policy .= implode(' ', $this->allowedStyleDomains);
 			}
-			if($this->inlineStyleAllowed) {
+			//if($this->inlineStyleAllowed) {
 				$policy .= ' \'unsafe-inline\'';
-			}
+			//}
 			$policy .= ';';
 		}
 
