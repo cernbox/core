@@ -60,6 +60,11 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			return $isShared;
 		} 
 
+		if(strpos($url, 'ocs/v1.php/apps/files_sharing/api/v1/shares?format=json&shared_with_me=true') !== false) {
+			return true;
+		}
+		return false;
+
 		// we always mount shares as fallback
 		return true;
 	}
