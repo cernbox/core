@@ -129,7 +129,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 	private function getUser($uid) {
 		$ldapLink = $this->getLink();
 		$search = sprintf($this->matchFilter, $uid);
-		$this->logger->info("filter=$search");
+		$this->logger->info("UserLDAP::getUser::filter=$search");
 		$sr = ldap_search($ldapLink, $this->baseDN, $search, $this->searchAttrs);
 		if ($sr === false) {
 			$error = ldap_error($ldapLink);
