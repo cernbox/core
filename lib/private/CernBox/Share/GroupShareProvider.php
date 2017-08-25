@@ -182,7 +182,7 @@ class GroupShareProvider implements IShareProvider {
 	}
 
 	public function move(IShare $share, $recipient) {
-		// TODO: Implement move() method.
+		return $share;
 	}
 
 	/**
@@ -328,18 +328,27 @@ class GroupShareProvider implements IShareProvider {
 
 	/**
 	 * Checks if the file pointed by the share exists
-	 * and it is accessible (not in trash nor version folder).
+	 * and it is accessible (not in trash nor version folder or the user doesn't exist anymore).
 	 * @param $shareData
 	 * @returns boolean
 	 */
 	private function isAccessibleResult($shareData) {
-		$entry = $this->instanceManager->getPathById($shareData['uid_owner'], $shareData['file_source']);
-		if(!$entry) {
+		// we always return true, if the share is not accessible the user will get an error message
+		// when attempting to access it. The shares that are not valid are cleaned by background jobs anyway.
+		return true;
+		/*
+		try {
+			$entry = $this->instanceManager->getPathById($shareData['uid_owner'], $shareData['file_source']);
+			if(!$entry) {
+				return false;
+			} else {
+				// FIXME(labkode): check file is not on trash nor versions
+				return true;
+			}
+		} catch (\Exception $e) {
 			return false;
-		} else {
-			// FIXME(labkode): check file is not on trash nor versions
-			return true;
 		}
+		*/
 	}
 
 	private function createShare($data) {

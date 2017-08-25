@@ -184,20 +184,7 @@ class UserShareProvider implements IShareProvider {
 	}
 
 	public function move(\OCP\Share\IShare $share, $recipient) {
-		throw new ProviderException('Not allowed');
-		/*
-		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
-			// Just update the target
-			$qb = $this->dbConn->getQueryBuilder();
-			$qb->update('share')
-				->set('file_target', $qb->createNamedParameter($share->getTarget()))
-				->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())))
-				->execute();
-		} else {
-			throw new ProviderException('Invalid shareType');
-		}
 		return $share;
-		*/
 	}
 
 	public function getSharesBy($userId, $shareType, $node, $reshares, $limit, $offset) {
@@ -346,13 +333,7 @@ class UserShareProvider implements IShareProvider {
 	 * @returns boolean
 	 */
 	private function isAccessibleResult($shareData) {
-		$entry = $this->instanceManager->getPathById($shareData['uid_owner'], $shareData['file_source']);
-		if(!$entry) {
-			return false;
-		} else {
-			// FIXME(labkode): check file is not on trash nor versions
-			return true;
-		}
+		return true;
 	}
 
 	private function createShare($data) {
