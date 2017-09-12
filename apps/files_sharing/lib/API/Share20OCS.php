@@ -116,27 +116,10 @@ class Share20OCS {
 			'displayname_file_owner' => $shareOwner !== null ? $shareOwner->getDisplayName() : $share->getShareOwner(),
 		];
 
-		$userFolder = $this->rootFolder->getUserFolder($this->currentUser->getUID());
-		$nodes = $userFolder->getById($share->getNodeId());
-
-		if (empty($nodes)) {
-			throw new NotFoundException();
-		}
-
-		$node = $nodes[0];
-
-		$result['path'] = $userFolder->getRelativePath($node->getPath());
-		if ($node instanceOf \OCP\Files\Folder) {
-			$result['item_type'] = 'folder';
-		} else {
-			$result['item_type'] = 'file';
-		}
-		$result['mimetype'] = $node->getMimeType();
-		$result['storage_id'] = $node->getStorage()->getId();
-		$result['storage'] = $node->getStorage()->getCache()->getNumericStorageId();
-		$result['item_source'] = $node->getId();
-		$result['file_source'] = $node->getId();
-		$result['file_parent'] = $node->getParent()->getId();
+		$result['item_type'] = 'folder';
+		$result['mimetype'] = 'httpd/unix-directory';
+		$result['item_source'] = $share->getNodeId();
+		$result['file_source'] = $share->getNodeId();
 		$result['file_target'] = $share->getTarget();
 
 		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {

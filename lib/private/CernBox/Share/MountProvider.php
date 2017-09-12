@@ -60,9 +60,27 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			return $isShared;
 		} 
 
-		if(strpos($url, 'ocs/v1.php/apps/files_sharing/api/v1/shares?format=json&shared_with_me=true') !== false) {
+		if(isset($_GET['shared_with_me'])) {
+			if(isset($_GET['path'])) {
+				$this->isSharedPath($_GET['path']);
+			}
 			return true;
 		}
+
+		if(isset($_GET['reshares'])) {
+			if(isset($_GET['path'])) {
+				$this->isSharedPath($_GET['path']);
+			}
+			return true;
+		}
+
+		if(strpos($url, 'apps/eosinfo/getinfo') !== false) {
+			if(isset($_POST['path'])) {
+				$this->isSharedPath($_POST['path']);
+			}
+			return true;
+		}
+
 		return false;
 
 		// we always mount shares as fallback
@@ -80,6 +98,7 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		// "aaa (#1234)/jas" => false
 		// "/(#7766)/jas" => false
 		// "/ (#7766)/jas" => true (this is a flaw)
+		$path = trim($path, '/');
 		if ($this->startsWith ( $path, '/' )) {
 			$topdir = explode ( "/", $path ) [1];
 		} else {
@@ -95,6 +114,9 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		// preg_match returns 1 or 0 or false
 		$isShared = preg_match ( "/[(][#](\d{3,})[)]/", $marker ); // we match at least 3 digits enclosed within our marker: (#123)
 		$isShared === 1? $isShared = true : $isShared = false;
+		if($isShared) {
+			$_SERVER['cernbox_file_target'] = $topdir;
+		}
 		$this->logger->info(sprintf("shared_path=%s shared=%s", $topdir, $isShared ? 'true' : 'false'));
 		return $isShared;
 	}

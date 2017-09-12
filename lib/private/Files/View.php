@@ -1325,7 +1325,7 @@ class View {
 	 * defaults to true
 	 * @return \OC\Files\FileInfo|false False if file does not exist
 	 */
-	public function getFileInfo($path, $includeMountPoints = true) {
+	public function getFileInfo($path, $includeMountPoints = false) {
 		$this->assertPathLength($path);
 		if (!Filesystem::isValidPath($path)) {
 			return false;
@@ -1356,6 +1356,11 @@ class View {
 			if ($data and isset($data['fileid'])) {
 				if ($includeMountPoints and $data['mimetype'] === 'httpd/unix-directory') {
 					//add the sizes of other mount points to the folder
+					/*
+				 	* CERNBox: if we don't comment this then when accesing a shared folder
+					* and mounting the filesystem for the owner of the share it will also include 
+					* the shared of that user and recursively to compute the mount size, of course,
+					* this does not scale and as we don't have movable mounts we don't need this.	
 					$extOnly = ($includeMountPoints === 'ext');
 					$mounts = Filesystem::getMountManager()->findIn($path);
 					foreach ($mounts as $mount) {
@@ -1370,6 +1375,7 @@ class View {
 							$info->addSubEntry($rootEntry, $mount->getMountPoint());
 						}
 					}
+					*/
 				}
 			}
 

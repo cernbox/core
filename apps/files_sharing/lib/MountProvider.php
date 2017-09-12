@@ -73,6 +73,14 @@ class MountProvider implements IMountProvider {
 			return $share->getPermissions() > 0 && $share->getShareOwner() !== $user->getUID();
 		});
 
+		if(isset($_SERVER['cernbox_file_target'])) {
+			$fileTarget = $_SERVER['cernbox_file_target'];
+			$shares = array_filter($shares, function (\OCP\Share\IShare $share) use ($fileTarget){
+				$shareTarget = trim($share->getTarget(), '/');
+				return $shareTarget === $fileTarget;
+			});
+		}
+
 		$superShares = $this->buildSuperShares($shares, $user);
 
 		$mounts = [];
