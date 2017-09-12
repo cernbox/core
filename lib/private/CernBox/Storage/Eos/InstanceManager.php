@@ -112,6 +112,10 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->getStagingDir();
 	}
 
+	public function isReadOnly() {
+		return $this->currentInstance->isReadOnly();
+	}
+
 
 	/**
 	 * @return IInstance[]

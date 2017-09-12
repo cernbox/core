@@ -20,6 +20,7 @@ class Instance implements IInstance {
 	private $projectPrefix;
 	private $stagingDir;
 	private $homeDirScript;
+	private $isReadOnly;
 
 	private $metaDataCache;
 	private $logger;
@@ -53,6 +54,7 @@ class Instance implements IInstance {
 		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : null;
 		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : null;
 		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : null;
+		$this->isReadOnly = isset($instanceConfig['readonly']) ? $instanceConfig['readonly'] : false;
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 		$this->groupManager = \OC::$server->getGroupManager();
@@ -94,11 +96,18 @@ class Instance implements IInstance {
 		return $this->stagingDir;
 	}
 
+	public function isReadOnly() {
+		return $this->isReadOnly;
+	}
+
 
 	/*
 	 * Storage functions
 	 */
 	public function createDir($username, $ocPath) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 		$eosPath = escapeshellarg($eosPath);
@@ -113,6 +122,9 @@ class Instance implements IInstance {
 	}
 
 	public function remove($username, $ocPath) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 		$eosPath = escapeshellarg($eosPath);
@@ -155,6 +167,9 @@ class Instance implements IInstance {
 	}
 
 	public function write($username, $ocPath, $stream) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 
@@ -182,6 +197,9 @@ class Instance implements IInstance {
 	}
 
 	public function rename($username, $fromOcPath, $toOcPath) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$translator = $this->getTranslator($username);
 		$fromEosPath = $translator->toEos($fromOcPath);
 		$fromEosPath = escapeshellarg($fromEosPath);
@@ -411,6 +429,9 @@ class Instance implements IInstance {
 	 * @return ICacheEntry the cache entry for the restored file.
 	 */
 	public function restoreDeletedFile($username, $key) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$command = "recycle restore $key";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->exec($command);
@@ -423,6 +444,9 @@ class Instance implements IInstance {
 	 * Purge all files for the user
 	 */
 	public function purgeAllDeletedFiles($username) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$command = "recycle purge";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->exec($command);
@@ -459,6 +483,9 @@ class Instance implements IInstance {
 	}
 
 	public function rollbackFileToVersion($username, $ocPath, $version) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 		$eosPathEscaped = escapeshellarg($eosPath);
@@ -484,6 +511,9 @@ class Instance implements IInstance {
 	}
 
 	public function addUserToFolderACL($username, $allowedUser, $ocPath, $ocPermissions) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$entry = $this->get($username, $ocPath);
 		if (!$entry) {
 			return false;
@@ -509,6 +539,9 @@ class Instance implements IInstance {
 	}
 
 	public function removeUserFromFolderACL($username, $allowedUser, $ocPath) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$entry = $this->get($username, $ocPath);
 		if (!$entry) {
 			return false;
@@ -534,6 +567,9 @@ class Instance implements IInstance {
 
 	// add an egroup/unix group to the sys.acl attr of a folder
 	public function addGroupToFolderACL($username, $allowedGroup, $ocPath, $ocPermissions) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$entry = $this->get($username, $ocPath);
 		if (!$entry) {
 			return false;
@@ -567,6 +603,9 @@ class Instance implements IInstance {
 	}
 
 	public function removeGroupFromFolderACL($username, $allowedGroup, $ocPath) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		$entry = $this->get($username, $ocPath);
 		if (!$entry) {
 			return false;
@@ -621,6 +660,9 @@ class Instance implements IInstance {
 	}
 
 	public function createHome($username) {
+		if($this->isReadOnly) {
+			return false;
+		}
 		list($uid,) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 
 		// check that the needed parameters are supplied

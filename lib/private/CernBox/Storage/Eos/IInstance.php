@@ -14,6 +14,7 @@ interface IInstance {
 	public function getFilterRegex();
 	public function getProjectPrefix();
 	public function getStagingDir();
+	public function isReadOnly();
 
 	public function createDir($username, $ocPath);
 	public function remove($username, $ocPath);
