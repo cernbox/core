@@ -13,11 +13,22 @@ class InstanceMapper implements IInstanceMapper {
 	/**
 	 * @var []InstanceInfo
 	 */
-	private $mappings;
+	private $mappings = [];
 
 	public function __construct() {
-		$info = new InstanceInfo('Experiment', 'root://eospublic.cern.ch', '/eos/experiment');
-		$this->mappings = [$info];
+		$this->logger = \OC::$server->getLogger();
+		$data = \OC_DB::prepare('SELECT * FROM cernbox_eos_instances')->execute()->fetchAll();
+		$infos = array();
+		foreach($data as $d)
+		{
+			$mgm = $d['mgm_url'];
+			$path = $d['root_path'];
+			$name = $d['name'];
+
+			$info = new InstanceInfo($name, $mgm, $path);
+			$this->mappings[] = $info;
+		}
+
 	}
 
 	public function getInstanceInfoByPath($rootPath) {
