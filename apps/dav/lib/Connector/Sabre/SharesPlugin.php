@@ -112,6 +112,7 @@ class SharesPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @return int[] array of share types
 	 */
 	private function getShareTypes(\OCP\Files\Node $node) {
+		return [];
 		$shareTypes = [];
 		$requestedShareTypes = [
 			\OCP\Share::SHARE_TYPE_USER,

@@ -60,18 +60,18 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			return $isShared;
 		} 
 
-		if(isset($_GET['shared_with_me'])) {
+		if(isset($_GET['shared_with_me']) && $_GET['shared_with_me'] === 'true') {
 			if(isset($_GET['path'])) {
-				$this->isSharedPath($_GET['path']);
+				$isShared = $this->isSharedPath($_GET['path']);
+				return $isShared;
 			}
 			return true;
 		}
 
 		if(isset($_GET['reshares'])) {
 			if(isset($_GET['path'])) {
-				$this->isSharedPath($_GET['path']);
+				return $this->isSharedPath($_GET['path']);
 			}
-			return true;
 		}
 
 		if(strpos($url, 'apps/eosinfo/getinfo') !== false) {

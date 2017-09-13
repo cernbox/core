@@ -116,6 +116,83 @@ class Share20OCS {
 			'displayname_file_owner' => $shareOwner !== null ? $shareOwner->getDisplayName() : $share->getShareOwner(),
 		];
 
+		$result['item_source'] = $share->getNodeId();
+		$result['file_source'] = $share->getNodeId();
+		$result['file_target'] = $share->getTarget();
+
+		$userFolder = $this->rootFolder->getUserFolder($this->currentUser->getUID());
+		$nodes = $userFolder->getById($share->getNodeId());
+
+		if (empty($nodes)) {
+			   throw new NotFoundException();
+		}
+
+		$node = $nodes[0];
+		$result['path'] = $userFolder->getRelativePath($node->getPath());
+		if ($node instanceOf \OCP\Files\Folder) {
+			   $result['item_type'] = 'folder';
+		} else {
+			   $result['item_type'] = 'file';
+		}
+		$result['mimetype'] = $node->getMimeType();
+
+
+		if ($share->getShareType() === \OCP\Share::SHARE_TYPE_USER) {
+			$sharedWith = $this->userManager->get($share->getSharedWith());
+			$result['share_with'] = $share->getSharedWith();
+			$result['share_with_displayname'] = $sharedWith !== null ? $sharedWith->getDisplayName() : $share->getSharedWith();
+		} else if ($share->getShareType() === \OCP\Share::SHARE_TYPE_GROUP) {
+			$result['share_with'] = $share->getSharedWith();
+			$result['share_with_displayname'] = $share->getSharedWith();
+		} else if ($share->getShareType() === \OCP\Share::SHARE_TYPE_LINK) {
+
+			$result['share_with'] = $share->getPassword();
+			$result['share_with_displayname'] = $share->getPassword();
+
+			$result['token'] = $share->getToken();
+			$result['url'] = $this->urlGenerator->linkToRouteAbsolute('files_sharing.sharecontroller.showShare', ['token' => $share->getToken()]);
+
+			$expiration = $share->getExpirationDate();
+			if ($expiration !== null) {
+				$result['expiration'] = $expiration->format('Y-m-d 00:00:00');
+			}
+
+		} else if ($share->getShareType() === \OCP\Share::SHARE_TYPE_REMOTE) {
+			$result['share_with'] = $share->getSharedWith();
+			$result['share_with_displayname'] = $share->getSharedWith();
+			$result['token'] = $share->getToken();
+		}
+
+		$result['mail_send'] = $share->getMailSend() ? 1 : 0;
+
+		return $result;
+	}
+
+	/**
+	 * Convert an IShare to an array for OCS output
+	 *
+	 * @param \OCP\Share\IShare $share
+	 * @return array
+	 * @throws NotFoundException In case the node can't be resolved.
+	 */
+	protected function formatShareForSharedWithMe(\OCP\Share\IShare $share) {
+		$sharedBy = $this->userManager->get($share->getSharedBy());
+		$shareOwner = $this->userManager->get($share->getShareOwner());
+
+		$result = [
+			'id' => $share->getId(),
+			'share_type' => $share->getShareType(),
+			'uid_owner' => $share->getSharedBy(),
+			'displayname_owner' => $sharedBy !== null ? $sharedBy->getDisplayName() : $share->getSharedBy(),
+			'permissions' => $share->getPermissions(),
+			'stime' => $share->getShareTime()->getTimestamp(),
+			'parent' => null,
+			'expiration' => null,
+			'token' => null,
+			'uid_file_owner' => $share->getShareOwner(),
+			'displayname_file_owner' => $shareOwner !== null ? $shareOwner->getDisplayName() : $share->getShareOwner(),
+		];
+
 		$result['item_type'] = 'folder';
 		$result['mimetype'] = 'httpd/unix-directory';
 		$result['item_source'] = $share->getNodeId();
@@ -416,7 +493,7 @@ class Share20OCS {
 		foreach ($shares as $share) {
 			if ($this->canAccessShare($share)) {
 				try {
-					$formatted[] = $this->formatShare($share);
+					$formatted[] = $this->formatShareForSharedWithMe($share);
 				} catch (NotFoundException $e) {
 					// Ignore this share
 				}
