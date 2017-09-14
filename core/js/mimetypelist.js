@@ -83,7 +83,9 @@ OC.MimeTypeList={
     "text/x-java-source": "text/code",
     "text/x-python": "text/code",
     "text/x-shellscript": "text/code",
-    "web": "text/code"
+    "web": "text/code",
+    "application/root": "application-root",
+    "application/pynb": "application-pynb"
 },
 	files: [
     "application",
@@ -105,7 +107,9 @@ OC.MimeTypeList={
     "video",
     "x-office-document",
     "x-office-presentation",
-    "x-office-spreadsheet"
+    "x-office-spreadsheet",
+    "application-root",
+    "application-pynb"
 ],
 	themes: []
 };
