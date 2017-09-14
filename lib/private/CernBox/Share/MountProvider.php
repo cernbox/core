@@ -54,8 +54,9 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		// from version 9 basic file ops are done through remote.php/webdav endpoint
 		// Example: /remote.php/webdav/cernbox-project-data-mining%20(%239993727)
 		// so we get the filename and check if it points to a shared mount.
-		if(strpos($url, 'remote.php/webdav') !== false) {
-			$filename = explode('/', trim(substr($url, strlen('remote.php/webdav')), '/'))[0];	
+		$remotePos = strpos($url, 'remote.php/webdav');
+		if($remotePos !== false) {
+			$filename = explode('/', trim(substr($url, $remotePos + strlen('remote.php/webdav')), '/'))[0];	
 			$isShared = $this->isSharedPath($filename);
 			return $isShared;
 		} 
