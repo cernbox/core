@@ -16,19 +16,20 @@ class InstanceMapper implements IInstanceMapper {
 	private $mappings = [];
 
 	public function __construct() {
-		$this->logger = \OC::$server->getLogger();
-		$data = \OC_DB::prepare('SELECT * FROM cernbox_eos_instances')->execute()->fetchAll();
-		$infos = array();
-		foreach($data as $d)
-		{
-			$mgm = $d['mgm_url'];
-			$path = $d['root_path'];
-			$name = $d['name'];
+		if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
+			$this->logger = \OC::$server->getLogger();
+			$data = \OC_DB::prepare('SELECT * FROM cernbox_eos_instances')->execute()->fetchAll();
+			$infos = array();
+			foreach($data as $d)
+			{
+				$mgm = $d['mgm_url'];
+				$path = $d['root_path'];
+				$name = $d['name'];
 
-			$info = new InstanceInfo($name, $mgm, $path);
-			$this->mappings[] = $info;
+				$info = new InstanceInfo($name, $mgm, $path);
+				$this->mappings[] = $info;
+			}
 		}
-
 	}
 
 	public function getInstanceInfoByPath($rootPath) {
