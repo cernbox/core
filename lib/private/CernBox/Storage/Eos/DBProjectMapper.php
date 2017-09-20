@@ -18,9 +18,12 @@ class DBProjectMapper implements  IProjectMapper {
 	 */
 	private $infos;
 
+	private $groupManager;
+
 	public function __construct() {
 		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
 			$this->logger = \OC::$server->getLogger();
+			$this->groupManager = \OC::$server->getGroupManager();
 			$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
 			$infos = array();
 			foreach($data as $projectData)
@@ -72,5 +75,64 @@ class DBProjectMapper implements  IProjectMapper {
 
 	public function getAllMappings() {
 		return $this->infos;
+	}
+
+	public function isReader($username, $projectName) {
+		$project = $this->getProjectInfoByProject($projectName);
+		if(!$project) {
+			return false;
+		}
+		return $this->groupManager->isInGroup($username, $project->getProjectReaders());
+	}
+
+	public function isWriter($username, $projectName) {
+		$project = $this->getProjectInfoByProject($projectName);
+		if(!$project) {
+			return false;
+		}
+		return $this->groupManager->isInGroup($username, $project->getProjectWriters());
+	}
+
+	public function isAdmin($username, $projectName) {
+		$project = $this->getProjectInfoByProject($projectName);
+		if(!$project) {
+			return false;
+		}
+		return $this->groupManager->isInGroup($username, $project->getProjectAdmins());
+	}
+
+	public function hasAccess($username, $projectName) {
+		$project = $this->getProjectInfoByProject($projectName);
+		if(!$project) {
+			return false;
+		}
+		if ($username === $project->getProjectOwner() ||
+			$this->groupManager->isInGroup($username, $project->getProjectAdmins()) ||
+			$this->groupManager->isInGroup($username, $project->getProjectWriters()) ||
+			$this->groupManager->isInGroup($username, $project->getProjectReaders())) {
+			return true;
+		}
+		return false;
+	}
+
+	public function getProjectsUserIsAdmin($username) {
+		$projects = [];
+		foreach($this->infos as $info) {
+			if($this->groupManager->isInGroup($username, $info->getProjectAdmins())) {
+				$projects[] = $info;
+			}
+		}
+		return $projects;
+	}
+
+	public function getProjectsUserHasAccess($username) {
+		$projects = [];
+		foreach($this->infos as $info) {
+			if($this->hasAccess($username, $info->getProjectName())) {
+				$projects[] = $info;
+			}
+		}
+		return $projects;
+
 	}
 }

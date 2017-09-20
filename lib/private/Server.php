@@ -729,17 +729,19 @@ class Server extends ServerContainer implements IServerContainer {
 			return new \OC\CernBox\Share\Util();
 		});
 
-		$this->registerService('CernBoxProjectMapper', function (Server $c) {
-			return new DBProjectMapper();
+
+		$this->registerService('CernBoxInstanceMapper', function (Server $c) {
+			return new InstanceMapper();
 		});
 
 		$this->registerService('CernBoxRedis', function (Server $c) {
 			return new Redis();
 		});
 
-		$this->registerService('CernBoxInstanceMapper', function (Server $c) {
-			return new InstanceMapper();
+		$this->registerService('CernBoxProjectMapper', function (Server $c) {
+			return new DBProjectMapper();
 		});
+
 	}
 
 	/**
@@ -1448,8 +1450,7 @@ class Server extends ServerContainer implements IServerContainer {
 	public function getCernBoxShareUtil() {
 		return $this->query('CernBoxShareUtil');
 	}
-
-	/**
+/**
 	 * @return IProjectMapper
 	 */
 	public function getCernBoxProjectMapper() {
@@ -1470,15 +1471,5 @@ class Server extends ServerContainer implements IServerContainer {
 	public function getCernBoxInstanceMapper() {
 		return $this->query('CernBoxInstanceMapper');
 	}
-
-	/*
-	public function getCernBoxCommander() {
-		return $this->query('CernBoxCommander');
-	}
-
-	public function getCernBoxPathTranslator() {
-		return $this->query('CernBoxPathTranslator');
-	}
-	*/
 
 }

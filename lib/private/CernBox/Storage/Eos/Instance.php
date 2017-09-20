@@ -26,7 +26,6 @@ class Instance implements IInstance {
 	private $logger;
 	private $shareUtil;
 	private $projectMapper;
-	private $groupManager;
 
 	/**
 	 * Instance constructor.
@@ -57,7 +56,6 @@ class Instance implements IInstance {
 		$this->isReadOnly = isset($instanceConfig['readonly']) ? $instanceConfig['readonly'] : false;
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
-		$this->groupManager = \OC::$server->getGroupManager();
 	}
 
 	public function getId() {
@@ -250,15 +248,13 @@ class Instance implements IInstance {
 					$path = trim($ocPath, '/');
 					$path = trim(substr($path, strlen("files/  project ")), "/");
 					$projectName = explode('/', $path)[0];
-					$projectMapper = \OC::$server->getCernBoxProjectMapper();
-					$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
-					if($projectInfo->getProjectOwner() === $username) {
+					$projectInfo = \OC::$server->getCernBoxProjectMapper()->getProjectInfoByProject($projectName);
+
+					if($projectInfo->getProjectOwner() === $username || \OC::$server->getCernBoxProjectMapper()->isAdmin($username, $projectInfo->getProjectName())) {
 						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
-					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectAdmins())) {
-						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
-					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
+					} else if (\OC::$server->getCernBoxProjectMapper()->isWriter($username, $projectInfo->getProjectName())) {
 						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
-					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
+					} else if (\OC::$server->getCernBoxProjectMapper()->isReader($username, $projectInfo->getProjectName())) {
 						$ownCloudMap['permissions'] = Constants::PERMISSION_READ;
 					} else {
 						$ownCloudMap['permissions'] = 0;
@@ -340,15 +336,12 @@ class Instance implements IInstance {
 								$path = trim($ocPath, '/');
 								$path = trim(substr($path, strlen("files/  project ")), "/");
 								$projectName = explode('/', $path)[0];
-								$projectMapper = \OC::$server->getCernBoxProjectMapper();
-								$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
-								if($projectInfo->getProjectOwner() === $username) {
+								$projectInfo = \OC::$server->getCernBoxProjectMapper()->getProjectInfoByProject($projectName);
+								if($projectInfo->getProjectOwner() === $username || \OC::$server->getCernBoxProjectMapper()->isAdmin($username, $projectInfo->getProjectName())) {
 									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
-								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectAdmins())) {
-									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
-								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
+								} else if (\OC::$server->getCernBoxProjectMapper()->isWriter($username, $projectInfo->getProjectName())) {
 									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
-								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
+								} else if (\OC::$server->getCernBoxProjectMapper()->isReader($username, $projectInfo->getProjectName())) {
 									$ownCloudMap['permissions'] = Constants::PERMISSION_READ;
 								} else {
 									$ownCloudMap['permissions'] = 0;

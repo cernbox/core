@@ -32,5 +32,46 @@ interface IProjectMapper {
 	 * @return ProjectInfo[]
 	 */
 	public function getAllMappings();
+
+
+	/**
+	 * @param $username string
+	 * @param $projectName string
+	 * @return bool
+	 */
+	public function isReader($username, $projectName);
+
+	/**
+	 * @param $username
+	 * @param $projectName
+	 * @return bool
+	 */
+	public function isWriter($username, $projectName);
+
+	/**
+	 * @param $username
+	 * @param $projectName
+	 * @return bool
+	 */
+	public function isAdmin($username, $projectName);
+
+	/**
+	 * @param $username
+	 * @param $projectName
+	 * @return  bool
+	 */
+	public function hasAccess($username, $projectName);
+
+	/**
+	 * @param $username
+	 * @return []ProjectInfo
+	 */
+	public function getProjectsUserIsAdmin($username);
+
+	/**
+	 * @param $username
+	 * @return []ProjectInfo
+	 */
+	public function getProjectsUserHasAccess($username);
 }
 

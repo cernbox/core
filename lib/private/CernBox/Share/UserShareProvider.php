@@ -81,6 +81,22 @@ class UserShareProvider implements IShareProvider {
 		// Set the time this share was created
 		$qb->setValue('stime', $qb->createNamedParameter(time()));
 		// insert the data and fetch the id of the share
+
+		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+			$ocPath = $share->getNode()->getInternalPath();
+			if(strpos($ocPath, "files/  project ") === 0) {
+				$path = trim($ocPath, '/');
+				$path = trim(substr($path, strlen("files/  project ")), "/");
+				$projectName = explode('/', $path)[0];
+				$projectMapper = \OC::$server->getCernBoxProjectMapper();
+				$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
+				if($projectInfo) {
+					$qb->setValue("uid_initiator", $qb->createNamedParameter($projectInfo->getProjectOwner()));
+					$qb->setValue("uid_owner", $qb->createNamedParameter($projectInfo->getProjectOwner()));
+				}
+			}
+		}
+
 		$this->dbConn->beginTransaction();
 		$qb->execute();
 		$id = $this->dbConn->lastInsertId('*PREFIX*share');
@@ -204,6 +220,23 @@ class UserShareProvider implements IShareProvider {
 		}
 		$qb->setFirstResult($offset);
 		$qb->orderBy('id');
+
+
+		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+			$ocPath = $share->getNode()->getInternalPath();
+			if(strpos($ocPath, "files/  project ") === 0) {
+				$path = trim($ocPath, '/');
+				$path = trim(substr($path, strlen("files/  project ")), "/");
+				$projectName = explode('/', $path)[0];
+				$projectMapper = \OC::$server->getCernBoxProjectMapper();
+				$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
+				if($projectInfo) {
+					$qb->setValue("uid_initiator", $qb->createNamedParameter($projectInfo->getProjectOwner()));
+					$qb->setValue("uid_owner", $qb->createNamedParameter($projectInfo->getProjectOwner()));
+				}
+			}
+		}
+
 		$cursor = $qb->execute();
 		$shares = [];
 		while($data = $cursor->fetch()) {
