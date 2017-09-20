@@ -259,7 +259,7 @@ class Instance implements IInstance {
 					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
 						$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
 					} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
-						$ownCloudMap['permissions']	 = Constants::PERMISSION_READ;
+						$ownCloudMap['permissions'] = Constants::PERMISSION_READ;
 					} else {
 						$ownCloudMap['permissions'] = 0;
 					}
@@ -344,12 +344,12 @@ class Instance implements IInstance {
 								$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
 								if($projectInfo->getProjectOwner() === $username) {
 									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
-								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
-									$ownCloudMap['permissions']	 = Constants::PERMISSION_READ;
-								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
-									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
 								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectAdmins())) {
 									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL;
+								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectWriters())) {
+									$ownCloudMap['permissions'] = Constants::PERMISSION_ALL - Constants::PERMISSION_SHARE;
+								} else if ($this->groupManager->isInGroup($username, $projectInfo->getProjectReaders())) {
+									$ownCloudMap['permissions'] = Constants::PERMISSION_READ;
 								} else {
 									$ownCloudMap['permissions'] = 0;
 								}
