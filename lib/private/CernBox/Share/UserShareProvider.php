@@ -20,9 +20,10 @@ class UserShareProvider implements IShareProvider {
 	private $dbConn;
 	private $userManager;
 	private $rootFolder;
-	private $instanceManager;
 	private $util;
 	private $log;
+
+	protected $instanceManager;
 
 	public function __construct($rootFolder) {
 		$this->log = \OC::$server->getLogger();
@@ -205,22 +206,6 @@ class UserShareProvider implements IShareProvider {
 		}
 		$qb->setFirstResult($offset);
 		$qb->orderBy('id');
-
-
-		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
-			$ocPath = $share->getNode()->getInternalPath();
-			if(strpos($ocPath, "files/  project ") === 0) {
-				$path = trim($ocPath, '/');
-				$path = trim(substr($path, strlen("files/  project ")), "/");
-				$projectName = explode('/', $path)[0];
-				$projectMapper = \OC::$server->getCernBoxProjectMapper();
-				$projectInfo = $projectMapper->getProjectInfoByProject($projectName);
-				if($projectInfo) {
-					$qb->setValue("uid_initiator", $qb->createNamedParameter($projectInfo->getProjectOwner()));
-					$qb->setValue("uid_owner", $qb->createNamedParameter($projectInfo->getProjectOwner()));
-				}
-			}
-		}
 
 		$cursor = $qb->execute();
 		$shares = [];
