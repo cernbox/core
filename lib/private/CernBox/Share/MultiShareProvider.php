@@ -32,14 +32,13 @@ class MultiShareProvider implements  IShareProvider {
 		$this->logger = \OC::$server->getLogger();
 		$this->rootFolder = $userRootFolder;
 		$this->providerHandlers = [
-			Share::SHARE_TYPE_USER => new UserShareProvider($this->rootFolder),
+			Share::SHARE_TYPE_USER => new UserShareProviderWithRestriction($this->rootFolder),
 			Share::SHARE_TYPE_LINK => new LinkShareProvider($this->rootFolder),
 			Share::SHARE_TYPE_GROUP => new GroupShareProvider($this->rootFolder)
 		];
 	}
 
 	public function identifier() {
-		//return "cernbox-multishare-provider";
 		return "ocinternal";
 	}
 

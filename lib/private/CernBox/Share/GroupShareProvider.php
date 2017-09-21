@@ -25,8 +25,9 @@ class GroupShareProvider implements IShareProvider {
 	private $userManager;
 	private $groupManager;
 	private $rootFolder;
-	private $instanceManager;
 	private $util;
+	
+	protected $instanceManager;
 
 	public function __construct($rootFolder) {
 		$this->rootFolder = $rootFolder;
