@@ -16,7 +16,7 @@ class GroupShareProviderWithRestriction extends GroupShareProvider {
 	}
 
 	public function create(\OCP\Share\IShare $share) {
-		if($this->canShare($share->getNode())) {
+		if(!$this->canShare($share->getNode())) {
 			$msg = "Currently not allowed. See KB at http://cern.ch/go/R7np";
 			throw new \Exception($msg);
 		}
@@ -24,7 +24,7 @@ class GroupShareProviderWithRestriction extends GroupShareProvider {
 	}
 
 	public function update(\OCP\Share\IShare $share) {
-		if($this->canShare($share->getNode())) {
+		if(!$this->canShare($share->getNode())) {
 			$msg = "Currently not allowed. See KB at http://cern.ch/go/R7np";
 			throw new \Exception($msg);
 		}
@@ -32,7 +32,7 @@ class GroupShareProviderWithRestriction extends GroupShareProvider {
 	}
 
 	public function delete(\OCP\Share\IShare $share) {
-		if($this->canShare($share->getNode())) {
+		if(!$this->canShare($share->getNode())) {
 			$msg = "Currently not allowed. See KB at http://cern.ch/go/R7np";
 			throw new \Exception($msg);
 		}
