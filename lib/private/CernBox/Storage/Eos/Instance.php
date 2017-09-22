@@ -263,7 +263,7 @@ class Instance implements IInstance {
 			}
 
 			if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
-				if(strpos($ocPath, "files/ eos ") === 0) {
+				if(strpos($ocPath, "files/  eos ") === 0) {
 					$ownCloudMap['permissions'] = Constants::PERMISSION_READ;
 				}
 			}
