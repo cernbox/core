@@ -149,8 +149,8 @@ class Translator {
 		}
 
 		if(\OC::$server->getAppManager()->isInstalled("files_eosbrowser")) {
-			if(strpos($tempOcPath, '  EOS Instance') === 0) {
-				$len = strlen('  EOS Instance ');
+			if(strpos($tempOcPath, '  eos') === 0) {
+				$len = strlen('  eos ');
 				$nextSlash = strpos($tempOcPath, '/');
 				if($nextSlash === false) {
 					$nextSlash = strlen($tempOcPath);
@@ -227,7 +227,7 @@ class Translator {
 			$instanceInfo = $this->instanceMapper->getInstanceInfoByPath($eosPath);
 			if ($instanceInfo) {
 				$ocPath = trim(substr($eosPath, strlen($instanceInfo->getInstanceRootPath())), '/');
-				$ocPath = 'files/  EOS Instance ' . $instanceInfo->getInstanceName() . '/' . $ocPath;
+				$ocPath = 'files/  eos ' . $instanceInfo->getInstanceName() . '/' . $ocPath;
 				return $ocPath;
 			}
 		}
