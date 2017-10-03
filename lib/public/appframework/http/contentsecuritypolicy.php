@@ -50,7 +50,7 @@ class ContentSecurityPolicy {
 	/** @var array Domains from which scripts can get loaded */
 	private $allowedScriptDomains = [
 		'\'self\'',
-		'oos.cern.ch',
+		'oos.web.cern.ch',
 		'cdnjs.cloudflare.com',
 		'cdn.mathjax.org',
 	];
@@ -82,13 +82,13 @@ class ContentSecurityPolicy {
 	private $allowedObjectDomains = [];
 	/** @var array Domains from which iframes can be loaded */
 	private $allowedFrameDomains = [
-		'oos.cern.ch',
+		'oos.web.cern.ch',
 	];
 	/** @var array Domains from which fonts can be loaded */
 	private $allowedFontDomains = [
 		'\'self\'',
 		'cdn.mathjax.org',
-		'oos.cern.ch',
+		'oos.web.cern.ch',
 	];
 	/** @var array Domains from which web-workers and nested browsing content can load elements */
 	private $allowedChildSrcDomains = [];

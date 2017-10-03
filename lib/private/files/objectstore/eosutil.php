@@ -675,8 +675,8 @@ final class EosUtil {
 			    'pptx' => 'application/vnd.ms-powerpoint',
 
 			    // open office, open with office 365
-			    'odt' => 'application/msword',
-			    'ods' => 'application/vnd.ms-excel',
+			    //'odt' => 'application/msword',
+			    //'ods' => 'application/vnd.ms-excel',
 	             );
 		    
 			$val = explode('.', $path);
