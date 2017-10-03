@@ -574,10 +574,10 @@ class Instance implements IInstance {
 		$aclManager = $this->getACLManager($eosSysAcl);
 		$eosPermissions = $this->shareUtil->getEosPermissionsFromOwnCloudPermissions($ocPermissions);
 		
-		// $allowedGroup can be a unix group and has the format unix:zp and we need
-		// to strip the unix: part
-		if(strpos($allowedGroup, "unix:") === 0) {
-			$allowedGroup = str_replace("unix:", "", $allowedGroup);
+		// $allowedGroup can be a unix group and has the format g:zp and we need
+		// to strip the g: part
+		if(strpos($allowedGroup, "g:") === 0) {
+			$allowedGroup = str_replace("g:", "", $allowedGroup);
 			$aclManager->addUnixGroup($allowedGroup, $eosPermissions);
 		} else {
 			$aclManager->addGroup($allowedGroup, $eosPermissions);
@@ -609,10 +609,10 @@ class Instance implements IInstance {
 		// aclManager contains the current sys.acl
 		$aclManager = $this->getACLManager($eosSysAcl);
 		
-		// $allowedGroup can be a unix group and has the format unix:zp and we need
-		// to strip the unix: part
-		if(strpos($allowedGroup, "unix:") === 0) {
-			$allowedGroup = str_replace("unix:", "", $allowedGroup);
+		// $allowedGroup can be a unix group and has the format g:zp and we need
+		// to strip the g: part
+		if(strpos($allowedGroup, "g:") === 0) {
+			$allowedGroup = str_replace("g:", "", $allowedGroup);
 			$aclManager->deleteUnixGroup($allowedGroup);
 		} else {
 			$aclManager->deleteGroup($allowedGroup);
