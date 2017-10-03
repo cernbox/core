@@ -11,31 +11,53 @@ namespace OC\CernBox\Storage\Eos;
 
 class DBProjectMapper implements  IProjectMapper {
 
+	const EXPIRE_TIME_SECONDS = 1800; // 30 minutes
+	const KEY_GET_ALL_PROJECTS = 'allProjects';
+
 	private $logger;
 
 	/**
 	 * @var ProjectInfo[]
 	 */
 	private $infos;
+	private $redis;
 
 	private $groupManager;
 
 	public function __construct() {
-		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
-			$this->logger = \OC::$server->getLogger();
-			$this->groupManager = \OC::$server->getGroupManager();
-			$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
-			$infos = array();
-			foreach($data as $projectData)
-			{
-				$project = $projectData['project_name'];
-				$relativePath = $projectData['eos_relative_path'];
-				$owner = $projectData['project_owner'];
-				$info = new ProjectInfo($project, $owner, $relativePath);
-				$infos[basename($relativePath)] = $info;
-			}
+		$this->logger = \OC::$server->getLogger();
+		$this->groupManager = \OC::$server->getGroupManager();
+		$this->redis = \OC::$server->getGetRedisFactory()->getInstance();
 
-			$this->infos = $infos;
+		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+			// check if info is cached
+			$val = $this->redis->get(self::KEY_GET_ALL_PROJECTS);
+			if ($val) {
+				$val = json_decode($val, true);
+				$infos = [];
+				foreach($val as $v) {
+					$infos[basename($v[2])] = new ProjectInfo($v[0], $v[1], $v[2]);
+				}
+				$this->infos = $infos;
+			} else {
+				$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
+				$infos = array();
+				$entries = array();
+				foreach($data as $projectData)
+				{
+					$project = $projectData['project_name'];
+					$relativePath = $projectData['eos_relative_path'];
+					$owner = $projectData['project_owner'];
+					$entry = [$project, $owner, $relativePath];
+					$entries[] = $entry;
+
+					$info = new ProjectInfo($project, $owner, $relativePath);
+					$infos[basename($relativePath)] = $info;
+				}
+
+				$this->infos = $infos;
+				$this->redis->setex(self::KEY_GET_ALL_PROJECTS, self::EXPIRE_TIME_SECONDS, json_encode($entries));
+			}
 		}
 	}
 
