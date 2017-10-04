@@ -18,6 +18,9 @@ class  Commander{
 	private $uid;
 	private $gid;
 	private $logger;
+	private $conWindows;
+	private $conRetry;
+	private $reqTimeout;
 
 	/**
 	 * Commander constructor.
@@ -32,6 +35,9 @@ class  Commander{
 
 		$value = (int)\OC::$server->getConfig()->getSystemValue("eoscliretryattempts", 2);
 		$this->retryAttempts = $value;
+		$this->conWindows = (int)\OC::$server->getConfig()->getSystemValue("eosmaxcontimeout", 1);
+		$this->conRetry = (int)\OC::$server->getConfig()->getSystemValue("eosmaxconretry", 5);
+		$this->reqTimeout= (int)\OC::$server->getConfig()->getSystemValue("eosmaxreqtimeout", 30);
 
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		if(is_int($uid) && is_int($gid) && $uid >= 0 && $gid >= 0) {
@@ -49,7 +55,7 @@ class  Commander{
 		$uid = $this->uid;
 		$gid = $this->gid;
 		$cmd = "eos -b -r $uid $gid " . $cmd;
-		$fullCmd = 'EOS_MGM_URL=' . $this->eosMgmUrl . " " . $cmd;
+		$fullCmd = sprintf("XRD_CONNECTIONWINDOW=%d XRD_CONNECTIONRETRY=%d XRD_REQUESTTIMEOUT=%d EOS_MGM_URL=%s %s", $this->conWindows, $this->conRetry, $this->reqTimeout, $this->eosMgmUrl, $cmd);
 		return $this->execRaw($fullCmd);
 
 	}
