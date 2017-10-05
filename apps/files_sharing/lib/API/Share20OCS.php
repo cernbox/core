@@ -44,21 +44,21 @@ use OCP\Lock\ILockingProvider;
 class Share20OCS {
 
 	/** @var IManager */
-	private $shareManager;
+	protected $shareManager;
 	/** @var IGroupManager */
-	private $groupManager;
+	protected $groupManager;
 	/** @var IUserManager */
-	private $userManager;
+	protected $userManager;
 	/** @var IRequest */
-	private $request;
+	protected $request;
 	/** @var IRootFolder */
-	private $rootFolder;
+	protected $rootFolder;
 	/** @var IURLGenerator */
-	private $urlGenerator;
+	protected $urlGenerator;
 	/** @var IUser */
-	private $currentUser;
+	protected $currentUser;
 	/** @var IL10N */
-	private $l;
+	protected $l;
 
 	/**
 	 * Share20OCS constructor.
@@ -479,7 +479,7 @@ class Share20OCS {
 	 * @param \OCP\Files\File|\OCP\Files\Folder $node
 	 * @return \OC_OCS_Result
 	 */
-	private function getSharedWithMe($node = null) {
+	protected function getSharedWithMe($node = null) {
 		$userShares = $this->shareManager->getSharedWith($this->currentUser->getUID(), \OCP\Share::SHARE_TYPE_USER, $node, -1, 0);
 		$groupShares = $this->shareManager->getSharedWith($this->currentUser->getUID(), \OCP\Share::SHARE_TYPE_GROUP, $node, -1, 0);
 
@@ -507,7 +507,7 @@ class Share20OCS {
 	 * @param \OCP\Files\Folder $folder
 	 * @return \OC_OCS_Result
 	 */
-	private function getSharesInDir($folder) {
+	protected function getSharesInDir($folder) {
 		if (!($folder instanceof \OCP\Files\Folder)) {
 			return new \OC_OCS_Result(null, 400, $this->l->t('Not a directory'));
 		}
@@ -804,7 +804,7 @@ class Share20OCS {
 	 * @throws \Exception
 	 * @return \DateTime
 	 */
-	private function parseDate($expireDate) {
+	protected function parseDate($expireDate) {
 		try {
 			$date = new \DateTime($expireDate);
 		} catch (\Exception $e) {
@@ -828,7 +828,7 @@ class Share20OCS {
 	 * @return \OCP\Share\IShare
 	 * @throws ShareNotFound
 	 */
-	private function getShareById($id) {
+	protected function getShareById($id) {
 		$share = null;
 
 		// First check if it is an internal share.
