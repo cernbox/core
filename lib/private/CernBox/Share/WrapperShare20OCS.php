@@ -69,7 +69,7 @@ class WrapperShare20OCS extends Share20OCS {
 	}
 
 	private function getNamespacedPath() {
-		$path = $this->request->getParam("path", false);
+		$path = $this->request->getParam("path", null);
 		$headers = getallheaders();
 		if(isset($headers['CBOX_CLIENT_MAPPING_ENABLED'])) {
 			if(strpos($path, '/home') === 0) {
