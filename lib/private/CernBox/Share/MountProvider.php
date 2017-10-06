@@ -81,6 +81,48 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			}
 			return true;
 		}
+		
+		if(strpos($url, 'apps/wopiviewer/open') !== false) {
+			if(isset($_POST['filename'])) {
+				$this->isSharedPath($_GET['filename']);
+			}
+			return true;
+		}
+		
+		if(strpos($url, 'apps/swanviewer/load') !== false) {
+			if(isset($_GET['path'])) {
+				$this->isSharedPath($_GET['path']);
+			}
+			return true;
+		}
+		
+		if(strpos($url, 'apps/rootviewer/load') !== false) {
+			if(isset($_GET['path'])) {
+				$this->isSharedPath($_GET['path']);
+			}
+			return true;
+		}
+		
+		if(strpos($url, 'core/preview') !== false) {
+			if(isset($_GET['file'])) {
+				$this->isSharedPath($_GET['file']);
+			}
+			return true;
+		}
+		
+		if(strpos($url, 'apps/gallery/preview') !== false) {
+			if(isset($_GET['file'])) {
+				$this->isSharedPath($_GET['file']);
+			}
+			return true;
+		}
+		
+		if(strpos($url, 'apps/swanviewer/eosinfo') !== false) {
+			if(isset($_GET['filename'])) {
+				$this->isSharedPath($_GET['filename']);
+			}
+			return true;
+		}
 
 		return false;
 
