@@ -96,12 +96,20 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->getMgmUrl();
 	}
 
+	public function getSlaveMgmUrl() {
+		return $this->currentInstance->getSlaveMgmUrl();
+	}
+
 	public function getMetaDataPrefix() {
 		return $this->currentInstance->getMetaDataPrefix();
 	}
 
 	public function getRecycleDir() {
 		return $this->currentInstance->getRecycleDir();
+	}
+
+	public function getRecycleLimit() {
+		return $this->currentInstance->getRecycleLimit();
 	}
 
 	public function getFilterRegex() {

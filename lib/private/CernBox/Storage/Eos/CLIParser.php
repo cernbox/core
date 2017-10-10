@@ -29,6 +29,18 @@ class CLIParser {
 		return $prefixedMap;
 	}
 
+	// Parse the output of exec a find --count
+	// $ find --count /eos/backup/proc/recycle/2763/95491
+	// nfiles=1 ndirectories=2
+	public static function parseFindCountReponse($line) {
+		$fields = explode(" ", $line);
+		$firstPair = explode("=", $fields[0]);
+		$secondPair= explode("=", $fields[1]);
+		$nfiles = (int)$firstPair[1];
+		$ndirs = (int)$secondPair[1];
+		return ["nfiles" => $nfiles, "ndirectories" => $ndirs];
+	}
+
 	public static function parseRecycleLSMResponse($line) {
 		$fields = explode(" ", $line);
 		$keylength = explode("=",$fields[8]);

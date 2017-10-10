@@ -8,9 +8,11 @@ interface IInstance {
 	public function getId();
 	public function getName();
 	public function getMgmUrl();
+	public function getSlaveMgmUrl();
 	public function getPrefix();
 	public function getMetaDataPrefix();
 	public function getRecycleDir();
+	public function getRecycleLimit();
 	public function getFilterRegex();
 	public function getProjectPrefix();
 	public function getStagingDir();

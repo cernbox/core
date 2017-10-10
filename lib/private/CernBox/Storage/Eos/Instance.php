@@ -3,6 +3,7 @@
 namespace OC\CernBox\Storage\Eos;
 
 
+use OCA\Files_EosTrashbin\RecycleSizeLimitException;
 use OCP\Constants;
 use OCP\Files\Cache\ICacheEntry;
 
@@ -13,9 +14,11 @@ class Instance implements IInstance {
 	private $id;
 	private $name;
 	private $mgmUrl;
+	private $slaveMgmUrl;
 	private $prefix;
 	private $metaDataPrefix;
 	private $recycleDir;
+	private $recycleLimit;
 	private $hideRegex;
 	private $projectPrefix;
 	private $stagingDir;
@@ -46,9 +49,11 @@ class Instance implements IInstance {
 		$this->id = $id;
 		$this->name = isset($instanceConfig['name']) ? $instanceConfig['name'] : null ;
 		$this->mgmUrl = isset($instanceConfig['mgmurl']) ? $instanceConfig['mgmurl'] : null;
+		$this->slaveMgmUrl = isset($instanceConfig["slavemgmurl"]) ? $instanceConfig["slavemgmurl"] : $this->mgmUrl; // if slave is not defined fallback to mgm
 		$this->prefix = isset($instanceConfig['prefix']) ? $instanceConfig['prefix']: null;
 		$this->metaDataPrefix = isset($instanceConfig['metadatadir']) ? $instanceConfig['metadatadir'] : null;
 		$this->recycleDir = isset($instanceConfig['recycledir']) ? $instanceConfig['recycledir'] : null;
+		$this->recycleLimit = isset($instanceConfig['recyclelimit']) ? $instanceConfig['recyclelimit'] : 10000;
 		$this->hideRegex = isset($instanceConfig['hideregex']) ? $instanceConfig['hideregex'] : null;
 		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : null;
 		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : null;
@@ -75,11 +80,19 @@ class Instance implements IInstance {
 	}
 
 	public function getMgmUrl() {
-		return $this->mgmUrl;
+		return $this->slaveMgmUrl;
+	}
+
+	public function getSlaveMgmUrl() {
+		return $this->slaveMgmUrl;
 	}
 
 	public function getRecycleDir() {
 		return $this->recycleDir;
+	}
+
+	public function getRecycleLimit() {
+		return $this->recycleLimit;
 	}
 
 	public function getMetaDataPrefix() {
@@ -380,6 +393,33 @@ class Instance implements IInstance {
 	 * @return ICacheEntry[] returns ICacheEntries with version information
 	 */
 	public function getDeletedFiles($username) {
+		// We check that the user does not have more than 10K files
+		// into the trashbin, for that we contact the slave and if the
+		// number of files is bigger we abort and alert the user to contact
+		// cernbox-admins for more information.
+
+		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
+		if(!$uid || !$gid) {
+			return [];
+		}
+		$command = sprintf("find --count %s/%d/%d", $this->recycleDir, $gid, $uid);
+		$commander = $this->getCommander("root"); // it must be executed as root
+		$commander->setMgmUrl($this->slaveMgmUrl);
+		list($result, $errorCode) = $commander->exec($command);
+		if($errorCode === 0) {
+			$lineToParse = $result[0];
+			$m = CLIParser::parseFindCountReponse($lineToParse);
+			if($m['nfiles'] > $this->recycleLimit || $m['ndirectories'] > $this->recycleLimit) {
+				if(\OC::$server->getAppManager()->isInstalled("files_eostrashbin")) {
+					throw new RecycleSizeLimitException(sprintf("Your recycle bin is too big, contact the service support (nfiles=%d ndirectories=%d uid=%d)", $m['nfiles'], $m['ndirectories'], $uid));
+				} else {
+					throw new \Exception("You recycle is too big, contact the service support");
+				}
+			}
+		} else if ($errorCode !== 2) { // 2 => no such files, it's okay
+			throw new \Exception("Cannot list files under the proc/recycle folder");
+		}
+
 		$deletedEntries = array();
 		$command = "recycle ls -m";
 		$commander = $this->getCommander($username);

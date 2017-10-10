@@ -49,6 +49,10 @@ class  Commander{
 		}
 	}
 
+	public function setMgmUrl($eosMgmUrl) {
+		$this->eosMgmUrl = $eosMgmUrl;
+	}
+
 	public function exec($cmd) {
 		// we load the env variable EOS_MGM_URL to perform the command
 		// with that variable in its context.
