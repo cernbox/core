@@ -77,7 +77,7 @@ class  Commander{
 		while($errorCode === 22 && $counter !== $this->retryAttempts);
 
 		if($errorCode === 0) {
-			$this->logger->info("$cmd => $errorCode");
+			$this->logger->error("$cmd => $errorCode");
 		} else {
 			$this->logger->error("$cmd => $errorCode");
 		}
