@@ -105,6 +105,18 @@
 			);
 
 			var items = _.filter(actions, function(actionSpec) {
+				// HACK(labkode) hide unshare and other operations based on mount point
+				var mountType = self._context.fileInfoModel.get('mountType');
+				if (mountType === "shared-root" && actionSpec.name === 'Delete') {
+					return false; // HUGO hide Unshare button on Shared with me
+				}
+				if (mountType === "shared-root" && actionSpec.name === "Rename") {
+					return false; // HUGO hide rename button on Shared with me
+				}
+				if (mountType === "shared" && actionSpec.name === "Versions") {
+					return false; // HUGO hide versions button in files under Shared with me
+				}
+
 				return (
 					actionSpec.type === OCA.Files.FileActions.TYPE_DROPDOWN &&
 					(!defaultAction || actionSpec.name !== defaultAction.name)
