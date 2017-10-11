@@ -568,7 +568,11 @@ class OC_Helper {
 	public static function getStorageInfo($path, $rootInfo = null) {
 		// TODO(labkode): report to oc that the way to get quota should be improved
 		if(\OC::$server->getConfig()->getSystemValue('eosstore')) {
-			return \OC::$server->getCernBoxEosInstanceManager()->getQuotaForUser(\OC::$server->getUserSession()->getLoginName());
+			try {
+				return \OC::$server->getCernBoxEosInstanceManager()->getQuotaForUser(\OC::$server->getUserSession()->getLoginName());
+			} catch (\Exception $e) {
+				// let owncloud handle the quota
+			}
 		}
 
 		// return storage info without adding mount points
