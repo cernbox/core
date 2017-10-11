@@ -123,6 +123,14 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			}
 			return true;
 		}
+		
+		if(strpos($url, 'apps/files/ajax/download.php') !== false) {
+			if(isset($_GET['files'])) {
+				return $this->isSharedPath($_GET['files']);
+			}
+			return true;
+		}
+		
 
 		return false;
 	}
