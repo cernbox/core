@@ -90,6 +90,7 @@ use OC\Security\SecureRandom;
 use OC\Security\TrustedDomainHelper;
 use OC\Session\CryptoWrapper;
 use OC\Tagging\TagMapper;
+use OCP\Files\NotFoundException;
 use OCP\IL10N;
 use OCP\IServerContainer;
 use OCP\Security\IContentSecurityPolicyManager;
@@ -869,7 +870,12 @@ class Server extends ServerContainer implements IServerContainer {
 			$userId = $user->getUID();
 		}
 		$root = $this->getRootFolder();
-		return $root->getUserFolder($userId);
+		try {
+			return $root->getUserFolder($userId);
+		} catch (NotFoundException $e) {
+			\OC::$server->getCernBoxEosInstanceManager()->createHome($userId);
+			return $root->getUserFolder($userId);
+		}
 	}
 
 	/**
