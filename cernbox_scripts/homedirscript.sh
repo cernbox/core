@@ -29,8 +29,7 @@ initial="$(echo $usr | head -c 1)"
 
 id $usr || (echo "ERROR resolving user" $usr; exit -1)
 
-group_id=`id -g $usr`
-user_id=`id -u $usr`
+group=`id -gn $usr`
 
 if [ $? -ne 0 ] ; then 
     echo "ERROR: cannot retrieve group name for the user" $usr; 
@@ -42,7 +41,7 @@ homedir=${STORAGE_PREFIX}/$initial/$usr
 #echo 'creating' $homedir
 #set -o verbose
 eos -b -r 0 0 mkdir -p $homedir
-eos -b -r 0 0 chown $user_id:$group_id $homedir
+eos -b -r 0 0 chown $usr:$group $homedir
 eos -b -r 0 0 chmod 2700 $homedir
 eos -b -r 0 0 attr set sys.acl=u:$usr:rwx\!m $homedir # not needed anymore (using sys.owner.auth) # FIXME z:!d
 eos -b -r 0 0 attr set sys.mask="700" $homedir
@@ -53,7 +52,7 @@ eos -b -r 0 0 attr set sys.versioning="10" $homedir
 
 eos -b -r 0 0 quota set -u $usr -v 2TB -i 1M -p ${STORAGE_PREFIX}
 
-#eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
+eos -b -r 0 0 access allow user $usr # this is temporary until we allow all users enter in
 
 #eos -b -r 0 0 attr -r set sys.recycle="$RECYCLE_BIN" $homedir
 
