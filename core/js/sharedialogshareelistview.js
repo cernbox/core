@@ -52,7 +52,7 @@
 						'{{#if mailerAppEnabled}}' +
 						'{{#if isNotificationEnabled }}' +
 						'<span class="shareOption">' +
-							'<button class="cbox-mail-notification">Send notification</button>' + 
+							'<button class="cbox-mail-notification">Send mail</button>' + 
 						'</span>' +
 						'{{/if}}' +
 						'{{/if}}' +
@@ -154,7 +154,8 @@
 				shareId: this.model.get('shares')[shareIndex].id,
 				modSeed: shareType !== OC.Share.SHARE_TYPE_USER,
 				isRemoteShare: shareType === OC.Share.SHARE_TYPE_REMOTE,
-				isNotificationEnabled: shareType === OC.Share.SHARE_TYPE_USER,
+				//isNotificationEnabled: shareType === OC.Share.SHARE_TYPE_USER,
+				isNotificationEnabled: true,
 			});
 		},
 
