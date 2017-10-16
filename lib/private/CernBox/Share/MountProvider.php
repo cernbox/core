@@ -84,7 +84,7 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		
 		if(strpos($url, 'apps/wopiviewer/open') !== false) {
 			if(isset($_POST['filename'])) {
-				return $this->isSharedPath($_GET['filename']);
+				return $this->isSharedPath($_POST['filename']);
 			}
 			return true;
 		}
