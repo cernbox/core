@@ -728,7 +728,7 @@ class Instance implements IInstance {
 		$command = sprintf("/bin/bash %s %s %s %s %s",
 		$this->homeDirScript, $this->mgmUrl, $this->prefix, $this->recycleDir, $username);
 		exec($command, $result, $errorCode);
-		$this->logger->info(sprintf("homedirscript called: command:%s  returncode=%d result=%s", $command, $errorCode, $result));
+		$this->logger->error(sprintf("homedirscript called: command:%s  returncode=%d result=%s", $command, $errorCode, $result));
 		if ($errorCode === 0) {
 			return true;
 		}
