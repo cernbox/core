@@ -200,9 +200,10 @@ class Instance implements IInstance {
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->execRaw($rawCommand);
 		if ($errorCode !== 0) {
-			unlink($tempFileForLocalWriting);
+			@unlink($tempFileForLocalWriting);
 			return false;
 		} else {
+			@unlink($tempFileForLocalWriting);
 			return true;
 		}
 	}
