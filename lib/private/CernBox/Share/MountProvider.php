@@ -130,7 +130,14 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			}
 			return true;
 		}
+
+		if(strpos($url, 'apps/files/ajax') !== false) {
+			return true;
+		}	
 		
+		if(strpos($url, 'apps/files_texteditor') !== false) {
+			return true;
+		}	
 
 		return false;
 	}
