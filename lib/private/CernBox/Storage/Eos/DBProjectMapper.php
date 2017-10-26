@@ -28,14 +28,16 @@ class DBProjectMapper implements  IProjectMapper {
 		$this->logger = \OC::$server->getLogger();
 		$this->groupManager = \OC::$server->getGroupManager();
 		$this->redis = \OC::$server->getGetRedisFactory()->getInstance();
-		$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
 		$infos = array();
-		foreach($data as $projectData) {
-			$project = $projectData['project_name'];
-			$relativePath = $projectData['eos_relative_path'];
-			$owner = $projectData['project_owner'];
-			$info = new ProjectInfo($project, $owner, $relativePath);
-			$infos[basename($relativePath)] = $info;
+		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
+			$data = \OC_DB::prepare('SELECT * FROM cernbox_project_mapping')->execute()->fetchAll();
+			foreach($data as $projectData) {
+				$project = $projectData['project_name'];
+				$relativePath = $projectData['eos_relative_path'];
+				$owner = $projectData['project_owner'];
+				$info = new ProjectInfo($project, $owner, $relativePath);
+				$infos[basename($relativePath)] = $info;
+			}
 		}
 
 		$this->infos = $infos;
