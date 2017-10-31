@@ -21,10 +21,11 @@ class ProjectInfo {
 		$this->projectName = $projectName;
 		$this->projectOwner = $projectOwner;
 		$this->projectRelativePath = $projectRelativePath;
-		$basename = basename($this->projectRelativePath);
-		$this->projectReaders = 'cernbox-project-' . $basename . '-readers';
-		$this->projectWriters = 'cernbox-project-' . $basename. '-writers';
-		$this->projectAdmins = 'cernbox-project-' . $basename. '-admins';
+		// the project e-groups are lower case, see: INC1501057 
+		$name = strtolower($this->projectName);
+		$this->projectReaders = 'cernbox-project-' . $name . '-readers';
+		$this->projectWriters = 'cernbox-project-' . $name . '-writers';
+		$this->projectAdmins = 'cernbox-project-' . $name . '-admins';
 	}
 
 	public function getProjectName() {
