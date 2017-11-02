@@ -142,7 +142,31 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			return true;
 		}	
 		
-		if(strpos($url, 'apps/files_texteditor') !== false) {
+		if(strpos($url, 'apps/files_texteditor/ajax/loadfile') !== false) {
+			if(isset($_GET['files'])) {
+				$isShared = $this->isSharedPath($_GET['files']);
+				if($isShared) {
+					return true;
+				}
+			}
+			
+			if(isset($_GET['dir'])) {
+				return $this->isSharedPath($_GET['dir']);
+			}
+			return true;
+		}	
+		
+		if(strpos($url, 'apps/files_texteditor/ajax/savefile') !== false) {
+			if(isset($_GET['files'])) {
+				$isShared = $this->isSharedPath($_GET['files']);
+				if($isShared) {
+					return true;
+				}
+			}
+			
+			if(isset($_GET['dir'])) {
+				return $this->isSharedPath($_GET['dir']);
+			}
 			return true;
 		}	
 
