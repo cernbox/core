@@ -167,7 +167,7 @@ class Instance implements IInstance {
 
 		$xrdSource = escapeshellarg($this->mgmUrl . "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
-		$rawCommand = "xrdcopy -f $xrdSource $localCachedFile -OSeos.ruid=$uid\&eos.rgid=$gid";
+		$rawCommand = "XRD_NETWORKSTACK=IPv4 xrdcopy -f $xrdSource $localCachedFile -OSeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->execRaw($rawCommand);
 		if ($errorCode !== 0) {
@@ -196,7 +196,7 @@ class Instance implements IInstance {
 
 		$xrdTarget = escapeshellarg($this->mgmUrl . "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
-		$rawCommand = "xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
+		$rawCommand = "XRD_NETWORKSTACK=IPv4 xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->execRaw($rawCommand);
 		if ($errorCode !== 0) {

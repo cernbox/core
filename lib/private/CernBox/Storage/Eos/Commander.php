@@ -59,7 +59,7 @@ class  Commander{
 		$uid = $this->uid;
 		$gid = $this->gid;
 		$cmd = "eos -b -r $uid $gid " . $cmd;
-		$fullCmd = sprintf("XRD_CONNECTIONWINDOW=%d XRD_CONNECTIONRETRY=%d XRD_REQUESTTIMEOUT=%d EOS_MGM_URL=%s %s", $this->conWindows, $this->conRetry, $this->reqTimeout, $this->eosMgmUrl, $cmd);
+		$fullCmd = sprintf("XRD_NETWORKSTACK=IPv4 XRD_CONNECTIONWINDOW=%d XRD_CONNECTIONRETRY=%d XRD_REQUESTTIMEOUT=%d EOS_MGM_URL=%s %s", $this->conWindows, $this->conRetry, $this->reqTimeout, $this->eosMgmUrl, $cmd);
 		return $this->execRaw($fullCmd);
 
 	}
