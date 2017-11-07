@@ -17,6 +17,7 @@ interface IInstance {
 	public function getProjectPrefix();
 	public function getStagingDir();
 	public function isReadOnly();
+	public function isSlaveEnforced();
 
 	public function createDir($username, $ocPath);
 	public function remove($username, $ocPath);

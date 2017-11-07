@@ -100,6 +100,10 @@ class InstanceManager implements  IInstance {
 		return $this->currentInstance->getSlaveMgmUrl();
 	}
 
+	public function isSlaveEnforced() {
+		return $this->currentInstance->isSlaveEnforced();	
+	}
+
 	public function getMetaDataPrefix() {
 		return $this->currentInstance->getMetaDataPrefix();
 	}

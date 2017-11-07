@@ -24,6 +24,7 @@ class Instance implements IInstance {
 	private $stagingDir;
 	private $homeDirScript;
 	private $isReadOnly;
+	private $isSlaveEnforced;
 
 	private $metaDataCache;
 	private $logger;
@@ -59,6 +60,7 @@ class Instance implements IInstance {
 		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : null;
 		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : null;
 		$this->isReadOnly = isset($instanceConfig['readonly']) ? $instanceConfig['readonly'] : false;
+		$this->isSlaveEnforced = isset($instanceConfig['forceslave']) ? $instanceConfig['forceslave'] : false;
 
 		$this->metaDataCache = \OC::$server->getCernBoxMetaDataCache();
 	}
@@ -80,6 +82,9 @@ class Instance implements IInstance {
 	}
 
 	public function getMgmUrl() {
+		if($this->isSlaveEnforced) {
+			return $this->slaveMgmUrl;
+		}
 		return $this->mgmUrl;
 	}
 
@@ -109,6 +114,10 @@ class Instance implements IInstance {
 
 	public function isReadOnly() {
 		return $this->isReadOnly;
+	}
+	
+	public function isSlaveEnforced() {
+		return $this->isSlaveEnforced;
 	}
 
 
@@ -165,7 +174,7 @@ class Instance implements IInstance {
 			return fopen($localCachedFile, 'r');
 		}
 
-		$xrdSource = escapeshellarg($this->mgmUrl . "//" . $eosPath);
+		$xrdSource = escapeshellarg($this->getMgmUrl(). "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "XRD_NETWORKSTACK=IPv4 xrdcopy -f $xrdSource $localCachedFile -OSeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
@@ -194,7 +203,7 @@ class Instance implements IInstance {
 		fclose($stream);
 		fclose($handle);
 
-		$xrdTarget = escapeshellarg($this->mgmUrl . "//" . $eosPath);
+		$xrdTarget = escapeshellarg($this->getMgmUrl(). "//" . $eosPath);
 		list($uid, $gid) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 		$rawCommand = "XRD_NETWORKSTACK=IPv4 xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
@@ -700,9 +709,9 @@ class Instance implements IInstance {
 		list($uid,) = \OC::$server->getCernBoxEosUtil()->getUidAndGidForUsername($username);
 
 		// check that the needed parameters are supplied
-		if (empty($this->homeDirScript) || empty($this->mgmUrl) || empty($this->prefix) || empty($this->recycleDir)) {
+		if (empty($this->homeDirScript) || empty($this->getMgmUrl()) || empty($this->prefix) || empty($this->recycleDir)) {
 			$this->logger->critical("error creating homedir, missing instance parameters: homedirscript=%s mgmurl=%s prefix=%s recycledir=%s",
-				$this->homeDirScript, $this->mgmUrl, $this->prefix, $this->recycleDir);
+				$this->homeDirScript, $this->getMgmUrl(), $this->prefix, $this->recycleDir);
 			return false;
 		}
 
@@ -726,7 +735,7 @@ class Instance implements IInstance {
 		$result = null;
 		$errorCode = null;
 		$command = sprintf("/bin/bash %s %s %s %s %s",
-		$this->homeDirScript, $this->mgmUrl, $this->prefix, $this->recycleDir, $username);
+		$this->homeDirScript, $this->getMgmUrl(), $this->prefix, $this->recycleDir, $username);
 		exec($command, $result, $errorCode);
 		$this->logger->error(sprintf("homedirscript called: command:%s  returncode=%d result=%s", $command, $errorCode, $result));
 		if ($errorCode === 0) {
@@ -880,7 +889,7 @@ class Instance implements IInstance {
 	}
 
 	private function getCommander($username) {
-		$commander = new Commander($this->mgmUrl, $username);
+		$commander = new Commander($this->getMgmUrl(), $username);
 		return $commander;
 	}
 
