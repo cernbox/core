@@ -80,7 +80,7 @@ class Instance implements IInstance {
 	}
 
 	public function getMgmUrl() {
-		return $this->slaveMgmUrl;
+		return $this->mgmUrl;
 	}
 
 	public function getSlaveMgmUrl() {
