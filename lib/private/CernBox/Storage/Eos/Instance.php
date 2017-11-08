@@ -477,7 +477,14 @@ class Instance implements IInstance {
 		}
 		$command = "recycle restore $key";
 		$commander = $this->getCommander($username);
-		list(, $errorCode) = $commander->exec($command);
+		list($response, $errorCode) = $commander->exec($command);
+		if($errorCode !== 0) {
+			$this->logger->warning("Got errorCode %d for command '%s'. Response is: '%s'", 
+				$errorCode, 
+				$command, 
+				$response
+			);
+		}
 		return $errorCode;
 	}
 
