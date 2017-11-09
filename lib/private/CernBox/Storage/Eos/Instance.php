@@ -208,12 +208,12 @@ class Instance implements IInstance {
 		$rawCommand = "XRD_NETWORKSTACK=IPv4 xrdcopy -f $tempFileForLocalWriting $xrdTarget -ODeos.ruid=$uid\&eos.rgid=$gid";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->execRaw($rawCommand);
-		if ($errorCode !== 0) {
-			@unlink($tempFileForLocalWriting);
-			return false;
-		} else {
+		if ($errorCode === 0 && $this->stat($username, $ocPath) === 0) {
 			@unlink($tempFileForLocalWriting);
 			return true;
+		} else {
+			@unlink($tempFileForLocalWriting);
+			return false;
 		}
 	}
 
