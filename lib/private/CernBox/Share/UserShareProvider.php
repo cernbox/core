@@ -47,7 +47,9 @@ class UserShareProvider implements IShareProvider {
 		// Simplify ownCloud permissions
 		// 1 => R/O
 		// 15 => R/W
-		$share->setPermissions($this->util->simplifyOwnCloudPermissions($share->getPermissions()));
+		//$share->setPermissions($this->util->simplifyOwnCloudPermissions($share->getPermissions()));
+		// Force read-only permissions when creating a share
+		$share->setPermissions(1);
 
 		$qb = $this->dbConn->getQueryBuilder();
 		$qb->insert('share');
