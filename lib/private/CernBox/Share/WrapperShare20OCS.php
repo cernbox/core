@@ -80,7 +80,7 @@ class WrapperShare20OCS extends Share20OCS {
 				$path = substr($path, 4);
 			} else if(strpos($path, '/eos') === 0) {
 				$split = explode('/', $path);
-				$tempPath = implode('/', array_slice($split, 4));
+				$tempPath = implode('/', array_slice($split, 5));
 				$prefix = substr($path, 0, strpos($path, $tempPath));
 				$path = $tempPath;
 				$_SESSION['DESKTOP_MAPPING_PREFIX'] = $prefix;
