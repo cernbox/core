@@ -25,6 +25,8 @@
 namespace OCA\Files\Service;
 
 use OC\Files\FileInfo;
+use OC\Files\Node\File;
+use OCP\Files\Folder;
 use OCP\Files\Node;
 
 /**
@@ -69,6 +71,15 @@ class TagService {
 	 */
 	public function updateFileTags($path, $tags) {
 		$fileId = $this->homeFolder->get($path)->getId();
+		$node = $this->homeFolder->get($path);
+		if($node instanceof File) {
+			$user = $this->userSession->getUser()->getUID();
+			$internalPath = $node->getInternalPath();
+			$info = \OC::$server->getCernBoxEosInstanceManager()->getVersionsFolderForFile($user, $internalPath, true);
+			if($info) {
+				$fileId = $info["fileid"];
+			}
+		}
 
 		$currentTags = $this->tagger->getTagsForObjects(array($fileId));
 
@@ -107,6 +118,15 @@ class TagService {
 		$allNodes = [];
 		foreach ($fileIds as $fileId) {
 			$allNodes = array_merge($allNodes, $this->homeFolder->getById((int) $fileId));
+		}
+		for($i = 0; $i < count($allNodes); $i++) {
+			$node = $allNodes[$i];
+			$internalPath = $node->getInternalPath();
+			if(strpos($internalPath, ".sys.v#.") !== false) {
+				$targetFile = \OC::$server->getCernBoxEosInstanceManager()->getFileFromVersionsFolder($this->userSession->getUser()->getUID(), $internalPath);
+				$newNode = $this->homeFolder->get(substr($targetFile['path'], strlen('files/')));
+				$allNodes[$i] = $newNode;
+			}
 		}
 		return $allNodes;
 	}

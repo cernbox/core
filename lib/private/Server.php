@@ -172,7 +172,8 @@ class Server extends ServerContainer implements IServerContainer {
 		});
 		$this->registerService('TagManager', function (Server $c) {
 			$tagMapper = $c->query('TagMapper');
-			return new TagManager($tagMapper, $c->getUserSession());
+			return new \OC\CernBox\Other\TagManager($tagMapper, $c->getUserSession());
+			//return new TagManager($tagMapper, $c->getUserSession());
 		});
 		$this->registerService('SystemTagManagerFactory', function (Server $c) {
 			$config = $c->getConfig();
