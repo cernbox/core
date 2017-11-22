@@ -412,16 +412,22 @@ class Instance implements IInstance {
 		if(!$uid || !$gid) {
 			return [];
 		}
-		$command = sprintf("find --count %s/%d/%d", $this->recycleDir, $gid, $uid);
-		$commander = $this->getCommander("root"); // it must be executed as root
-		$commander->setMgmUrl($this->slaveMgmUrl);
+		
+
+		$command = sprintf("file info %s/%d/%d -m", $this->recycleDir, $gid, $uid);
+		$commander = $this->getCommander($username); // it must be executed as root
+		//$commander->setMgmUrl($this->slaveMgmUrl);
 		list($result, $errorCode) = $commander->exec($command);
 		if($errorCode === 0) {
 			$lineToParse = $result[0];
-			$m = CLIParser::parseFindCountReponse($lineToParse);
-			if($m['nfiles'] > $this->recycleLimit || $m['ndirectories'] > $this->recycleLimit) {
+                        $eosMap = CLIParser::parseEosFileInfoMResponse($lineToParse);
+                        if (!$eosMap['eos.file']) {
+                                return false;
+                        }
+			$nfiles = (int)$eosMap['eos.container'] + (int)$eosMap['eos.files'];
+			if($nfiles > $this->recycleLimit) {
 				if(\OC::$server->getAppManager()->isInstalled("files_eostrashbin")) {
-					throw new RecycleSizeLimitException(sprintf("Your recycle bin is too big, contact the service support (nfiles=%d ndirectories=%d uid=%d)", $m['nfiles'], $m['ndirectories'], $uid));
+					throw new RecycleSizeLimitException("Your recycle bin is too big to be shown, please contact the service support. Find more information at http://cern.ch/go/HlX7");
 				} else {
 					throw new \Exception("You recycle is too big, contact the service support");
 				}
