@@ -475,7 +475,7 @@ class Instance implements IInstance {
 	/**
 	 * @param $username
 	 * @param string $key the restore-key
-	 * @return ICacheEntry the cache entry for the restored file.
+	 * @return array(restorePath, errorCode).
 	 */
 	public function restoreDeletedFile($username, $key) {
 		if($this->isReadOnly) {
@@ -484,6 +484,22 @@ class Instance implements IInstance {
 		$command = "recycle restore $key";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->exec($command);
+		// TODO(labkode): this is costly operation as there is not a way to query the restore-path knowing the restore-key but 
+		// listing again the deleted files.
+		// if errorCode === 1 means that we have to recreate the parent path
+		// so we let the user know this
+		if ($errorCode !== 0 && $errorCode !== 17) {
+			$restorePath = false;
+			foreach($this->getDeletedFiles($username) as $entry) {
+				if($entry->getRestoreKey() === $key) {
+					$restorePath = $entry->getOriginalPath();
+					break;
+				}
+			}
+
+			return array($errorCode, $restorePath);
+		}
+		
 		return $errorCode;
 	}
 
