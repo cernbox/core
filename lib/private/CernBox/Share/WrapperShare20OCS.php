@@ -72,18 +72,34 @@ class WrapperShare20OCS extends Share20OCS {
 		$path = $this->request->getParam("path", null);
 		$headers = getallheaders();
 		if(isset($headers['CBOX_CLIENT_MAPPING_ENABLED'])) {
+			$homePrefix = \OC::$server->getCernBoxEosInstanceManager()->getPrefix();
+			$projectPrefix = \OC::$server->getCernBoxEosInstanceManager()->getProjectPrefix();
 			if(strpos($path, '/home') === 0) {
 				$_SESSION['DESKTOP_MAPPING_PREFIX'] = '/home';
 				$path = substr($path, 5);
 			} else if(strpos($path, 'home') === 0) {
 				$_SESSION['DESKTOP_MAPPING_PREFIX'] = 'home';
 				$path = substr($path, 4);
-			} else if(strpos($path, '/eos') === 0) {
-				$split = explode('/', $path);
-				$tempPath = implode('/', array_slice($split, 5));
-				$prefix = substr($path, 0, strpos($path, $tempPath));
-				$path = $tempPath;
-				$_SESSION['DESKTOP_MAPPING_PREFIX'] = $prefix;
+			} else if(strpos($path, $homePrefix) === 0) {
+				// split = ["", "g/gonzalhu/MTIMEPROB"]
+				$split = explode($homePrefix, $path);
+				$split = explode("/", $split[1]);
+				// remove g/gonzalhu
+				array_shift($split);
+				array_shift($split);
+				$path = implode("/", $split);
+				$_SESSION['DESKTOP_MAPPING_PREFIX'] = $homePrefix;
+			} else if (strpos($path, $projectPrefix) === 0) {
+				// split = ["", "g/gonzalhu/MTIMEPROB"]
+				$split = explode($projectPrefix, $path);
+				$split = explode("/", $split[1]);
+				// remove g/gonzalhu
+				array_shift($split);
+				$projectName = strtolower(array_shift($split));
+				array_unshift($split, "  project " . $projectName);
+				$path = implode("/", $split);
+				$_SESSION['DESKTOP_MAPPING_PREFIX'] = $projectPrefix;
+
 			}
 		} else {
 			unset($_SESSION['DESKTOP_MAPPING_PREFIX']);
