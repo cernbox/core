@@ -8,7 +8,6 @@
 
 namespace OC\CernBox\Storage\Eos;
 use OC\CernBox\Storage\MetaDataCache\IMetaDataCache;
-use OCP\Files\Cache\ICacheEntry;
 
 
 /**
