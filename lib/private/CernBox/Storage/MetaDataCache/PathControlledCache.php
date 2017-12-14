@@ -80,4 +80,10 @@ class PathControlledCache implements IMetaDataCache {
 			return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
 		}
 	}
+
+	public function clearCacheEntry($key) {
+		return call_user_func_array(array($this->wrapped, __FUNCTION__), func_get_args());
+	}
+
+
 }

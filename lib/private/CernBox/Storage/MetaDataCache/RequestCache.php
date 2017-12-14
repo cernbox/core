@@ -53,4 +53,10 @@ class RequestCache implements  IMetaDataCache {
 	public function setUidAndGid($key, array $data) {
 		$GLOBALS['cernbox']['getUidAndGid'][$key] = $data;
 	}
+
+	public function clearCacheEntry($key) {
+		unset($GLOBALS['cernbox']['getCacheEntry'][$key]);
+	}
+
+
 }

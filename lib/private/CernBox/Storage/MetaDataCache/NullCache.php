@@ -68,4 +68,9 @@ class NullCache implements IMetaDataCache {
 		// TODO: Implement setUidAndGid() method.
 	}
 
+	public function getCacheEntry($key) {
+		// TODO: Implement getCacheEntry() method.
+	}
+
+
 }

@@ -175,7 +175,9 @@ class InstanceManager implements  IInstance {
 	}
 
 	public function remove($username, $ocPath) {
-		return $this->currentInstance->remove($username, $ocPath);
+		$this->currentInstance->remove($username, $ocPath);
+		$key = $this->currentInstance->getId() . ":" . $username . ":" . $ocPath;
+		$this->metaDataCache->clearCacheEntry($key);
 	}
 
 	public function read($username, $ocPath) {

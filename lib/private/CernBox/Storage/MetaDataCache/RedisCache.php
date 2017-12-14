@@ -70,6 +70,11 @@ class RedisCache  implements  IMetaDataCache {
 		$this->writeToCache(self::KEY_GET_PATH_BY_ID, $key, json_encode($data));
 	}
 
+	public function clearCacheEntry($key) {
+		$this->deleteFromCache(self::KEY_GET_CACHE_ENTRY, $key);
+	}
+
+
 	private function writeToCache($outerKey, $key, $value)
 	{
 		$this->driver->writeToCacheMap($outerKey, $key, json_encode([time(), $value]));

@@ -152,4 +152,5 @@ interface IMetaDataCache
 	public function setCacheEntry($key, ICacheEntry $data);
 	public function getPathById($key);
 	public function setPathById($key, $data);
+	public function clearCacheEntry($key);
 }

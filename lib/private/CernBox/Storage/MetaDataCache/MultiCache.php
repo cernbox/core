@@ -109,6 +109,14 @@ class MultiCache implements IMetaDataCache {
 		}
 	}
 
+	public function clearCacheEntry($key) {
+		$args = func_get_args();
+		foreach($this->caches as $priority => $cache) {
+			call_user_func_array(array($cache, __FUNCTION__), $args);
+		}
+	}
+
+
 	private function propagateToHigherCaches($foundAtPriority, $functionName, $key, $data) {
 		/*
 		\OC::$server->getLogger()->debug("cache propagation => foundprio:$foundAtPriority func:$functionName key:$key");
