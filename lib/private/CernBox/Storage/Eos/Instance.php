@@ -868,6 +868,22 @@ class Instance implements IInstance {
 
 	
 	public function getQuotaForUser($username) {
+		// when talking to the slave the slave does not provide quota info
+		// so we fake it for the time of the intervention
+		if($this->isSlaveEnforced()) {
+			$used = 0;
+			$total = 1099511627776; // 1TB
+			return [
+				'free' => $total - $used,
+				'used' => $used,
+				'quota' => $total,
+				'total' => $total,
+				'relative' => round( ($used/$total) * 100),
+				'owner' => $username,
+				'ownerDisplayName' => $username,
+			];
+		}
+
 		$prefix = $this->prefix;
 		$command = "quota $prefix -m";
 		$commander = $this->getCommander($username);
