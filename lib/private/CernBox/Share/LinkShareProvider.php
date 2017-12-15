@@ -82,29 +82,11 @@ class LinkShareProvider implements IShareProvider {
 		// set the permissions
 		$qb->setValue('permissions', $qb->createNamedParameter($share->getPermissions()));
 
-		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
-			// if the file we are sharing is under a project space, we set the owner of the share
-			// as the owner of the project
-			$projectMapper = \OC::$server->getCernBoxProjectMapper();
-			$metadata = $this->instanceManager->get($share->getShareOwner(), $node->getInternalPath());
-			$eosPath = $metadata['eos.file'];
-			if(strpos($eosPath, $this->instanceManager->getProjectPrefix()) === 0) {
-				// strip project prefix
-				$relPath = ltrim(substr($eosPath, strlen($this->instanceManager->getProjectPrefix())), "/");
-				$projectInfo = $projectMapper->getProjectInfoByPath($relPath);
-				if($projectInfo) {
-					// Set who is the owner of this file/folder (and this the owner of the share)
-					$qb->setValue('uid_owner', $qb->createNamedParameter($projectInfo->getProjectOwner()));
-				}
-			}
-		} else {
-			// Set who is the owner of this file/folder (and this the owner of the share)
-			$qb->setValue('uid_owner', $qb->createNamedParameter($share->getShareOwner()));
-		}
-
 		// Set who created this share
 		$qb->setValue('uid_initiator', $qb->createNamedParameter($share->getSharedBy()));
 
+		// Set who is the owner of this file/folder (and this the owner of the share)
+		$qb->setValue('uid_owner', $qb->createNamedParameter($share->getShareOwner()));
 
 		// Set the file target
 		$qb->setValue('file_target', $qb->createNamedParameter($share->getTarget()));
@@ -137,23 +119,6 @@ class LinkShareProvider implements IShareProvider {
 	}
 
 	public function update(\OCP\Share\IShare $share) {
-		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
-			// if the file we are sharing is under a project space, we set the owner of the share
-			// as the owner of the project
-			$projectMapper = \OC::$server->getCernBoxProjectMapper();
-			$node = $share->getNode();
-			$metadata = $this->instanceManager->get($share->getShareOwner(), $node->getInternalPath());
-			$eosPath = $metadata['eos.file'];
-			if(strpos($eosPath, $this->instanceManager->getProjectPrefix()) === 0) {
-				// strip project prefix
-				$relPath = ltrim(substr($eosPath, strlen($this->instanceManager->getProjectPrefix())), "/");
-				$projectInfo = $projectMapper->getProjectInfoByPath($relPath);
-				if($projectInfo) {
-					$share->setShareOwner($projectInfo->getProjectOwner());
-				}
-			}
-		}
-
 		$qb = $this->dbConn->getQueryBuilder();
 		$qb->update('share')
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($share->getId())))
@@ -196,20 +161,19 @@ class LinkShareProvider implements IShareProvider {
 
 		$qb->andWhere($qb->expr()->eq('share_type', $qb->createNamedParameter(\OCP\Share::SHARE_TYPE_LINK)));
 
-		$owners[] = $userId;
-		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
-			$projects = \OC::$server->getCernBoxProjectMapper()->getProjectsUserIsAdmin($userId);
-			$projectOwners = array_map(function ($project) {
-				return $project->getProjectOwner();
-			}, $projects);
-			$owners =array_merge($projectOwners, $owners);
+		/**
+		 * Reshares for this user are shares where they are the owner.
+		 */
+		if ($reshares === false) {
+			$qb->andWhere($qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId)));
+		} else {
+			$qb->andWhere(
+				$qb->expr()->orX(
+					$qb->expr()->eq('uid_owner', $qb->createNamedParameter($userId)),
+					$qb->expr()->eq('uid_initiator', $qb->createNamedParameter($userId))
+				)
+			);
 		}
-		$owners = array_unique($owners);
-
-		$qb->andWhere(
-			$qb->expr()->in('uid_owner', $qb->createParameter('owners'))
-		);
-		$qb->setParameter('owners', $owners, IQueryBuilder::PARAM_STR_ARRAY);
 
 		if ($node !== null) {
 			$nodeID = $node->getId();
@@ -254,9 +218,6 @@ class LinkShareProvider implements IShareProvider {
 					unset($shares[$index]);
 				}
 			}
-			// for shares not owned by us (project shares) we need to
-			// set them as ours to be shown in the web ui when asking for details of a file
-			$share->setSharedBy($userId);
 		}
 		return $shares;
 	}
@@ -291,26 +252,6 @@ class LinkShareProvider implements IShareProvider {
 			$share = $this->createShare($data);
 		} catch (InvalidShare $e) {
 			throw new ShareNotFound();
-		}
-
-
-		// we need to set the owner of the current logged in user if not the canAccess share function
-		// will return false
-		if(\OC::$server->getAppManager()->isInstalled("files_projectspaces")) {
-			// if the file we are sharing is under a project space, we set the owner of the share
-			// as the owner of the project
-			$projectMapper = \OC::$server->getCernBoxProjectMapper();
-			$node = $share->getNode();
-			$metadata = $this->instanceManager->get($share->getShareOwner(), $node->getInternalPath());
-			$eosPath = $metadata['eos.file'];
-			if(strpos($eosPath, $this->instanceManager->getProjectPrefix()) === 0) {
-				// strip project prefix
-				$relPath = ltrim(substr($eosPath, strlen($this->instanceManager->getProjectPrefix())), "/");
-				$projectInfo = $projectMapper->getProjectInfoByPath($relPath);
-				if($projectInfo) {
-					$share->setShareOwner(\OC::$server->getUserSession()->getUser()->getUID());
-				}
-			}
 		}
 
 		return $share;
