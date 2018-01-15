@@ -742,7 +742,7 @@ class Instance implements IInstance {
 		do {
 			$code = $this->stat($username, 'files');
 			usleep(5000000); // 0.5 seconds
-		} while ($code !== 0 && $code !== 14);
+		} while ($code !== 0 && $code !== 2); // 2 => no such file or directory
 
 		if ($code === 0) {
 			$this->logger->info(sprintf("user=%s has a valid homedir", $username));
@@ -915,7 +915,7 @@ class Instance implements IInstance {
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 		$eosPath = escapeshellarg($eosPath);
-		$command = "stat $eosPath";
+		$command = "file info $eosPath";
 		$commander = $this->getCommander($username);
 		list(, $errorCode) = $commander->exec($command);
 		return $errorCode;
