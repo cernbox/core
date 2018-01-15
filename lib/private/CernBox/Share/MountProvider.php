@@ -117,6 +117,10 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			return true;
 		}
 		
+		if(strpos($url, 'apps/gallery/preview.public') !== false) {
+			return true;
+		}
+		
 		if(strpos($url, 'apps/swanviewer/eosinfo') !== false) {
 			if(isset($_GET['filename'])) {
 				return $this->isSharedPath($_GET['filename']);
