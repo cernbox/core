@@ -916,7 +916,10 @@ class Instance implements IInstance {
 		$eosPath = $translator->toEos($ocPath);
 		$eosPath = escapeshellarg($eosPath);
 		$command = "file info $eosPath";
-		$commander = $this->getCommander($username);
+		// the stat called is used ONLY for checking the existance of a home directory
+		// so we need to run the command as root as if the user has not yet being created
+		// the query will fail.
+		$commander = $this->getCommander("root");
 		list(, $errorCode) = $commander->exec($command);
 		return $errorCode;
 	}
