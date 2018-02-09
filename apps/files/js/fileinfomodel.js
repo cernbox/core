@@ -38,7 +38,7 @@
 
 		initialize: function(data) {
 			if (!_.isUndefined(data.id)) {
-				data.id = parseInt(data.id, 10);
+				data.id = data.id;
 			}
 		},
 
