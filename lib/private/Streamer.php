@@ -32,6 +32,9 @@ class Streamer {
 
 	// streamer instance
 	private $streamerInstance;
+
+	private $max_exec_time;
+	private $start_exec_time = 0;
 	
 	public function __construct(){
 		/** @var \OCP\IRequest */
@@ -42,6 +45,7 @@ class Streamer {
 		} else {
 			$this->streamerInstance = new ZipStreamer(['zip64' => PHP_INT_SIZE !== 4]);
 		}
+		$this->max_exec_time = (int)\OC::$server->getConfig()->getSystemValue("cbox.max_zip_time", 60);
 	}
 	
 	/**
@@ -60,6 +64,15 @@ class Streamer {
 	 * @param string $internalDir
 	 */
 	public function addDirRecursive($dir, $internalDir='') {
+		if($this->start_exec_time === 0) {
+			$this->start_exec_time = microtime(true);
+		}
+		$elapsed = microtime(true) - $this->start_exec_time;
+		if($elapsed > $this->max_exec_time) {
+			throw new \Exception("ZIP/TAR creation timedout");
+			return;
+		}
+
 		$dirname = basename($dir);
 		$rootDir = $internalDir . $dirname;
 		if (!empty($rootDir)) {
@@ -93,6 +106,15 @@ class Streamer {
 	 * @return bool $success
 	 */
 	public function addFileFromStream($stream, $internalName, $size){
+		if($this->start_exec_time === 0) {
+			$this->start_exec_time = microtime(true);
+		}
+		$elapsed = microtime(true) - $this->start_exec_time;
+		if($elapsed > $this->max_exec_time) {
+			throw new \Exception("ZIP/TAR creation timedout");
+			return;
+		}
+
 		if ($this->streamerInstance instanceof ZipStreamer) {
 			return $this->streamerInstance->addFileFromStream($stream, $internalName);
 		} else {
