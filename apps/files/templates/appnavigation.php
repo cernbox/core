@@ -16,6 +16,16 @@
 			</button>
 		</div>
 		<div id="app-settings-content">
+			</br>
+			<em>Choose your Office Engine</em>
+			<div >
+				<select id="office-engine-select">
+				  <option value="onlyoffice">OnlyOffice</option>
+				  <option value="msoffice">MS Office</option>
+				  <option value="collabora">Collabora</option>
+				</select>
+			</div>
+			</br>
 			<div id="files-setting-showhidden">
 				<input class="checkbox" id="showhiddenfilesToggle" checked="checked" type="checkbox">
 				<label for="showhiddenfilesToggle"><?php p($l->t('Show hidden files')); ?></label>
@@ -26,3 +36,16 @@
 		</div>
 	</div>
 </div>
+<script type="text/javascript">
+if (!localStorage.getItem("office_engine")) {
+	localStorage.setItem('office_engine', 'msoffice');
+}
+
+$("#office-engine-select").val(localStorage.getItem('office_engine'));
+
+$("#office-engine-select").change(function() {
+	var engine = $("#office-engine-select").find(":selected").val();
+	localStorage.setItem('office_engine', engine);
+	location.reload();	
+});
+</script>

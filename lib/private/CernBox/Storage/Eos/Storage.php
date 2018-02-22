@@ -119,6 +119,18 @@ class Storage implements \OCP\Files\Storage
         	$userObjectOrString = $this->shareUtil->getUsernameFromSharedToken();
         }
 
+	// asume we are coming from collabora
+        if (!$userObjectOrString && strpos($_SERVER['REQUEST_URI'], '/apps/richdocuments/wopi/files')) {
+		$token = $_GET['access_token'];
+		if($token) {
+			$row = new \OCA\Richdocuments\Db\Wopi();
+			$res = $row->loadBy('token', $token)->getData();
+			$ownerid = $res['owner_uid'];
+			$userObjectOrString = $ownerid;
+		}
+        }
+	
+
         // FIMXE(labkode): there are some urls that does not pass the username in the constructor
 		// but the user is logged in.
 		// TODO: refactor getUsernameFromSharedToken to also get user from logged in.
