@@ -57,6 +57,7 @@ class Instance implements IInstance {
 		$this->recycleLimit = isset($instanceConfig['recyclelimit']) ? $instanceConfig['recyclelimit'] : 10000;
 		$this->hideRegex = isset($instanceConfig['hideregex']) ? $instanceConfig['hideregex'] : null;
 		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : null;
+		$this->readcache = isset($instanceConfig['readcache']) ? $instanceConfig['readcache'] : null;
 		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : null;
 		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : null;
 		$this->isReadOnly = isset($instanceConfig['readonly']) ? $instanceConfig['readonly'] : false;
@@ -169,9 +170,11 @@ class Instance implements IInstance {
 
 		// try to read the file from the local caching area first.
 		$localCachedFile = $this->stagingDir . "/eosread:" . $entry->getId() . ":" . $entry->getMTime();
-		if (file_exists($localCachedFile)) {
-			$this->logger->info("downloading file from local caching area");
-			return fopen($localCachedFile, 'r');
+		if($this->readcache) {
+			if (file_exists($localCachedFile)) {
+				$this->logger->info("downloading file from local caching area");
+				return fopen($localCachedFile, 'r');
+			}
 		}
 
 		$xrdSource = escapeshellarg($this->getMgmUrl(). "//" . $eosPath);
