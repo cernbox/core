@@ -36,16 +36,3 @@
 		</div>
 	</div>
 </div>
-<script type="text/javascript">
-if (!localStorage.getItem("office_engine")) {
-	localStorage.setItem('office_engine', 'msoffice');
-}
-
-$("#office-engine-select").val(localStorage.getItem('office_engine'));
-
-$("#office-engine-select").change(function() {
-	var engine = $("#office-engine-select").find(":selected").val();
-	localStorage.setItem('office_engine', engine);
-	location.reload();	
-});
-</script>

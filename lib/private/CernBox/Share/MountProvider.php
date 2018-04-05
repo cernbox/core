@@ -175,7 +175,7 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 		}	
 		
 		if(strpos($url, 'apps/onlyoffice') !== false) {
-			return true;
+			return false;
 		}	
 
 
