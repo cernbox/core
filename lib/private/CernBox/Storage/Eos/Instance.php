@@ -58,7 +58,7 @@ class Instance implements IInstance {
 		$this->hideRegex = isset($instanceConfig['hideregex']) ? $instanceConfig['hideregex'] : null;
 		$this->projectPrefix = isset($instanceConfig['projectprefix']) ? $instanceConfig['projectprefix'] : null;
 		$this->readcache = isset($instanceConfig['readcache']) ? $instanceConfig['readcache'] : null;
-		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : null;
+		$this->stagingDir = isset($instanceConfig['stagingdir']) ? $instanceConfig['stagingdir'] : '/var/tmp';
 		$this->homeDirScript = isset($instanceConfig['homedirscript']) ? $instanceConfig['homedirscript'] : null;
 		$this->isReadOnly = isset($instanceConfig['readonly']) ? $instanceConfig['readonly'] : false;
 		$this->isSlaveEnforced = isset($instanceConfig['forceslave']) ? $instanceConfig['forceslave'] : false;
