@@ -173,6 +173,10 @@ class MountProvider extends \OCA\Files_Sharing\MountProvider {
 			}
 			return true;
 		}	
+		
+		if(strpos($url, 'index.php/f/') !== false) {
+			return true;
+		}	
 
 		return false;
 	}
