@@ -313,8 +313,8 @@ $(document).ready(function() {
 	_.defer(function() {
 		OCA.Files.App.initialize();
 	});
-	if (!localStorage.getItem("office_engine")) {
-		localStorage.setItem('office_engine', 'msoffice');
+	if (!localStorage.getItem("office_engine") || localStorage.getItem("office_engine") != "onlyoffice") {
+		localStorage.setItem('office_engine', 'onlyoffice');
 	}
 
 	$("#office-engine-select").val(localStorage.getItem('office_engine'));

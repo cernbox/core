@@ -17,8 +17,8 @@
 		</div>
 		<div id="app-settings-content">
 			</br>
-			<em>Choose your Office Engine</em>
-			<div >
+			<em class="hidden">Choose your Office Engine</em>
+			<div class="hidden">
 				<select id="office-engine-select">
 				  <option value="onlyoffice">OnlyOffice</option>
 				  <option value="msoffice">MS Office</option>
