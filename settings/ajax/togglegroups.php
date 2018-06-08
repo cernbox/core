@@ -30,7 +30,7 @@ OCP\JSON::callCheck();
 $username = (string)$_POST['username'];
 $group = (string)$_POST['group'];
 
-if($username === OC_User::getUser() && $group === "admin" &&  OC_User::isAdminUser($username)) {
+if($username === OC_User::getUser() &&  OC_User::isAdminUser($username)) {
 	$l = \OC::$server->getL10N('core');
 	OC_JSON::error(['data' => ['message' => $l->t('Admins can\'t remove themself from the admin group')]]);
 	exit();

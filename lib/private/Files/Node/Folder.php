@@ -288,7 +288,11 @@ class Folder extends Node implements \OCP\Files\Folder {
 				if (is_string($internalPath)) {
 					$fullPath = $mount->getMountPoint() . $internalPath;
 					if (!is_null($path = $this->getRelativePath($fullPath))) {
-						$nodes[] = $this->get($path);
+						try {
+							$nodes[] = $this->get($path);
+						} catch (\Exception $e) {
+							\OC::$server->getLogger()->logException($e);
+						}
 					}
 				}
 			}

@@ -48,31 +48,31 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 class Share20OCS {
 
 	/** @var IManager */
-	private $shareManager;
+	protected $shareManager;
 	/** @var IGroupManager */
-	private $groupManager;
+	protected $groupManager;
 	/** @var IUserManager */
-	private $userManager;
+	protected $userManager;
 	/** @var IRequest */
-	private $request;
+	protected $request;
 	/** @var IRootFolder */
-	private $rootFolder;
+	protected $rootFolder;
 	/** @var IURLGenerator */
-	private $urlGenerator;
+	protected $urlGenerator;
 	/** @var IUser */
-	private $currentUser;
+	protected $currentUser;
 	/** @var IL10N */
-	private $l;
+	protected $l;
 	/** @var IConfig */
-	private $config;
+	protected $config;
 
 	/**
 	 * @var string
 	 */
-	private $additionalInfoField;
+	protected $additionalInfoField;
 
 	/** @var \Symfony\Component\EventDispatcher\EventDispatcherInterface  */
-	private $eventDispatcher;
+	protected $eventDispatcher;
 
 	/**
 	 * Share20OCS constructor.
@@ -119,7 +119,7 @@ class Share20OCS {
 	 * @param IUser $user user for which to retrieve the additional info
 	 * @return string|null additional info or null if none to be displayed
 	 */
-	private function getAdditionalUserInfo(IUser $user) {
+	protected function getAdditionalUserInfo(IUser $user) {
 		if ($this->additionalInfoField === 'email') {
 			return $user->getEMailAddress();
 		} else if ($this->additionalInfoField === 'id') {
@@ -495,7 +495,7 @@ class Share20OCS {
 	 * @param boolean $includeTags
 	 * @return \OC\OCS\Result
 	 */
-	private function getSharedWithMe($node = null, $includeTags) {
+	protected function getSharedWithMe($node = null, $includeTags) {
 		$userShares = $this->shareManager->getSharedWith($this->currentUser->getUID(), \OCP\Share::SHARE_TYPE_USER, $node, -1, 0);
 		$groupShares = $this->shareManager->getSharedWith($this->currentUser->getUID(), \OCP\Share::SHARE_TYPE_GROUP, $node, -1, 0);
 
@@ -527,7 +527,7 @@ class Share20OCS {
 	 * @param \OCP\Files\Folder $folder
 	 * @return \OC\OCS\Result
 	 */
-	private function getSharesInDir($folder) {
+	protected function getSharesInDir($folder) {
 		if (!($folder instanceof \OCP\Files\Folder)) {
 			return new \OC\OCS\Result(null, 400, $this->l->t('Not a directory'));
 		}
@@ -867,7 +867,7 @@ class Share20OCS {
 	 * @throws \Exception
 	 * @return \DateTime
 	 */
-	private function parseDate($expireDate) {
+	protected function parseDate($expireDate) {
 		try {
 			$date = new \DateTime($expireDate);
 		} catch (\Exception $e) {
@@ -891,7 +891,7 @@ class Share20OCS {
 	 * @return \OCP\Share\IShare
 	 * @throws ShareNotFound
 	 */
-	private function getShareById($id) {
+	protected function getShareById($id) {
 		$share = null;
 
 		// First check if it is an internal share.

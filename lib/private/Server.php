@@ -109,6 +109,19 @@ use OC\Files\External\Service\DBConfigService;
 use OC\Http\Client\WebDavClientService;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
+use OC\CernBox\Backends\UserSession;
+use OC\CernBox\Drivers\Redis;
+use OC\CernBox\Storage\Eos\DBProjectMapper;
+use OC\CernBox\Storage\Eos\IInstanceMapper;
+use OC\CernBox\Storage\Eos\InstanceManager;
+use OC\CernBox\Storage\Eos\InstanceMapper;
+use OC\CernBox\Storage\Eos\IProjectMapper;
+use OC\CernBox\Storage\Eos\Util;
+use OC\CernBox\Storage\MetaDataCache\MultiCache;
+use OC\CernBox\Storage\MetaDataCache\PathControlledCache;
+use OC\CernBox\Storage\MetaDataCache\RedisCache;
+use OC\CernBox\Storage\MetaDataCache\RequestCache;
+
 /**
  * Class Server
  *
@@ -618,6 +631,7 @@ class Server extends ServerContainer implements IServerContainer, IServiceLoader
 			$manager->registerProvider(new CacheMountProvider($config));
 			$manager->registerHomeProvider(new LocalHomeMountProvider());
 			$manager->registerHomeProvider(new ObjectHomeMountProvider($config));
+			$manager->registerHomeProvider(new \OC\CernBox\Storage\Eos\HomeMountProvider($config));
 
 			// external storage
 			if ($config->getAppValue('core', 'enable_external_storage', 'no') === 'yes') {
@@ -881,6 +895,50 @@ class Server extends ServerContainer implements IServerContainer, IServiceLoader
 				\OC::$SERVERROOT
 			);
 		});
+		
+		$this->registerService('CernBoxMetaDataCache', function (Server $c) {
+			$caches = [];
+			if(\OC::$server->getConfig()->getSystemValue("cbox.caches.req", false)) {
+				$caches[] = new RequestCache();
+			}
+
+			if(\OC::$server->getConfig()->getSystemValue("cbox.caches.redis", false)) {
+				$caches[] = new RedisCache(new Redis());
+			}
+
+			$multiCache = new MultiCache($caches);
+			if(\OC::$server->getConfig()->getSystemValue("cbox.caches.pathcontrolled", false)) {
+				$multiCache = new PathControlledCache($multiCache);
+			}
+
+			return $multiCache;
+		});
+
+
+		$this->registerService('CernBoxEosUtil', function (Server $c) {
+			return new Util($c->getCernBoxMetaDataCache());
+		});
+
+		$this->registerService('CernBoxEosInstanceManager', function (Server $c) {
+			return new InstanceManager();
+		});
+
+		$this->registerService('CernBoxShareUtil', function (Server $c) {
+			return new \OC\CernBox\Share\Util();
+		});
+
+
+		$this->registerService('CernBoxInstanceMapper', function (Server $c) {
+			return new InstanceMapper();
+		});
+
+		$this->registerService('CernBoxRedis', function (Server $c) {
+			return new Redis();
+		});
+
+		$this->registerService('CernBoxProjectMapper', function (Server $c) {
+			return new DBProjectMapper();
+		});
 		$this->registerAlias('OCP\Theme\IThemeService', 'ThemeService');
 		$this->registerAlias('OCP\IUserSession', 'UserSession');
 		$this->registerAlias('OCP\Security\ICrypto', 'Crypto');
@@ -1011,7 +1069,12 @@ class Server extends ServerContainer implements IServerContainer, IServiceLoader
 			$userId = $user->getUID();
 		}
 		$root = $this->getRootFolder();
-		return $root->getUserFolder($userId);
+		try {
+			return $root->getUserFolder($userId);
+		} catch (NotFoundException $e) {
+			\OC::$server->getCernBoxEosInstanceManager()->createHome($userId);
+			return $root->getUserFolder($userId);
+		}
 	}
 
 	/**
@@ -1608,6 +1671,55 @@ class Server extends ServerContainer implements IServerContainer, IServiceLoader
 	 */
 	public function getServiceLoader() {
 		return $this;
+	}
+	
+	/**
+	 * @return \OC\CernBox\Storage\MetaDataCache\IMetaDataCache
+	 */
+	public function getCernBoxMetaDataCache() {
+		return $this->query('CernBoxMetaDataCache');
+	}
+
+	/**
+	 * @return Util
+	 */
+	public function getCernBoxEosUtil() {
+		return $this->query('CernBoxEosUtil');
+	}
+
+	/**
+	 * @return InstanceManager
+	 */
+	public function getCernBoxEosInstanceManager() {
+		return $this->query('CernBoxEosInstanceManager');
+	}
+
+	/**
+	 * @return \OC\CernBox\Share\Util
+	 */
+	public function getCernBoxShareUtil() {
+		return $this->query('CernBoxShareUtil');
+	}
+	/**
+	 * @return IProjectMapper
+	 */
+	public function getCernBoxProjectMapper() {
+		return $this->query('CernBoxProjectMapper');
+	}
+
+	/**
+	 * @return Redis
+	 */
+	public function getCernBoxRedis() {
+		return $this->query('CernBoxRedis');
+
+	}
+
+	/**
+	 * @return IInstanceMapper
+	 */
+	public function getCernBoxInstanceMapper() {
+		return $this->query('CernBoxInstanceMapper');
 	}
 
 	/**

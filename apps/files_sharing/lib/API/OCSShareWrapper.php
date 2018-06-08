@@ -26,7 +26,7 @@ class OCSShareWrapper {
 	 * @return Share20OCS
 	 */
 	private function getShare20OCS() {
-		return new Share20OCS(
+		return new \OC\CernBox\Share\WrapperShare20OCS(
 			\OC::$server->getShareManager(),
 			\OC::$server->getGroupManager(),
 			\OC::$server->getUserManager(),

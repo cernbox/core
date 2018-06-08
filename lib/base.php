@@ -734,6 +734,7 @@ class OC {
 			// NOTE: This will be replaced to use OCP
 			$userSession = self::$server->getUserSession();
 			$userSession->listen('\OC\User', 'postLogin', function () {
+				//header("X-Access-Token: test");
 				try {
 					$cache = new \OC\Cache\File();
 					$cache->gc();

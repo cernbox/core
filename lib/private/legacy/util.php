@@ -85,6 +85,7 @@ class OC_Util {
 			self::$rootMounted = true;
 		}
 	}
+	
 
 	/**
 	 * mounting an object storage as the root fs will in essence remove the
@@ -113,6 +114,32 @@ class OC_Util {
 		$config['class'] = '\OC\Files\ObjectStore\ObjectStoreStorage';
 
 		// mount object storage as root
+		\OC\Files\Filesystem::initMountManager();
+		if (!self::$rootMounted) {
+			\OC\Files\Filesystem::mount($config['class'], $config['arguments'], '/');
+			self::$rootMounted = true;
+		}
+	}
+	
+	/**
+	 * mounting an Eos store as the root fs will in essence remove the
+	 * necessity of a data folder being present and a SQL cache.
+	 *
+	 * @param array $config containing 'class' and optional 'arguments'
+	 */
+	private static function initEosStoreRootFS($config, $user) {
+		// check misconfiguration
+		if (empty($config['class'])) {
+			\OCP\Util::writeLog('files', 'No class given for eosstore', \OCP\Util::ERROR);
+		}
+		if (!isset($config['arguments'])) {
+			$config['arguments'] = array();
+		}
+
+		// add user to arguments array
+		$config['arguments']['user'] = $user;
+
+		// mount eos storage as root
 		\OC\Files\Filesystem::initMountManager();
 		if (!self::$rootMounted) {
 			\OC\Files\Filesystem::mount($config['class'], $config['arguments'], '/');
@@ -208,6 +235,7 @@ class OC_Util {
 			 */
 			if ($storage->instanceOfStorage('\OC\Files\Storage\Home')
 				|| $storage->instanceOfStorage('\OC\Files\ObjectStore\HomeObjectStoreStorage')
+                		|| $storage->instanceOfStorage('\OC\CernBox\Storage\Eos\HomeStorage')
 			) {
 				/** @var \OC\Files\Storage\Home $storage */
 				if (is_object($storage->getUser())) {
@@ -234,6 +262,8 @@ class OC_Util {
 			false
 		);
 
+		/* CERNBox: if this is not commented, owncloud will ask for userGroups of am empty username (nobody is logged in), which will hit 404 on the cboxgroupd backend.
+		 * failling to load the login page.
 		if (!$isGuest) {
 			$readOnlyGroups = json_decode(\OC::$server->getConfig()->getAppValue(
 				'core',
@@ -255,6 +285,7 @@ class OC_Util {
 				$userGroups
 			);
 		}
+		 */
 
 
 		if ($isGuest === '1' || !empty($readOnlyGroupMemberships)) {
@@ -278,7 +309,10 @@ class OC_Util {
 
 		//check if we are using an object storage
 		$objectStore = \OC::$server->getSystemConfig()->getValue('objectstore', null);
-		if (isset($objectStore)) {
+        	$eosStore = \OC::$server->getSystemConfig()->getValue('eosstore', null);
+		if (isset($eosStore)) {
+			self::initEosStoreRootFS($eosStore, $user);
+		} else if (isset($objectStore)){
 			self::initObjectStoreRootFS($objectStore);
 		} else {
 			self::initLocalStorageRootFS();

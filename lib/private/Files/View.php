@@ -1416,6 +1416,11 @@ class View {
 			if ($data and isset($data['fileid'])) {
 				if ($includeMountPoints and $data['mimetype'] === 'httpd/unix-directory') {
 					//add the sizes of other mount points to the folder
+					/*
+				 	* CERNBox: if we don't comment this then when accesing a shared folder
+					* and mounting the filesystem for the owner of the share it will also include 
+					* the shared of that user and recursively to compute the mount size, of course,
+					* this does not scale and as we don't have movable mounts we don't need this.	
 					$extOnly = ($includeMountPoints === 'ext');
 					$mounts = Filesystem::getMountManager()->findIn($path);
 					foreach ($mounts as $mount) {
@@ -1430,6 +1435,7 @@ class View {
 							$info->addSubEntry($rootEntry, $mount->getMountPoint());
 						}
 					}
+					*/
 				}
 			}
 
@@ -1484,75 +1490,81 @@ class View {
 				return new FileInfo($path . '/' . $content['name'], $storage, $content['path'], $content, $mount, $owner);
 			}, $files);
 
-			//add a folder for any mountpoint in this directory and add the sizes of other mountpoints to the folders
-			$mounts = Filesystem::getMountManager()->findIn($path);
-			$dirLength = strlen($path);
-			foreach ($mounts as $mount) {
-				$mountPoint = $mount->getMountPoint();
-				$subStorage = $mount->getStorage();
-				if ($subStorage) {
-					$subCache = $subStorage->getCache('');
 
-					$rootEntry = $subCache->get('');
-					if (!$rootEntry) {
-						$subScanner = $subStorage->getScanner('');
-						try {
-							$subScanner->scanFile('');
-						} catch (\OCP\Files\StorageNotAvailableException $e) {
-							continue;
-						} catch (\OCP\Files\StorageInvalidException $e) {
-							continue;
-						} catch (\Exception $e) {
-							// sometimes when the storage is not available it can be any exception
-							Util::writeLog(
-								'core',
-								'Exception while scanning storage "' . $subStorage->getId() . '": ' .
-								get_class($e) . ': ' . $e->getMessage(),
-								Util::ERROR
-							);
-							continue;
-						}
+			// if unify_home_view is set to true we merge external and shared mountpoints into the user
+			// home tree.
+			$unifyHomeView = \OC::$server->getConfig()->getSystemValue('unify_home_view', true);
+			if($unifyHomeView) {
+				//add a folder for any mountpoint in this directory and add the sizes of other mountpoints to the folders
+				$mounts = Filesystem::getMountManager()->findIn($path);
+				$dirLength = strlen($path);
+				foreach ($mounts as $mount) {
+					$mountPoint = $mount->getMountPoint();
+					$subStorage = $mount->getStorage();
+					if ($subStorage) {
+						$subCache = $subStorage->getCache('');
+
 						$rootEntry = $subCache->get('');
-					}
+						if (!$rootEntry) {
+							$subScanner = $subStorage->getScanner('');
+							try {
+								$subScanner->scanFile('');
+							} catch (\OCP\Files\StorageNotAvailableException $e) {
+								continue;
+							} catch (\OCP\Files\StorageInvalidException $e) {
+								continue;
+							} catch (\Exception $e) {
+								// sometimes when the storage is not available it can be any exception
+								Util::writeLog(
+									'core',
+									'Exception while scanning storage "' . $subStorage->getId() . '": ' .
+									get_class($e) . ': ' . $e->getMessage(),
+									Util::ERROR
+								);
+								continue;
+							}
+							$rootEntry = $subCache->get('');
+						}
 
-					if ($rootEntry && ($rootEntry->getPermissions() && Constants::PERMISSION_READ)) {
-						$relativePath = trim(substr($mountPoint, $dirLength), '/');
-						if ($pos = strpos($relativePath, '/')) {
-							//mountpoint inside subfolder add size to the correct folder
-							$entryName = substr($relativePath, 0, $pos);
-							foreach ($files as &$entry) {
-								if ($entry->getName() === $entryName) {
-									$entry->addSubEntry($rootEntry, $mountPoint);
+						if ($rootEntry && ($rootEntry->getPermissions() && Constants::PERMISSION_READ)) {
+							$relativePath = trim(substr($mountPoint, $dirLength), '/');
+							if ($pos = strpos($relativePath, '/')) {
+								//mountpoint inside subfolder add size to the correct folder
+								$entryName = substr($relativePath, 0, $pos);
+								foreach ($files as &$entry) {
+									if ($entry->getName() === $entryName) {
+										$entry->addSubEntry($rootEntry, $mountPoint);
+									}
 								}
-							}
-						} else { //mountpoint in this folder, add an entry for it
-							$rootEntry['name'] = $relativePath;
-							$rootEntry['type'] = $rootEntry['mimetype'] === 'httpd/unix-directory' ? 'dir' : 'file';
-							$permissions = $rootEntry['permissions'];
-							// do not allow renaming/deleting the mount point if they are not shared files/folders
-							// for shared files/folders we use the permissions given by the owner
-							if ($mount instanceof MoveableMount) {
-								$rootEntry['permissions'] = $permissions | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE;
-							} else {
-								$rootEntry['permissions'] = $permissions & (\OCP\Constants::PERMISSION_ALL - (\OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE));
-							}
-
-							//remove any existing entry with the same name
-							foreach ($files as $i => $file) {
-								if ($file['name'] === $rootEntry['name']) {
-									unset($files[$i]);
-									break;
+							} else { //mountpoint in this folder, add an entry for it
+								$rootEntry['name'] = $relativePath;
+								$rootEntry['type'] = $rootEntry['mimetype'] === 'httpd/unix-directory' ? 'dir' : 'file';
+								$permissions = $rootEntry['permissions'];
+								// do not allow renaming/deleting the mount point if they are not shared files/folders
+								// for shared files/folders we use the permissions given by the owner
+								if ($mount instanceof MoveableMount) {
+									$rootEntry['permissions'] = $permissions | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE;
+								} else {
+									$rootEntry['permissions'] = $permissions & (\OCP\Constants::PERMISSION_ALL - (\OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE));
 								}
-							}
-							$rootEntry['path'] = substr(Filesystem::normalizePath($path . '/' . $rootEntry['name']), strlen($user) + 2); // full path without /$user/
 
-							// if sharing was disabled for the user we remove the share permissions
-							if (Util::isSharingDisabledForUser()) {
-								$rootEntry['permissions'] = $rootEntry['permissions'] & ~\OCP\Constants::PERMISSION_SHARE;
-							}
+								//remove any existing entry with the same name
+								foreach ($files as $i => $file) {
+									if ($file['name'] === $rootEntry['name']) {
+										unset($files[$i]);
+										break;
+									}
+								}
+								$rootEntry['path'] = substr(Filesystem::normalizePath($path . '/' . $rootEntry['name']), strlen($user) + 2); // full path without /$user/
 
-							$owner = $this->getUserObjectForOwner($subStorage->getOwner(''));
-							$files[] = new FileInfo($path . '/' . $rootEntry['name'], $subStorage, '', $rootEntry, $mount, $owner);
+								// if sharing was disabled for the user we remove the share permissions
+								if (Util::isSharingDisabledForUser()) {
+									$rootEntry['permissions'] = $rootEntry['permissions'] & ~\OCP\Constants::PERMISSION_SHARE;
+								}
+
+								$owner = $this->getUserObjectForOwner($subStorage->getOwner(''));
+								$files[] = new FileInfo($path . '/' . $rootEntry['name'], $subStorage, '', $rootEntry, $mount, $owner);
+							}
 						}
 					}
 				}

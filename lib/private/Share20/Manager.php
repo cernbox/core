@@ -128,10 +128,13 @@ class Manager implements IManager {
 		foreach ($shareTypes as $shareType) {
 			// Get provider and its ID, at this point provider is cached at IProviderFactory instance
 			$provider = $this->factory->getProviderForType($shareType);
-			$providerId = $provider->identifier();
+			// $provider might be null as when for example having federated file sharing disabled
+			if($provider) {
+				$providerId = $provider->identifier();
 
-			// Create a key -> multi value map
-			$providerIdMap[$providerId][] = $shareType;
+				// Create a key -> multi value map
+				$providerIdMap[$providerId][] = $shareType;
+			}
 		}
 		return $providerIdMap;
 	}
