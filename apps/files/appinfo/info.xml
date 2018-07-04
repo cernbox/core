@@ -17,11 +17,13 @@
 		<user>user-files</user>
 	</documentation>
 
+	<!--
 	<background-jobs>
 		<job>OCA\Files\BackgroundJob\ScanFiles</job>
 		<job>OCA\Files\BackgroundJob\DeleteOrphanedItems</job>
 		<job>OCA\Files\BackgroundJob\CleanupFileLocks</job>
 	</background-jobs>
+	-->
 
 	<commands>
 		<command>OCA\Files\Command\Scan</command>

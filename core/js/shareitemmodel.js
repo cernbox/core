@@ -61,7 +61,8 @@
 	 * of integers, so we need to convert them accordingly...
 	 */
 	var SHARE_RESPONSE_INT_PROPS = [
-		'id', 'mail_send', 'permissions',
+		//'id', 'mail_send', 'permissions',
+		'mail_send', 'permissions',
 		'storage', 'share_type', 'parent', 'stime'
 	];
 

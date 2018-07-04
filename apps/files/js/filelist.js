@@ -1735,6 +1735,7 @@
 		 */
 		generatePreviewUrl: function(urlSpec) {
 			urlSpec = urlSpec || {};
+			urlSpec["x-access-token"] = OC["X-Access-Token"]; // HACK(labkode): inject x-access-token as <img> elements will trigger a non-XMLHttpReq.
 			if (!urlSpec.x) {
 				urlSpec.x = this.$table.data('preview-x') || 32;
 			}

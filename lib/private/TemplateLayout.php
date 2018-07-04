@@ -97,7 +97,7 @@ class TemplateLayout extends \OC_Template {
 			if (\OC_User::getUser() === false) {
 				$this->assign('userAvatarSet', false);
 			} else {
-				$this->assign('userAvatarSet', \OC::$server->getAvatarManager()->getAvatar(\OC_User::getUser())->exists());
+				//$this->assign('userAvatarSet', \OC::$server->getAvatarManager()->getAvatar(\OC_User::getUser())->exists());
 			}
 		} elseif ($renderAs == 'error') {
 			parent::__construct('core', 'layout.guest', '', false);

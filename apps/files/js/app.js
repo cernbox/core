@@ -288,6 +288,7 @@
 		_makeUrlParams: function(params) {
 			var dir = params.dir;
 			delete params.dir;
+			delete params.fileid;
 			return 'dir=' + OC.encodePath(dir) + '&' + OC.buildQueryString(params);
 		},
 

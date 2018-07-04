@@ -167,7 +167,9 @@
 						encodedPath += '/' + encodeURIComponent(section);
 					}
 				});
-				return OC.linkToRemoteBase('webdav') + encodedPath;
+				var params = {};
+				params["x-access-token"] = OC["X-Access-Token"];
+				return OC.linkToRemoteBase('webdav') + encodedPath + "?" + $.param(params);
 			}
 
 			if (_.isArray(filename)) {
@@ -319,7 +321,13 @@
 			} else {
 				url += '?';
 			}
-			OC.redirect(url + 'downloadStartSecret=' + randomToken);
+
+			var params = {};
+			params["downloadStartSecret"] = randomToken;
+			params["x-access-token"] = OC["X-Access-Token"];
+			url += $.param(params);
+
+			OC.redirect(url);
 			OC.Util.waitFor(checkForDownloadCookie, 500);
 		}
 	};

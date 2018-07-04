@@ -250,6 +250,7 @@ class Instance implements IInstance {
 	 * FIXME: remember to handle permissions
 	 */
 	public function get($username, $ocPath) {
+		return new CacheEntry([]);
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 		$eosPath = escapeshellarg($eosPath);
@@ -305,6 +306,7 @@ class Instance implements IInstance {
 	 * @return ICacheEntry[]|bool
 	 */
 	public function getFolderContents($username, $ocPath) {
+		return [];
 		$translator = $this->getTranslator($username);
 		$eosPath = $translator->toEos($ocPath);
 		$eosPathEscaped = escapeshellarg($eosPath);
@@ -871,6 +873,18 @@ class Instance implements IInstance {
 
 	
 	public function getQuotaForUser($username) {
+		$used = 0;
+		$total = 1099511627776; // 1TB
+		return [
+			'free' => $total - $used,
+			'used' => $used,
+			'quota' => $total,
+			'total' => $total,
+			'relative' => round( ($used/$total) * 100),
+			'owner' => $username,
+			'ownerDisplayName' => $username,
+		];
+		
 		// when talking to the slave the slave does not provide quota info
 		// so we fake it for the time of the intervention
 		if($this->isSlaveEnforced()) {

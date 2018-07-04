@@ -343,7 +343,8 @@ class Manager extends PublicEmitter implements IGroupManager {
 	 * @return bool if admin
 	 */
 	public function isAdmin($userId) {
-		return $this->isInGroup($userId, 'admin');
+		$adminGroupName = \OC::$server->getSystemConfig()->getValue('admin_group_name', 'admin');
+		return $this->isInGroup($userId, $adminGroupName);
 	}
 
 	/**
