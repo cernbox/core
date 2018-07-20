@@ -158,7 +158,7 @@ OCA.Sharing.PublicApp = {
 			// TODO: move this to a separate PublicFileList class that extends OCA.Files.FileList (+ unit tests)
 			this.fileList.getDownloadUrl = function (filename, dir, isDir) {
 				var path = dir || this.getCurrentDirectory();
-				var base = OC.generateUrl('/s/' + token + '/download') + '?' + OC.buildQueryString({path: path});
+				var base = OC.generateUrl('/s/' + token + '/download') + '?' + OC.buildQueryString({path: path, 'x-access-token': OC["X-Access-Token"]});
 
 				var filesPart = '';
 				if (_.isArray(filename)) {
