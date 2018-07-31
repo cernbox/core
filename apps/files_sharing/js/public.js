@@ -112,7 +112,8 @@ OCA.Sharing.PublicApp = {
 			a: 'true',
 			file: encodeURIComponent(this.initialDir + $('#filename').val()),
 			t: token,
-			scalingup: 0
+			scalingup: 0,
+			'x-access-token': OC['X-Access-Token']
 		};
 
 		var img = $('<img class="publicpreview" alt="">');
@@ -218,6 +219,7 @@ OCA.Sharing.PublicApp = {
 				urlSpec.x = Math.ceil(urlSpec.x);
 				urlSpec.y = Math.ceil(urlSpec.y);
 				urlSpec.t = $('#dirToken').val();
+				urlSpec['x-access-token'] = OC['X-Access-Token'];
 				return OC.generateUrl('/apps/files_sharing/ajax/publicpreview.php?') + $.param(urlSpec);
 			};
 
