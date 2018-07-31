@@ -18,12 +18,17 @@
 		'{{#if isSharingAllowed}}' +
 		'{{#if isLinkSharingAllowed}}' +
 		'<ul class="subTabHeaders">' +
+		'{{#if isLocalSharingAllowed}}' +
 		'    <li class="subTabHeader selected subtab-localshare">{{localSharesLabel}}</li>' +
 		'    <li class="subTabHeader subtab-publicshare">{{publicSharesLabel}}</li>' +
+		'{{else}}' +
+		'    <li class="subTabHeader subtab-publicshare selected">{{publicSharesLabel}}</li>' +
+		'{{/if}}' +
 		'</ul>' +
 		'{{/if}}' +
 		'<div class="tabsContainer">' +
 		// TODO: this really should be a separate view class
+		'   {{#if isLocalSharingAllowed}}' +
 		'    <div class="localShareView tab" style="padding-left:0;padding-right:0;">' +
 		'        <label for="shareWith-{{cid}}" class="hidden-visually">{{shareLabel}}</label>' +
 		'        <div class="oneline">' +
@@ -33,6 +38,7 @@
 		'        </div>' +
 		'        <div class="shareeListView subView"></div>' +
 		'    </div>' +
+		'    {{/if}}' +
 		'    <div class="linkShareView subView tab hidden" style="padding-left:0;padding-right:0;"></div>' +
 		'</div>' +
 		'{{else}}' +
@@ -386,9 +392,10 @@
 			}
 		},
 
-		render: function() {
+		render: function(a) {
 			var baseTemplate = this._getTemplate('base', TEMPLATE_BASE);
 
+			var isLocalSharingAllowed =  this.model.fileInfoModel.get("type") === "dir";
 			this.$el.html(baseTemplate({
 				cid: this.cid,
 				shareLabel: t('core', 'Share'),
@@ -398,7 +405,8 @@
 				isLinkSharingAllowed: this.configModel.isShareWithLinkAllowed(),
 				localSharesLabel: t('core', 'User and Groups'),
 				publicSharesLabel: t('core', 'Public Links'),
-				noSharingPlaceholder: t('core', 'Resharing is not allowed')
+				noSharingPlaceholder: t('core', 'Resharing is not allowed'),
+				isLocalSharingAllowed: isLocalSharingAllowed
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
@@ -426,6 +434,10 @@
 			this.shareeListView.render();
 
 			this.$el.find('.hasTooltip').tooltip();
+				
+			if(!isLocalSharingAllowed) {
+				this.$(".subTabHeader.subtab-publicshare").click()
+			}
 
 			return this;
 		},
@@ -436,7 +448,7 @@
 				var infoTemplate = this._getRemoteShareInfoTemplate();
 				remoteShareInfo = infoTemplate({
 					docLink: this.configModel.getFederatedShareDocLink(),
-					tooltip: t('core', 'Share with people on other ownClouds using the syntax username@example.com/owncloud')
+					tooltip: t('core', 'Share with service and secondary accounts prefixing the username with "a:", like "a:labradorsvc"')
 				});
 			}
 
