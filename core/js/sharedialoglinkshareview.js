@@ -18,10 +18,10 @@
 	var TEMPLATE =
 		'<div class="error-message-global hidden"></div>' +
 		'<div class="public-link-modal">'+
-			'<div class="public-link-modal--item">' +
-				'<label class="public-link-modal--label">{{linkNameLabel}}</label>' +
-				'<input class="public-link-modal--input" type="text" name="linkName" placeholder="{{namePlaceholder}}" value="{{name}}" maxlength="64" />' +
-			'</div>' +
+			//'<div class="public-link-modal--item">' +
+			//	'<label class="public-link-modal--label">{{linkNameLabel}}</label>' +
+			//	'<input class="public-link-modal--input" type="text" name="linkName" placeholder="{{namePlaceholder}}" value="{{name}}" maxlength="64" />' +
+			//'</div>' +
 			'<div id="allowPublicRead-{{cid}}" class="public-link-modal--item">' +
 				'<input type="radio" value="{{publicReadValue}}" name="publicPermissions" id="sharingDialogAllowPublicRead-{{cid}}" class="checkbox publicPermissions" {{#if publicReadSelected}}checked{{/if}} />' +
 				'<label class="bold" for="sharingDialogAllowPublicRead-{{cid}}">{{publicReadLabel}}</label>' +
@@ -33,11 +33,11 @@
 				'<label class="bold" for="sharingDialogAllowPublicReadWrite-{{cid}}">{{publicReadWriteLabel}}</label>' +
 				'<p><em>{{publicReadWriteDescription}}</em></p>' +
 			'</div>' +
-			'<div id="allowPublicUploadWrapper-{{cid}}" class="public-link-modal--item">' +
-				'<input type="radio" value="{{publicUploadValue}}" name="publicPermissions" id="sharingDialogAllowPublicUpload-{{cid}}" class="checkbox publicPermissions" {{#if publicUploadSelected}}checked{{/if}} />' +
-				'<label class="bold" for="sharingDialogAllowPublicUpload-{{cid}}">{{publicUploadLabel}}</label>' +
-				'<p><em>{{publicUploadDescription}}</em></p>' +
-			'</div>' +
+			//'<div id="allowPublicUploadWrapper-{{cid}}" class="public-link-modal--item">' +
+			//	'<input type="radio" value="{{publicUploadValue}}" name="publicPermissions" id="sharingDialogAllowPublicUpload-{{cid}}" class="checkbox publicPermissions" {{#if publicUploadSelected}}checked{{/if}} />' +
+			//	'<label class="bold" for="sharingDialogAllowPublicUpload-{{cid}}">{{publicUploadLabel}}</label>' +
+			//	'<p><em>{{publicUploadDescription}}</em></p>' +
+			//'</div>' +
 			'{{/if}}' +
 			'<div id="linkPass-{{cid}}" class="public-link-modal--item linkPass">' +
 				'<label class="public-link-modal--label" for="linkPassText-{{cid}}">{{passwordLabel}}</label>' +
