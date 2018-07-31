@@ -14,7 +14,7 @@
 		'<div class="file-details-container">' +
 		'<div class="fileName">' +
 			'<h3 title="{{name}}" class="ellipsis">{{name}}</h3>' +
-			'<a class="permalink" href="{{permalink}}" title="{{permalinkTitle}}">' +
+			'<a class="permalink hidden" href="{{permalink}}" title="{{permalinkTitle}}">' +
 				'<span class="icon icon-public"></span>' +
 				'<span class="hidden-visually">{{permalinkTitle}}</span>' +
 			'</a>' +
