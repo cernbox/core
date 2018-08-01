@@ -226,6 +226,8 @@ $array['oc_config'] = \json_encode($array['oc_config']);
 $array['oc_defaults'] = \json_encode($array['oc_defaults']);
 
 // Echo it
+$array["x_access_token"] = '"' . $GLOBALS["X-Access-Token"] . '"';
 foreach ($array as  $setting => $value) {
 	echo("var ". $setting ."=".$value.";\n");
 }
+

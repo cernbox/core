@@ -161,7 +161,7 @@ class LDAPGroupBackend implements GroupInterface {
 	protected function getGroup($gid) {
 		$ldapLink = $this->getLink();
 		$search = sprintf($this->matchFilter, $gid);
-		$this->logger->info("filter=$search");
+		//$this->logger->info("filter=$search");
 		$sr = ldap_search($ldapLink, $this->baseDN, $search, $this->searchAttrs);
 		if ($sr === false) {
 			$error = ldap_error($ldapLink);
