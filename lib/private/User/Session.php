@@ -432,7 +432,7 @@ class Session implements IUserSession, Emitter {
 
 			try {
 				// copy skeleton
-				\OC_Util::copySkeleton($user, $userFolder);
+				//\OC_Util::copySkeleton($user, $userFolder);
 			} catch (NotPermittedException $ex) {
 				// possible if files directory is in an readonly jail
 				$this->logger->warning(
