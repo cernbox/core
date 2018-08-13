@@ -126,6 +126,7 @@ class SharedMount extends MountPoint implements MoveableMount {
 	 * @return mixed
 	 */
 	private function generateUniqueTarget($path, $view, array $mountpoints) {
+		return $path;
 		$pathinfo = \pathinfo($path);
 		$ext = (isset($pathinfo['extension'])) ? '.'.$pathinfo['extension'] : '';
 		$name = $pathinfo['filename'];
