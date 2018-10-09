@@ -44,6 +44,9 @@
 			'<label for="canCreate-{{cid}}-{{shareWith}}">can modify</label>' +
 			'</span>' +
 			'{{/if}}' +
+			'<span class="shareOption">' +
+				'<button class="cbox-mail-notification">Send mail</button>' +
+			'</span>' +
 			'</div>' +
 			'</li>' +
 			'{{/each}}' +
@@ -74,7 +77,8 @@
 			'click .unshare': 'onUnshare',
 			'click .permissions': 'onPermissionChange',
 			'click .showCruds': 'onCrudsToggle',
-			'click .mailNotification': 'onSendMailNotification'
+			'click .mailNotification': 'onSendMailNotification',
+			'click .cbox-mail-notification': 'onSendCboxMailNotification'
 		},
 
 		initialize: function(options) {
@@ -148,7 +152,8 @@
 				sharePermission: OC.PERMISSION_SHARE,
 				createPermission: OC.PERMISSION_CREATE,
 				updatePermission: OC.PERMISSION_UPDATE,
-				deletePermission: OC.PERMISSION_DELETE
+				deletePermission: OC.PERMISSION_DELETE,
+				mailerAppEnabled: true
 			};
 
 			if(!this.model.hasUserShares()) {
@@ -290,7 +295,32 @@
 				$target.removeClass('hidden');
 				$loading.addClass('hidden');
 			});
+		},
+
+		onSendCboxMailNotification: function(event) {
+			var $target = $(event.target);
+			var $li = $(event.target).closest('li');
+			var shareType = $li.data('share-type');
+			var shareWith = $li.attr('data-share-with');
+			var shareID = $li.attr('data-share-id');
+
+			var url = OC.generateUrl('/apps/mailer/sendmail');
+			var data = {
+				'recipient': shareWith,
+				'shareType': shareType,
+				'id': shareID,
+			};
+
+			var path = this.model.get('path'); 
+			$.post(url, data)
+				.success(function (result) {
+					OC.dialogs.info(t('core', result.message === '' ? 'Mail sent' : result.message), t('core', 'Mail sharing notifications'));
+				})
+				.fail(function(result) {
+					OC.dialogs.alert(t('core', result.message), t('core', 'Warning'));
+				});
 		}
+
 	});
 
 	OC.Share.ShareDialogShareeListView = ShareDialogShareeListView;
