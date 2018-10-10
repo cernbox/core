@@ -208,6 +208,11 @@ OCA.Sharing.App = {
 	_shareStateActionHandler: function(context, newState) {
 		function responseCallback(response, status) {
 			if (status === 'success') {
+				var basename = context.fileInfoModel.get('name');
+				console.log(context);
+				context.fileList.remove(basename);
+				return;
+
 				// note: there could be multiple shares/responses but
 				// we assume that the relevant content is the same
 				// for all (state, file_target)
