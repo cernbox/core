@@ -41,6 +41,8 @@
 		_linksOnly: false,
 		_clientSideSort: true,
 		_allowSelection: false,
+		_only_shared_by_link: false,
+		_only_shared_with_others: false,
 
 		/**
 		 * @private
@@ -67,6 +69,14 @@
 
 			if (!this._sharedWithUser) {
 				this.$el.find('.column-sharestate').remove();
+			}
+			
+			if (options && options.only_shared_by_link) {
+				this._only_shared_by_link = true;
+			}
+
+			if (options && options.only_shared_with_others) {
+				this._only_shared_with_others = true;
 			}
 		},
 
@@ -224,8 +234,11 @@
 
 			var promises = [];
 			var requestData = {
-				format: 'json'
+				format: 'json',
+				only_shared_by_link: this._only_shared_by_link,
+				only_shared_with_others: this._only_shared_with_others,
 			};
+
 			if (this._sharedWithUser) {
 				requestData.shared_with_me = true;
 				requestData.state = 'all';
