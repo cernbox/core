@@ -536,6 +536,11 @@
 		},
 
 		_fetchReshare: function() {
+				return $.Deferred().resolve([{
+					ocs: {
+						data: [],
+					}
+				}]);
 			// only fetch original share once
 			if (!this._reshareFetched) {
 				var path = this.fileInfoModel.getFullPath();

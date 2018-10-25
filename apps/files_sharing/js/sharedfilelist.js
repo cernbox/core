@@ -243,7 +243,8 @@
 				requestData.shared_with_me = true;
 				requestData.state = 'all';
 			}
-			requestData.include_tags = true;
+
+			//requestData.include_tags = true;
 			var shares = $.ajax({
 				url: OC.linkToOCS('apps/files_sharing/api/v1') + 'shares',
 				/* jshint camelcase: false */
@@ -256,9 +257,10 @@
 			promises.push(shares);
 
 			if (!!this._sharedWithUser) {
+				promises.push($.Deferred().resolve());
+				/*
 				var remoteShares = $.ajax({
 					url: OC.linkToOCS('apps/files_sharing/api/v1') + 'remote_shares',
-					/* jshint camelcase: false */
 					data: {
 						format: 'json',
 						include_tags: true
@@ -269,6 +271,7 @@
 					},
 				});
 				promises.push(remoteShares);
+				*/
 			} else {
 				//Push empty promise so callback gets called the same way
 				promises.push($.Deferred().resolve());
