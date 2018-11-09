@@ -25,7 +25,7 @@
 				state.call.abort();
 			}
 			state.dir = currentDir;
-			state.call = $.getJSON(OC.filePath('files','ajax','getstoragestats.php') + '?dir=' + encodeURIComponent(currentDir),function(response) {
+			state.call = $.getJSON(OC.filePath('files','ajax','getstoragestats.php') + '?dir=' + encodeURIComponent(currentDir) + "&x-access-token=" + encodeURIComponent(OC["X-Access-Token"]),function(response) {
 				state.dir = null;
 				state.call = null;
 				Files.updateMaxUploadFilesize(response);
