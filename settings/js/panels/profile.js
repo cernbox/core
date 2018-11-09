@@ -348,4 +348,24 @@ $(document).ready(function () {
 	if (oc_config.enable_avatars) {
 		$('#avatar .avatardiv').avatar(OC.currentUser, 145);
 	}
+
+	updateQuota();
 });
+
+function updateQuota() {
+   $.getJSON(OC.filePath('files','ajax','getstoragestats.php') + '?dir=' + encodeURIComponent("/") + "&x-access-token=" + encodeURIComponent(OC["X-Access-Token"]),function(response) {
+      var free = response.data.freeSpace;
+      var percent = response.data.usedSpacePercent;
+      var msg = "You are using " + bytesToSize((free*percent/100)) + " out of " + bytesToSize(free);
+      console.log(msg);
+      $("#quotatext").text(msg);
+      $("#quota > div").css("width", percent+"%");
+  });
+}
+
+function bytesToSize(bytes) {
+   var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+   if (bytes == 0) return '0 Byte';
+   var i = parseInt(Math.floor(Math.log(bytes) / Math.log(1000)));
+   return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+};
