@@ -19,7 +19,7 @@
 		'{{#each shares}}' +
 		'<li class="link-entry" data-id="{{id}}">' +
 			'<span class="link-entry--icon icon-public-white"></span>' +
-			'<span class="link-entry--title">{{linkTitle}}</span>' +
+			'<span class="link-entry--title">{{linkTitle}}</input></span>' +
 			'<div class="minify"><input id="linkText-{{../cid}}-{{id}}" class="linkText" type="text" readonly="readonly" value="{{link}}" /></div>' +
 			'<div class="link-entry--icon-button clipboardButton" data-clipboard-target="#linkText-{{../cid}}-{{id}}" title="{{../copyToClipboardText}}">' +
 			'	<span class="icon icon-clippy-dark"></span>' +
@@ -43,6 +43,7 @@
 			'<div class="socialShareContainer hidden"></div>' +
 			'{{/if}}' +
 		'</li>' +
+		'<input type="text" disabled="true" value="{{link}}"></input>' +
 		'{{/each}}' +
 		'</ul>' +
 		'{{#if noShares}}' +
@@ -110,7 +111,9 @@
 			var linkId = $target.closest('.link-entry').attr('data-id');
 
 			var linkModel = this.collection.get(linkId);
-			var linkTitle = (linkModel.attributes.name) ? linkModel.attributes.name : linkModel.attributes.token;
+			//var linkTitle = (linkModel.attributes.name) ? linkModel.attributes.name : linkModel.attributes.token;
+			var link = this._makeLink(linkModel);
+			var linkTitle = link;
 
 			if (!linkModel) {
 				return;
@@ -118,7 +121,7 @@
 
 			OCdialogs.confirm(
 				t('core', 'Delete {link}', { link: linkTitle }),
-				t('core', 'Remove link'),
+				t('core', 'Remove public link'),
 				function(cb) {
 					if (cb) {
 						linkModel.destroy();
