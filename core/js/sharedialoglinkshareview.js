@@ -33,11 +33,11 @@
 				'<label class="bold" for="sharingDialogAllowPublicReadWrite-{{cid}}">{{publicReadWriteLabel}}</label>' +
 				'<p><em>{{publicReadWriteDescription}}</em></p>' +
 			'</div>' +
-			//'<div id="allowPublicUploadWrapper-{{cid}}" class="public-link-modal--item">' +
-			//	'<input type="radio" value="{{publicUploadValue}}" name="publicPermissions" id="sharingDialogAllowPublicUpload-{{cid}}" class="checkbox publicPermissions" {{#if publicUploadSelected}}checked{{/if}} />' +
-			//	'<label class="bold" for="sharingDialogAllowPublicUpload-{{cid}}">{{publicUploadLabel}}</label>' +
-			//	'<p><em>{{publicUploadDescription}}</em></p>' +
-			//'</div>' +
+			'<div id="allowPublicUploadWrapper-{{cid}}" class="public-link-modal--item">' +
+				'<input type="radio" value="{{publicUploadValue}}" name="publicPermissions" id="sharingDialogAllowPublicUpload-{{cid}}" class="checkbox publicPermissions" {{#if publicUploadSelected}}checked{{/if}} />' +
+				'<label class="bold" for="sharingDialogAllowPublicUpload-{{cid}}">{{publicUploadLabel}}</label>' +
+				'<p><em>{{publicUploadDescription}}</em></p>' +
+			'</div>' +
 			'{{/if}}' +
 			'<div id="linkPass-{{cid}}" class="public-link-modal--item linkPass">' +
 				'<label class="public-link-modal--label" for="linkPassText-{{cid}}">{{passwordLabel}}</label>' +
