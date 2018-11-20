@@ -361,6 +361,13 @@ OC.FileUpload.prototype = {
 				};
 			}
 
+			if (response.jqXHR.status < 200 || response.jqXHR.status > 300) {
+				return {
+					status: 0,
+					message: 'An error ocurred while uploading the file ' + this.getFileName(),
+				};
+			}
+
 			// attempt parsing Sabre exception is available
 			var xml = response.jqXHR.responseXML;
 			if (xml.documentElement.localName === 'error' && xml.documentElement.namespaceURI === 'DAV:') {
@@ -1287,6 +1294,7 @@ OC.Uploader.prototype = _.extend({
 				});
 				fileupload.on('fileuploadfail', function(e, data) {
 					self.log('progress handle fileuploadfail', e, data);
+					$('#uploadprogresswrapper .label').hide();
 					//if user pressed cancel hide upload progress bar and cancel button
 					if (data.errorThrown === 'abort') {
 						self._hideProgressBar();
@@ -1311,6 +1319,7 @@ OC.Uploader.prototype = _.extend({
 					upload.data.retries = 0;
 				});
 				fileupload.on('fileuploaddone', function(e, data) {
+					$('#uploadprogresswrapper .label').hide();
 					var upload = self.getUpload(data);
 					upload.done().then(function() {
 						self.trigger('done', e, upload);
