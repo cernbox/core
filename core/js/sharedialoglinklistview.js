@@ -43,7 +43,7 @@
 			'<div class="socialShareContainer hidden"></div>' +
 			'{{/if}}' +
 		'</li>' +
-		'<input type="text" disabled="true" value="{{link}}"></input>' +
+		'<input type="text" readonly="true" value="{{link}}"></input>' +
 		'{{/each}}' +
 		'</ul>' +
 		'{{#if noShares}}' +
