@@ -9,7 +9,7 @@
  */
 
 /* global dav */
-
+/* CERNBox include into repo */
 (function(OC, FileInfo) {
 	/**
 	 * @class OC.Files.Client
