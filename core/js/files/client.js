@@ -632,6 +632,45 @@
 			return promise;
 		},
 
+               /**
+                * Returns the contents of the given file.
+                *
+                * @param {String} path path to file
+                * @param {Array} headers headers to set
+                * @param {String} responseType response type
+                *
+                * @return {Promise}
+                */
+               getFileContentsRT: function(path, headers, responseType) {
+                       if (!path) {
+                               throw 'Missing argument "path"';
+                       }
+                       var self = this;
+                       var deferred = $.Deferred();
+                       var promise = deferred.promise();
+                       var headers = headers || {};
+                       var reseponseType = responseType || "";
+
+                       this._client.requestRT(
+                               'GET',
+                               this._buildUrl(path),
+                               headers,
+                               null,
+                               reseponseType
+                       ).then(
+                               function(result) {
+                                       if (self._isSuccessStatus(result.status)) {
+                                               deferred.resolve(result.status, result.body);
+                                       } else {
+                                               result = _.extend(result, self._getSabreException(result));
+                                               deferred.reject(result.status, result);
+                                       }
+                               }
+                       );
+                       return promise;
+               },
+
+
 		/**
 		 * Puts the given data into the given file.
 		 *
