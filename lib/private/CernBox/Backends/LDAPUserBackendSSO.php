@@ -21,7 +21,10 @@ class LDAPUserBackendSSO extends LDAPUserBackend implements IApacheBackend {
 		}
 	}
 
-	public function getLogoutAttribute() { return 'href="https://login.cern.ch/adfs/ls/?wa=wsignout1.0"'; }
+	public function getLogoutAttribute() { 
+		$ref = \OCP\Util::linkToAbsolute("index.php/apps/cernboxauthtoken", "logout");
+		return 'href="'.$ref.'"';
+	 }
 
 	public function getCurrentUserId() {
 		if(isset($_SERVER['ADFS_LOGIN']) && is_string($_SERVER["ADFS_LOGIN"])) {
