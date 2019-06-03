@@ -126,15 +126,18 @@ class TemplateLayout extends \OC_Template {
 		}
 
 		// Add the js files
+		$uniqueUUID = uniqid();
 		$jsFiles = self::findJavascriptFiles(\OC_Util::$scripts);
 		$this->assign('jsfiles', []);
 		if ($this->config->getSystemValue('installed', false) && $renderAs != 'error') {
-			$this->append('jsfiles', \OC::$server->getURLGenerator()->linkToRoute('js_config', ['v' => self::$versionHash]));
+			//$this->append('jsfiles', \OC::$server->getURLGenerator()->linkToRoute('js_config', ['v' => self::$versionHash]));
+			$this->append('jsfiles', \OC::$server->getURLGenerator()->linkToRoute('js_config', ['v' => $uniqueUUID]));
 		}
 		foreach ($jsFiles as $info) {
 			$web = $info[1];
 			$file = $info[2];
-			$this->append('jsfiles', $web.'/'.$file . '?v=' . self::$versionHash);
+			//$this->append('jsfiles', $web.'/'.$file . '?v=' . self::$versionHash);
+			$this->append('jsfiles', $web.'/'.$file . '?v=' . $uniqueUUID);
 		}
 
 		// Add the css files
@@ -146,9 +149,11 @@ class TemplateLayout extends \OC_Template {
 			$file = $info[2];
 
 			if (\substr($file, -\strlen('print.css')) === 'print.css') {
-				$this->append('printcssfiles', $web.'/'.$file . '?v=' . self::$versionHash);
+				//$this->append('printcssfiles', $web.'/'.$file . '?v=' . self::$versionHash);
+				$this->append('printcssfiles', $web.'/'.$file . '?v=' . $uniqueUUID);
 			} else {
-				$this->append('cssfiles', $web.'/'.$file . '?v=' . self::$versionHash);
+				//$this->append('cssfiles', $web.'/'.$file . '?v=' . self::$versionHash);
+				$this->append('cssfiles', $web.'/'.$file . '?v=' . $uniqueUUID);
 			}
 		}
 	}
