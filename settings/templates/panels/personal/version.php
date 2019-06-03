@@ -21,7 +21,6 @@
 			var val = document.querySelector('input[name="canary-adopter"]:checked').value;
 			console.log("changing to " + val);
 			var data = JSON.stringify({ "is_adopter": val === "yes"? true : false });
-			var arr = { City: 'Moscow', Age: 25 };
 			$.ajax({
 			    url: '/index.php/apps/canary',
 			    type: 'POST',
@@ -30,7 +29,7 @@
 			    dataType: 'json',
 			    async: false,
 			    success: function(msg) {
-				    location.reload(true);
+				    window.location.href= "/index.php/login";
 			    }
 			});
 
