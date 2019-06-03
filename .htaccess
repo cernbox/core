@@ -26,12 +26,12 @@
 
   # Let browsers cache CSS, JS files for half a year
   <FilesMatch "\.(css|js)$">
-    Header set Cache-Control "max-age=15778463"
+    Header set Cache-Control "no-cache"
   </FilesMatch>
   
   # Let browsers cache WOFF files for a week
   <FilesMatch "\.woff$">
-    Header set Cache-Control "max-age=604800"
+    Header set Cache-Control "no-cache"
   </FilesMatch>
 </IfModule>
 
