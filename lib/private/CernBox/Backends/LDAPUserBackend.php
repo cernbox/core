@@ -114,6 +114,8 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		if (!$bindOK) {
 			throw new \Exception("ldap binding does not work");
 		}
+		// IT MUST BE VERSION 3 TO WORK WITH UTF-8 ENCODED CHARS
+		ldap_set_option($ds, LDAP_OPT_PROTOCOL_VERSION, 3);
 		return $ds;
 	}
 
