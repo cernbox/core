@@ -11,7 +11,7 @@
 
 	<h2 class="app-name"><?php p($l->t('Canary Testing'));?></h2>
 	<p>
-	<p>Enable bleding edge UI and applications?
+	<p>Enable bleeding edge UI and applications?
 	<input type="radio" name="canary-adopter" value="yes">Yes
 	<input type="radio" name="canary-adopter" value="no">No<br>
 	</p>
