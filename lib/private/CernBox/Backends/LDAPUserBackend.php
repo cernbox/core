@@ -94,7 +94,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		$info = ldap_get_entries($ldapLink, $sr);
 		for ($i = 0; $i < $info["count"]; $i++) {
 			$this->logger->info(sprintf("dn=%s", $info[$i]["dn"]));
-			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
+			$this->logger->info(sprintf("cn=%s", $info[$i]["uid"][0]));
 			$this->logger->info(sprintf("mail=%s", $info[$i][$this->mailAttr][0]));
 			$this->logger->info(sprintf("display_name=%s", $info[$i][$this->displayNameAttr][0]));
 			$uids[] = $info[$i]["cn"][0];
@@ -146,7 +146,7 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 		$displayName = sprintf("%s (%s)", $info[0][$this->displayNameAttr][0], $info[0]['cn'][0]);
 		$user = array(
 			"dn" => $info[0]["dn"],
-			"uid" => $info[0]["cn"][0],
+			"uid" => $info[0]["uid"][0],
 			"display_name" => $displayName,
 			"email" => $info[0][$this->mailAttr][0],
 		);
@@ -188,8 +188,8 @@ class LDAPUserBackend implements UserInterface, IUserBackend {
 			$this->logger->info(sprintf("cn=%s", $info[$i]["cn"][0]));
 			$this->logger->info(sprintf("email=%s", $info[$i][$this->mailAttr][0]));
 			$this->logger->info(sprintf("display_name=%s", $info[$i][$this->displayNameAttr][0]));
-			$displayName = $info[$i][$this->displayNameAttr][0] . "(" . $info[$i]['cn'][0] . ")";
-			$map[$info[$i]["cn"][0]] = $displayName;
+			$displayName = $info[$i][$this->displayNameAttr][0] . "(" . $info[$i]['uid'][0] . ")";
+			$map[$info[$i]["uid"][0]] = $displayName;
 		}
 
 		return $map;
