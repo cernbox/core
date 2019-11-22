@@ -45,7 +45,7 @@
 					'</div>' +
 				'</div>' +
 				'<span class="share-link">Direct link (only works for recipients of the share):</br>' +
-					'<input type="text" id="share-{{cid}}-{{shareId}}" readonly="true" value="{{thisHost}}/index.php/apps/files/?dir=/__myshares{{shareName}} (id:{{shareId}})"></input>' +
+					'<input type="text" id="share-{{cid}}-{{shareId}}" readonly="true" value="{{thisHost}}/index.php/apps/files/?dir=/__myshares/{{shareName}} (id:{{shareId}})"></input>' +
 				'</span>' +
 			'</li>' +
 			'{{/each}}' +
@@ -124,7 +124,7 @@
 				shareWithAdditionalInfo: shareWithAdditionalInfo,
 				shareType: shareType,
 				shareId: this.model.get('shares')[shareIndex].id,
-				shareName: this.model.get('shares')[shareIndex].name,
+				shareName: this.model.getFileInfo().attributes["name"],
 				modSeed: shareType !== OC.Share.SHARE_TYPE_USER,
 				isRemoteShare: shareType === OC.Share.SHARE_TYPE_REMOTE,
 				iconType: shareType === OC.Share.SHARE_TYPE_GROUP ? "group" : "user",
