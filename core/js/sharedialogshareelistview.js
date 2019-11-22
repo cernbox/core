@@ -14,45 +14,43 @@
 	}
 
 	var TEMPLATE =
-			'<ul id="shareWithList" class="shareWithList">' +
+		'<ul id="shareWithList" class="shareWithList">' +
 			'{{#each sharees}}' +
-			'<li data-share-id="{{shareId}}" data-share-type="{{shareType}}" data-share-with="{{shareWith}}">' +
-			'<a href="#" class="unshare"><span class="icon-loading-small hidden"></span><span class="icon icon-delete"></span><span class="hidden-visually">{{unshareLabel}}</span></a>' +
-			'{{#if avatarEnabled}}' +
-			'<div class="avatar {{#if modSeed}}imageplaceholderseed{{/if}}" data-username="{{shareWith}}" {{#if modSeed}}data-seed="{{shareWith}} {{shareType}}"{{/if}}></div>' +
-			'{{/if}}' +
-			'<span class="has-tooltip username" title="{{shareWith}}">{{shareWithDisplayName}}</span>' +
-			'{{#if shareWithAdditionalInfo}}' +
-			'<span class="has-tooltip user-additional-info">({{shareWithAdditionalInfo}})</span>' +
-			'{{/if}}' +
-			'{{#if mailNotificationEnabled}}  {{#unless isRemoteShare}}' +
-			'<span class="shareOption">' +
-			'{{#unless wasMailSent}}' +
-			'<span class="mailNotificationSpinner icon-loading-small hidden"></span>' +
-			'<input id="mail-{{cid}}-{{shareWith}}" type="button" name="mailNotification" value="{{notifyByMailLabel}}" class="mailNotification checkbox" />' +
-			'{{/unless}}' +
-			'</span>' +
-			'{{/unless}} {{/if}}' +
-			'<div class="cruds">' +
-			'<span class="shareOption">' +
-			'<input id="canRead-{{cid}}-{{shareWith}}" type="checkbox" name="read" class="permissions checkbox" checked="checked" disabled/>' +
-			'<label for="canRead-{{cid}}-{{shareWith}}">can view</label>' +
-			'</span>' +
-			'{{#if createPermissionPossible}}' +
-			'<span class="shareOption">' +
-			'<input id="canCreate-{{cid}}-{{shareWith}}" type="checkbox" name="create" class="permissions checkbox" {{#if hasCreatePermission}}checked="checked"{{/if}} data-permissions="31"/>' +
-			'<label for="canCreate-{{cid}}-{{shareWith}}">can modify</label>' +
-			'</span>' +
-			'{{/if}}' +
-			'<span class="shareOption">' +
-				'<button class="cbox-mail-notification">Send mail</button>' +
-			'</span>' +
-			'</div>' +
+			'<li data-share-id="{{shareId}}" data-share-type="{{shareType}}" data-share-with="{{shareWith}}" class="share-entry">' +
+				'<div class="share-item">' +
+					'<span class="link-entry--icon icon-{{iconType}}-white"></span>' +
+					'<span class="link-entry--title" title="{{shareWith}}">{{shareWithDisplayName}}</input></span>' +
+					'<span class="shareOption">' +
+						'<input id="canRead-{{cid}}-{{shareWith}}" type="checkbox" name="read" class="permissions checkbox" checked="checked" disabled/>' +
+						'<label for="canRead-{{cid}}-{{shareWith}}">view</label>' +
+					'</span>' +
+					'{{#if createPermissionPossible}}' +
+					'<span class="shareOption">' +
+						'<input id="canCreate-{{cid}}-{{shareWith}}" type="checkbox" name="create" class="permissions checkbox" {{#if hasCreatePermission}}checked="checked"{{/if}} data-permissions="31"/>' +
+						'<label for="canCreate-{{cid}}-{{shareWith}}">edit</label>' +
+					'</span>' +
+					'{{/if}}' +
+					'<div class="link-entry--icon-button clipboardButton" data-clipboard-target="#share-{{cid}}-{{shareId}}" title="Copy direct link">' +
+					'	<span class="icon icon-clippy-dark"></span>' +
+					'	<span class="hidden">{{../copyToClipboardText}}</span>' +
+					'</div>' +
+					'<div class="link-entry--icon-button cbox-mail-notification" title="Send email">' +
+					'	<span class="icon icon-mail"></span>' +
+					'	<span class="hidden">Send email</span>' +
+					'</div>' +
+					'<div class="link-entry--icon-button unshare"  title="{{unshareLabel}}">' +
+					'	<span class="icon icon-delete"></span>' +
+					'   <span class="icon-loading-small hidden" style="position: relative"></span>' +
+					'	<span class="hidden">{{unshareLabel}}</span>' +
+					'</div>' +
+				'</div>' +
+				'<span class="share-link">Direct link (only works for recipients of the share):</br>' +
+					'<input type="text" id="share-{{cid}}-{{shareId}}" readonly="true" value="{{thisHost}}/index.php/apps/files/?dir=/__myshares{{shareName}} (id:{{shareId}})"></input>' +
+				'</span>' +
 			'</li>' +
-			'<span>Direct link (only work for recipients of the share):</br><a href="https://cernbox.cern.ch/index.php/apps/files/?dir=/__myshares/ (id:{{shareId}})">https://cernbox.cern.ch/index.php/apps/files/?dir=/__myshares/ (id:{{shareId}})</a></span>' +
 			'{{/each}}' +
-			'</ul>'
-		;
+		'</ul>';
+
 
 	/**
 	 * @class OCA.Share.ShareDialogShareeListView
@@ -126,8 +124,11 @@
 				shareWithAdditionalInfo: shareWithAdditionalInfo,
 				shareType: shareType,
 				shareId: this.model.get('shares')[shareIndex].id,
+				shareName: this.model.get('shares')[shareIndex].name,
 				modSeed: shareType !== OC.Share.SHARE_TYPE_USER,
-				isRemoteShare: shareType === OC.Share.SHARE_TYPE_REMOTE
+				isRemoteShare: shareType === OC.Share.SHARE_TYPE_REMOTE,
+				iconType: shareType === OC.Share.SHARE_TYPE_GROUP ? "group" : "user",
+				thisHost: OC.getProtocol() + "://" + OC.getHost() + OC.getRootPath()
 			});
 		},
 
@@ -196,6 +197,8 @@
 
 			this.delegateEvents();
 
+			new Clipboard('#shareWithList .clipboardButton');
+
 			return this;
 		},
 
@@ -213,16 +216,14 @@
 		onUnshare: function(event) {
 			var self = this;
 			var $element = $(event.target);
-			if (!$element.is('a')) {
-				$element = $element.closest('a');
-			}
 
-			var $loading = $element.find('.icon-loading-small').eq(0);
+			var $loading = $element.parent().find('.icon-loading-small');
 			if(!$loading.hasClass('hidden')) {
 				// in process
 				return false;
 			}
 			$loading.removeClass('hidden');
+			$element.hide();
 
 			var $li = $element.closest('li');
 
@@ -234,6 +235,7 @@
 				})
 				.fail(function() {
 					$loading.addClass('hidden');
+					$element.show();
 					OC.Notification.showTemporary(t('core', 'Could not unshare'));
 				});
 			return false;
