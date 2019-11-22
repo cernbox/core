@@ -15,12 +15,15 @@
 
 	var TEMPLATE =
 		'<span class="icon-loading-small hidden"></span>' +
+		'<div class="clear-both">' +
+		'	<button class="addLink">{{addLinkText}}</button>' +
+		'</div>' +
 		'<ul class="link-shares">' +
 		'{{#each shares}}' +
 		'<li class="link-entry" data-id="{{id}}">' +
 			'<span class="link-entry--icon icon-public-white"></span>' +
-			'<span class="link-entry--title">{{linkTitle}}</input></span>' +
-			'<div class="minify"><input id="linkText-{{../cid}}-{{id}}" class="linkText" type="text" readonly="readonly" value="{{link}}" /></div>' +
+			'<!--<span class="link-entry--title">{{linkTitle}}</input></span>-->' +
+			'<input id="linkText-{{../cid}}-{{id}}" class="linkText" type="text" readonly="readonly" value="{{link}}" />' +
 			'<div class="link-entry--icon-button clipboardButton" data-clipboard-target="#linkText-{{../cid}}-{{id}}" title="{{../copyToClipboardText}}">' +
 			'	<span class="icon icon-clippy-dark"></span>' +
 			'	<span class="hidden">{{../copyToClipboardText}}</span>' +
@@ -43,16 +46,12 @@
 			'<div class="socialShareContainer hidden"></div>' +
 			'{{/if}}' +
 		'</li>' +
-		'<input type="text" readonly="true" value="{{link}}"></input>' +
 		'{{/each}}' +
 		'</ul>' +
+		'<div class="privacyWarningMessage">{{privacyWarningMessage}}</div>' +
 		'{{#if noShares}}' +
 		'<div class="empty-message">{{noSharesMessage}}</div>' +
-		'{{/if}}' +
-		'<div class="clear-both">' +
-		'	<button class="addLink">{{addLinkText}}</button>' +
-		'</div>' +
-		'<div class="privacyWarningMessage">{{privacyWarningMessage}}</div>';
+		'{{/if}}';
 
 	/**
 	 * @class OCA.Share.ShareDialogLinkListView
