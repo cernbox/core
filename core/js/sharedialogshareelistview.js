@@ -49,6 +49,7 @@
 			'</span>' +
 			'</div>' +
 			'</li>' +
+			'<span>Direct link (only work for recipients of the share):</br><a href="https://cernbox.cern.ch/index.php/apps/files/?dir=/__myshares/ (id:{{shareId}})">https://cernbox.cern.ch/index.php/apps/files/?dir=/__myshares/ (id:{{shareId}})</a></span>' +
 			'{{/each}}' +
 			'</ul>'
 		;
