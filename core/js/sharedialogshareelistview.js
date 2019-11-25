@@ -34,10 +34,10 @@
 					'	<span class="icon icon-clippy-dark"></span>' +
 					'	<span class="hidden">{{../copyToClipboardText}}</span>' +
 					'</div>' +
-					'<div class="link-entry--icon-button cbox-mail-notification" title="Send email">' +
+					'<!--<div class="link-entry--icon-button cbox-mail-notification" title="Send email">' +
 					'	<span class="icon icon-mail"></span>' +
 					'	<span class="hidden">Send email</span>' +
-					'</div>' +
+					'</div>-->' +
 					'<div class="link-entry--icon-button unshare"  title="{{unshareLabel}}">' +
 					'	<span class="icon icon-delete"></span>' +
 					'   <span class="icon-loading-small hidden" style="position: relative"></span>' +
@@ -46,6 +46,7 @@
 				'</div>' +
 				'<span class="share-link">Direct link (only works for recipients of the share):</br>' +
 					'<input type="text" id="share-{{cid}}-{{shareId}}" readonly="true" value="{{thisHost}}/index.php/apps/files/?dir=/__myshares/{{shareName}} (id:{{shareId}})"></input>' +
+					'<button type="button" class="cbox-mail-notification">Send email</button>' +
 				'</span>' +
 			'</li>' +
 			'{{/each}}' +
