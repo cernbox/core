@@ -58,39 +58,6 @@ if ($_['displayNameChangeSupported']) {
 	}
 ?>
 
-<?php
-if ($_['displayNameChangeSupported']) {
-	?>
-<form id="lostpassword" class="section">
-	<h2>
-		<label for="email"><?php p($l->t('Email')); ?></label>
-	</h2>
-	<input type="email" name="email" id="email" value="<?php p($_['email']); ?>"
-		placeholder="<?php p($l->t('Your email address')); ?>"
-		autocomplete="on" autocapitalize="off" autocorrect="off" />
-	<input id="emailbutton" type="button" value="<?php if (isset($_['email'][0])) {
-		echo $l->t('Change email');
-	} else {
-		echo $l->t('Set email');
-	} ?>" />
-	<span class="msg"></span><br />
-	<em><?php p($l->t('For password recovery and notifications')); ?></em>
-</form>
-<?php
-} else {
-		?>
-<div id="lostpassword" class="section">
-	<h2><?php echo $l->t('Email'); ?></h2>
-	<span><?php if (isset($_['email'][0])) {
-			p($_['email']);
-		} else {
-			p($l->t('No email address set'));
-		} ?></span>
-</div>
-<?php
-	}
-?>
-
 <div id="groups" class="section">
 	<h2><?php p($l->t('Groups')); ?></h2>
 	<?php if (\count($_['groups']) > 0) {
