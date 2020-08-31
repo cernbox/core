@@ -45,7 +45,7 @@
 					'</div>' +
 				'</div>' +
 				'<span class="share-link">Direct link (only works for recipients of the share):</br>' +
-					'<input type="text" id="share-{{cid}}-{{shareId}}" readonly="true" value="{{thisHost}}/index.php/apps/files/?dir=/__myshares/{{shareName}} (id:{{shareId}})"></input>' +
+					'<input type="text" id="share-{{cid}}-{{shareId}}" readonly="true" value="{{thisHost}}/index.php/apps/files/?dir=/__myshares/{{shareName}}%20(id:{{shareId}})"></input>' +
 					'<button type="button" class="cbox-mail-notification">Send email</button>' +
 				'</span>' +
 			'</li>' +
@@ -124,8 +124,8 @@
 				shareWithDisplayName: shareWithDisplayName,
 				shareWithAdditionalInfo: shareWithAdditionalInfo,
 				shareType: shareType,
-				shareId: this.model.get('shares')[shareIndex].id,
-				shareName: this.model.getFileInfo().attributes["name"],
+				shareId: encodeURI(this.model.get('shares')[shareIndex].id),
+				shareName: encodeURI(this.model.getFileInfo().attributes["name"]),
 				modSeed: shareType !== OC.Share.SHARE_TYPE_USER,
 				isRemoteShare: shareType === OC.Share.SHARE_TYPE_REMOTE,
 				iconType: shareType === OC.Share.SHARE_TYPE_GROUP ? "group" : "user",
