@@ -13,7 +13,7 @@ then
     exit 1
 fi
 
-php composer-setup.php --quiet
+php composer-setup.php --quiet --version=1.10.17
 RESULT=$?
 rm composer-setup.php
 exit $RESULT
