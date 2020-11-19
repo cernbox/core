@@ -1509,8 +1509,11 @@ function initCore() {
 
 	// session heartbeat (defaults to enabled)
 	if (typeof(oc_config.session_keepalive) === 'undefined' || !!oc_config.session_keepalive) {
-
-		initSessionHeartBeat();
+		if (typeof stop_heartbeat !== 'undefined' && stop_heartbeat === true) {
+			console.log("CERNBox: stopping the heartbeat");
+		} else {
+			initSessionHeartBeat();
+		}
 	}
 
 	OC.registerMenu($('#expand'), $('#expanddiv'));
