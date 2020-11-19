@@ -485,11 +485,11 @@ class OC_Util {
 	 * @return string
 	 */
 	public static function getEditionString() {
-		if (OC_App::isEnabled('enterprise_key')) {
+		// if (OC_App::isEnabled('enterprise_key')) {
 			return OC_Util::EDITION_ENTERPRISE;
-		} else {
-			return OC_Util::EDITION_COMMUNITY;
-		}
+		// } else {
+		// 	return OC_Util::EDITION_COMMUNITY;
+		// }
 	}
 
 	/**
