@@ -44,3 +44,21 @@
 	margin-top: 20px;
 }
 
+.public-upload-view--completed ul {
+    width: 60%;
+    margin: 0 auto;
+    border: 1px solid #e8e8e8;
+    border-radius: 5px;
+    text-align: left;
+}
+.public-upload-view--completed li {
+  margin: 8px 10px;
+}
+.public-upload-view--completed li:before {
+  content: '✓';
+  padding: 0 4px;
+  margin-right: 5px;
+  border-radius: 9px;
+  background-color: green;
+  color: white;
+}
