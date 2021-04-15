@@ -32,7 +32,8 @@
 		'        </div>' +
 		'    </label>' +
 		'    <div class="public-upload-view--completed hidden">' +
-		'        <h3>{{uploadedFilesMessage}}</h3>' +
+		'        <h1>The following documents are now uploaded in CERNBox</h1>' +
+		'        <h2>(Vos documents sont désormais téléchargés dans CERNBox)</h2>' +
 		'        <ul></ul>' +
 		'    </div>' +
 		'</div>'

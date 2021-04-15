@@ -52,7 +52,8 @@
     text-align: left;
 }
 .public-upload-view--completed li {
-  margin: 8px 10px;
+  margin: 20px 10px;
+  font-size: 30px;
 }
 .public-upload-view--completed li:before {
   content: '✓';
@@ -61,4 +62,12 @@
   border-radius: 9px;
   background-color: green;
   color: white;
+}
+.public-upload-view--completed h2 {
+  margin: 20px 10px;
+  font-size: 20px;
+}
+.public-upload-view--completed h1 {
+  margin: 20px 10px;
+  font-size: 30px;
 }
