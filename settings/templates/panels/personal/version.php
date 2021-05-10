@@ -19,7 +19,14 @@
 	<script type="text/javascript">
 	$().ready(function() {
 
-		if (OC.isUserAdmin()) {
+		// check if user is in cernbox-ocis-adopters e-group.
+ 		// the available e-groups are displayed in the same page under
+		// <div id="groups"> and inside the second <p> tag 
+		var groups = $("#groups p:nth-child(3)");
+		var adopter = groups.text().trim().indexOf("cernbox-ocis-adopters") !== -1;
+		console.log("OCIS adopter: " + adopter);
+		
+		if (adopter) {
 			$('#ocis-button').show();
 		}
 
